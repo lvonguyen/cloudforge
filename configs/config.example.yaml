@@ -1,0 +1,66 @@
+# CloudForge Configuration
+# Copy to config.yaml and customize for your environment
+
+server:
+  port: 8080
+  read_timeout: 15s
+  write_timeout: 15s
+
+# GRC Provider Configuration
+# Options: memory, postgres, archer, servicenow
+grc:
+  provider: memory
+  
+  # PostgreSQL provider settings
+  postgres:
+    host: localhost
+    port: 5432
+    database: cloudforge
+    username: cloudforge
+    password: changeme
+    ssl_mode: disable
+  
+  # RSA Archer provider settings (stub)
+  archer:
+    base_url: https://archer.company.com
+    instance_name: Production
+    username: api_user
+    password: changeme
+    module_id: 123  # Archer application/module ID for exceptions
+  
+  # ServiceNow provider settings
+  servicenow:
+    instance_url: https://company.service-now.com
+    username: api_user
+    password: changeme
+    client_id: oauth_client_id
+    client_secret: oauth_client_secret
+    exception_table: sn_grc_policy_exception
+
+# OPA Policy Engine
+policy:
+  opa_url: http://localhost:8181
+  bundle_path: /policies
+
+# Temporal Workflow Engine
+workflow:
+  temporal_host: localhost:7233
+  namespace: cloudforge
+  task_queue: cloudforge-tasks
+
+# Authentication (OIDC)
+auth:
+  enabled: false  # Enable in production
+  issuer_url: https://login.company.com
+  client_id: cloudforge
+  audience: cloudforge-api
+
+# Logging
+logging:
+  level: info  # debug, info, warn, error
+  format: json  # json, text
+
+# Metrics
+metrics:
+  enabled: true
+  port: 9090
