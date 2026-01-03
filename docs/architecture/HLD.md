@@ -2,9 +2,9 @@
 
 | Property | Value |
 | --- | --- |
-| Version | 1.0 |
+| Version | 1.1 |
 | Author | Liem Vo-Nguyen |
-| Date | December 22, 2024 |
+| Date | January 2026 |
 | Status | Draft |
 
 ---
@@ -373,5 +373,5 @@ All actions are logged with:
 
 **Author:** Liem Vo-Nguyen  
 **Email:** liem@vonguyen.io  
-**LinkedIn:** linkedin.com/in/liemvn
+**LinkedIn:** linkedin.com/in/liemvonguyen
 
