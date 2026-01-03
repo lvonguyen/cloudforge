@@ -28,7 +28,7 @@ type AnthropicProvider struct {
 func NewAnthropicProvider(apiKey string) *AnthropicProvider {
 	return &AnthropicProvider{
 		apiKey: apiKey,
-		model:  "claude-sonnet-4-20250514",
+		model:  "claude-opus-4-5-20250514",
 		httpClient: &http.Client{
 			Timeout: 120 * time.Second,
 		},
