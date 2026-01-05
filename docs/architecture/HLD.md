@@ -255,12 +255,45 @@ flowchart LR
 
 ## 8. Monitoring & Observability
 
-| Component | Tool |
-| --- | --- |
-| Metrics | Prometheus + Grafana |
-| Logging | Structured JSON (zap) to ELK/Splunk |
-| Tracing | OpenTelemetry |
-| Alerting | PagerDuty/Opsgenie integration |
+### 8.1 Telemetry Stack
+
+| Component | Tool | Purpose |
+| --- | --- | --- |
+| Metrics | Prometheus + Grafana | System and application metrics |
+| Logging | Structured JSON (zap) to ELK/Splunk | Centralized log aggregation |
+| Tracing | OpenTelemetry | Distributed tracing across services |
+| Alerting | PagerDuty/Opsgenie | Incident notification |
+
+### 8.2 Key Metrics
+
+| Metric | Description | Alert Threshold |
+| --- | --- | --- |
+| `cloudforge_http_requests_total` | Total HTTP requests by method/path/status | - |
+| `cloudforge_http_request_duration_seconds` | Request latency histogram | P99 > 500ms |
+| `cloudforge_findings_processed_total` | Findings processed by source/type/severity | - |
+| `cloudforge_ai_analysis_duration_seconds` | AI analysis duration | P99 > 30s |
+| `cloudforge_health_status` | Component health (1=healthy, 0=unhealthy) | Any 0 |
+| `cloudforge_rate_limit_hits_total` | Rate limit violations | >100/min |
+
+### 8.3 Health Endpoints
+
+| Endpoint | Purpose | Response |
+| --- | --- | --- |
+| `/live` | Kubernetes liveness probe | `{"status": "alive"}` |
+| `/ready` | Kubernetes readiness probe | Full component health status |
+| `/health` | Detailed health check | All components with latency |
+| `/metrics` | Prometheus metrics | Prometheus format |
+
+### 8.4 Troubleshooting
+
+Built-in troubleshooting capabilities provide remediation suggestions for common issues:
+
+- **Database connection failures**: Connection pooling, credential verification
+- **Redis connection issues**: Endpoint verification, memory analysis
+- **AI provider timeouts**: Fallback provider activation, rate limit handling
+- **High memory/CPU usage**: Profiling endpoints at `/debug/pprof/`
+
+See [Technical Runbooks](../runbooks/README.md) for detailed operational procedures.
 
 ---
 

@@ -58,29 +58,35 @@ CloudForge bridges these needs with a unified platform that provides:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 cloudforge/
 ├── cmd/
 │   └── server/             # API server entrypoint
 ├── internal/
-│   ├── grc/                # GRC provider abstraction (Archer, ServiceNow, Postgres)
-│   ├── handlers/           # HTTP handlers
-│   ├── models/             # Domain models
+│   ├── ai/                 # AI provider integration (Claude, OpenAI)
+│   ├── api/                # API handlers and rate limiting
+│   ├── cicd/               # CI/CD security scanning
+│   │   ├── sast/           # SAST integrations (SonarQube, Checkov, Veracode)
+│   │   └── vcs/            # VCS integrations (GitHub, GitLab, Azure DevOps)
+│   ├── compliance/         # Compliance frameworks and deduplication
+│   ├── container/          # Container security module
+│   ├── grc/                # GRC provider abstraction (Archer, ServiceNow)
+│   ├── identity/           # Identity providers (Entra ID, Okta) + Zero Trust
+│   ├── observability/      # Logging, metrics, tracing, health checks
 │   ├── policy/             # OPA integration
+│   ├── secrets/            # Secrets management module
+│   ├── waf/                # WAF golden templates and compliance scanner
 │   └── workflow/           # Temporal workflow definitions
 ├── migrations/             # Database migrations
 ├── policies/               # OPA/Rego policies
-│   ├── aws/
-│   ├── azure/
-│   ├── gcp/
-│   └── common/
 ├── configs/                # Configuration templates
 ├── docs/
-│   ├── architecture/       # HLD, data models, diagrams
+│   ├── architecture/       # HLD, DDD, data models, diagrams
 │   ├── adr/                # Architecture Decision Records
-│   └── runbooks/           # Operational procedures
+│   ├── runbooks/           # Operational procedures
+│   └── DR-BC.md            # Disaster Recovery & Business Continuity
 └── scripts/                # Utility scripts
 ```
 
@@ -174,26 +180,57 @@ workflow:
   temporal_host: localhost:7233
 ```
 
-## 📖 Documentation
+## Documentation
 
 - [High-Level Design](docs/architecture/HLD.md)
-- [Data Model](docs/architecture/data-model.md)
+- [Detailed Design Document](docs/architecture/DDD.md)
+- [Component Rationale](docs/architecture/component-rationale.md)
+- [DR/BC Plan](docs/DR-BC.md)
 - [API Reference](docs/api.md)
 - [Policy Authoring Guide](docs/policies.md)
-- [Deployment Guide](docs/deployment.md)
 
 ### Architecture Decision Records
-- [ADR-001: Workflow Engine Selection](docs/adr/001-workflow-engine.md)
-- [ADR-002: Policy Engine Selection](docs/adr/002-policy-engine.md)
-- [ADR-003: GRC Integration Pattern](docs/adr/003-grc-integration.md)
+- [ADR-001: Programming Language](docs/adr/ADR-001-programming-language.md)
+- [ADR-002: Database Selection](docs/adr/ADR-002-database-selection.md)
+- [ADR-003: Caching Strategy](docs/adr/ADR-003-caching-strategy.md)
+- [ADR-004: AI Provider Selection](docs/adr/ADR-004-ai-provider-selection.md)
+- [ADR-005: Rate Limiting](docs/adr/ADR-005-rate-limiting.md)
+- [ADR-006: Authentication](docs/adr/ADR-006-authentication.md)
 
-## 🔐 Security Considerations
+### Technical Runbooks
+- [01-deployment.md](docs/runbooks/01-deployment.md) - Deployment procedures
+- [02-incident-response.md](docs/runbooks/02-incident-response.md) - Incident handling
+- [04-performance-troubleshooting.md](docs/runbooks/04-performance-troubleshooting.md) - Performance issues
 
-- All API endpoints require authentication (OIDC)
+## Security Considerations
+
+- All API endpoints require authentication (OIDC via Entra ID/Okta)
 - Service-to-service communication uses mTLS
-- Secrets managed via HashiCorp Vault
+- Secrets managed via HashiCorp Vault with multi-cloud support
 - Audit logging for all provisioning actions
-- RBAC for portal access
+- RBAC with Zero Trust policy enforcement
+- API rate limiting and throttling
+- Container security scanning
+- CI/CD pipeline security (SAST/DAST integration)
+
+## Observability
+
+- **Logging**: Structured JSON logging with zap
+- **Metrics**: Prometheus metrics at `/metrics`
+- **Tracing**: OpenTelemetry distributed tracing
+- **Health**: Kubernetes-ready liveness/readiness probes at `/health`, `/ready`, `/live`
+- **Dashboards**: Grafana dashboards included
+
+## Compliance Frameworks
+
+Built-in support for:
+- **General**: CIS, NIST CSF, ISO 27001, PCI-DSS
+- **Cloud**: AWS Security Best Practice, GCP CIS, Azure MCSB
+- **Healthcare**: HIPAA, HITRUST
+- **Finance**: SOX, GLBA, FFIEC
+- **Government**: FedRAMP, CMMC, NIST 800-53/800-171
+- **AI**: NIST AI RMF, ISO 42001
+- **Automotive**: ISO 21434, UN ECE R155, TISAX
 
 ## 🗺️ Roadmap
 
