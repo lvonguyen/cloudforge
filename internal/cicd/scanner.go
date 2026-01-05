@@ -13,21 +13,21 @@ import (
 
 // Scanner scans CI/CD pipeline configurations for security issues
 type Scanner struct {
-	logger  *zap.Logger
-	config  ScannerConfig
-	rules   []*SecurityRule
+	logger *zap.Logger
+	config ScannerConfig
+	rules  []*SecurityRule
 }
 
 // ScannerConfig configures the CI/CD scanner
 type ScannerConfig struct {
-	FailOnHighSeverity    bool     `yaml:"fail_on_high_severity"`
-	FailOnMediumSeverity  bool     `yaml:"fail_on_medium_severity"`
-	AllowedRunners        []string `yaml:"allowed_runners"`
-	RequireApprovals      bool     `yaml:"require_approvals"`
-	MinApprovers          int      `yaml:"min_approvers"`
-	RequireSignedCommits  bool     `yaml:"require_signed_commits"`
-	BlockedActions        []string `yaml:"blocked_actions"`
-	AllowedRegistries     []string `yaml:"allowed_registries"`
+	FailOnHighSeverity   bool     `yaml:"fail_on_high_severity"`
+	FailOnMediumSeverity bool     `yaml:"fail_on_medium_severity"`
+	AllowedRunners       []string `yaml:"allowed_runners"`
+	RequireApprovals     bool     `yaml:"require_approvals"`
+	MinApprovers         int      `yaml:"min_approvers"`
+	RequireSignedCommits bool     `yaml:"require_signed_commits"`
+	BlockedActions       []string `yaml:"blocked_actions"`
+	AllowedRegistries    []string `yaml:"allowed_registries"`
 }
 
 // PipelineConfig represents a CI/CD pipeline configuration
@@ -43,14 +43,14 @@ type PipelineConfig struct {
 
 // ScanResult represents the result of a pipeline scan
 type ScanResult struct {
-	PipelineName  string        `json:"pipeline_name"`
-	PipelineType  string        `json:"pipeline_type"`
-	FilePath      string        `json:"file_path"`
-	ScannedAt     time.Time     `json:"scanned_at"`
-	Status        string        `json:"status"` // passed, failed, warning
-	Score         float64       `json:"score"`  // 0-100
-	Findings      []Finding     `json:"findings"`
-	Summary       ScanSummary   `json:"summary"`
+	PipelineName string      `json:"pipeline_name"`
+	PipelineType string      `json:"pipeline_type"`
+	FilePath     string      `json:"file_path"`
+	ScannedAt    time.Time   `json:"scanned_at"`
+	Status       string      `json:"status"` // passed, failed, warning
+	Score        float64     `json:"score"`  // 0-100
+	Findings     []Finding   `json:"findings"`
+	Summary      ScanSummary `json:"summary"`
 }
 
 // Finding represents a security finding
@@ -659,4 +659,3 @@ type PipelineSecurityReport struct {
 	Summary        ScanSummary   `json:"summary"`
 	Results        []*ScanResult `json:"results"`
 }
-

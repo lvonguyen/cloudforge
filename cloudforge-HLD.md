@@ -1138,46 +1138,6 @@ POST   /api/v1/runbooks/{id}/approve # Approve AI-generated runbook
 
 ---
 
-## Interview STAR Stories
-
-### Story 1: Platform-Scale Security Governance
-
-**Situation:** Organization managing 270+ cloud environments across AWS, Azure, and GCP needed centralized security governance without creating bottlenecks for developer teams.
-
-**Task:** Design and build an Internal Developer Platform that enforces security policies at provisioning time while enabling developer self-service.
-
-**Action:**
-- Architected policy-as-code framework using OPA/Rego with gold templates
-- Implemented AI-powered contextual risk scoring to reduce alert fatigue
-- Built self-service portal with intelligent GRC routing for exceptions
-- Designed cross-cloud identity federation eliminating stored credentials
-
-**Result:**
-- Reduced provisioning approval time from 5 days to < 4 hours for compliant requests
-- Achieved 96% finding closure rate through automated Asana integration
-- Zero credential exposure incidents through workload identity adoption
-- Platform adopted across all business units with 95% developer satisfaction
-
-### Story 2: AI-Enhanced Security Operations
-
-**Situation:** Security team overwhelmed with 1,600+ findings per quarter, many lacking business context for prioritization.
-
-**Task:** Implement intelligent triage that contextualizes raw severity with business risk factors.
-
-**Action:**
-- Built AI service that enriches findings with asset tier, network exposure, compensating controls
-- Implemented contextual risk scoring reducing CRITICAL→LOW when justified
-- Created finding explainer generating developer-friendly remediation guidance
-- Developed runbook generation with human-in-the-loop approval
-
-**Result:**
-- Reduced actionable findings by 40% through intelligent false positive detection
-- Average remediation time decreased from 14 days to 3 days
-- Developer satisfaction with security guidance increased 60%
-- Security team able to focus on high-impact issues vs. noise
-
----
-
 ## Contact
 
 **Author:** Liem Vo-Nguyen  
