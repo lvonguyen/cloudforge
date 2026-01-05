@@ -2,376 +2,306 @@
 
 | Property | Value |
 | --- | --- |
-| Version | 1.1 |
+| Version | 2.0 |
 | Author | Liem Vo-Nguyen |
 | Date | January 2026 |
-| Status | Draft |
+| Status | Active |
+| LinkedIn | [linkedin.com/in/liemvonguyen](https://linkedin.com/in/liemvonguyen) |
+
+### Related Documents
+
+| Document | Description |
+|----------|-------------|
+| [Detailed Design Document (DDD)](./DDD.md) | Implementation-level technical specifications |
+| [Component Rationale](./component-rationale.md) | Technology selection with cost analysis |
+| [DR/BC Plan](../DR-BC.md) | Disaster Recovery and Business Continuity |
+| [Pitch Deck](../pitch-deck.md) | Executive presentation |
 
 ---
 
 ## 1. Executive Summary
 
-This document describes the architecture for CloudForge, an Internal Developer Platform (IDP) that enables self-service cloud resource provisioning with built-in governance, compliance guardrails, and exception management workflows. The solution bridges the gap between developer velocity and enterprise security/compliance requirements.
+CloudForge is an Enterprise Cloud Governance Platform that provides:
+- Self-service cloud resource provisioning with built-in governance guardrails
+- Multi-framework compliance mapping (CIS, NIST, ISO, PCI-DSS, HIPAA, etc.)
+- AI-powered risk analysis and toxic combination detection
+- CI/CD security scanning integration (SonarQube, Checkov, Veracode)
+- VCS integration (GitHub, GitLab, Azure DevOps)
+- Identity and Zero Trust policy enforcement (Entra ID, Okta)
 
 ### 1.1 Business Drivers
 
 - Enable self-service infrastructure provisioning without bypassing security controls
 - Enforce policy-as-code guardrails across multi-cloud environments (AWS, Azure, GCP)
 - Integrate with enterprise GRC tools (RSA Archer, ServiceNow) for exception management
-- Provide golden path Terraform modules to standardize infrastructure patterns
-- Reduce infrastructure request ticket backlog and approval cycle times
-- Maintain audit trails for compliance and regulatory requirements
+- Provide comprehensive compliance mapping across 20+ frameworks
+- AI-powered contextual risk scoring beyond static severity
+- CI/CD pipeline security with SAST/DAST/IaC scanning
 
 ---
 
 ## 2. Architecture Overview
 
-The solution uses a layered architecture with a Go-based API server, Temporal workflows for orchestration, OPA/Rego for policy evaluation, and pluggable integrations for GRC platforms and cloud providers.
+```mermaid
+flowchart TB
+    subgraph Portal["Portal Layer"]
+        UI[Backstage/React UI]
+        API[REST API]
+    end
 
-### 2.1 Architecture Diagram
+    subgraph Core["Core Platform"]
+        PolicyEngine[OPA/Rego Policy Engine]
+        Orchestration[Temporal Workflows]
+        AIAnalyzer[AI Risk Analyzer]
+        ComplianceEngine[Compliance Framework Engine]
+    end
 
+    subgraph Security["Security Modules"]
+        WAF[WAF Golden Templates]
+        Container[Container Security]
+        Secrets[Secrets Management]
+        APISec[API Security Scanner]
+        CICD[CI/CD Security]
+        Identity[Identity/Zero Trust]
+    end
+
+    subgraph Integrations["External Integrations"]
+        VCS[VCS: GitHub/GitLab/ADO]
+        SAST[SAST: SonarQube/Veracode]
+        IaC[IaC: Checkov/Terraform]
+        GRC[GRC: Archer/ServiceNow]
+        Cloud[Cloud: AWS/Azure/GCP]
+        IdP[IdP: Entra ID/Okta]
+    end
+
+    subgraph Compliance["Compliance Frameworks"]
+        General[CIS/NIST/ISO]
+        Finance[PCI-DSS/SOX/GLBA]
+        Health[HIPAA/HITRUST]
+        Gov[FedRAMP/STIG]
+        AI[NIST AI RMF/ISO 42001]
+    end
+
+    UI --> API
+    API --> PolicyEngine
+    API --> Orchestration
+    API --> AIAnalyzer
+    API --> ComplianceEngine
+
+    PolicyEngine --> Security
+    ComplianceEngine --> Compliance
+    Security --> Integrations
 ```
-+-----------------------------------------------------------------------------+
-|                           CloudForge Platform                                |
-+-----------------------------------------------------------------------------+
-|                                                                              |
-|  +------------------+    +------------------+    +------------------+        |
-|  |   Portal Layer   |    |   Orchestration  |    |  Policy Engine   |        |
-|  |   (Backstage)    |    |   (Temporal)     |    |   (OPA/Rego)     |        |
-|  +--------+---------+    +--------+---------+    +--------+---------+        |
-|           |                       |                       |                  |
-|           +-----------------------+-----------------------+                  |
-|                                   |                                          |
-|                                   v                                          |
-|              +--------------------------------------------+                  |
-|              |           Go API Server                    |                  |
-|              |  +----------------+  +------------------+  |                  |
-|              |  | GRC Providers  |  | Cloud Providers  |  |                  |
-|              |  | - Archer       |  | - AWS            |  |                  |
-|              |  | - ServiceNow   |  | - Azure          |  |                  |
-|              |  | - PostgreSQL   |  | - GCP            |  |                  |
-|              |  +----------------+  +------------------+  |                  |
-|              +--------------------------------------------+                  |
-|                                   |                                          |
-|              +--------------------+--------------------+                     |
-|              |                    |                    |                     |
-|              v                    v                    v                     |
-|        +----------+        +----------+        +---------------+             |
-|        | Terraform|        | CMDB     |        | Audit Logs    |             |
-|        | Modules  |        | (SNOW)   |        | (PostgreSQL)  |             |
-|        +----------+        +----------+        +---------------+             |
-|                                                                              |
-+-----------------------------------------------------------------------------+
-```
 
-### 2.2 Component Summary
+### 2.1 Component Summary
 
 | Component | Purpose | Technology |
 | --- | --- | --- |
 | Portal Layer | Self-service UI for requests and dashboards | Backstage / React |
 | Orchestration Engine | Workflow management for approvals and provisioning | Temporal |
 | Policy Engine | Evaluate requests against governance rules | OPA / Rego |
-| API Server | Central hub for all platform operations | Go 1.21 |
-| GRC Providers | Abstract enterprise GRC tool integrations | Pluggable Go interfaces |
-| Cloud Providers | Abstract cloud resource provisioning | AWS/Azure/GCP SDKs |
-| Terraform Executor | Apply golden path modules | Atlantis / Terraform Cloud |
-| State Store | Audit logs and request history | PostgreSQL |
+| AI Risk Analyzer | Contextual risk scoring, toxic combo detection | Claude Opus 4.5 / GPT-4 |
+| Compliance Engine | Multi-framework compliance mapping and assessment | Go |
+| WAF Module | Golden templates and compliance scanning | Go |
+| Container Security | Image scanning, runtime security | Go + Trivy |
+| Secrets Management | Multi-cloud secrets with rotation | Go |
+| API Security | OpenAPI analysis, vulnerability detection | Go |
+| CI/CD Security | Pipeline and dependency scanning | Go |
+| Identity Module | Zero Trust policy enforcement, RBAC | Go |
+| VCS Integration | GitHub/GitLab/Azure DevOps APIs | Go |
+| SAST Integration | SonarQube, Veracode, Checkov | Go |
+| GRC Integration | Archer, ServiceNow ticketing | Go |
 
 ---
 
-## 3. Portal Layer
+## 3. Compliance Framework Engine
 
-### 3.1 Self-Service Capabilities
+### 3.1 Supported Frameworks
 
-| Feature | Description |
+| Sector | Frameworks |
 | --- | --- |
-| Application Registration | Register apps with metadata (owner, tier, CBU, data classification) |
-| Infrastructure Catalog | Browse and request from pre-approved Terraform modules |
-| Exception Requests | Submit policy exception requests with business justification |
-| Compliance Dashboard | View policy compliance status across resources |
-| Request Tracking | Track approval and provisioning status |
+| General | CIS Benchmarks v8, NIST CSF 2.0, ISO 27001:2022, ISO 27017 |
+| Cloud | AWS Security Best Practices, GCP CIS v2, Azure MCSB |
+| Healthcare | HIPAA Security Rule, HITRUST CSF v11 |
+| Finance | PCI-DSS 4.0, SOX ITGC, GLBA Safeguards Rule, FFIEC |
+| Government | NIST 800-53 Rev 5, FedRAMP, DISA STIGs |
+| AI/ML | NIST AI RMF 1.0, ISO 42001:2023 |
 
-### 3.2 User Roles
+### 3.2 Finding Schema
 
-| Role | Capabilities |
+Comprehensive finding schema including:
+
+| Field Category | Key Fields |
 | --- | --- |
-| Developer | Submit requests, view own resources |
-| Team Lead | Approve team requests, view team resources |
-| Platform Admin | Manage catalog, configure policies |
-| Security | Review exceptions, view compliance reports |
-| Finance | View cost reports, manage budgets |
+| Identification | ID, Source, Type, Title, Description |
+| Resource | ResourceType, ResourceID, Platform, CloudProvider, Region |
+| On-Prem | Hostname, SerialNumber, IPAddress, AssetTag |
+| Environment | EnvironmentType (prod/non-prod), AccountID, VPC |
+| Severity | StaticSeverity, AIRiskScore, AIRiskLevel, CVSS, EPSS |
+| Vulnerability | CVEs (with hyperlinks), CWEs, ExploitAvailable |
+| Compliance | ComplianceMappings (framework, control, section, URL) |
+| Ownership | TechnicalContact, ServiceName, LineOfBusiness, Team |
+| Workflow | Status, FalsePositive, TicketID, DueDate, SLABreachDate |
+| Deduplication | DeduplicationKey, CanonicalRuleID, RelatedRules |
+
+### 3.3 AI-Powered Analysis
+
+- **Contextual Risk Scoring**: Environment, exploitability, blast radius
+- **Toxic Combination Detection**: Identifies high-risk finding combinations
+- **Misconfiguration Analysis**: Root cause, impact, remediation steps
+- **Vulnerability Analysis**: Exploit likelihood, attack surface, priority
+
+### 3.4 Deduplication Logic
+
+When a finding is captured by multiple rules:
+1. Generate deduplication key from resource + rule + finding details
+2. Map rule to canonical rule using equivalence mappings
+3. Keep most specific/relevant rule based on priority hierarchy
+4. Link related rules as references
 
 ---
 
-## 4. Orchestration Layer (Temporal)
+## 4. CI/CD Security Module
 
-### 4.1 Workflow Types
+### 4.1 VCS Providers
 
-| Workflow | Purpose | Steps |
-| --- | --- | --- |
-| Registration | Onboard new application | Validate metadata -> Create CMDB entry -> Assign resource group |
-| Approval | Route requests for approval | Check policy -> Route to approvers -> Collect signatures |
-| Provisioning | Deploy infrastructure | Validate -> Plan Terraform -> Approval gate -> Apply -> Update CMDB |
-| Compliance Scan | Periodic policy checks | Query resources -> Evaluate policies -> Generate findings |
-| Exception | Handle policy exceptions | Submit to GRC -> Approval workflow -> Store decision -> Update policy |
-
-### 4.2 Workflow Activities
-
-```go
-type ProvisioningWorkflow struct {
-    RequestID     string
-    ApplicationID string
-    ModuleID      string
-    Parameters    map[string]interface{}
-}
-
-// Activities
-- ValidateRequest()      // Check request format and permissions
-- EvaluatePolicies()     // OPA policy evaluation
-- GenerateTerraformPlan() // Create execution plan
-- AwaitApproval()        // Human approval gate
-- ApplyTerraform()       // Execute infrastructure changes
-- UpdateCMDB()           // Record in ServiceNow
-- SendNotification()     // Notify stakeholders
-```
-
----
-
-## 5. Policy Engine (OPA/Rego)
-
-### 5.1 Policy Categories
-
-| Category | Example Rules | Enforcement |
-| --- | --- | --- |
-| Region Restrictions | Allow only us-east-1, us-west-2, westus2 | Hard block |
-| Instance Size Limits | Max m5.xlarge for Tier 2 apps | Hard block |
-| Network Exposure | No public IPs without exception | Soft block + exception |
-| Tagging Requirements | Require owner, cost-center, environment | Hard block |
-| Cost Controls | Max $5000/month per resource group | Soft block + approval |
-| Data Residency | PII data only in approved regions | Hard block |
-
-### 5.2 Policy Evaluation Flow
-
-```
-1. Request submitted via portal
-   |
-2. API Server receives request
-   |
-3. Build OPA input document:
-   - Request parameters
-   - Application metadata
-   - User context
-   - Active exceptions
-   |
-4. Query OPA policy bundle:
-   POST /v1/data/cloudforge/allow
-   |
-5. Process result:
-   - allow = true -> Continue to provisioning
-   - allow = false -> Check for valid exception
-   - exception required -> Route to GRC workflow
-```
-
-### 5.3 Sample Rego Policy
-
-```rego
-package cloudforge.aws
-
-import future.keywords.in
-
-default allow := false
-
-# Allow if all policies pass
-allow {
-    region_allowed
-    instance_size_allowed
-    tags_complete
-}
-
-# Region policy
-region_allowed {
-    input.request.region in data.allowed_regions
-}
-
-# Instance size policy
-instance_size_allowed {
-    tier := input.application.tier
-    size := input.request.instance_type
-    size in data.allowed_sizes[tier]
-}
-
-# Tagging policy
-tags_complete {
-    required := {"owner", "cost-center", "environment", "application-id"}
-    provided := {tag | input.request.tags[tag]}
-    required - provided == set()
-}
-```
-
----
-
-## 6. GRC Integration Layer
-
-### 6.1 Provider Interface
-
-```go
-type GRCProvider interface {
-    // Exception management
-    CreateException(ctx context.Context, req ExceptionRequest) (*Exception, error)
-    GetException(ctx context.Context, id string) (*Exception, error)
-    UpdateException(ctx context.Context, id string, status ExceptionStatus) error
-    ListExceptions(ctx context.Context, filter ExceptionFilter) ([]Exception, error)
-    
-    // Validation
-    ValidateException(ctx context.Context, policyID string, exceptionID string) (bool, error)
-}
-```
-
-### 6.2 Supported Providers
-
-| Provider | Status | Features |
-| --- | --- | --- |
-| RSA Archer | Implemented | Full exception lifecycle, approval workflows |
-| ServiceNow GRC | Implemented | Exception records, CMDB integration |
-| PostgreSQL | Implemented | Lightweight, self-contained option |
-| In-Memory | Implemented | Testing and demos |
-
-### 6.3 Exception Data Model
-
-```go
-type Exception struct {
-    ID              string            `json:"id"`
-    PolicyID        string            `json:"policy_id"`
-    ApplicationID   string            `json:"application_id"`
-    RequestedBy     string            `json:"requested_by"`
-    BusinessJustification string      `json:"business_justification"`
-    RiskAssessment  string            `json:"risk_assessment"`
-    CompensatingControls []string     `json:"compensating_controls"`
-    Status          ExceptionStatus   `json:"status"`
-    ApprovedBy      string            `json:"approved_by,omitempty"`
-    ExpiresAt       time.Time         `json:"expires_at"`
-    CreatedAt       time.Time         `json:"created_at"`
-    UpdatedAt       time.Time         `json:"updated_at"`
-}
-```
-
----
-
-## 7. Golden Path Terraform Modules
-
-### 7.1 Module Catalog
-
-| Module | Cloud | Description |
-| --- | --- | --- |
-| web-app-standard | AWS | ALB + ECS Fargate + RDS PostgreSQL |
-| web-app-standard | Azure | App Gateway + AKS + Azure SQL |
-| data-lake | AWS | S3 + Glue + Athena |
-| data-lake | GCP | GCS + BigQuery |
-| api-gateway | AWS | API Gateway + Lambda + DynamoDB |
-| kubernetes-cluster | Multi | EKS / AKS / GKE with standard config |
-
-### 7.2 Module Versioning
-
-- Semantic versioning (v1.2.3)
-- Breaking changes require major version bump
-- Security patches auto-applied to minor versions
-- Deprecation notices 90 days before removal
-
----
-
-## 8. Security Considerations
-
-### 8.1 Authentication and Authorization
-
-| Layer | Mechanism |
+| Provider | Features |
 | --- | --- |
-| Portal | OIDC (Okta / Azure AD) |
-| API Server | JWT validation + RBAC |
-| Service-to-Service | mTLS |
-| Cloud Access | Workload Identity / IRSA |
-| Secrets | HashiCorp Vault |
+| GitHub/GitHub Enterprise | Repos, PRs, Actions, Dependabot alerts, Check runs |
+| GitLab | Projects, MRs, Pipelines, Vulnerability findings |
+| Azure DevOps | Repos, PRs, Pipelines, Advanced Security alerts |
 
-### 8.2 Audit Logging
+### 4.2 SAST/DAST Tools
 
-All actions are logged with:
-- Timestamp
-- Actor (user or service)
-- Action type
-- Resource affected
-- Request/response payloads (redacted)
-- Source IP
-
----
-
-## 9. Data Flow
-
-### 9.1 Infrastructure Request Flow
-
-```
-1. Developer submits request via portal
-   |
-2. API Server validates request format
-   |
-3. Temporal workflow initiated
-   |
-4. OPA policy evaluation:
-   ├── Pass -> Continue
-   └── Fail -> Check exceptions or route to GRC
-   |
-5. Approval workflow (if required by policy)
-   |
-6. Terraform plan generated
-   |
-7. Plan reviewed and approved
-   |
-8. Terraform apply executed
-   |
-9. Resources recorded in CMDB
-   |
-10. Developer notified with access details
-```
-
----
-
-## 10. Future Enhancements
-
-| Enhancement | Benefit | Complexity |
+| Tool | Type | Integration |
 | --- | --- | --- |
-| Cost Estimation | Show projected costs before approval | Medium |
-| Drift Detection | Alert when resources deviate from Terraform | Medium |
-| Self-Healing | Auto-remediate policy violations | High |
-| Backstage Integration | Native plugin for developer portal | Medium |
-| FinOps Integration | Anomaly detection, showback reports | Medium |
+| SonarQube/SonarCloud | SAST | API-based project/issue retrieval |
+| Checkov | IaC | CLI execution with JSON parsing |
+| Veracode | SAST/DAST | HMAC-authenticated API |
 
 ---
 
-## 11. Reference
+## 5. Identity and Zero Trust Module
 
-### 11.1 Technology Stack
+### 5.1 Identity Providers
 
-| Layer | Technology |
+| Provider | Capabilities |
 | --- | --- |
-| Language | Go 1.21+ |
-| Portal | Backstage / React |
-| Workflows | Temporal |
-| Policies | OPA / Rego |
-| IaC | Terraform |
-| Database | PostgreSQL |
+| Microsoft Entra ID | User/Group management, Risk scoring, PIM integration |
+| Okta | User/Group management, Role assignment |
+
+### 5.2 Zero Trust Policies
+
+- Block high-risk sign-ins
+- Require MFA for sensitive operations
+- Device compliance verification
+- Contextual access decisions
+
+---
+
+## 6. Deployment Architecture
+
+### 6.1 Multi-Cloud Support
+
+```mermaid
+flowchart LR
+    subgraph Primary["Primary (AWS)"]
+        EKS[EKS Cluster]
+        RDS[(RDS PostgreSQL)]
+        S3[S3 State]
+    end
+
+    subgraph DR["DR (Azure)"]
+        AKS[AKS Cluster]
+        PostgresAz[(Azure PostgreSQL)]
+        Blob[Blob Storage]
+    end
+
+    subgraph Tertiary["Tertiary (GCP)"]
+        GKE[GKE Cluster]
+        CloudSQL[(Cloud SQL)]
+        GCS[Cloud Storage]
+    end
+
+    EKS <-->|Cross-Region Sync| AKS
+    AKS <-->|Cross-Region Sync| GKE
+```
+
+### 6.2 High Availability
+
+- Active-Active across 2+ regions
+- Database replication with automatic failover
+- State synchronization via distributed consensus
+- < 1 minute RTO for compute failures
+
+---
+
+## 7. Security Considerations
+
+### 7.1 Authentication & Authorization
+
+- OIDC/WIF for cloud provider access
+- Mutual TLS for service-to-service
+- RBAC with least privilege
+- API keys rotated via secrets management
+
+### 7.2 Data Protection
+
+- Encryption at rest (AES-256)
+- Encryption in transit (TLS 1.3)
+- Secrets in cloud-native vaults (AWS Secrets Manager, Azure Key Vault, GCP Secret Manager)
+
+---
+
+## 8. Monitoring & Observability
+
+| Component | Tool |
+| --- | --- |
+| Metrics | Prometheus + Grafana |
+| Logging | Structured JSON (zap) to ELK/Splunk |
+| Tracing | OpenTelemetry |
+| Alerting | PagerDuty/Opsgenie integration |
+
+---
+
+## 9. API Reference
+
+### 9.1 Core Endpoints
+
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| /api/v1/findings | GET/POST | List/create findings |
+| /api/v1/findings/{id}/compliance | GET | Get compliance mappings |
+| /api/v1/findings/{id}/risk | GET | Get AI risk assessment |
+| /api/v1/compliance/frameworks | GET | List available frameworks |
+| /api/v1/compliance/frameworks/{id}/controls | GET | List framework controls |
+| /api/v1/cicd/scan | POST | Trigger CI/CD security scan |
+| /api/v1/identity/evaluate | POST | Evaluate Zero Trust policy |
+
+---
+
+## Appendix A: Technology Stack
+
+| Category | Technology |
+| --- | --- |
+| Language | Go 1.22 |
+| API Framework | Chi / Gin |
+| Database | PostgreSQL 16 |
 | Cache | Redis |
-| Messaging | NATS |
-
-### 11.2 Reference Links
-
-- OPA Documentation: https://www.openpolicyagent.org/docs/latest/
-- Temporal Documentation: https://docs.temporal.io/
-- Backstage: https://backstage.io/docs/overview/what-is-backstage
-- Terraform Modules: https://developer.hashicorp.com/terraform/language/modules
+| Orchestration | Temporal |
+| Policy Engine | OPA / Rego |
+| AI | Anthropic Claude Opus 4.5, OpenAI GPT-4 |
+| IaC | Terraform |
+| Container Runtime | Kubernetes (EKS/AKS/GKE) |
 
 ---
 
-## Contact
+## Appendix B: Diagram Formats
 
-**Author:** Liem Vo-Nguyen  
-**Email:** liem@vonguyen.io  
-**LinkedIn:** linkedin.com/in/liemvonguyen
+**Note on LucidChart Import**: Mermaid diagrams are rendered as static images when imported to LucidChart. For editable diagrams:
 
+1. **Recommended**: Create directly in LucidChart or use draw.io
+2. **Export**: Use draw.io XML format for cross-platform compatibility
+3. **Alternative**: Use PlantUML with LucidChart import extension
+
+Architecture diagrams in this document use Mermaid for GitHub rendering and can be recreated in LucidChart for presentation purposes.
