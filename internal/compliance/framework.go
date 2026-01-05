@@ -4,10 +4,7 @@ package compliance
 import (
 	"context"
 	"fmt"
-	"regexp"
-	"sort"
 	"strings"
-	"time"
 
 	"go.uber.org/zap"
 )
@@ -50,61 +47,8 @@ type Control struct {
 	Keywords    []string `json:"keywords" yaml:"keywords"` // For matching
 }
 
-// Finding represents a security finding with compliance mappings
-type Finding struct {
-	ID                string                `json:"id"`
-	Source            string                `json:"source"`
-	Type              string                `json:"type"` // misconfiguration, vulnerability, toxic_combo
-	Title             string                `json:"title"`
-	Description       string                `json:"description"`
-	Severity          string                `json:"severity"`
-	Resource          string                `json:"resource"`
-	ResourceType      string                `json:"resource_type"`
-	CloudProvider     string                `json:"cloud_provider"`
-	Region            string                `json:"region"`
-	CVEs              []CVEReference        `json:"cves"`
-	CWEs              []string              `json:"cwes"`
-	ComplianceMappings []ComplianceMapping  `json:"compliance_mappings"`
-	Remediation       string                `json:"remediation"`
-	ToxicComboDetails *ToxicComboDetails    `json:"toxic_combo_details,omitempty"`
-	DeduplicationKey  string                `json:"deduplication_key"`
-	CanonicalRuleID   string                `json:"canonical_rule_id"`
-	RelatedRules      []string              `json:"related_rules"`
-	Timestamp         time.Time             `json:"timestamp"`
-	RawData           map[string]interface{} `json:"raw_data,omitempty"`
-}
-
-// CVEReference represents a CVE with hyperlink
-type CVEReference struct {
-	ID          string  `json:"id"`
-	URL         string  `json:"url"`
-	Description string  `json:"description"`
-	CVSS        float64 `json:"cvss"`
-	CVSSVector  string  `json:"cvss_vector"`
-	Published   string  `json:"published"`
-	Modified    string  `json:"modified"`
-}
-
-// ComplianceMapping maps a finding to a compliance control
-type ComplianceMapping struct {
-	FrameworkID   string `json:"framework_id"`
-	FrameworkName string `json:"framework_name"`
-	ControlID     string `json:"control_id"`
-	ControlTitle  string `json:"control_title"`
-	Section       string `json:"section"`
-	Severity      string `json:"severity"`
-	URL           string `json:"url"`
-}
-
-// ToxicComboDetails describes a toxic combination of findings
-type ToxicComboDetails struct {
-	ComboType        string   `json:"combo_type"`
-	Description      string   `json:"description"`
-	RelatedFindings  []string `json:"related_findings"`
-	AttackVector     string   `json:"attack_vector"`
-	ExploitPotential string   `json:"exploit_potential"`
-	MITRETechniques  []string `json:"mitre_techniques"`
-}
+// Note: Finding, CVEReference, ComplianceMapping, and ToxicComboDetails
+// are defined in finding.go with the enhanced schema
 
 // Manager manages compliance frameworks and mapping
 type Manager struct {
@@ -243,7 +187,7 @@ func (m *Manager) MapFinding(ctx context.Context, finding *Finding, sector Secto
 func (m *Manager) findMatchingControls(finding *Finding, fw *Framework) []ComplianceMapping {
 	var mappings []ComplianceMapping
 
-	findingText := strings.ToLower(finding.Title + " " + finding.Description + " " + finding.ResourceType)
+	findingText := strings.ToLower(finding.Title + " " + finding.Description + " " + string(finding.ResourceType))
 
 	for _, control := range fw.Controls {
 		if m.controlMatchesFinding(control, finding, findingText) {
