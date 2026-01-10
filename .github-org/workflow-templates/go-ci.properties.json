@@ -1,0 +1,7 @@
+{
+  "name": "Go CI",
+  "description": "Build, test, and lint Go projects following portfolio standards.",
+  "iconName": "go",
+  "categories": ["Go"],
+  "filePatterns": ["go.mod"]
+}
