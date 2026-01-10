@@ -1,0 +1,107 @@
+# Terraform CI Template for GitLab
+# Include in your repo: include: 'https://gitlab.com/lvonguyen/lvonguyen-group/portfolio/shared/ci-templates/terraform-ci.yml'
+
+stages:
+  - validate
+  - security
+  - plan
+
+variables:
+  TF_VERSION: "1.9.0"
+  TF_ROOT: "infra"
+
+.terraform-cache:
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-terraform
+    paths:
+      - ${TF_ROOT}/.terraform/
+
+.terraform-setup:
+  image:
+    name: hashicorp/terraform:${TF_VERSION}
+    entrypoint: [""]
+  before_script:
+    - cd ${TF_ROOT}
+    - terraform init -backend=false
+
+fmt:
+  stage: validate
+  extends:
+    - .terraform-setup
+  script:
+    - terraform fmt -check -recursive
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - "**/*.tf"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - "**/*.tf"
+
+validate:
+  stage: validate
+  extends:
+    - .terraform-setup
+    - .terraform-cache
+  script:
+    - terraform validate
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - "**/*.tf"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - "**/*.tf"
+
+tfsec:
+  stage: security
+  image:
+    name: aquasec/tfsec:latest
+    entrypoint: [""]
+  script:
+    - tfsec ${TF_ROOT} --format json --out tfsec-results.json || true
+    - tfsec ${TF_ROOT} --format lovely
+  artifacts:
+    reports:
+      sast: tfsec-results.json
+    expire_in: 7 days
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - "**/*.tf"
+
+checkov:
+  stage: security
+  image:
+    name: bridgecrew/checkov:latest
+    entrypoint: [""]
+  script:
+    - checkov -d ${TF_ROOT} --output cli --output junitxml --output-file-path . || true
+  artifacts:
+    reports:
+      junit: results_junitxml.xml
+    expire_in: 7 days
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - "**/*.tf"
+
+# Plan job (requires cloud credentials)
+plan:
+  stage: plan
+  extends:
+    - .terraform-setup
+    - .terraform-cache
+  script:
+    - terraform plan -out=tfplan -input=false
+  artifacts:
+    paths:
+      - ${TF_ROOT}/tfplan
+    expire_in: 7 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - "**/*.tf"
+      when: manual
