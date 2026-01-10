@@ -1,0 +1,55 @@
+name: Terraform CI
+
+on:
+  push:
+    branches: [$default-branch]
+    paths:
+      - 'infra/**'
+      - '*.tf'
+  pull_request:
+    branches: [$default-branch]
+    paths:
+      - 'infra/**'
+      - '*.tf'
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.7'
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        run: |
+          for dir in $(find . -name "*.tf" -exec dirname {} \; | sort -u); do
+            echo "Initializing $dir"
+            terraform -chdir="$dir" init -backend=false
+          done
+
+      - name: Terraform validate
+        run: |
+          for dir in $(find . -name "*.tf" -exec dirname {} \; | sort -u); do
+            echo "Validating $dir"
+            terraform -chdir="$dir" validate
+          done
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: terraform
+          soft_fail: true
