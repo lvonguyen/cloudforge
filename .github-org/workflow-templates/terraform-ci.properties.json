@@ -1,0 +1,7 @@
+{
+  "name": "Terraform CI",
+  "description": "Validate and security scan Terraform configurations.",
+  "iconName": "terraform",
+  "categories": ["Terraform", "Infrastructure"],
+  "filePatterns": ["*.tf", "infra/**"]
+}

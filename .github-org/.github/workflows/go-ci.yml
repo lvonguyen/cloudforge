@@ -1,0 +1,85 @@
+# Reusable Go CI Workflow
+# Usage: uses: lvonguyen/.github/.github/workflows/go-ci.yml@main
+
+name: Go CI (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        description: 'Go version to use'
+        required: false
+        type: string
+        default: '1.24'
+      run-opa:
+        description: 'Run OPA policy tests'
+        required: false
+        type: boolean
+        default: false
+      opa-path:
+        description: 'Path to OPA policies'
+        required: false
+        type: string
+        default: 'policies/'
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Test
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+          retention-days: 7
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+          cache: true
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+
+  opa:
+    name: OPA Policy Test
+    runs-on: ubuntu-latest
+    if: ${{ inputs.run-opa }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up OPA
+        uses: open-policy-agent/setup-opa@v2
+        with:
+          version: latest
+
+      - name: Test policies
+        run: opa test ${{ inputs.opa-path }} -v
