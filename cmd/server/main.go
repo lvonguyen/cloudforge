@@ -108,7 +108,7 @@ func (s *Server) setupRoutes() {
 }
 
 func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(map[string]string{
+	_ = json.NewEncoder(w).Encode(map[string]string{
 		"status":  "healthy",
 		"version": "0.1.0",
 	})
@@ -129,7 +129,7 @@ func (s *Server) createException(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(created)
+	_ = json.NewEncoder(w).Encode(created)
 }
 
 func (s *Server) getException(w http.ResponseWriter, r *http.Request) {
@@ -143,7 +143,7 @@ func (s *Server) getException(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(exc)
+	_ = json.NewEncoder(w).Encode(exc)
 }
 
 func (s *Server) submitApproval(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +162,7 @@ func (s *Server) submitApproval(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "approval recorded"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "approval recorded"})
 }
 
 func (s *Server) getPendingApprovals(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +179,7 @@ func (s *Server) getPendingApprovals(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(pending)
+	_ = json.NewEncoder(w).Encode(pending)
 }
 
 func (s *Server) getExpiringExceptions(w http.ResponseWriter, r *http.Request) {
@@ -190,7 +190,7 @@ func (s *Server) getExpiringExceptions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(expiring)
+	_ = json.NewEncoder(w).Encode(expiring)
 }
 
 func (s *Server) getExceptionsByApp(w http.ResponseWriter, r *http.Request) {
@@ -204,7 +204,7 @@ func (s *Server) getExceptionsByApp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(exceptions)
+	_ = json.NewEncoder(w).Encode(exceptions)
 }
 
 // ValidateExceptionRequest is the request body for exception validation
@@ -227,7 +227,7 @@ func (s *Server) validateException(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(validation)
+	_ = json.NewEncoder(w).Encode(validation)
 }
 
 func getEnv(key, defaultValue string) string {
