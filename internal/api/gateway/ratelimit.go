@@ -18,7 +18,7 @@ type RateLimiter struct {
 	redis       *redis.Client
 	logger      *zap.Logger
 	config      RateLimitConfig
-	_localLimits sync.Map // Fallback for Redis unavailability
+	localLimits sync.Map //nolint:unused // Fallback for Redis unavailability
 }
 
 // RateLimitConfig configures the rate limiter
