@@ -364,7 +364,7 @@ func (t *Telemetry) Shutdown(ctx context.Context) error {
 				err = e
 			}
 		}
-		t.logger.Sync()
+		_ = t.logger.Sync()
 	})
 	return err
 }

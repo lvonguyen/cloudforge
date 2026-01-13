@@ -26,7 +26,7 @@ type ArcherConfig struct {
 type ArcherGRCProvider struct {
 	config     ArcherConfig
 	httpClient *http.Client
-	authToken  string
+	_authToken  string // Reserved for future auth implementation
 }
 
 // NewArcherGRCProvider creates a new RSA Archer GRC provider.
