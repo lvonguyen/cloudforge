@@ -1,0 +1,7 @@
+{
+  "name": "Python CI",
+  "description": "Build, test, and lint Python projects using uv and ruff.",
+  "iconName": "python",
+  "categories": ["Python"],
+  "filePatterns": ["pyproject.toml", "requirements.txt"]
+}
