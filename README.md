@@ -32,36 +32,36 @@ CloudForge bridges these needs with a unified platform that provides:
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia'}}}%%
 flowchart TB
-    subgraph Portal["Portal Layer (React / Next.js)"]
+    subgraph Portal["🖥️ Portal Layer (React / Next.js)"]
         style Portal fill:#3b82f6,stroke:#1e3a8a,color:#fff
-        A1[App Registration]
-        A2[Infra Catalog]
-        A3[Exception Request]
-        A4[Dashboard & Reports]
+        A1["📝 App Registration"]
+        A2["📚 Infra Catalog"]
+        A3["⚠️ Exception Request"]
+        A4["📊 Dashboard and Reports"]
     end
 
-    subgraph Orchestration["Orchestration Layer (Temporal)"]
+    subgraph Orchestration["⚙️ Orchestration Layer (Temporal)"]
         style Orchestration fill:#f59e0b,stroke:#b45309,color:#fff
-        B1[Registration Workflow]
-        B2[Approval Workflow]
-        B3[Provisioning Workflow]
-        B4[Compliance Scan Workflow]
+        B1["📋 Registration Workflow"]
+        B2["✅ Approval Workflow"]
+        B3["🚀 Provisioning Workflow"]
+        B4["🔍 Compliance Scan Workflow"]
     end
 
-    subgraph Policy["Policy Engine (OPA / Rego)"]
+    subgraph Policy["🛡️ Policy Engine (OPA / Rego)"]
         style Policy fill:#1e40af,stroke:#1e3a8a,color:#fff
-        C1[Region Policies]
-        C2[Cost Policies]
-        C3[Network Policies]
-        C4[Exception Validator]
+        C1["🌍 Region Policies"]
+        C2["💰 Cost Policies"]
+        C3["🔒 Network Policies"]
+        C4["📜 Exception Validator"]
     end
 
-    subgraph Integration["Integration Layer"]
+    subgraph Integration["🔗 Integration Layer"]
         style Integration fill:#22c55e,stroke:#166534,color:#fff
-        D1[CMDB - ServiceNow]
-        D2[GRC - Archer]
-        D3[Terraform - Atlantis]
-        D4[Cloud APIs]
+        D1["📦 CMDB - ServiceNow"]
+        D2["📋 GRC - Archer"]
+        D3["🏗️ Terraform - Atlantis"]
+        D4["☁️ Cloud APIs"]
     end
 
     Portal --> Orchestration
