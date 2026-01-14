@@ -150,7 +150,7 @@ Pluggable providers for enterprise GRC platforms:
 - **Budget Tracking**: Proactive budget alerts via Slack/PagerDuty
 - **Optimization**: Resource rightsizing and savings recommendations
 
-## 🛠️ Tech Stack
+## [+] Tech Stack
 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
