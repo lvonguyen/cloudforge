@@ -43,6 +43,7 @@ CloudForge is an Enterprise Cloud Governance Platform that provides:
 ## 2. Architecture Overview
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia'}}}%%
 flowchart TB
     subgraph Portal["Portal Layer"]
         UI[Backstage/React UI]
@@ -204,6 +205,7 @@ When a finding is captured by multiple rules:
 ### 6.1 Multi-Cloud Support
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia'}}}%%
 flowchart LR
     subgraph Primary["Primary (AWS)"]
         EKS[EKS Cluster]

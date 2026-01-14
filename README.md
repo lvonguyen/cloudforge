@@ -1,4 +1,4 @@
-# CloudForge
+# <img src="../../../reference/templates/icons/homelab-svg-assets/assets/cloudflare.svg" width="32" height="32" alt="CloudForge"> CloudForge
 
 **Enterprise Cloud Governance Platform with Self-Service Provisioning**
 
@@ -26,6 +26,46 @@ CloudForge bridges these needs with a unified platform that provides:
 ## [/] Architecture
 
 ![CloudForge Architecture](docs/diagrams/architecture.svg)
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia'}}}%%
+flowchart TB
+    subgraph Portal["Portal Layer (React / Next.js)"]
+        style Portal fill:#3b82f6,stroke:#1e3a8a,color:#fff
+        A1[App Registration]
+        A2[Infra Catalog]
+        A3[Exception Request]
+        A4[Dashboard & Reports]
+    end
+
+    subgraph Orchestration["Orchestration Layer (Temporal)"]
+        style Orchestration fill:#f59e0b,stroke:#b45309,color:#fff
+        B1[Registration Workflow]
+        B2[Approval Workflow]
+        B3[Provisioning Workflow]
+        B4[Compliance Scan Workflow]
+    end
+
+    subgraph Policy["Policy Engine (OPA / Rego)"]
+        style Policy fill:#1e40af,stroke:#1e3a8a,color:#fff
+        C1[Region Policies]
+        C2[Cost Policies]
+        C3[Network Policies]
+        C4[Exception Validator]
+    end
+
+    subgraph Integration["Integration Layer"]
+        style Integration fill:#22c55e,stroke:#166534,color:#fff
+        D1[CMDB - ServiceNow]
+        D2[GRC - Archer]
+        D3[Terraform - Atlantis]
+        D4[Cloud APIs]
+    end
+
+    Portal --> Orchestration
+    Orchestration --> Policy
+    Policy --> Integration
+```
 
 <details>
 <summary><strong>ASCII Diagram (Fallback)</strong></summary>
@@ -117,7 +157,7 @@ cloudforge/
 - Exception request workflow
 - Compliance dashboards
 
-### Policy-as-Code
+### <img src="../../../reference/templates/icons/homelab-svg-assets/assets/vault.svg" width="24" height="24" alt="Policy"> Policy-as-Code
 - Region restrictions (data residency)
 - Instance size limits (cost control)
 - Network exposure rules (security)
@@ -137,20 +177,20 @@ Pluggable providers for enterprise GRC platforms:
 - Remediation runbook generation
 - Request triage and routing
 
-### Multi-Cloud Support
+### <img src="../../../reference/templates/icons/homelab-svg-assets/assets/terraform.svg" width="24" height="24" alt="IaC"> Multi-Cloud Support
 - AWS (4 Organizations, 270+ accounts)
 - Azure (45 Subscriptions)
 - GCP (93 Projects)
 - Extensible provider pattern
 
-### FinOps Cost Management
+### <img src="../../../reference/templates/icons/homelab-svg-assets/assets/grafana.svg" width="24" height="24" alt="FinOps"> FinOps Cost Management
 - **Cost Aggregation**: Multi-cloud cost data from AWS Cost Explorer, Azure Cost Management, GCP Billing
 - **Anomaly Detection**: ML-based spend anomaly alerting with configurable thresholds
 - **Chargeback/Showback**: Tag-based cost allocation with automated reports
 - **Budget Tracking**: Proactive budget alerts via Slack/PagerDuty
 - **Optimization**: Resource rightsizing and savings recommendations
 
-## [+] Tech Stack
+## <img src="../../../reference/templates/icons/homelab-svg-assets/assets/terraform.svg" width="32" height="32" alt="Tech Stack"> [+] Tech Stack
 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
@@ -249,7 +289,7 @@ workflow:
 
 ---
 
-## [!] Security
+## <img src="../../../reference/templates/icons/homelab-svg-assets/assets/vault.svg" width="32" height="32" alt="Security"> [!] Security
 
 - All API endpoints require authentication (OIDC via Entra ID/Okta)
 - Service-to-service communication uses mTLS
@@ -262,7 +302,7 @@ workflow:
 
 ---
 
-## [+] Observability
+## <img src="../../../reference/templates/icons/homelab-svg-assets/assets/grafana.svg" width="32" height="32" alt="Observability"> [+] Observability
 
 | Capability | Implementation |
 |------------|----------------|
