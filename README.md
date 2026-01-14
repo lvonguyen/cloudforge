@@ -1,4 +1,6 @@
-# <img src="../../../reference/templates/icons/homelab-svg-assets/assets/cloudflare.svg" width="32" height="32" alt="CloudForge"> CloudForge
+<img src="../../../reference/templates/icons/homelab-svg-assets/assets/cloudflare.svg" width="48" height="48" alt="CloudForge" align="left" style="margin-right: 10px;">
+
+# CloudForge
 
 **Enterprise Cloud Governance Platform with Self-Service Provisioning**
 
@@ -157,7 +159,10 @@ cloudforge/
 - Exception request workflow
 - Compliance dashboards
 
-### <img src="../../../reference/templates/icons/homelab-svg-assets/assets/vault.svg" width="24" height="24" alt="Policy"> Policy-as-Code
+<img src="../../../reference/templates/icons/homelab-svg-assets/assets/vault.svg" width="24" height="24" alt="Policy">
+
+### Policy-as-Code
+
 - Region restrictions (data residency)
 - Instance size limits (cost control)
 - Network exposure rules (security)
@@ -177,20 +182,28 @@ Pluggable providers for enterprise GRC platforms:
 - Remediation runbook generation
 - Request triage and routing
 
-### <img src="../../../reference/templates/icons/homelab-svg-assets/assets/terraform.svg" width="24" height="24" alt="IaC"> Multi-Cloud Support
+<img src="../../../reference/templates/icons/homelab-svg-assets/assets/terraform.svg" width="24" height="24" alt="IaC">
+
+### Multi-Cloud Support
+
 - AWS (4 Organizations, 270+ accounts)
 - Azure (45 Subscriptions)
 - GCP (93 Projects)
 - Extensible provider pattern
 
-### <img src="../../../reference/templates/icons/homelab-svg-assets/assets/grafana.svg" width="24" height="24" alt="FinOps"> FinOps Cost Management
+<img src="../../../reference/templates/icons/homelab-svg-assets/assets/grafana.svg" width="24" height="24" alt="FinOps">
+
+### FinOps Cost Management
+
 - **Cost Aggregation**: Multi-cloud cost data from AWS Cost Explorer, Azure Cost Management, GCP Billing
 - **Anomaly Detection**: ML-based spend anomaly alerting with configurable thresholds
 - **Chargeback/Showback**: Tag-based cost allocation with automated reports
 - **Budget Tracking**: Proactive budget alerts via Slack/PagerDuty
 - **Optimization**: Resource rightsizing and savings recommendations
 
-## <img src="../../../reference/templates/icons/homelab-svg-assets/assets/terraform.svg" width="32" height="32" alt="Tech Stack"> [+] Tech Stack
+<img src="../../../reference/templates/icons/homelab-svg-assets/assets/terraform.svg" width="32" height="32" alt="Tech Stack">
+
+## [+] Tech Stack
 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
@@ -289,7 +302,9 @@ workflow:
 
 ---
 
-## <img src="../../../reference/templates/icons/homelab-svg-assets/assets/vault.svg" width="32" height="32" alt="Security"> [!] Security
+<img src="../../../reference/templates/icons/homelab-svg-assets/assets/vault.svg" width="32" height="32" alt="Security">
+
+## [!] Security
 
 - All API endpoints require authentication (OIDC via Entra ID/Okta)
 - Service-to-service communication uses mTLS
@@ -302,7 +317,9 @@ workflow:
 
 ---
 
-## <img src="../../../reference/templates/icons/homelab-svg-assets/assets/grafana.svg" width="32" height="32" alt="Observability"> [+] Observability
+<img src="../../../reference/templates/icons/homelab-svg-assets/assets/grafana.svg" width="32" height="32" alt="Observability">
+
+## [+] Observability
 
 | Capability | Implementation |
 |------------|----------------|
