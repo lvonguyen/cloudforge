@@ -359,3 +359,5 @@ type UpdateCMDBInput struct {
 	ResourceType  string
 	CloudProvider string
 }
+
+

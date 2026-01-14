@@ -78,7 +78,12 @@ cloudforge/
 │   ├── policy/             # OPA integration
 │   ├── secrets/            # Secrets management module
 │   ├── waf/                # WAF golden templates and compliance scanner
-│   └── workflow/           # Temporal workflow definitions
+│   ├── workflow/           # Temporal workflow definitions
+│   └── finops/             # FinOps cost management (merged)
+│       ├── aggregator/     # Multi-cloud cost aggregation
+│       ├── anomaly/        # Cost anomaly detection
+│       ├── chargeback/     # Cost allocation engine
+│       └── reporter/       # Showback/chargeback reports
 ├── migrations/             # Database migrations
 ├── policies/               # OPA/Rego policies
 ├── configs/                # Configuration templates
@@ -117,6 +122,13 @@ Pluggable providers for enterprise GRC platforms:
 - Azure
 - GCP
 - Extensible provider pattern
+
+### FinOps Cost Management
+- **Cost Aggregation**: Multi-cloud cost data from AWS Cost Explorer, Azure Cost Management, GCP Billing
+- **Anomaly Detection**: ML-based spend anomaly alerting with configurable thresholds
+- **Chargeback/Showback**: Tag-based cost allocation with automated reports
+- **Budget Tracking**: Proactive budget alerts via Slack/PagerDuty
+- **Optimization**: Resource rightsizing and savings recommendations
 
 ## 🛠️ Tech Stack
 
