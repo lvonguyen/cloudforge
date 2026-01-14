@@ -1,0 +1,73 @@
+# Go CI Template for GitLab
+# Include in your repo: include: 'https://gitlab.com/lvonguyen/lvonguyen-group/portfolio/shared/ci-templates/go-ci.yml'
+
+stages:
+  - build
+  - test
+  - lint
+
+variables:
+  GO_VERSION: "1.24"
+  GOLANGCI_LINT_VERSION: "v1.62.0"
+
+.go-cache:
+  variables:
+    GOPATH: $CI_PROJECT_DIR/.go
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-go
+    paths:
+      - .go/pkg/mod/
+
+build:
+  stage: build
+  image: golang:${GO_VERSION}-alpine
+  extends: .go-cache
+  script:
+    - go mod download
+    - go build -v ./...
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+test:
+  stage: test
+  image: golang:${GO_VERSION}-alpine
+  extends: .go-cache
+  script:
+    - go mod download
+    - go test -v -race -coverprofile=coverage.out ./...
+    - go tool cover -func=coverage.out
+  coverage: '/total:\s+\(statements\)\s+(\d+\.\d+)%/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.out
+    expire_in: 7 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+lint:
+  stage: lint
+  image: golangci/golangci-lint:${GOLANGCI_LINT_VERSION}
+  extends: .go-cache
+  script:
+    - golangci-lint run --timeout=5m
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Optional: OPA policy testing
+opa-test:
+  stage: test
+  image: openpolicyagent/opa:latest
+  script:
+    - opa test policies/ -v
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      exists:
+        - policies/**/*.rego
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      exists:
+        - policies/**/*.rego

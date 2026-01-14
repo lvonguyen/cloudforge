@@ -30,7 +30,7 @@ func (p *PostgresGRCProvider) CreateException(
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Generate ID if not set
 	if req.ID == "" {
@@ -306,7 +306,7 @@ func (p *PostgresGRCProvider) SubmitApproval(
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	now := time.Now()
 

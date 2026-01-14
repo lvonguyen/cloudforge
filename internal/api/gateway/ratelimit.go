@@ -18,7 +18,7 @@ type RateLimiter struct {
 	redis       *redis.Client
 	logger      *zap.Logger
 	config      RateLimitConfig
-	localLimits sync.Map // Fallback for Redis unavailability
+	localLimits sync.Map //nolint:unused // Fallback for Redis unavailability
 }
 
 // RateLimitConfig configures the rate limiter
@@ -411,7 +411,7 @@ func (rl *RateLimiter) Middleware(getTier func(r *http.Request) string, getClien
 					"tier": "%s"
 				}`, result.Reason, int(result.RetryAfter.Seconds()), result.Limit, result.Tier)
 				
-				w.Write([]byte(response))
+				_, _ = w.Write([]byte(response))
 				
 				rl.logger.Warn("Rate limit exceeded",
 					zap.String("client_id", key.ClientID),
