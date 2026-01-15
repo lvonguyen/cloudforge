@@ -5,7 +5,7 @@
 <!-- markdownlint-enable MD033 -->
 
 ![Development Status](https://img.shields.io/badge/status-active%20development-blue)
-![Implementation](https://img.shields.io/badge/implementation-65%25-green)
+![Implementation](https://img.shields.io/badge/implementation-70%25-green)
 
 ## Enterprise Cloud Governance Platform with Self-Service Provisioning
 
@@ -15,7 +15,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 ## [/] Implementation Status
 
-> **Current State:** Active development (~65% complete). Core API functional, GRC integration working.
+> **Current State:** Active development (~70% complete). Core API functional, GRC integration working, CI/CD pipeline configured.
 
 | Component | Status | Notes |
 | --------- | ------ | ----- |
@@ -45,7 +45,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | Prometheus metrics | Done | `/metrics` endpoint |
 | OpenTelemetry tracing | Partial | Basic spans only |
 | **Security** | | |
-| Rate limiting | Not Wired | Middleware exists, not applied |
+| Rate limiting | Done | Redis-backed, tier-based limits |
 | OIDC authentication | Interface Only | Okta/Entra ID not integrated |
 | **Testing** | | |
 | Unit tests | 0% | No test coverage |
@@ -58,21 +58,17 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 This is a **portfolio reference implementation**, not production software:
 
 1. **No Unit Tests** - Zero test coverage currently
-2. **Rate Limiter Not Wired** - Middleware exists but not applied to routes
-3. **OIDC Stub Only** - Authentication interface defined, no provider integration
-4. **No Portal UI** - React/Next.js portal not implemented
-5. **Temporal Workflows** - Workflow definitions exist, orchestration not fully tested
-6. **No CI/CD Pipeline** - Build automation not configured
-7. **FinOps Module** - Cost aggregation interfaces only, no cloud API integration
+2. **OIDC Stub Only** - Authentication interface defined, no provider integration
+3. **No Portal UI** - React/Next.js portal not implemented
+4. **Temporal Workflows** - Workflow definitions exist, orchestration not fully tested
+5. **FinOps Module** - Cost aggregation interfaces only, no cloud API integration
 
 **Production Requirements:**
 
 - Add comprehensive test suites (unit + integration)
-- Wire rate limiting middleware to API routes
 - Implement OIDC authentication with real providers
 - Build self-service portal UI
 - Test and validate Temporal workflows
-- Configure CI/CD with security scanning
 
 ---
 
@@ -232,7 +228,9 @@ cloudforge/
 - Exception request workflow
 - Compliance dashboards
 
+<!-- markdownlint-disable MD033 -->
 <img src="../../../reference/templates/icons/homelab-svg-assets/assets/vault.svg" width="24" height="24" alt="Policy">
+<!-- markdownlint-enable MD033 -->
 
 ### Policy-as-Code
 
@@ -258,7 +256,9 @@ Pluggable providers for enterprise GRC platforms:
 - Remediation runbook generation
 - Request triage and routing
 
+<!-- markdownlint-disable MD033 -->
 <img src="../../../reference/templates/icons/homelab-svg-assets/assets/terraform.svg" width="24" height="24" alt="IaC">
+<!-- markdownlint-enable MD033 -->
 
 ### Multi-Cloud Support
 
@@ -267,7 +267,9 @@ Pluggable providers for enterprise GRC platforms:
 - GCP (93 Projects)
 - Extensible provider pattern
 
+<!-- markdownlint-disable MD033 -->
 <img src="../../../reference/templates/icons/homelab-svg-assets/assets/grafana.svg" width="24" height="24" alt="FinOps">
+<!-- markdownlint-enable MD033 -->
 
 ### FinOps Cost Management
 
@@ -277,7 +279,9 @@ Pluggable providers for enterprise GRC platforms:
 - **Budget Tracking**: Proactive budget alerts via Slack/PagerDuty
 - **Optimization**: Resource rightsizing and savings recommendations
 
+<!-- markdownlint-disable MD033 -->
 <img src="../../../reference/templates/icons/homelab-svg-assets/assets/terraform.svg" width="32" height="32" alt="Tech Stack">
+<!-- markdownlint-enable MD033 -->
 
 ## [+] Tech Stack
 
@@ -379,7 +383,9 @@ workflow:
 
 ---
 
+<!-- markdownlint-disable MD033 -->
 <img src="../../../reference/templates/icons/homelab-svg-assets/assets/vault.svg" width="32" height="32" alt="Security">
+<!-- markdownlint-enable MD033 -->
 
 ## [!] Security
 
@@ -394,7 +400,9 @@ workflow:
 
 ---
 
+<!-- markdownlint-disable MD033 -->
 <img src="../../../reference/templates/icons/homelab-svg-assets/assets/grafana.svg" width="32" height="32" alt="Observability">
+<!-- markdownlint-enable MD033 -->
 
 ## [+] Observability
 
@@ -438,11 +446,11 @@ Built-in support for 20+ frameworks:
 
 ### Phase 2: Security & Testing (In Progress)
 
-- [ ] Wire rate limiting to API routes
+- [x] Wire rate limiting to API routes
+- [x] CI/CD pipeline with security scanning
 - [ ] OIDC authentication integration (Okta/Entra ID)
 - [ ] Unit test coverage (target: 80%)
 - [ ] Integration test suite
-- [ ] CI/CD pipeline with security scanning
 
 ### Phase 3: Portal & Workflows
 
