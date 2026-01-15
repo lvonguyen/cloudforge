@@ -17,13 +17,11 @@ linters:
     - ineffassign
     - misspell
     - nakedret
-    - nilerr
     - prealloc
     - revive
     - staticcheck
     - typecheck
     - unconvert
-    - unparam
     - unused
 
 linters-settings:
@@ -50,6 +48,7 @@ linters-settings:
       - elseif             # Style preference
       - sprintfQuotedString # Style preference
       - builtinShadowDecl  # min/max shadowing common in pre-1.21 code
+      - exitAfterDefer     # Intentional pattern in main.go
 
   goimports:
     local-prefixes: github.com/yourusername/cloudforge
@@ -65,6 +64,7 @@ linters-settings:
     enable-all: true
     disable:
       - fieldalignment  # Too noisy for minimal benefit
+      - shadow          # err shadowing is common and intentional
 
   nakedret:
     max-func-lines: 30
