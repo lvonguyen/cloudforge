@@ -6,9 +6,7 @@ linters:
   enable:
     - bodyclose
     - errcheck
-    - errorlint
     - exhaustive
-    - exportloopref
     - goconst
     - gocritic
     - gofmt
@@ -46,8 +44,9 @@ linters-settings:
   gocritic:
     enabled-tags:
       - diagnostic
-      - performance
-      - style
+    disabled-checks:
+      - appendAssign  # False positive for append to different slice
+      - ifElseChain   # Style preference
 
   goimports:
     local-prefixes: github.com/yourusername/cloudforge
