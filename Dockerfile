@@ -1,38 +1,57 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
+
+ARG VERSION=dev
 
 WORKDIR /app
 
-# Install dependencies
-RUN apk add --no-cache git
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates tzdata
 
-# Copy go mod files
-COPY go.mod go.sum* ./
-RUN go mod download
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
 
 # Copy source code
 COPY . .
 
-# Build binary
-RUN CGO_ENABLED=0 GOOS=linux go build -o /cloudforge ./cmd/server
+# Build binary with version info
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-w -s -X main.Version=${VERSION}" \
+    -o /cloudforge \
+    ./cmd/server
 
-# Runtime stage
-FROM alpine:3.19
+# Final stage - minimal runtime image
+FROM alpine:3.20
 
+# Security: Run as non-root user
+RUN addgroup -g 1000 cloudforge && \
+    adduser -u 1000 -G cloudforge -s /bin/sh -D cloudforge
+
+# Install runtime dependencies
 RUN apk add --no-cache ca-certificates tzdata
 
 WORKDIR /app
 
 # Copy binary from builder
-COPY --from=builder /cloudforge .
+COPY --from=builder /cloudforge /app/cloudforge
 
-# Copy policies
-COPY --from=builder /app/policies ./policies
+# Copy config template
+COPY configs/config.example.yaml /app/config.example.yaml
 
-# Create non-root user
-RUN adduser -D -g '' cloudforge
+# Copy policies if they exist
+COPY --from=builder /app/policies /app/policies 2>/dev/null || true
+
+# Set ownership
+RUN chown -R cloudforge:cloudforge /app
+
 USER cloudforge
 
+# Expose API port
 EXPOSE 8080
 
-ENTRYPOINT ["./cloudforge"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD wget -qO- http://localhost:8080/health || exit 1
+
+ENTRYPOINT ["/app/cloudforge"]
