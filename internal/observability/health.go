@@ -21,6 +21,7 @@ type HealthChecker struct {
 	logger     *zap.Logger
 	lastStatus *HealthStatus
 	telemetry  *Telemetry
+	httpClient *http.Client // Dedicated client with timeout for HTTP checks
 }
 
 // HealthCheck defines a health check function
@@ -54,6 +55,9 @@ func NewHealthChecker(logger *zap.Logger, telemetry *Telemetry) *HealthChecker {
 		checks:    make(map[string]HealthCheck),
 		logger:    logger,
 		telemetry: telemetry,
+		httpClient: &http.Client{
+			Timeout: 10 * time.Second, // Prevent hanging on unresponsive endpoints
+		},
 	}
 }
 
@@ -103,7 +107,8 @@ func (h *HealthChecker) RegisterHTTPCheck(name, url string, critical bool) {
 			if err != nil {
 				return err
 			}
-			resp, err := http.DefaultClient.Do(req)
+			// Use dedicated HTTP client with timeout instead of DefaultClient
+			resp, err := h.httpClient.Do(req)
 			if err != nil {
 				return err
 			}

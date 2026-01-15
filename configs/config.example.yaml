@@ -1,5 +1,8 @@
 # CloudForge Configuration
 # Copy to config.yaml and customize for your environment
+#
+# SECURITY: All sensitive values should be loaded from environment variables.
+# Never commit actual credentials to version control.
 
 server:
   port: 8080
@@ -10,31 +13,34 @@ server:
 # Options: memory, postgres, archer, servicenow
 grc:
   provider: memory
-  
+
   # PostgreSQL provider settings
   postgres:
     host: localhost
     port: 5432
     database: cloudforge
     username: cloudforge
-    password: changeme
+    # Load password from environment variable (never hardcode)
+    password_env: CLOUDFORGE_DB_PASSWORD
     ssl_mode: disable
-  
+
   # RSA Archer provider settings (stub)
   archer:
     base_url: https://archer.company.com
     instance_name: Production
     username: api_user
-    password: changeme
+    # Load password from environment variable
+    password_env: ARCHER_PASSWORD
     module_id: 123  # Archer application/module ID for exceptions
-  
+
   # ServiceNow provider settings
   servicenow:
     instance_url: https://company.service-now.com
     username: api_user
-    password: changeme
-    client_id: oauth_client_id
-    client_secret: oauth_client_secret
+    # Load credentials from environment variables
+    password_env: SERVICENOW_PASSWORD
+    client_id_env: SERVICENOW_CLIENT_ID
+    client_secret_env: SERVICENOW_CLIENT_SECRET
     exception_table: sn_grc_policy_exception
 
 # OPA Policy Engine
@@ -48,12 +54,16 @@ workflow:
   namespace: cloudforge
   task_queue: cloudforge-tasks
 
-# Authentication (OIDC)
+# Authentication (OIDC/JWT)
 auth:
   enabled: false  # Enable in production
   issuer_url: https://login.company.com
   client_id: cloudforge
   audience: cloudforge-api
+  # For HS256: set JWT secret via environment variable
+  jwt_secret_env: CLOUDFORGE_JWT_SECRET
+  # For RS256/ES256: set JWKS endpoint via environment variable
+  jwks_url_env: CLOUDFORGE_JWKS_URL
 
 # Logging
 logging:
