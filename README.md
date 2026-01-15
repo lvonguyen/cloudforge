@@ -2,9 +2,74 @@
 
 # CloudForge
 
+![Development Status](https://img.shields.io/badge/status-active%20development-blue)
+![Implementation](https://img.shields.io/badge/implementation-65%25-green)
+
 **Enterprise Cloud Governance Platform with Self-Service Provisioning**
 
 CloudForge is a reference architecture and implementation for an Internal Developer Platform (IDP) that enables self-service cloud resource provisioning with built-in governance, compliance guardrails, and exception management workflows.
+
+---
+
+## [/] Implementation Status
+
+> **Current State:** Active development (~65% complete). Core API functional, GRC integration working.
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| **Core API** | | |
+| HTTP handlers | Done | Full API surface implemented |
+| Configuration (Viper) | Done | YAML + env var overrides |
+| Health endpoints | Done | `/health`, `/ready`, `/live` |
+| **GRC Integration** | | |
+| Provider abstraction | Done | Interface + factory pattern |
+| RSA Archer client | Done | Full workflow integration |
+| ServiceNow GRC | Done | Native integration |
+| PostgreSQL provider | Done | Lightweight option |
+| In-Memory provider | Done | For testing |
+| **Compliance** | | |
+| Framework engine | Done | 20+ frameworks supported |
+| Finding deduplication | Done | Cross-framework dedup |
+| Control mapping | Done | Framework-to-control mapping |
+| **AI Integration** | | |
+| Provider abstraction | Done | Claude/OpenAI interface |
+| Risk analysis | Done | AI-powered scoring |
+| Remediation generation | Partial | Basic implementation |
+| **Policy Engine** | | |
+| OPA integration | Done | Policy evaluation working |
+| Rego policies | Done | Region, cost, network policies |
+| **Observability** | | |
+| Structured logging (zap) | Done | JSON format |
+| Prometheus metrics | Done | `/metrics` endpoint |
+| OpenTelemetry tracing | Partial | Basic spans only |
+| **Security** | | |
+| Rate limiting | Not Wired | Middleware exists, not applied |
+| OIDC authentication | Interface Only | Okta/Entra ID not integrated |
+| **Testing** | | |
+| Unit tests | 0% | No test coverage |
+| Integration tests | 0% | |
+
+---
+
+## [!] Known Limitations
+
+This is a **portfolio reference implementation**, not production software:
+
+1. **No Unit Tests** - Zero test coverage currently
+2. **Rate Limiter Not Wired** - Middleware exists but not applied to routes
+3. **OIDC Stub Only** - Authentication interface defined, no provider integration
+4. **No Portal UI** - React/Next.js portal not implemented
+5. **Temporal Workflows** - Workflow definitions exist, orchestration not fully tested
+6. **No CI/CD Pipeline** - Build automation not configured
+7. **FinOps Module** - Cost aggregation interfaces only, no cloud API integration
+
+**Production Requirements:**
+- Add comprehensive test suites (unit + integration)
+- Wire rate limiting middleware to API routes
+- Implement OIDC authentication with real providers
+- Build self-service portal UI
+- Test and validate Temporal workflows
+- Configure CI/CD with security scanning
 
 ---
 
@@ -349,15 +414,34 @@ Built-in support for 20+ frameworks:
 
 ## [/] Roadmap
 
-- [x] Core API and GRC abstraction layer
+### Phase 1: Core Platform (Complete)
+- [x] Core API and HTTP handlers
+- [x] GRC abstraction layer (Archer, ServiceNow, PostgreSQL)
 - [x] OPA policy engine integration
-- [x] AI-powered risk analysis
-- [x] Multi-cloud provider support
-- [x] Compliance framework engine
-- [ ] Self-service portal UI
+- [x] AI-powered risk analysis (Claude/OpenAI)
+- [x] Multi-cloud provider support patterns
+- [x] Compliance framework engine (20+ frameworks)
+- [x] Structured logging and Prometheus metrics
+
+### Phase 2: Security & Testing (In Progress)
+- [ ] Wire rate limiting to API routes
+- [ ] OIDC authentication integration (Okta/Entra ID)
+- [ ] Unit test coverage (target: 80%)
+- [ ] Integration test suite
+- [ ] CI/CD pipeline with security scanning
+
+### Phase 3: Portal & Workflows
+- [ ] Self-service portal UI (React/Next.js)
+- [ ] Temporal workflow testing and validation
 - [ ] Terraform golden module catalog
+- [ ] Infrastructure request forms
+
+### Phase 4: FinOps & Reporting
+- [ ] Cloud cost API integration (AWS/Azure/GCP)
 - [ ] Cost estimation integration
+- [ ] Chargeback report generation
 - [ ] Compliance reporting dashboard
+- [ ] Budget alerting (Slack/PagerDuty)
 
 ---
 
