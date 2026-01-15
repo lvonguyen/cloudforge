@@ -1,11 +1,13 @@
-<img src="../../../reference/templates/icons/homelab-svg-assets/assets/cloudflare.svg" width="48" height="48" alt="CloudForge" align="left" style="margin-right: 10px;">
-
 # CloudForge
+
+<!-- markdownlint-disable MD033 -->
+<img src="../../../reference/templates/icons/homelab-svg-assets/assets/cloudflare.svg" width="48" height="48" alt="CloudForge" align="left" style="margin-right: 10px;">
+<!-- markdownlint-enable MD033 -->
 
 ![Development Status](https://img.shields.io/badge/status-active%20development-blue)
 ![Implementation](https://img.shields.io/badge/implementation-65%25-green)
 
-**Enterprise Cloud Governance Platform with Self-Service Provisioning**
+## Enterprise Cloud Governance Platform with Self-Service Provisioning
 
 CloudForge is a reference architecture and implementation for an Internal Developer Platform (IDP) that enables self-service cloud resource provisioning with built-in governance, compliance guardrails, and exception management workflows.
 
@@ -16,7 +18,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 > **Current State:** Active development (~65% complete). Core API functional, GRC integration working.
 
 | Component | Status | Notes |
-|-----------|--------|-------|
+| --------- | ------ | ----- |
 | **Core API** | | |
 | HTTP handlers | Done | Full API surface implemented |
 | Configuration (Viper) | Done | YAML + env var overrides |
@@ -271,7 +273,7 @@ Pluggable providers for enterprise GRC platforms:
 ## [+] Tech Stack
 
 | Component | Technology | Purpose |
-|-----------|------------|---------|
+| --------- | ---------- | ------- |
 | API Server | [Go 1.24](https://go.dev/) | Core platform API |
 | Portal | React / Next.js | Self-service UI (planned) |
 | Workflows | [Temporal](https://temporal.io/) | Orchestration, approvals |
@@ -340,7 +342,7 @@ workflow:
 ## [/] Documentation
 
 | Document | Description |
-|----------|-------------|
+| -------- | ----------- |
 | [High-Level Design](docs/architecture/HLD.md) | System architecture overview |
 | [Detailed Design](docs/architecture/DDD.md) | ADRs, API specs, data models |
 | [DR/BC Plan](docs/DR-BC.md) | Disaster recovery procedures |
