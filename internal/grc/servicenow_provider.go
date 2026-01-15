@@ -6,16 +6,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 )
 
 // ServiceNowConfig contains configuration for ServiceNow GRC integration.
+// Credentials are loaded from environment variables for security.
 type ServiceNowConfig struct {
-	InstanceURL  string // e.g., "https://yourcompany.service-now.com"
-	Username     string
-	Password     string
-	ClientID     string // for OAuth
-	ClientSecret string
+	InstanceURL string // e.g., "https://yourcompany.service-now.com"
+	Username    string
+
+	// PasswordEnv is the name of the environment variable containing the password.
+	// The actual password is never stored in the struct.
+	PasswordEnv string
+
+	ClientID string // for OAuth
+
+	// ClientSecretEnv is the name of the environment variable containing the client secret.
+	// The actual secret is never stored in the struct.
+	ClientSecretEnv string
 
 	// Table/record configuration - these may vary by ServiceNow implementation
 	ExceptionTable  string // e.g., "sn_grc_policy_exception"
@@ -25,14 +34,46 @@ type ServiceNowConfig struct {
 
 // ServiceNowGRCProvider implements GRCProvider for ServiceNow GRC module.
 type ServiceNowGRCProvider struct {
-	config     ServiceNowConfig
-	httpClient *http.Client
-	authToken  string
-	tokenExp   time.Time
+	config       ServiceNowConfig
+	httpClient   *http.Client
+	authToken    string
+	tokenExp     time.Time
+	password     string // loaded from env at initialization
+	clientSecret string // loaded from env at initialization
 }
 
 // NewServiceNowGRCProvider creates a new ServiceNow GRC provider.
-func NewServiceNowGRCProvider(config ServiceNowConfig) *ServiceNowGRCProvider {
+// Returns an error if required credentials are missing from environment variables.
+func NewServiceNowGRCProvider(config ServiceNowConfig) (*ServiceNowGRCProvider, error) {
+	// Validate required fields
+	if config.InstanceURL == "" {
+		return nil, fmt.Errorf("creating ServiceNow provider: InstanceURL is required")
+	}
+	if config.Username == "" {
+		return nil, fmt.Errorf("creating ServiceNow provider: Username is required")
+	}
+
+	// Load password from environment
+	if config.PasswordEnv == "" {
+		return nil, fmt.Errorf("creating ServiceNow provider: PasswordEnv must be specified")
+	}
+	password := os.Getenv(config.PasswordEnv)
+	if password == "" {
+		return nil, fmt.Errorf("creating ServiceNow provider: password environment variable %s is not set", config.PasswordEnv)
+	}
+
+	// Load client secret from environment (required for OAuth)
+	var clientSecret string
+	if config.ClientID != "" {
+		if config.ClientSecretEnv == "" {
+			return nil, fmt.Errorf("creating ServiceNow provider: ClientSecretEnv must be specified when ClientID is set")
+		}
+		clientSecret = os.Getenv(config.ClientSecretEnv)
+		if clientSecret == "" {
+			return nil, fmt.Errorf("creating ServiceNow provider: client secret environment variable %s is not set", config.ClientSecretEnv)
+		}
+	}
+
 	// Set defaults for GRC module tables
 	if config.ExceptionTable == "" {
 		config.ExceptionTable = "sn_grc_policy_exception"
@@ -42,9 +83,11 @@ func NewServiceNowGRCProvider(config ServiceNowConfig) *ServiceNowGRCProvider {
 	}
 
 	return &ServiceNowGRCProvider{
-		config:     config,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
-	}
+		config:       config,
+		httpClient:   &http.Client{Timeout: 30 * time.Second},
+		password:     password,
+		clientSecret: clientSecret,
+	}, nil
 }
 
 // ServiceNow API response wrapper
@@ -77,9 +120,9 @@ func (s *ServiceNowGRCProvider) authenticate(ctx context.Context) error {
 	data := fmt.Sprintf(
 		"grant_type=password&client_id=%s&client_secret=%s&username=%s&password=%s",
 		s.config.ClientID,
-		s.config.ClientSecret,
+		s.clientSecret,
 		s.config.Username,
-		s.config.Password,
+		s.password,
 	)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", tokenURL, bytes.NewBufferString(data))
