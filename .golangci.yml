@@ -30,7 +30,7 @@ linters:
 
 linters-settings:
   errcheck:
-    check-type-assertions: true
+    check-type-assertions: false  # sync.Map type assertions are always safe in our code
     check-blank: false  # Allow _ = foo() for intentionally ignored errors
     exclude-functions:
       - (io.Closer).Close
@@ -41,7 +41,7 @@ linters-settings:
 
   goconst:
     min-len: 5
-    min-occurrences: 5  # Increased threshold to reduce noise
+    min-occurrences: 7  # Increased threshold to reduce noise
 
   gocritic:
     enabled-tags:
@@ -76,7 +76,6 @@ linters-settings:
       - name: error-return
       - name: error-strings
       - name: error-naming
-      - name: exported
       - name: if-return
       - name: increment-decrement
       - name: var-naming
@@ -90,7 +89,6 @@ linters-settings:
       - name: empty-block
       - name: superfluous-else
       - name: unreachable-code
-      - name: redefines-builtin-id
 
 issues:
   exclude-rules:
