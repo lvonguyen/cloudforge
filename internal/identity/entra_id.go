@@ -77,13 +77,13 @@ func (p *EntraIDProvider) GetUser(ctx context.Context, userID string) (*User, er
 	}
 
 	var graphUser struct {
-		ID                string `json:"id"`
-		Mail              string `json:"mail"`
-		DisplayName       string `json:"displayName"`
-		Department        string `json:"department"`
-		JobTitle          string `json:"jobTitle"`
-		AccountEnabled    bool   `json:"accountEnabled"`
-		SignInActivity    *struct {
+		ID             string `json:"id"`
+		Mail           string `json:"mail"`
+		DisplayName    string `json:"displayName"`
+		Department     string `json:"department"`
+		JobTitle       string `json:"jobTitle"`
+		AccountEnabled bool   `json:"accountEnabled"`
+		SignInActivity *struct {
 			LastSignInDateTime string `json:"lastSignInDateTime"`
 		} `json:"signInActivity"`
 	}
@@ -115,7 +115,7 @@ func (p *EntraIDProvider) ListUsers(ctx context.Context, filter UserFilter) ([]*
 	}
 
 	url := "https://graph.microsoft.com/v1.0/users?$select=id,mail,displayName,department,jobTitle,accountEnabled"
-	
+
 	if filter.Limit > 0 {
 		url += fmt.Sprintf("&$top=%d", filter.Limit)
 	}
@@ -242,9 +242,9 @@ func (p *EntraIDProvider) GetGroup(ctx context.Context, groupID string) (*Group,
 	}
 
 	var graphGroup struct {
-		ID          string `json:"id"`
-		DisplayName string `json:"displayName"`
-		Description string `json:"description"`
+		ID          string   `json:"id"`
+		DisplayName string   `json:"displayName"`
+		Description string   `json:"description"`
 		GroupTypes  []string `json:"groupTypes"`
 	}
 
@@ -601,4 +601,3 @@ func (p *EntraIDProvider) ensureToken(ctx context.Context) error {
 
 	return nil
 }
-

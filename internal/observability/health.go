@@ -34,11 +34,11 @@ type HealthCheck struct {
 
 // HealthStatus represents overall health status
 type HealthStatus struct {
-	Status      string                   `json:"status"` // healthy, degraded, unhealthy
-	Timestamp   time.Time                `json:"timestamp"`
-	Version     string                   `json:"version"`
-	Uptime      string                   `json:"uptime"`
-	Components  map[string]ComponentHealth `json:"components"`
+	Status     string                     `json:"status"` // healthy, degraded, unhealthy
+	Timestamp  time.Time                  `json:"timestamp"`
+	Version    string                     `json:"version"`
+	Uptime     string                     `json:"uptime"`
+	Components map[string]ComponentHealth `json:"components"`
 }
 
 // ComponentHealth represents health of a single component

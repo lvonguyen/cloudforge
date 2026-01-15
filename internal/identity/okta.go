@@ -192,12 +192,12 @@ func (p *OktaProvider) CreateUser(ctx context.Context, user *User) error {
 
 	oktaUser := map[string]interface{}{
 		"profile": map[string]string{
-			"firstName":   user.DisplayName, // Would need to split
-			"lastName":    user.DisplayName,
-			"email":       user.Email,
-			"login":       user.Email,
-			"department":  user.Department,
-			"title":       user.JobTitle,
+			"firstName":  user.DisplayName, // Would need to split
+			"lastName":   user.DisplayName,
+			"email":      user.Email,
+			"login":      user.Email,
+			"department": user.Department,
+			"title":      user.JobTitle,
 		},
 	}
 
@@ -612,12 +612,11 @@ func (p *OktaProvider) ListActiveJITGrants(ctx context.Context, userID string) (
 func (p *OktaProvider) GetUserRiskScore(ctx context.Context, userID string) (*RiskAssessment, error) {
 	// Could integrate with Okta ThreatInsight if available
 	return &RiskAssessment{
-		UserID:         userID,
-		RiskScore:      0,
-		RiskLevel:      "unknown",
-		Factors:        []string{},
-		LastAssessedAt: time.Now(),
+		UserID:             userID,
+		RiskScore:          0,
+		RiskLevel:          "unknown",
+		Factors:            []string{},
+		LastAssessedAt:     time.Now(),
 		RecommendedActions: []string{"Enable Okta ThreatInsight for risk scoring"},
 	}, nil
 }
-

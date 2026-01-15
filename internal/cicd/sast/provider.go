@@ -50,12 +50,12 @@ type ScanResult struct {
 
 // ScanStatus represents the status of a scan
 type ScanStatus struct {
-	ScanID      string    `json:"scan_id"`
-	Status      string    `json:"status"` // queued, running, completed, failed
-	Progress    int       `json:"progress"`
-	StartedAt   time.Time `json:"started_at"`
-	CompletedAt time.Time `json:"completed_at"`
-	WebURL      string    `json:"web_url"`
+	ScanID      string          `json:"scan_id"`
+	Status      string          `json:"status"` // queued, running, completed, failed
+	Progress    int             `json:"progress"`
+	StartedAt   time.Time       `json:"started_at"`
+	CompletedAt time.Time       `json:"completed_at"`
+	WebURL      string          `json:"web_url"`
 	Summary     *FindingSummary `json:"summary"`
 }
 
@@ -71,22 +71,22 @@ type FindingSummary struct {
 
 // Finding represents a security finding
 type Finding struct {
-	ID           string    `json:"id"`
-	Type         string    `json:"type"`      // vulnerability, code_smell, bug, security_hotspot
-	Category     string    `json:"category"`
-	Severity     string    `json:"severity"`
-	Title        string    `json:"title"`
-	Description  string    `json:"description"`
-	FilePath     string    `json:"file_path"`
-	StartLine    int       `json:"start_line"`
-	EndLine      int       `json:"end_line"`
-	Snippet      string    `json:"snippet"`
-	CWE          string    `json:"cwe"`
-	CVE          string    `json:"cve"`
-	CVSS         float64   `json:"cvss"`
-	Remediation  string    `json:"remediation"`
-	Status       string    `json:"status"` // open, confirmed, fixed, false_positive
-	CreatedAt    time.Time `json:"created_at"`
+	ID          string    `json:"id"`
+	Type        string    `json:"type"` // vulnerability, code_smell, bug, security_hotspot
+	Category    string    `json:"category"`
+	Severity    string    `json:"severity"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	FilePath    string    `json:"file_path"`
+	StartLine   int       `json:"start_line"`
+	EndLine     int       `json:"end_line"`
+	Snippet     string    `json:"snippet"`
+	CWE         string    `json:"cwe"`
+	CVE         string    `json:"cve"`
+	CVSS        float64   `json:"cvss"`
+	Remediation string    `json:"remediation"`
+	Status      string    `json:"status"` // open, confirmed, fixed, false_positive
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // Project represents a project/application in the SAST tool
@@ -157,4 +157,3 @@ func (m *Manager) ScanAll(ctx context.Context, req *ScanRequest) ([]*ScanResult,
 
 	return results, nil
 }
-

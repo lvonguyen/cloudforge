@@ -207,9 +207,9 @@ func (p *AzureDevOpsProvider) GetCommits(ctx context.Context, _, repo, branch st
 
 	var result struct {
 		Value []struct {
-			CommitID  string `json:"commitId"`
-			Comment   string `json:"comment"`
-			Author    struct {
+			CommitID string `json:"commitId"`
+			Comment  string `json:"comment"`
+			Author   struct {
 				Name  string `json:"name"`
 				Email string `json:"email"`
 				Date  string `json:"date"`
@@ -364,13 +364,13 @@ func (p *AzureDevOpsProvider) GetSecurityAlerts(ctx context.Context, _, repo str
 
 	var result struct {
 		Value []struct {
-			AlertID           int    `json:"alertId"`
-			Severity          string `json:"severity"`
-			Title             string `json:"title"`
-			Description       string `json:"description"`
-			State             string `json:"state"`
-			FirstSeenDate     string `json:"firstSeenDate"`
-			LogicalLocations  []struct {
+			AlertID          int    `json:"alertId"`
+			Severity         string `json:"severity"`
+			Title            string `json:"title"`
+			Description      string `json:"description"`
+			State            string `json:"state"`
+			FirstSeenDate    string `json:"firstSeenDate"`
+			LogicalLocations []struct {
 				FullyQualifiedName string `json:"fullyQualifiedName"`
 			} `json:"logicalLocations"`
 		} `json:"value"`
@@ -447,4 +447,3 @@ func (p *AzureDevOpsProvider) CreateCheckRun(ctx context.Context, _, repo, sha s
 
 	return p.doRequest(ctx, "POST", url, body, nil)
 }
-

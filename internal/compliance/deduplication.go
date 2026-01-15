@@ -8,7 +8,7 @@ import (
 
 // Deduplicator handles finding deduplication logic
 type Deduplicator struct {
-	ruleHierarchy  map[string]int       // rule ID -> priority (lower = more specific)
+	ruleHierarchy   map[string]int      // rule ID -> priority (lower = more specific)
 	ruleEquivalence map[string][]string // canonical rule -> equivalent rules
 }
 
@@ -280,4 +280,3 @@ func (d *Deduplicator) AddRuleEquivalence(canonical string, equivalents []string
 func (d *Deduplicator) AddRulePriority(ruleID string, priority int) {
 	d.ruleHierarchy[ruleID] = priority
 }
-

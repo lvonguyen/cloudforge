@@ -20,31 +20,31 @@ type DependencyScanner struct {
 
 // DependencyScanResult represents the result of a dependency scan
 type DependencyScanResult struct {
-	FilePath      string              `json:"file_path"`
-	FileType      string              `json:"file_type"`
-	ScannedAt     time.Time           `json:"scanned_at"`
-	Dependencies  []Dependency        `json:"dependencies"`
-	Vulnerabilities []VulnerableDep   `json:"vulnerabilities"`
-	Outdated      []OutdatedDep       `json:"outdated"`
-	Summary       DepScanSummary      `json:"summary"`
+	FilePath        string          `json:"file_path"`
+	FileType        string          `json:"file_type"`
+	ScannedAt       time.Time       `json:"scanned_at"`
+	Dependencies    []Dependency    `json:"dependencies"`
+	Vulnerabilities []VulnerableDep `json:"vulnerabilities"`
+	Outdated        []OutdatedDep   `json:"outdated"`
+	Summary         DepScanSummary  `json:"summary"`
 }
 
 // Dependency represents a project dependency
 type Dependency struct {
-	Name           string `json:"name"`
-	Version        string `json:"version"`
-	VersionPinned  bool   `json:"version_pinned"`
-	Source         string `json:"source,omitempty"`
+	Name          string `json:"name"`
+	Version       string `json:"version"`
+	VersionPinned bool   `json:"version_pinned"`
+	Source        string `json:"source,omitempty"`
 }
 
 // VulnerableDep represents a vulnerable dependency
 type VulnerableDep struct {
 	Dependency
-	CVEID       string `json:"cve_id"`
-	Severity    string `json:"severity"`
-	Title       string `json:"title"`
-	FixedIn     string `json:"fixed_in,omitempty"`
-	Reference   string `json:"reference,omitempty"`
+	CVEID     string `json:"cve_id"`
+	Severity  string `json:"severity"`
+	Title     string `json:"title"`
+	FixedIn   string `json:"fixed_in,omitempty"`
+	Reference string `json:"reference,omitempty"`
 }
 
 // OutdatedDep represents an outdated dependency
@@ -56,14 +56,14 @@ type OutdatedDep struct {
 
 // DepScanSummary summarizes dependency scan results
 type DepScanSummary struct {
-	TotalDependencies  int `json:"total_dependencies"`
-	VulnerableCount    int `json:"vulnerable_count"`
-	OutdatedCount      int `json:"outdated_count"`
-	UnpinnedCount      int `json:"unpinned_count"`
-	CriticalVulns      int `json:"critical_vulns"`
-	HighVulns          int `json:"high_vulns"`
-	MediumVulns        int `json:"medium_vulns"`
-	LowVulns           int `json:"low_vulns"`
+	TotalDependencies int `json:"total_dependencies"`
+	VulnerableCount   int `json:"vulnerable_count"`
+	OutdatedCount     int `json:"outdated_count"`
+	UnpinnedCount     int `json:"unpinned_count"`
+	CriticalVulns     int `json:"critical_vulns"`
+	HighVulns         int `json:"high_vulns"`
+	MediumVulns       int `json:"medium_vulns"`
+	LowVulns          int `json:"low_vulns"`
 }
 
 // NewDependencyScanner creates a new dependency scanner
@@ -78,12 +78,12 @@ func (s *DependencyScanner) Scan(ctx context.Context, filePath string, content s
 	fileType := s.detectFileType(filePath)
 
 	result := &DependencyScanResult{
-		FilePath:       filePath,
-		FileType:       fileType,
-		ScannedAt:      time.Now(),
-		Dependencies:   make([]Dependency, 0),
+		FilePath:        filePath,
+		FileType:        fileType,
+		ScannedAt:       time.Now(),
+		Dependencies:    make([]Dependency, 0),
 		Vulnerabilities: make([]VulnerableDep, 0),
-		Outdated:       make([]OutdatedDep, 0),
+		Outdated:        make([]OutdatedDep, 0),
 	}
 
 	switch fileType {
@@ -360,11 +360,10 @@ func (s *DependencyScanner) CheckVulnerabilities(ctx context.Context, deps []Dep
 	// - GitHub Advisory Database
 	// - NVD
 	// - Snyk
-	
+
 	s.logger.Info("Vulnerability check would query external databases",
 		zap.Int("dependencies", len(deps)),
 	)
 
 	return []VulnerableDep{}, nil
 }
-

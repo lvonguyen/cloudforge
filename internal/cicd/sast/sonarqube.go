@@ -25,8 +25,8 @@ type SonarQubeProvider struct {
 
 // SonarQubeConfig configures the SonarQube provider
 type SonarQubeConfig struct {
-	BaseURL    string `yaml:"base_url"`    // https://sonarcloud.io or self-hosted
-	TokenEnv   string `yaml:"token_env"`
+	BaseURL      string `yaml:"base_url"` // https://sonarcloud.io or self-hosted
+	TokenEnv     string `yaml:"token_env"`
 	Organization string `yaml:"organization"` // SonarCloud only
 }
 
@@ -141,12 +141,12 @@ func (p *SonarQubeProvider) GetScanStatus(ctx context.Context, scanID string) (*
 
 	var result struct {
 		Tasks []struct {
-			ID              string `json:"id"`
-			Status          string `json:"status"`
-			SubmittedAt     string `json:"submittedAt"`
-			ExecutedAt      string `json:"executedAt"`
-			WarningCount    int    `json:"warningCount"`
-			ErrorMessage    string `json:"errorMessage"`
+			ID           string `json:"id"`
+			Status       string `json:"status"`
+			SubmittedAt  string `json:"submittedAt"`
+			ExecutedAt   string `json:"executedAt"`
+			WarningCount int    `json:"warningCount"`
+			ErrorMessage string `json:"errorMessage"`
 		} `json:"tasks"`
 	}
 
@@ -181,17 +181,17 @@ func (p *SonarQubeProvider) GetFindings(ctx context.Context, projectKey string) 
 
 	var result struct {
 		Issues []struct {
-			Key        string `json:"key"`
-			Rule       string `json:"rule"`
-			Severity   string `json:"severity"`
-			Component  string `json:"component"`
-			Message    string `json:"message"`
-			Type       string `json:"type"`
-			TextRange  struct {
+			Key       string `json:"key"`
+			Rule      string `json:"rule"`
+			Severity  string `json:"severity"`
+			Component string `json:"component"`
+			Message   string `json:"message"`
+			Type      string `json:"type"`
+			TextRange struct {
 				StartLine int `json:"startLine"`
 				EndLine   int `json:"endLine"`
 			} `json:"textRange"`
-			Status     string `json:"status"`
+			Status       string `json:"status"`
 			CreationDate string `json:"creationDate"`
 		} `json:"issues"`
 	}
@@ -231,9 +231,9 @@ func (p *SonarQubeProvider) GetProjects(ctx context.Context) ([]*Project, error)
 
 	var result struct {
 		Components []struct {
-			Key          string `json:"key"`
-			Name         string `json:"name"`
-			Qualifier    string `json:"qualifier"`
+			Key              string `json:"key"`
+			Name             string `json:"name"`
+			Qualifier        string `json:"qualifier"`
 			LastAnalysisDate string `json:"lastAnalysisDate"`
 		} `json:"components"`
 	}
@@ -274,4 +274,3 @@ func mapSonarSeverity(severity string) string {
 		return "medium"
 	}
 }
-

@@ -89,14 +89,14 @@ func (m *Manager) buildEARFramework() *Framework {
 		Sector:      SectorGovernment,
 		URL:         "https://www.bis.doc.gov/index.php/regulations/export-administration-regulations-ear",
 		Controls: map[string]*Control{
-			"730.1":  {ID: "730.1", Title: "Scope of EAR", Section: "730", Category: "General", Severity: "high", Keywords: []string{"scope", "dual-use", "export"}},
-			"732.1":  {ID: "732.1", Title: "Steps for Using EAR", Section: "732", Category: "Process", Severity: "high", Keywords: []string{"steps", "classification", "license"}},
-			"734.3":  {ID: "734.3", Title: "Items Subject to EAR", Section: "734", Category: "Scope", Severity: "high", Keywords: []string{"subject", "items", "technology"}},
-			"736.1":  {ID: "736.1", Title: "General Prohibitions", Section: "736", Category: "Prohibition", Severity: "critical", Keywords: []string{"prohibition", "export", "reexport"}},
-			"740.1":  {ID: "740.1", Title: "License Exceptions", Section: "740", Category: "Exception", Severity: "high", Keywords: []string{"license", "exception", "authorization"}},
-			"742.1":  {ID: "742.1", Title: "Control Policy", Section: "742", Category: "Policy", Severity: "high", Keywords: []string{"control", "policy", "reason"}},
-			"744.1":  {ID: "744.1", Title: "Entity List", Section: "744", Category: "Restriction", Severity: "critical", Keywords: []string{"entity", "list", "denied", "restricted"}},
-			"764.1":  {ID: "764.1", Title: "Enforcement and Penalties", Section: "764", Category: "Enforcement", Severity: "critical", Keywords: []string{"enforcement", "penalty", "violation"}},
+			"730.1": {ID: "730.1", Title: "Scope of EAR", Section: "730", Category: "General", Severity: "high", Keywords: []string{"scope", "dual-use", "export"}},
+			"732.1": {ID: "732.1", Title: "Steps for Using EAR", Section: "732", Category: "Process", Severity: "high", Keywords: []string{"steps", "classification", "license"}},
+			"734.3": {ID: "734.3", Title: "Items Subject to EAR", Section: "734", Category: "Scope", Severity: "high", Keywords: []string{"subject", "items", "technology"}},
+			"736.1": {ID: "736.1", Title: "General Prohibitions", Section: "736", Category: "Prohibition", Severity: "critical", Keywords: []string{"prohibition", "export", "reexport"}},
+			"740.1": {ID: "740.1", Title: "License Exceptions", Section: "740", Category: "Exception", Severity: "high", Keywords: []string{"license", "exception", "authorization"}},
+			"742.1": {ID: "742.1", Title: "Control Policy", Section: "742", Category: "Policy", Severity: "high", Keywords: []string{"control", "policy", "reason"}},
+			"744.1": {ID: "744.1", Title: "Entity List", Section: "744", Category: "Restriction", Severity: "critical", Keywords: []string{"entity", "list", "denied", "restricted"}},
+			"764.1": {ID: "764.1", Title: "Enforcement and Penalties", Section: "764", Category: "Enforcement", Severity: "critical", Keywords: []string{"enforcement", "penalty", "violation"}},
 		},
 	}
 }
@@ -167,9 +167,9 @@ func (m *Manager) buildNIST800171Framework() *Framework {
 			"3.4.6": {ID: "3.4.6", Title: "Least Functionality", Section: "3.4", Category: "Configuration", Severity: "high", Keywords: []string{"least", "functionality", "disable"}},
 
 			// Identification and Authentication
-			"3.5.1":  {ID: "3.5.1", Title: "Identify Users", Section: "3.5", Category: "Identification", Severity: "critical", Keywords: []string{"identify", "user", "process"}},
-			"3.5.2":  {ID: "3.5.2", Title: "Authenticate Identities", Section: "3.5", Category: "Authentication", Severity: "critical", Keywords: []string{"authenticate", "identity", "credential"}},
-			"3.5.3":  {ID: "3.5.3", Title: "Multi-Factor Authentication", Section: "3.5", Category: "Authentication", Severity: "critical", Keywords: []string{"mfa", "multi-factor", "privileged"}},
+			"3.5.1": {ID: "3.5.1", Title: "Identify Users", Section: "3.5", Category: "Identification", Severity: "critical", Keywords: []string{"identify", "user", "process"}},
+			"3.5.2": {ID: "3.5.2", Title: "Authenticate Identities", Section: "3.5", Category: "Authentication", Severity: "critical", Keywords: []string{"authenticate", "identity", "credential"}},
+			"3.5.3": {ID: "3.5.3", Title: "Multi-Factor Authentication", Section: "3.5", Category: "Authentication", Severity: "critical", Keywords: []string{"mfa", "multi-factor", "privileged"}},
 
 			// Incident Response
 			"3.6.1": {ID: "3.6.1", Title: "Incident Handling Capability", Section: "3.6", Category: "Incident Response", Severity: "critical", Keywords: []string{"incident", "handling", "capability"}},
@@ -193,16 +193,16 @@ func (m *Manager) buildStateRAMPFramework() *Framework {
 		Sector:      SectorGovernment,
 		URL:         "https://stateramp.org/",
 		Controls: map[string]*Control{
-			"AC-1":  {ID: "AC-1", Title: "Access Control Policy", Section: "AC", Category: "Access Control", Severity: "high", Keywords: []string{"access", "policy", "procedure"}},
-			"AC-2":  {ID: "AC-2", Title: "Account Management", Section: "AC", Category: "Access Control", Severity: "high", Keywords: []string{"account", "management", "user"}},
-			"AU-2":  {ID: "AU-2", Title: "Audit Events", Section: "AU", Category: "Audit", Severity: "high", Keywords: []string{"audit", "event", "log"}},
-			"CA-2":  {ID: "CA-2", Title: "Security Assessments", Section: "CA", Category: "Assessment", Severity: "high", Keywords: []string{"assessment", "security", "control"}},
-			"CM-2":  {ID: "CM-2", Title: "Baseline Configuration", Section: "CM", Category: "Configuration", Severity: "high", Keywords: []string{"baseline", "configuration", "documented"}},
-			"IA-2":  {ID: "IA-2", Title: "Identification and Authentication", Section: "IA", Category: "Authentication", Severity: "critical", Keywords: []string{"identification", "authentication", "mfa"}},
-			"IR-1":  {ID: "IR-1", Title: "Incident Response Policy", Section: "IR", Category: "Incident Response", Severity: "high", Keywords: []string{"incident", "response", "policy"}},
-			"RA-5":  {ID: "RA-5", Title: "Vulnerability Scanning", Section: "RA", Category: "Vulnerability", Severity: "high", Keywords: []string{"vulnerability", "scan", "assessment"}},
-			"SC-7":  {ID: "SC-7", Title: "Boundary Protection", Section: "SC", Category: "System Protection", Severity: "critical", Keywords: []string{"boundary", "protection", "firewall"}},
-			"SI-2":  {ID: "SI-2", Title: "Flaw Remediation", Section: "SI", Category: "System Integrity", Severity: "high", Keywords: []string{"flaw", "remediation", "patch"}},
+			"AC-1": {ID: "AC-1", Title: "Access Control Policy", Section: "AC", Category: "Access Control", Severity: "high", Keywords: []string{"access", "policy", "procedure"}},
+			"AC-2": {ID: "AC-2", Title: "Account Management", Section: "AC", Category: "Access Control", Severity: "high", Keywords: []string{"account", "management", "user"}},
+			"AU-2": {ID: "AU-2", Title: "Audit Events", Section: "AU", Category: "Audit", Severity: "high", Keywords: []string{"audit", "event", "log"}},
+			"CA-2": {ID: "CA-2", Title: "Security Assessments", Section: "CA", Category: "Assessment", Severity: "high", Keywords: []string{"assessment", "security", "control"}},
+			"CM-2": {ID: "CM-2", Title: "Baseline Configuration", Section: "CM", Category: "Configuration", Severity: "high", Keywords: []string{"baseline", "configuration", "documented"}},
+			"IA-2": {ID: "IA-2", Title: "Identification and Authentication", Section: "IA", Category: "Authentication", Severity: "critical", Keywords: []string{"identification", "authentication", "mfa"}},
+			"IR-1": {ID: "IR-1", Title: "Incident Response Policy", Section: "IR", Category: "Incident Response", Severity: "high", Keywords: []string{"incident", "response", "policy"}},
+			"RA-5": {ID: "RA-5", Title: "Vulnerability Scanning", Section: "RA", Category: "Vulnerability", Severity: "high", Keywords: []string{"vulnerability", "scan", "assessment"}},
+			"SC-7": {ID: "SC-7", Title: "Boundary Protection", Section: "SC", Category: "System Protection", Severity: "critical", Keywords: []string{"boundary", "protection", "firewall"}},
+			"SI-2": {ID: "SI-2", Title: "Flaw Remediation", Section: "SI", Category: "System Integrity", Severity: "high", Keywords: []string{"flaw", "remediation", "patch"}},
 		},
 	}
 }
@@ -244,4 +244,3 @@ func (m *Manager) loadExtendedGovernmentFrameworks() {
 	m.RegisterFramework(m.buildStateRAMPFramework())
 	m.RegisterFramework(m.buildCJISFramework())
 }
-

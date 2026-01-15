@@ -45,8 +45,11 @@ linters-settings:
     enabled-tags:
       - diagnostic
     disabled-checks:
-      - appendAssign  # False positive for append to different slice
-      - ifElseChain   # Style preference
+      - appendAssign       # False positive for append to different slice
+      - ifElseChain        # Style preference
+      - elseif             # Style preference
+      - sprintfQuotedString # Style preference
+      - builtinShadowDecl  # min/max shadowing common in pre-1.21 code
 
   goimports:
     local-prefixes: github.com/yourusername/cloudforge

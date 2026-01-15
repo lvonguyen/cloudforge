@@ -21,11 +21,11 @@ type CheckovProvider struct {
 
 // CheckovConfig configures the Checkov provider
 type CheckovConfig struct {
-	CheckovPath   string   `yaml:"checkov_path"`
-	Frameworks    []string `yaml:"frameworks"`      // terraform, cloudformation, kubernetes, etc.
-	SkipChecks    []string `yaml:"skip_checks"`     // checks to skip
-	HardFailOn    []string `yaml:"hard_fail_on"`    // severity levels to fail on
-	OutputFormat  string   `yaml:"output_format"`   // json, sarif
+	CheckovPath  string   `yaml:"checkov_path"`
+	Frameworks   []string `yaml:"frameworks"`    // terraform, cloudformation, kubernetes, etc.
+	SkipChecks   []string `yaml:"skip_checks"`   // checks to skip
+	HardFailOn   []string `yaml:"hard_fail_on"`  // severity levels to fail on
+	OutputFormat string   `yaml:"output_format"` // json, sarif
 }
 
 // NewCheckovProvider creates a new Checkov provider
@@ -122,16 +122,16 @@ func (p *CheckovProvider) GetFindings(ctx context.Context, scanPath string) ([]*
 	var result struct {
 		Results struct {
 			FailedChecks []struct {
-				CheckID      string `json:"check_id"`
-				CheckName    string `json:"check_name"`
-				CheckResult  struct {
+				CheckID     string `json:"check_id"`
+				CheckName   string `json:"check_name"`
+				CheckResult struct {
 					Result string `json:"result"`
 				} `json:"check_result"`
-				FilePath     string `json:"file_path"`
-				FileLineRange []int  `json:"file_line_range"`
+				FilePath        string `json:"file_path"`
+				FileLineRange   []int  `json:"file_line_range"`
 				ResourceAddress string `json:"resource_address"`
-				Guideline    string `json:"guideline"`
-				Severity     string `json:"severity"`
+				Guideline       string `json:"guideline"`
+				Severity        string `json:"severity"`
 			} `json:"failed_checks"`
 		} `json:"results"`
 	}
@@ -142,13 +142,13 @@ func (p *CheckovProvider) GetFindings(ctx context.Context, scanPath string) ([]*
 			CheckType string `json:"check_type"`
 			Results   struct {
 				FailedChecks []struct {
-					CheckID      string `json:"check_id"`
-					CheckName    string `json:"check_name"`
-					FilePath     string `json:"file_path"`
-					FileLineRange []int  `json:"file_line_range"`
+					CheckID         string `json:"check_id"`
+					CheckName       string `json:"check_name"`
+					FilePath        string `json:"file_path"`
+					FileLineRange   []int  `json:"file_line_range"`
 					ResourceAddress string `json:"resource_address"`
-					Guideline    string `json:"guideline"`
-					Severity     string `json:"severity"`
+					Guideline       string `json:"guideline"`
+					Severity        string `json:"severity"`
 				} `json:"failed_checks"`
 			} `json:"results"`
 		}
@@ -233,4 +233,3 @@ func mapCheckovSeverity(severity string) string {
 		return "medium"
 	}
 }
-

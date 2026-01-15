@@ -44,21 +44,21 @@ type Provider interface {
 
 // User represents an identity user
 type User struct {
-	ID                string            `json:"id"`
-	Email             string            `json:"email"`
-	DisplayName       string            `json:"display_name"`
-	Department        string            `json:"department"`
-	JobTitle          string            `json:"job_title"`
-	Manager           string            `json:"manager_id"`
-	Status            string            `json:"status"` // active, disabled, suspended
-	MFAEnabled        bool              `json:"mfa_enabled"`
-	LastLogin         *time.Time        `json:"last_login,omitempty"`
-	CreatedAt         time.Time         `json:"created_at"`
-	UpdatedAt         time.Time         `json:"updated_at"`
-	Attributes        map[string]string `json:"attributes,omitempty"`
-	Groups            []string          `json:"groups,omitempty"`
-	Roles             []string          `json:"roles,omitempty"`
-	RiskLevel         string            `json:"risk_level,omitempty"`
+	ID          string            `json:"id"`
+	Email       string            `json:"email"`
+	DisplayName string            `json:"display_name"`
+	Department  string            `json:"department"`
+	JobTitle    string            `json:"job_title"`
+	Manager     string            `json:"manager_id"`
+	Status      string            `json:"status"` // active, disabled, suspended
+	MFAEnabled  bool              `json:"mfa_enabled"`
+	LastLogin   *time.Time        `json:"last_login,omitempty"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
+	Attributes  map[string]string `json:"attributes,omitempty"`
+	Groups      []string          `json:"groups,omitempty"`
+	Roles       []string          `json:"roles,omitempty"`
+	RiskLevel   string            `json:"risk_level,omitempty"`
 }
 
 // Group represents an identity group
@@ -116,12 +116,12 @@ type JITAccessGrant struct {
 
 // RiskAssessment represents a user risk assessment
 type RiskAssessment struct {
-	UserID           string    `json:"user_id"`
-	RiskScore        float64   `json:"risk_score"` // 0-100
-	RiskLevel        string    `json:"risk_level"` // low, medium, high, critical
-	Factors          []string  `json:"factors"`
-	LastAssessedAt   time.Time `json:"last_assessed_at"`
-	RecommendedActions []string `json:"recommended_actions"`
+	UserID             string    `json:"user_id"`
+	RiskScore          float64   `json:"risk_score"` // 0-100
+	RiskLevel          string    `json:"risk_level"` // low, medium, high, critical
+	Factors            []string  `json:"factors"`
+	LastAssessedAt     time.Time `json:"last_assessed_at"`
+	RecommendedActions []string  `json:"recommended_actions"`
 }
 
 // UserFilter for listing users
@@ -177,4 +177,3 @@ func (m *Manager) ListProviders() []string {
 	}
 	return names
 }
-
