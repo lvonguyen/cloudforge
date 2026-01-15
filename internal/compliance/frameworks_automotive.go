@@ -67,18 +67,18 @@ func (m *Manager) buildISO21434Framework() *Framework {
 			"7.4.4": {ID: "7.4.4", Title: "Vulnerability Management", Section: "7", Category: "Continuous", Severity: "critical", Keywords: []string{"vulnerability", "management", "remediation"}},
 
 			// Risk assessment methods
-			"8.3":   {ID: "8.3", Title: "Asset Identification", Section: "8", Category: "Risk", Severity: "high", Keywords: []string{"asset", "identification", "inventory"}},
-			"8.4":   {ID: "8.4", Title: "Threat Scenario Identification", Section: "8", Category: "Risk", Severity: "critical", Keywords: []string{"threat", "scenario", "attack"}},
-			"8.5":   {ID: "8.5", Title: "Impact Rating", Section: "8", Category: "Risk", Severity: "high", Keywords: []string{"impact", "rating", "severity"}},
-			"8.6":   {ID: "8.6", Title: "Attack Path Analysis", Section: "8", Category: "Risk", Severity: "critical", Keywords: []string{"attack", "path", "vector"}},
-			"8.7":   {ID: "8.7", Title: "Attack Feasibility Rating", Section: "8", Category: "Risk", Severity: "high", Keywords: []string{"feasibility", "rating", "likelihood"}},
-			"8.8":   {ID: "8.8", Title: "Risk Value Determination", Section: "8", Category: "Risk", Severity: "critical", Keywords: []string{"risk", "value", "determination"}},
-			"8.9":   {ID: "8.9", Title: "Risk Treatment Decision", Section: "8", Category: "Risk", Severity: "critical", Keywords: []string{"risk", "treatment", "mitigation"}},
+			"8.3": {ID: "8.3", Title: "Asset Identification", Section: "8", Category: "Risk", Severity: "high", Keywords: []string{"asset", "identification", "inventory"}},
+			"8.4": {ID: "8.4", Title: "Threat Scenario Identification", Section: "8", Category: "Risk", Severity: "critical", Keywords: []string{"threat", "scenario", "attack"}},
+			"8.5": {ID: "8.5", Title: "Impact Rating", Section: "8", Category: "Risk", Severity: "high", Keywords: []string{"impact", "rating", "severity"}},
+			"8.6": {ID: "8.6", Title: "Attack Path Analysis", Section: "8", Category: "Risk", Severity: "critical", Keywords: []string{"attack", "path", "vector"}},
+			"8.7": {ID: "8.7", Title: "Attack Feasibility Rating", Section: "8", Category: "Risk", Severity: "high", Keywords: []string{"feasibility", "rating", "likelihood"}},
+			"8.8": {ID: "8.8", Title: "Risk Value Determination", Section: "8", Category: "Risk", Severity: "critical", Keywords: []string{"risk", "value", "determination"}},
+			"8.9": {ID: "8.9", Title: "Risk Treatment Decision", Section: "8", Category: "Risk", Severity: "critical", Keywords: []string{"risk", "treatment", "mitigation"}},
 
 			// Concept phase
-			"9.3":   {ID: "9.3", Title: "Item Definition", Section: "9", Category: "Concept", Severity: "high", Keywords: []string{"item", "definition", "scope"}},
-			"9.4":   {ID: "9.4", Title: "Cybersecurity Goals", Section: "9", Category: "Concept", Severity: "high", Keywords: []string{"goal", "objective", "requirement"}},
-			"9.5":   {ID: "9.5", Title: "Cybersecurity Concept", Section: "9", Category: "Concept", Severity: "high", Keywords: []string{"concept", "architecture", "design"}},
+			"9.3": {ID: "9.3", Title: "Item Definition", Section: "9", Category: "Concept", Severity: "high", Keywords: []string{"item", "definition", "scope"}},
+			"9.4": {ID: "9.4", Title: "Cybersecurity Goals", Section: "9", Category: "Concept", Severity: "high", Keywords: []string{"goal", "objective", "requirement"}},
+			"9.5": {ID: "9.5", Title: "Cybersecurity Concept", Section: "9", Category: "Concept", Severity: "high", Keywords: []string{"concept", "architecture", "design"}},
 
 			// Product development
 			"10.4.1": {ID: "10.4.1", Title: "Cybersecurity Specifications", Section: "10", Category: "Development", Severity: "high", Keywords: []string{"specification", "requirement", "security"}},
@@ -214,4 +214,3 @@ func (m *Manager) loadAutomotiveSectorProfile() {
 		},
 	}
 }
-

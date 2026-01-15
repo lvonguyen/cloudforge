@@ -35,8 +35,8 @@ type APIScanResult struct {
 	Version         string           `json:"version"`
 	BaseURL         string           `json:"base_url"`
 	ScannedAt       time.Time        `json:"scanned_at"`
-	Status          string           `json:"status"`           // passed, failed, warning
-	SecurityScore   float64          `json:"security_score"`   // 0-100
+	Status          string           `json:"status"`         // passed, failed, warning
+	SecurityScore   float64          `json:"security_score"` // 0-100
 	Findings        []APIFinding     `json:"findings"`
 	Endpoints       []EndpointResult `json:"endpoints"`
 	Recommendations []string         `json:"recommendations"`
@@ -57,25 +57,25 @@ type APIFinding struct {
 
 // EndpointResult represents security analysis of a single endpoint
 type EndpointResult struct {
-	Path            string   `json:"path"`
-	Method          string   `json:"method"`
-	Authenticated   bool     `json:"authenticated"`
-	AuthMethods     []string `json:"auth_methods"`
-	RateLimited     bool     `json:"rate_limited"`
-	HasInputValidation bool  `json:"has_input_validation"`
-	SensitiveData   bool     `json:"sensitive_data"`
-	Findings        []APIFinding `json:"findings"`
+	Path               string       `json:"path"`
+	Method             string       `json:"method"`
+	Authenticated      bool         `json:"authenticated"`
+	AuthMethods        []string     `json:"auth_methods"`
+	RateLimited        bool         `json:"rate_limited"`
+	HasInputValidation bool         `json:"has_input_validation"`
+	SensitiveData      bool         `json:"sensitive_data"`
+	Findings           []APIFinding `json:"findings"`
 }
 
 // APISpec represents an API specification (OpenAPI/Swagger)
 type APISpec struct {
-	Title       string                 `json:"title"`
-	Version     string                 `json:"version"`
-	Description string                 `json:"description"`
-	Servers     []Server               `json:"servers"`
-	Paths       map[string]PathItem    `json:"paths"`
-	Security    []SecurityRequirement  `json:"security"`
-	Components  Components             `json:"components"`
+	Title       string                `json:"title"`
+	Version     string                `json:"version"`
+	Description string                `json:"description"`
+	Servers     []Server              `json:"servers"`
+	Paths       map[string]PathItem   `json:"paths"`
+	Security    []SecurityRequirement `json:"security"`
+	Components  Components            `json:"components"`
 }
 
 // Server represents an API server
@@ -86,11 +86,11 @@ type Server struct {
 
 // PathItem represents an API path
 type PathItem struct {
-	Get     *Operation `json:"get,omitempty"`
-	Post    *Operation `json:"post,omitempty"`
-	Put     *Operation `json:"put,omitempty"`
-	Delete  *Operation `json:"delete,omitempty"`
-	Patch   *Operation `json:"patch,omitempty"`
+	Get    *Operation `json:"get,omitempty"`
+	Post   *Operation `json:"post,omitempty"`
+	Put    *Operation `json:"put,omitempty"`
+	Delete *Operation `json:"delete,omitempty"`
+	Patch  *Operation `json:"patch,omitempty"`
 }
 
 // Operation represents an API operation
@@ -143,11 +143,11 @@ type Components struct {
 
 // SecurityScheme represents a security scheme
 type SecurityScheme struct {
-	Type         string `json:"type"`
-	Scheme       string `json:"scheme,omitempty"`
-	BearerFormat string `json:"bearerFormat,omitempty"`
-	In           string `json:"in,omitempty"`
-	Name         string `json:"name,omitempty"`
+	Type         string      `json:"type"`
+	Scheme       string      `json:"scheme,omitempty"`
+	BearerFormat string      `json:"bearerFormat,omitempty"`
+	In           string      `json:"in,omitempty"`
+	Name         string      `json:"name,omitempty"`
 	Flows        *OAuthFlows `json:"flows,omitempty"`
 }
 
@@ -584,4 +584,3 @@ func (s *SecurityScanner) ValidateRequest(r *http.Request) []APIFinding {
 
 	return findings
 }
-

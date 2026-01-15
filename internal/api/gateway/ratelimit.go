@@ -34,10 +34,10 @@ type localCounter struct {
 // RateLimitConfig configures the rate limiter
 type RateLimitConfig struct {
 	// Global defaults
-	DefaultRequestsPerSecond int           `yaml:"default_requests_per_second"`
-	DefaultRequestsPerMinute int           `yaml:"default_requests_per_minute"`
-	DefaultRequestsPerHour   int           `yaml:"default_requests_per_hour"`
-	DefaultBurstSize         int           `yaml:"default_burst_size"`
+	DefaultRequestsPerSecond int `yaml:"default_requests_per_second"`
+	DefaultRequestsPerMinute int `yaml:"default_requests_per_minute"`
+	DefaultRequestsPerHour   int `yaml:"default_requests_per_hour"`
+	DefaultBurstSize         int `yaml:"default_burst_size"`
 
 	// Tier-based limits
 	Tiers map[string]TierLimits `yaml:"tiers"`
@@ -91,26 +91,26 @@ type CircuitBreakerConfig struct {
 
 // RateLimitResult contains the result of a rate limit check
 type RateLimitResult struct {
-	Allowed       bool
-	Remaining     int
-	Limit         int
-	ResetAt       time.Time
-	RetryAfter    time.Duration
-	Tier          string
-	Reason        string
-	RequestCost   int
-	QuotaUsed     int
-	QuotaLimit    int
+	Allowed     bool
+	Remaining   int
+	Limit       int
+	ResetAt     time.Time
+	RetryAfter  time.Duration
+	Tier        string
+	Reason      string
+	RequestCost int
+	QuotaUsed   int
+	QuotaLimit  int
 }
 
 // RateLimitKey identifies a rate limit bucket
 type RateLimitKey struct {
-	ClientID   string
-	Tier       string
-	Endpoint   string
-	Method     string
-	IPAddress  string
-	APIKey     string
+	ClientID  string
+	Tier      string
+	Endpoint  string
+	Method    string
+	IPAddress string
+	APIKey    string
 }
 
 // NewRateLimiter creates a new rate limiter
@@ -446,7 +446,7 @@ func (rl *RateLimiter) Middleware(getTier func(r *http.Request) string, getClien
 				w.Header().Set("Retry-After", strconv.Itoa(int(result.RetryAfter.Seconds())))
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusTooManyRequests)
-				
+
 				response := fmt.Sprintf(`{
 					"error": "rate_limit_exceeded",
 					"message": "%s",
@@ -454,9 +454,9 @@ func (rl *RateLimiter) Middleware(getTier func(r *http.Request) string, getClien
 					"limit": %d,
 					"tier": "%s"
 				}`, result.Reason, int(result.RetryAfter.Seconds()), result.Limit, result.Tier)
-				
+
 				_, _ = w.Write([]byte(response))
-				
+
 				rl.logger.Warn("Rate limit exceeded",
 					zap.String("client_id", key.ClientID),
 					zap.String("tier", key.Tier),
@@ -651,4 +651,3 @@ func DefaultConfig() RateLimitConfig {
 		},
 	}
 }
-

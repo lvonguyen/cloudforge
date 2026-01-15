@@ -11,14 +11,14 @@ import (
 
 // ZeroTrustPolicy defines a zero trust access policy
 type ZeroTrustPolicy struct {
-	ID          string              `json:"id" yaml:"id"`
-	Name        string              `json:"name" yaml:"name"`
-	Description string              `json:"description" yaml:"description"`
-	Enabled     bool                `json:"enabled" yaml:"enabled"`
-	Priority    int                 `json:"priority" yaml:"priority"`
-	Conditions  []PolicyCondition   `json:"conditions" yaml:"conditions"`
-	Actions     []PolicyAction      `json:"actions" yaml:"actions"`
-	Exceptions  []PolicyException   `json:"exceptions" yaml:"exceptions"`
+	ID          string            `json:"id" yaml:"id"`
+	Name        string            `json:"name" yaml:"name"`
+	Description string            `json:"description" yaml:"description"`
+	Enabled     bool              `json:"enabled" yaml:"enabled"`
+	Priority    int               `json:"priority" yaml:"priority"`
+	Conditions  []PolicyCondition `json:"conditions" yaml:"conditions"`
+	Actions     []PolicyAction    `json:"actions" yaml:"actions"`
+	Exceptions  []PolicyException `json:"exceptions" yaml:"exceptions"`
 }
 
 // PolicyCondition defines a condition for policy evaluation
@@ -43,43 +43,43 @@ type PolicyException struct {
 
 // AccessRequest represents a request to access a resource
 type AccessRequest struct {
-	UserID       string            `json:"user_id"`
-	Resource     string            `json:"resource"`
-	Action       string            `json:"action"`
-	Context      AccessContext     `json:"context"`
-	Timestamp    time.Time         `json:"timestamp"`
+	UserID    string        `json:"user_id"`
+	Resource  string        `json:"resource"`
+	Action    string        `json:"action"`
+	Context   AccessContext `json:"context"`
+	Timestamp time.Time     `json:"timestamp"`
 }
 
 // AccessContext provides context for access decisions
 type AccessContext struct {
-	DeviceID         string            `json:"device_id,omitempty"`
-	DeviceCompliant  bool              `json:"device_compliant"`
-	DeviceTrusted    bool              `json:"device_trusted"`
-	IPAddress        string            `json:"ip_address"`
-	Location         string            `json:"location,omitempty"`
-	UserAgent        string            `json:"user_agent,omitempty"`
-	MFACompleted     bool              `json:"mfa_completed"`
-	RiskLevel        string            `json:"risk_level"`
-	SessionAge       time.Duration     `json:"session_age"`
-	Attributes       map[string]string `json:"attributes,omitempty"`
+	DeviceID        string            `json:"device_id,omitempty"`
+	DeviceCompliant bool              `json:"device_compliant"`
+	DeviceTrusted   bool              `json:"device_trusted"`
+	IPAddress       string            `json:"ip_address"`
+	Location        string            `json:"location,omitempty"`
+	UserAgent       string            `json:"user_agent,omitempty"`
+	MFACompleted    bool              `json:"mfa_completed"`
+	RiskLevel       string            `json:"risk_level"`
+	SessionAge      time.Duration     `json:"session_age"`
+	Attributes      map[string]string `json:"attributes,omitempty"`
 }
 
 // AccessDecision represents the result of a policy evaluation
 type AccessDecision struct {
-	Allowed       bool              `json:"allowed"`
-	PolicyID      string            `json:"policy_id"`
-	PolicyName    string            `json:"policy_name"`
-	Reason        string            `json:"reason"`
-	RequiredActions []string        `json:"required_actions,omitempty"`
+	Allowed         bool              `json:"allowed"`
+	PolicyID        string            `json:"policy_id"`
+	PolicyName      string            `json:"policy_name"`
+	Reason          string            `json:"reason"`
+	RequiredActions []string          `json:"required_actions,omitempty"`
 	SessionControls map[string]string `json:"session_controls,omitempty"`
-	EvaluatedAt   time.Time         `json:"evaluated_at"`
+	EvaluatedAt     time.Time         `json:"evaluated_at"`
 }
 
 // ZeroTrustEngine evaluates access requests against policies
 type ZeroTrustEngine struct {
-	policies   []*ZeroTrustPolicy
-	providers  map[string]Provider
-	logger     *zap.Logger
+	policies  []*ZeroTrustPolicy
+	providers map[string]Provider
+	logger    *zap.Logger
 }
 
 // NewZeroTrustEngine creates a new zero trust policy engine
@@ -131,7 +131,7 @@ func (e *ZeroTrustEngine) Evaluate(ctx context.Context, request *AccessRequest) 
 
 		if e.matchesPolicy(request, policy) {
 			decision := e.applyPolicy(request, policy)
-			
+
 			e.logger.Info("Access decision made",
 				zap.String("user_id", request.UserID),
 				zap.String("resource", request.Resource),
@@ -368,7 +368,7 @@ func (e *ZeroTrustEngine) loadDefaultPolicies() {
 		Actions: []PolicyAction{
 			{Type: "allow"},
 			{Type: "session_control", Parameters: map[string]string{
-				"max_session_duration": "8h",
+				"max_session_duration":     "8h",
 				"require_reauthentication": "4h",
 			}},
 		},
@@ -417,4 +417,3 @@ func (e *ZeroTrustEngine) DeletePolicy(id string) error {
 	}
 	return fmt.Errorf("policy not found: %s", id)
 }
-

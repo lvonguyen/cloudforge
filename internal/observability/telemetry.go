@@ -44,8 +44,8 @@ type Config struct {
 	LogFormat string `yaml:"log_format"` // json, console
 
 	// Tracing
-	TracingEnabled bool   `yaml:"tracing_enabled"`
-	OTLPEndpoint   string `yaml:"otlp_endpoint"`
+	TracingEnabled bool    `yaml:"tracing_enabled"`
+	OTLPEndpoint   string  `yaml:"otlp_endpoint"`
 	SamplingRate   float64 `yaml:"sampling_rate"`
 
 	// Metrics
@@ -64,16 +64,16 @@ type Metrics struct {
 	RequestsInFlight prometheus.Gauge
 
 	// Finding metrics
-	FindingsProcessed *prometheus.CounterVec
-	FindingsActive    *prometheus.GaugeVec
+	FindingsProcessed  *prometheus.CounterVec
+	FindingsActive     *prometheus.GaugeVec
 	AIAnalysisDuration *prometheus.HistogramVec
 
 	// System metrics
 	GoroutineCount prometheus.Gauge
 	MemoryUsage    prometheus.Gauge
-	
+
 	// Health metrics
-	HealthStatus *prometheus.GaugeVec
+	HealthStatus    *prometheus.GaugeVec
 	LastHealthCheck prometheus.Gauge
 
 	// Error metrics

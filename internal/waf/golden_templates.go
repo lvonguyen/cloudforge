@@ -18,61 +18,61 @@ type GoldenTemplateManager struct {
 
 // GoldenTemplate represents a WAF golden template
 type GoldenTemplate struct {
-	ID          string            `yaml:"id" json:"id"`
-	Name        string            `yaml:"name" json:"name"`
-	Description string            `yaml:"description" json:"description"`
-	Provider    string            `yaml:"provider" json:"provider"` // aws, azure, cloudflare, etc.
-	Environment string            `yaml:"environment" json:"environment"` // production, staging, development
-	Exposure    string            `yaml:"exposure" json:"exposure"` // external, internal, dmz
-	RuleSet     RuleSet           `yaml:"rule_set" json:"rule_set"`
-	Metadata    TemplateMetadata  `yaml:"metadata" json:"metadata"`
+	ID          string           `yaml:"id" json:"id"`
+	Name        string           `yaml:"name" json:"name"`
+	Description string           `yaml:"description" json:"description"`
+	Provider    string           `yaml:"provider" json:"provider"`       // aws, azure, cloudflare, etc.
+	Environment string           `yaml:"environment" json:"environment"` // production, staging, development
+	Exposure    string           `yaml:"exposure" json:"exposure"`       // external, internal, dmz
+	RuleSet     RuleSet          `yaml:"rule_set" json:"rule_set"`
+	Metadata    TemplateMetadata `yaml:"metadata" json:"metadata"`
 }
 
 // RuleSet contains WAF rules
 type RuleSet struct {
-	ManagedRules    []ManagedRule    `yaml:"managed_rules" json:"managed_rules"`
-	CustomRules     []CustomRule     `yaml:"custom_rules" json:"custom_rules"`
-	RateLimiting    RateLimitConfig  `yaml:"rate_limiting" json:"rate_limiting"`
-	IPBlocking      IPBlockConfig    `yaml:"ip_blocking" json:"ip_blocking"`
-	GeoBlocking     GeoBlockConfig   `yaml:"geo_blocking" json:"geo_blocking"`
-	BotProtection   BotProtection    `yaml:"bot_protection" json:"bot_protection"`
+	ManagedRules  []ManagedRule   `yaml:"managed_rules" json:"managed_rules"`
+	CustomRules   []CustomRule    `yaml:"custom_rules" json:"custom_rules"`
+	RateLimiting  RateLimitConfig `yaml:"rate_limiting" json:"rate_limiting"`
+	IPBlocking    IPBlockConfig   `yaml:"ip_blocking" json:"ip_blocking"`
+	GeoBlocking   GeoBlockConfig  `yaml:"geo_blocking" json:"geo_blocking"`
+	BotProtection BotProtection   `yaml:"bot_protection" json:"bot_protection"`
 }
 
 // ManagedRule represents a managed rule set
 type ManagedRule struct {
 	Name       string   `yaml:"name" json:"name"`
-	Vendor     string   `yaml:"vendor" json:"vendor"`       // owasp, aws, cloudflare
+	Vendor     string   `yaml:"vendor" json:"vendor"` // owasp, aws, cloudflare
 	Version    string   `yaml:"version" json:"version"`
-	Action     string   `yaml:"action" json:"action"`       // block, log, count
+	Action     string   `yaml:"action" json:"action"` // block, log, count
 	Exclusions []string `yaml:"exclusions" json:"exclusions"`
 }
 
 // CustomRule represents a custom WAF rule
 type CustomRule struct {
-	ID          string           `yaml:"id" json:"id"`
-	Name        string           `yaml:"name" json:"name"`
-	Description string           `yaml:"description" json:"description"`
-	Priority    int              `yaml:"priority" json:"priority"`
-	Conditions  []RuleCondition  `yaml:"conditions" json:"conditions"`
-	Action      string           `yaml:"action" json:"action"` // block, allow, log, redirect
+	ID          string          `yaml:"id" json:"id"`
+	Name        string          `yaml:"name" json:"name"`
+	Description string          `yaml:"description" json:"description"`
+	Priority    int             `yaml:"priority" json:"priority"`
+	Conditions  []RuleCondition `yaml:"conditions" json:"conditions"`
+	Action      string          `yaml:"action" json:"action"` // block, allow, log, redirect
 }
 
 // RuleCondition represents a condition in a rule
 type RuleCondition struct {
-	Field       string   `yaml:"field" json:"field"`           // uri, query, header, body, ip
-	Operator    string   `yaml:"operator" json:"operator"`     // contains, equals, regex, starts_with
-	Values      []string `yaml:"values" json:"values"`
-	Transform   string   `yaml:"transform" json:"transform"`   // lowercase, url_decode, none
-	Negate      bool     `yaml:"negate" json:"negate"`
+	Field     string   `yaml:"field" json:"field"`       // uri, query, header, body, ip
+	Operator  string   `yaml:"operator" json:"operator"` // contains, equals, regex, starts_with
+	Values    []string `yaml:"values" json:"values"`
+	Transform string   `yaml:"transform" json:"transform"` // lowercase, url_decode, none
+	Negate    bool     `yaml:"negate" json:"negate"`
 }
 
 // RateLimitConfig configures rate limiting
 type RateLimitConfig struct {
-	Enabled        bool              `yaml:"enabled" json:"enabled"`
-	DefaultLimit   int               `yaml:"default_limit" json:"default_limit"`     // requests per window
-	WindowSeconds  int               `yaml:"window_seconds" json:"window_seconds"`
-	GroupBy        string            `yaml:"group_by" json:"group_by"`               // ip, session, user
-	PathOverrides  []PathRateLimit   `yaml:"path_overrides" json:"path_overrides"`
+	Enabled       bool            `yaml:"enabled" json:"enabled"`
+	DefaultLimit  int             `yaml:"default_limit" json:"default_limit"` // requests per window
+	WindowSeconds int             `yaml:"window_seconds" json:"window_seconds"`
+	GroupBy       string          `yaml:"group_by" json:"group_by"` // ip, session, user
+	PathOverrides []PathRateLimit `yaml:"path_overrides" json:"path_overrides"`
 }
 
 // PathRateLimit allows different limits per path
@@ -84,10 +84,10 @@ type PathRateLimit struct {
 
 // IPBlockConfig configures IP blocking
 type IPBlockConfig struct {
-	Enabled      bool     `yaml:"enabled" json:"enabled"`
-	AllowList    []string `yaml:"allow_list" json:"allow_list"`
-	BlockList    []string `yaml:"block_list" json:"block_list"`
-	ThreatFeeds  []string `yaml:"threat_feeds" json:"threat_feeds"`
+	Enabled     bool     `yaml:"enabled" json:"enabled"`
+	AllowList   []string `yaml:"allow_list" json:"allow_list"`
+	BlockList   []string `yaml:"block_list" json:"block_list"`
+	ThreatFeeds []string `yaml:"threat_feeds" json:"threat_feeds"`
 }
 
 // GeoBlockConfig configures geo-blocking
@@ -100,11 +100,11 @@ type GeoBlockConfig struct {
 
 // BotProtection configures bot protection
 type BotProtection struct {
-	Enabled           bool     `yaml:"enabled" json:"enabled"`
-	Mode              string   `yaml:"mode" json:"mode"` // block, challenge, log
-	AllowedBots       []string `yaml:"allowed_bots" json:"allowed_bots"`
-	JsChallenge       bool     `yaml:"js_challenge" json:"js_challenge"`
-	CaptchaThreshold  float64  `yaml:"captcha_threshold" json:"captcha_threshold"`
+	Enabled          bool     `yaml:"enabled" json:"enabled"`
+	Mode             string   `yaml:"mode" json:"mode"` // block, challenge, log
+	AllowedBots      []string `yaml:"allowed_bots" json:"allowed_bots"`
+	JsChallenge      bool     `yaml:"js_challenge" json:"js_challenge"`
+	CaptchaThreshold float64  `yaml:"captcha_threshold" json:"captcha_threshold"`
 }
 
 // TemplateMetadata contains template metadata
@@ -185,7 +185,7 @@ func (gtm *GoldenTemplateManager) exportToAWS(template *GoldenTemplate) ([]byte,
 		"VisibilityConfig": map[string]interface{}{
 			"SampledRequestsEnabled":   true,
 			"CloudWatchMetricsEnabled": true,
-			"MetricName":              template.ID,
+			"MetricName":               template.ID,
 		},
 	}
 	return yaml.Marshal(awsConfig)
@@ -196,9 +196,9 @@ func (gtm *GoldenTemplateManager) exportToAzure(template *GoldenTemplate) ([]byt
 	azureConfig := map[string]interface{}{
 		"properties": map[string]interface{}{
 			"policySettings": map[string]interface{}{
-				"state":                "Enabled",
-				"mode":                 "Prevention",
-				"requestBodyCheck":     true,
+				"state":                  "Enabled",
+				"mode":                   "Prevention",
+				"requestBodyCheck":       true,
 				"maxRequestBodySizeInKb": 128,
 			},
 			"managedRules": gtm.convertToAzureManagedRules(template.RuleSet),
@@ -264,9 +264,9 @@ func (gtm *GoldenTemplateManager) loadDefaultTemplates() {
 					Priority:    1,
 					Conditions: []RuleCondition{
 						{
-							Field:    "header:user-agent",
-							Operator: "contains",
-							Values:   []string{"nikto", "sqlmap", "nmap", "burp"},
+							Field:     "header:user-agent",
+							Operator:  "contains",
+							Values:    []string{"nikto", "sqlmap", "nmap", "burp"},
 							Transform: "lowercase",
 						},
 					},
@@ -389,7 +389,7 @@ func (gtm *GoldenTemplateManager) loadDefaultTemplates() {
 				{Name: "AWSManagedRulesCommonRuleSet", Vendor: "aws", Version: "1.0", Action: "count"},
 			},
 			RateLimiting: RateLimitConfig{
-				Enabled:       false,
+				Enabled: false,
 			},
 		},
 		Metadata: TemplateMetadata{
@@ -412,4 +412,3 @@ func (gtm *GoldenTemplateManager) ListTemplates() []*GoldenTemplate {
 	}
 	return result
 }
-

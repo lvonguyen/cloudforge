@@ -362,11 +362,10 @@ func (cs *ComplianceScanner) GenerateReport(results []*ScanResult) *ComplianceRe
 
 // ComplianceReport represents a summary report
 type ComplianceReport struct {
-	GeneratedAt     time.Time         `json:"generated_at"`
-	TotalResources  int               `json:"total_resources"`
-	OverallScore    float64           `json:"overall_score"`
-	StatusSummary   map[string]int    `json:"status_summary"`
-	CategorySummary map[string]int    `json:"category_summary"`
-	Results         []*ScanResult     `json:"results"`
+	GeneratedAt     time.Time      `json:"generated_at"`
+	TotalResources  int            `json:"total_resources"`
+	OverallScore    float64        `json:"overall_score"`
+	StatusSummary   map[string]int `json:"status_summary"`
+	CategorySummary map[string]int `json:"category_summary"`
+	Results         []*ScanResult  `json:"results"`
 }
-

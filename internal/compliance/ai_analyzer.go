@@ -33,14 +33,14 @@ type AIAnalyzerConfig struct {
 
 // AIRiskAssessment represents the AI's risk assessment
 type AIRiskAssessment struct {
-	RiskScore       float64  `json:"risk_score"`        // 0.0 - 10.0
-	RiskLevel       string   `json:"risk_level"`        // critical, high, medium, low
-	Rationale       string   `json:"rationale"`
-	ContextualFactors []string `json:"contextual_factors"`
-	AttackVectors   []string `json:"attack_vectors"`
-	ToxicCombos     []ToxicComboCandidate `json:"toxic_combos"`
-	Recommendations []string `json:"recommendations"`
-	Confidence      float64  `json:"confidence"` // 0.0 - 1.0
+	RiskScore         float64               `json:"risk_score"` // 0.0 - 10.0
+	RiskLevel         string                `json:"risk_level"` // critical, high, medium, low
+	Rationale         string                `json:"rationale"`
+	ContextualFactors []string              `json:"contextual_factors"`
+	AttackVectors     []string              `json:"attack_vectors"`
+	ToxicCombos       []ToxicComboCandidate `json:"toxic_combos"`
+	Recommendations   []string              `json:"recommendations"`
+	Confidence        float64               `json:"confidence"` // 0.0 - 1.0
 }
 
 // ToxicComboCandidate represents a potential toxic combination
@@ -63,12 +63,12 @@ type MisconfigAnalysis struct {
 
 // VulnerabilityAnalysis represents vulnerability analysis results
 type VulnerabilityAnalysis struct {
-	IsVulnerability   bool     `json:"is_vulnerability"`
-	ExploitLikelihood string   `json:"exploit_likelihood"`
-	ExploitComplexity string   `json:"exploit_complexity"`
-	PrerequisiteAccess string  `json:"prerequisite_access"`
-	PotentialImpact   string   `json:"potential_impact"`
-	AttackSurface     string   `json:"attack_surface"`
+	IsVulnerability     bool   `json:"is_vulnerability"`
+	ExploitLikelihood   string `json:"exploit_likelihood"`
+	ExploitComplexity   string `json:"exploit_complexity"`
+	PrerequisiteAccess  string `json:"prerequisite_access"`
+	PotentialImpact     string `json:"potential_impact"`
+	AttackSurface       string `json:"attack_surface"`
 	RemediationPriority string `json:"remediation_priority"`
 }
 
@@ -109,10 +109,10 @@ func (a *AIAnalyzer) AnalyzeFinding(ctx context.Context, finding *Finding, relat
 		combo := assessment.ToxicCombos[0] // Take the most significant
 		finding.Type = FindingTypeToxicCombo
 		finding.ToxicComboDetails = &ToxicComboDetails{
-			ComboType:       "ai_detected",
-			Description:     combo.Description,
-			RelatedFindings: combo.RelatedFindingIDs,
-			AttackPath:      combo.AttackPath,
+			ComboType:        "ai_detected",
+			Description:      combo.Description,
+			RelatedFindings:  combo.RelatedFindingIDs,
+			AttackPath:       combo.AttackPath,
 			ExploitPotential: combo.Severity,
 		}
 	}
@@ -316,10 +316,10 @@ func (a *AIAnalyzer) DetectToxicCombinations(ctx context.Context, findings []*Fi
 					if f.ID == fid {
 						if f.ToxicComboDetails == nil {
 							f.ToxicComboDetails = &ToxicComboDetails{
-								ComboType:       "ai_detected",
-								Description:     combo.Description,
-								RelatedFindings: combo.RelatedFindingIDs,
-								AttackPath:      combo.AttackPath,
+								ComboType:        "ai_detected",
+								Description:      combo.Description,
+								RelatedFindings:  combo.RelatedFindingIDs,
+								AttackPath:       combo.AttackPath,
 								ExploitPotential: combo.Severity,
 							}
 							f.Type = FindingTypeToxicCombo
@@ -379,4 +379,3 @@ func min(a, b int) int {
 	}
 	return b
 }
-

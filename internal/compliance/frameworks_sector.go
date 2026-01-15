@@ -11,19 +11,19 @@ func (m *Manager) buildHIPAAFramework() *Framework {
 		Sector:      SectorHealthcare,
 		URL:         "https://www.hhs.gov/hipaa/for-professionals/security/",
 		Controls: map[string]*Control{
-			"164.308(a)(1)":  {ID: "164.308(a)(1)", Title: "Security Management Process", Section: "Administrative Safeguards", Category: "Risk Management", Severity: "high", Keywords: []string{"risk", "analysis", "management"}},
-			"164.308(a)(3)":  {ID: "164.308(a)(3)", Title: "Workforce Security", Section: "Administrative Safeguards", Category: "Access Control", Severity: "high", Keywords: []string{"workforce", "access", "authorization"}},
-			"164.308(a)(4)":  {ID: "164.308(a)(4)", Title: "Information Access Management", Section: "Administrative Safeguards", Category: "Access Control", Severity: "critical", Keywords: []string{"access", "phi", "authorization"}},
-			"164.308(a)(5)":  {ID: "164.308(a)(5)", Title: "Security Awareness Training", Section: "Administrative Safeguards", Category: "Training", Severity: "medium", Keywords: []string{"training", "awareness"}},
-			"164.308(a)(6)":  {ID: "164.308(a)(6)", Title: "Security Incident Procedures", Section: "Administrative Safeguards", Category: "Incident Response", Severity: "high", Keywords: []string{"incident", "response", "breach"}},
-			"164.308(a)(7)":  {ID: "164.308(a)(7)", Title: "Contingency Plan", Section: "Administrative Safeguards", Category: "Business Continuity", Severity: "high", Keywords: []string{"backup", "disaster", "recovery"}},
-			"164.310(a)(1)":  {ID: "164.310(a)(1)", Title: "Facility Access Controls", Section: "Physical Safeguards", Category: "Physical", Severity: "high", Keywords: []string{"physical", "facility", "access"}},
-			"164.310(d)(1)":  {ID: "164.310(d)(1)", Title: "Device and Media Controls", Section: "Physical Safeguards", Category: "Media", Severity: "high", Keywords: []string{"media", "device", "disposal"}},
-			"164.312(a)(1)":  {ID: "164.312(a)(1)", Title: "Access Control", Section: "Technical Safeguards", Category: "Access Control", Severity: "critical", Keywords: []string{"access", "unique user", "automatic logoff"}},
-			"164.312(b)":     {ID: "164.312(b)", Title: "Audit Controls", Section: "Technical Safeguards", Category: "Audit", Severity: "high", Keywords: []string{"audit", "log", "monitoring"}},
-			"164.312(c)(1)":  {ID: "164.312(c)(1)", Title: "Integrity", Section: "Technical Safeguards", Category: "Integrity", Severity: "high", Keywords: []string{"integrity", "ephi", "alteration"}},
-			"164.312(d)":     {ID: "164.312(d)", Title: "Person or Entity Authentication", Section: "Technical Safeguards", Category: "Authentication", Severity: "critical", Keywords: []string{"authentication", "identity", "verification"}},
-			"164.312(e)(1)":  {ID: "164.312(e)(1)", Title: "Transmission Security", Section: "Technical Safeguards", Category: "Encryption", Severity: "critical", Keywords: []string{"encryption", "transmission", "transit"}},
+			"164.308(a)(1)": {ID: "164.308(a)(1)", Title: "Security Management Process", Section: "Administrative Safeguards", Category: "Risk Management", Severity: "high", Keywords: []string{"risk", "analysis", "management"}},
+			"164.308(a)(3)": {ID: "164.308(a)(3)", Title: "Workforce Security", Section: "Administrative Safeguards", Category: "Access Control", Severity: "high", Keywords: []string{"workforce", "access", "authorization"}},
+			"164.308(a)(4)": {ID: "164.308(a)(4)", Title: "Information Access Management", Section: "Administrative Safeguards", Category: "Access Control", Severity: "critical", Keywords: []string{"access", "phi", "authorization"}},
+			"164.308(a)(5)": {ID: "164.308(a)(5)", Title: "Security Awareness Training", Section: "Administrative Safeguards", Category: "Training", Severity: "medium", Keywords: []string{"training", "awareness"}},
+			"164.308(a)(6)": {ID: "164.308(a)(6)", Title: "Security Incident Procedures", Section: "Administrative Safeguards", Category: "Incident Response", Severity: "high", Keywords: []string{"incident", "response", "breach"}},
+			"164.308(a)(7)": {ID: "164.308(a)(7)", Title: "Contingency Plan", Section: "Administrative Safeguards", Category: "Business Continuity", Severity: "high", Keywords: []string{"backup", "disaster", "recovery"}},
+			"164.310(a)(1)": {ID: "164.310(a)(1)", Title: "Facility Access Controls", Section: "Physical Safeguards", Category: "Physical", Severity: "high", Keywords: []string{"physical", "facility", "access"}},
+			"164.310(d)(1)": {ID: "164.310(d)(1)", Title: "Device and Media Controls", Section: "Physical Safeguards", Category: "Media", Severity: "high", Keywords: []string{"media", "device", "disposal"}},
+			"164.312(a)(1)": {ID: "164.312(a)(1)", Title: "Access Control", Section: "Technical Safeguards", Category: "Access Control", Severity: "critical", Keywords: []string{"access", "unique user", "automatic logoff"}},
+			"164.312(b)":    {ID: "164.312(b)", Title: "Audit Controls", Section: "Technical Safeguards", Category: "Audit", Severity: "high", Keywords: []string{"audit", "log", "monitoring"}},
+			"164.312(c)(1)": {ID: "164.312(c)(1)", Title: "Integrity", Section: "Technical Safeguards", Category: "Integrity", Severity: "high", Keywords: []string{"integrity", "ephi", "alteration"}},
+			"164.312(d)":    {ID: "164.312(d)", Title: "Person or Entity Authentication", Section: "Technical Safeguards", Category: "Authentication", Severity: "critical", Keywords: []string{"authentication", "identity", "verification"}},
+			"164.312(e)(1)": {ID: "164.312(e)(1)", Title: "Transmission Security", Section: "Technical Safeguards", Category: "Encryption", Severity: "critical", Keywords: []string{"encryption", "transmission", "transit"}},
 		},
 	}
 }
@@ -155,4 +155,3 @@ func (m *Manager) buildSTIGFramework() *Framework {
 		},
 	}
 }
-

@@ -28,10 +28,10 @@ type VeracodeProvider struct {
 
 // VeracodeConfig configures the Veracode provider
 type VeracodeConfig struct {
-	APIIDEnv   string `yaml:"api_id_env"`
-	APIKeyEnv  string `yaml:"api_key_env"`
-	Region     string `yaml:"region"`     // us, eu
-	ScanType   string `yaml:"scan_type"`  // static, dynamic, sca
+	APIIDEnv  string `yaml:"api_id_env"`
+	APIKeyEnv string `yaml:"api_key_env"`
+	Region    string `yaml:"region"`    // us, eu
+	ScanType  string `yaml:"scan_type"` // static, dynamic, sca
 }
 
 // NewVeracodeProvider creates a new Veracode provider
@@ -167,11 +167,11 @@ func (p *VeracodeProvider) GetScanStatus(ctx context.Context, scanID string) (*S
 	path := "/appsec/v1/scans/" + scanID
 
 	var result struct {
-		ID          string `json:"id"`
-		Status      string `json:"status"`
-		CreatedDate string `json:"created_date"`
+		ID           string `json:"id"`
+		Status       string `json:"status"`
+		CreatedDate  string `json:"created_date"`
 		ModifiedDate string `json:"modified_date"`
-		Summary     struct {
+		Summary      struct {
 			VeryHigh int `json:"very_high"`
 			High     int `json:"high"`
 			Medium   int `json:"medium"`
@@ -210,25 +210,25 @@ func (p *VeracodeProvider) GetFindings(ctx context.Context, applicationID string
 	var result struct {
 		Embedded struct {
 			Findings []struct {
-				IssueID            int    `json:"issue_id"`
-				ScanType           string `json:"scan_type"`
-				CWE                struct {
+				IssueID  int    `json:"issue_id"`
+				ScanType string `json:"scan_type"`
+				CWE      struct {
 					ID          int    `json:"id"`
 					Name        string `json:"name"`
 					Description string `json:"description"`
 				} `json:"cwe"`
-				Severity           int    `json:"severity"`
-				SeverityDesc       string `json:"severity_desc"`
-				FindingStatus      struct {
+				Severity      int    `json:"severity"`
+				SeverityDesc  string `json:"severity_desc"`
+				FindingStatus struct {
 					Status string `json:"status"`
 				} `json:"finding_status"`
 				FindingDetails struct {
-					FileName   string `json:"file_name"`
-					FilePath   string `json:"file_path"`
-					LineNumber int    `json:"line_number"`
+					FileName     string `json:"file_name"`
+					FilePath     string `json:"file_path"`
+					LineNumber   int    `json:"line_number"`
 					AttackVector string `json:"attack_vector"`
 				} `json:"finding_details"`
-				Description    string `json:"description"`
+				Description     string `json:"description"`
 				Recommendations string `json:"recommendations"`
 			} `json:"findings"`
 		} `json:"_embedded"`
@@ -314,4 +314,3 @@ func mapVeracodeSeverity(severity int) string {
 		return "medium"
 	}
 }
-

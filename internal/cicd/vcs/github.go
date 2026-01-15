@@ -24,10 +24,10 @@ type GitHubProvider struct {
 
 // GitHubConfig configures the GitHub provider
 type GitHubConfig struct {
-	BaseURL   string `yaml:"base_url"`   // https://api.github.com or enterprise URL
-	TokenEnv  string `yaml:"token_env"`
-	Org       string `yaml:"org"`
-	Enterprise bool  `yaml:"enterprise"`
+	BaseURL    string `yaml:"base_url"` // https://api.github.com or enterprise URL
+	TokenEnv   string `yaml:"token_env"`
+	Org        string `yaml:"org"`
+	Enterprise bool   `yaml:"enterprise"`
 }
 
 // NewGitHubProvider creates a new GitHub provider
@@ -188,8 +188,8 @@ func (p *GitHubProvider) GetBranches(ctx context.Context, owner, repo string) ([
 	url := fmt.Sprintf("%s/repos/%s/%s/branches", p.baseURL, owner, repo)
 
 	var ghBranches []struct {
-		Name      string `json:"name"`
-		Commit    struct {
+		Name   string `json:"name"`
+		Commit struct {
 			SHA string `json:"sha"`
 		} `json:"commit"`
 		Protected bool `json:"protected"`
@@ -253,12 +253,12 @@ func (p *GitHubProvider) GetPullRequests(ctx context.Context, owner, repo string
 	url := fmt.Sprintf("%s/repos/%s/%s/pulls?state=%s", p.baseURL, owner, repo, state)
 
 	var ghPRs []struct {
-		ID        int    `json:"id"`
-		Number    int    `json:"number"`
-		Title     string `json:"title"`
-		Body      string `json:"body"`
-		State     string `json:"state"`
-		User      struct {
+		ID     int    `json:"id"`
+		Number int    `json:"number"`
+		Title  string `json:"title"`
+		Body   string `json:"body"`
+		State  string `json:"state"`
+		User   struct {
 			Login string `json:"login"`
 		} `json:"user"`
 		Head struct {
@@ -352,8 +352,8 @@ func (p *GitHubProvider) GetSecurityAlerts(ctx context.Context, owner, repo stri
 	url := fmt.Sprintf("%s/repos/%s/%s/dependabot/alerts", p.baseURL, owner, repo)
 
 	var ghAlerts []struct {
-		Number         int    `json:"number"`
-		State          string `json:"state"`
+		Number           int    `json:"number"`
+		State            string `json:"state"`
 		SecurityAdvisory struct {
 			GHSAID      string `json:"ghsa_id"`
 			CVEId       string `json:"cve_id"`
@@ -428,4 +428,3 @@ func (p *GitHubProvider) CreateCheckRun(ctx context.Context, owner, repo, sha st
 
 	return p.doRequest(ctx, "POST", url, body, nil)
 }
-

@@ -75,17 +75,17 @@ type Commit struct {
 
 // PullRequest represents a pull/merge request
 type PullRequest struct {
-	ID          int       `json:"id"`
-	Number      int       `json:"number"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	State       string    `json:"state"`
-	Author      string    `json:"author"`
-	SourceBranch string   `json:"source_branch"`
-	TargetBranch string   `json:"target_branch"`
-	URL         string    `json:"url"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID           int       `json:"id"`
+	Number       int       `json:"number"`
+	Title        string    `json:"title"`
+	Description  string    `json:"description"`
+	State        string    `json:"state"`
+	Author       string    `json:"author"`
+	SourceBranch string    `json:"source_branch"`
+	TargetBranch string    `json:"target_branch"`
+	URL          string    `json:"url"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // Pipeline represents a CI/CD pipeline
@@ -103,24 +103,24 @@ type Pipeline struct {
 
 // SecurityAlert represents a security vulnerability alert
 type SecurityAlert struct {
-	ID               string    `json:"id"`
-	Severity         string    `json:"severity"`
-	Summary          string    `json:"summary"`
-	Description      string    `json:"description"`
-	Package          string    `json:"package"`
-	VulnerableVersion string   `json:"vulnerable_version"`
-	PatchedVersion   string    `json:"patched_version"`
-	CVE              string    `json:"cve"`
-	URL              string    `json:"url"`
-	State            string    `json:"state"`
-	CreatedAt        time.Time `json:"created_at"`
+	ID                string    `json:"id"`
+	Severity          string    `json:"severity"`
+	Summary           string    `json:"summary"`
+	Description       string    `json:"description"`
+	Package           string    `json:"package"`
+	VulnerableVersion string    `json:"vulnerable_version"`
+	PatchedVersion    string    `json:"patched_version"`
+	CVE               string    `json:"cve"`
+	URL               string    `json:"url"`
+	State             string    `json:"state"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 // CheckRun represents a CI check run
 type CheckRun struct {
 	Name        string            `json:"name"`
-	Status      string            `json:"status"`      // queued, in_progress, completed
-	Conclusion  string            `json:"conclusion"`  // success, failure, neutral, cancelled, timed_out, action_required
+	Status      string            `json:"status"`     // queued, in_progress, completed
+	Conclusion  string            `json:"conclusion"` // success, failure, neutral, cancelled, timed_out, action_required
 	Title       string            `json:"title"`
 	Summary     string            `json:"summary"`
 	Text        string            `json:"text"`
@@ -173,4 +173,3 @@ func (m *Manager) GetAllProviders() []Provider {
 	}
 	return providers
 }
-

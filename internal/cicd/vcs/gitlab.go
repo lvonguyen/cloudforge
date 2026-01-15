@@ -104,16 +104,16 @@ func (p *GitLabProvider) GetRepositories(ctx context.Context) ([]*Repository, er
 	requestURL := fmt.Sprintf("%s/groups/%s/projects?per_page=100", p.baseURL, p.config.GroupID)
 
 	var glProjects []struct {
-		ID             int    `json:"id"`
-		Name           string `json:"name"`
+		ID                int    `json:"id"`
+		Name              string `json:"name"`
 		PathWithNamespace string `json:"path_with_namespace"`
-		Description    string `json:"description"`
-		DefaultBranch  string `json:"default_branch"`
-		Visibility     string `json:"visibility"`
-		WebURL         string `json:"web_url"`
-		HTTPURLToRepo  string `json:"http_url_to_repo"`
-		CreatedAt      string `json:"created_at"`
-		LastActivityAt string `json:"last_activity_at"`
+		Description       string `json:"description"`
+		DefaultBranch     string `json:"default_branch"`
+		Visibility        string `json:"visibility"`
+		WebURL            string `json:"web_url"`
+		HTTPURLToRepo     string `json:"http_url_to_repo"`
+		CreatedAt         string `json:"created_at"`
+		LastActivityAt    string `json:"last_activity_at"`
 	}
 
 	if err := p.doRequest(ctx, "GET", requestURL, nil, &glProjects); err != nil {
@@ -148,14 +148,14 @@ func (p *GitLabProvider) GetRepository(ctx context.Context, owner, repo string) 
 	requestURL := fmt.Sprintf("%s/projects/%s", p.baseURL, projectPath)
 
 	var r struct {
-		ID             int    `json:"id"`
-		Name           string `json:"name"`
+		ID                int    `json:"id"`
+		Name              string `json:"name"`
 		PathWithNamespace string `json:"path_with_namespace"`
-		Description    string `json:"description"`
-		DefaultBranch  string `json:"default_branch"`
-		Visibility     string `json:"visibility"`
-		WebURL         string `json:"web_url"`
-		HTTPURLToRepo  string `json:"http_url_to_repo"`
+		Description       string `json:"description"`
+		DefaultBranch     string `json:"default_branch"`
+		Visibility        string `json:"visibility"`
+		WebURL            string `json:"web_url"`
+		HTTPURLToRepo     string `json:"http_url_to_repo"`
 	}
 
 	if err := p.doRequest(ctx, "GET", requestURL, nil, &r); err != nil {
@@ -180,8 +180,8 @@ func (p *GitLabProvider) GetBranches(ctx context.Context, owner, repo string) ([
 	requestURL := fmt.Sprintf("%s/projects/%s/repository/branches", p.baseURL, projectPath)
 
 	var glBranches []struct {
-		Name      string `json:"name"`
-		Commit    struct {
+		Name   string `json:"name"`
+		Commit struct {
 			ID string `json:"id"`
 		} `json:"commit"`
 		Protected bool `json:"protected"`
@@ -209,14 +209,14 @@ func (p *GitLabProvider) GetCommits(ctx context.Context, owner, repo, branch str
 	requestURL := fmt.Sprintf("%s/projects/%s/repository/commits?ref_name=%s&per_page=%d", p.baseURL, projectPath, branch, limit)
 
 	var glCommits []struct {
-		ID             string `json:"id"`
-		ShortID        string `json:"short_id"`
-		Title          string `json:"title"`
-		Message        string `json:"message"`
-		AuthorName     string `json:"author_name"`
-		AuthorEmail    string `json:"author_email"`
-		CommittedDate  string `json:"committed_date"`
-		WebURL         string `json:"web_url"`
+		ID            string `json:"id"`
+		ShortID       string `json:"short_id"`
+		Title         string `json:"title"`
+		Message       string `json:"message"`
+		AuthorName    string `json:"author_name"`
+		AuthorEmail   string `json:"author_email"`
+		CommittedDate string `json:"committed_date"`
+		WebURL        string `json:"web_url"`
 	}
 
 	if err := p.doRequest(ctx, "GET", requestURL, nil, &glCommits); err != nil {
@@ -245,12 +245,12 @@ func (p *GitLabProvider) GetPullRequests(ctx context.Context, owner, repo string
 	requestURL := fmt.Sprintf("%s/projects/%s/merge_requests?state=%s", p.baseURL, projectPath, state)
 
 	var glMRs []struct {
-		ID           int    `json:"id"`
-		IID          int    `json:"iid"`
-		Title        string `json:"title"`
-		Description  string `json:"description"`
-		State        string `json:"state"`
-		Author       struct {
+		ID          int    `json:"id"`
+		IID         int    `json:"iid"`
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		State       string `json:"state"`
+		Author      struct {
 			Username string `json:"username"`
 		} `json:"author"`
 		SourceBranch string `json:"source_branch"`
@@ -407,4 +407,3 @@ func (p *GitLabProvider) CreateCheckRun(ctx context.Context, owner, repo, sha st
 
 	return p.doRequest(ctx, "POST", requestURL, body, nil)
 }
-

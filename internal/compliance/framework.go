@@ -11,12 +11,12 @@ import (
 
 // Framework represents a compliance framework
 type Framework struct {
-	ID          string            `json:"id" yaml:"id"`
-	Name        string            `json:"name" yaml:"name"`
-	Version     string            `json:"version" yaml:"version"`
-	Description string            `json:"description" yaml:"description"`
-	Sector      Sector            `json:"sector" yaml:"sector"`
-	URL         string            `json:"url" yaml:"url"`
+	ID          string              `json:"id" yaml:"id"`
+	Name        string              `json:"name" yaml:"name"`
+	Version     string              `json:"version" yaml:"version"`
+	Description string              `json:"description" yaml:"description"`
+	Sector      Sector              `json:"sector" yaml:"sector"`
+	URL         string              `json:"url" yaml:"url"`
 	Controls    map[string]*Control `json:"controls" yaml:"controls"`
 }
 
@@ -60,12 +60,12 @@ type Manager struct {
 
 // SectorProfile defines sector-specific compliance requirements
 type SectorProfile struct {
-	Sector           Sector   `json:"sector"`
-	Name             string   `json:"name"`
-	Description      string   `json:"description"`
-	RequiredFrameworks []string `json:"required_frameworks"`
-	OptionalFrameworks []string `json:"optional_frameworks"`
-	CustomControls    []*Control `json:"custom_controls"`
+	Sector             Sector     `json:"sector"`
+	Name               string     `json:"name"`
+	Description        string     `json:"description"`
+	RequiredFrameworks []string   `json:"required_frameworks"`
+	OptionalFrameworks []string   `json:"optional_frameworks"`
+	CustomControls     []*Control `json:"custom_controls"`
 }
 
 // NewManager creates a new compliance manager
@@ -322,4 +322,3 @@ func (m *Manager) loadSectorProfiles() {
 		},
 	}
 }
-

@@ -17,35 +17,35 @@ type SecurityScanner struct {
 
 // SecurityScannerConfig configures the container security scanner
 type SecurityScannerConfig struct {
-	VulnerabilityThreshold   string        `yaml:"vulnerability_threshold"`   // critical, high, medium, low
-	IgnoredCVEs              []string      `yaml:"ignored_cves"`
-	RequireSignedImages      bool          `yaml:"require_signed_images"`
-	AllowedRegistries        []string      `yaml:"allowed_registries"`
-	ScanTimeout              time.Duration `yaml:"scan_timeout"`
-	EnableMalwareScan        bool          `yaml:"enable_malware_scan"`
-	EnableSecretScan         bool          `yaml:"enable_secret_scan"`
-	EnforcePolicies          bool          `yaml:"enforce_policies"`
+	VulnerabilityThreshold string        `yaml:"vulnerability_threshold"` // critical, high, medium, low
+	IgnoredCVEs            []string      `yaml:"ignored_cves"`
+	RequireSignedImages    bool          `yaml:"require_signed_images"`
+	AllowedRegistries      []string      `yaml:"allowed_registries"`
+	ScanTimeout            time.Duration `yaml:"scan_timeout"`
+	EnableMalwareScan      bool          `yaml:"enable_malware_scan"`
+	EnableSecretScan       bool          `yaml:"enable_secret_scan"`
+	EnforcePolicies        bool          `yaml:"enforce_policies"`
 }
 
 // ImageScanResult represents the result of an image security scan
 type ImageScanResult struct {
-	ImageRef         string              `json:"image_ref"`
-	Digest           string              `json:"digest"`
-	Registry         string              `json:"registry"`
-	Repository       string              `json:"repository"`
-	Tag              string              `json:"tag"`
-	ScannedAt        time.Time           `json:"scanned_at"`
-	Status           string              `json:"status"` // passed, failed, warning
-	Vulnerabilities  []Vulnerability     `json:"vulnerabilities"`
-	Secrets          []SecretFinding     `json:"secrets,omitempty"`
+	ImageRef          string             `json:"image_ref"`
+	Digest            string             `json:"digest"`
+	Registry          string             `json:"registry"`
+	Repository        string             `json:"repository"`
+	Tag               string             `json:"tag"`
+	ScannedAt         time.Time          `json:"scanned_at"`
+	Status            string             `json:"status"` // passed, failed, warning
+	Vulnerabilities   []Vulnerability    `json:"vulnerabilities"`
+	Secrets           []SecretFinding    `json:"secrets,omitempty"`
 	Misconfigurations []Misconfiguration `json:"misconfigurations,omitempty"`
-	Compliance       ComplianceResult    `json:"compliance"`
-	Metadata         ImageMetadata       `json:"metadata"`
+	Compliance        ComplianceResult   `json:"compliance"`
+	Metadata          ImageMetadata      `json:"metadata"`
 }
 
 // Vulnerability represents a container vulnerability
 type Vulnerability struct {
-	ID               string   `json:"id"`           // CVE ID
+	ID               string   `json:"id"` // CVE ID
 	PackageName      string   `json:"package_name"`
 	InstalledVersion string   `json:"installed_version"`
 	FixedVersion     string   `json:"fixed_version"`
@@ -58,7 +58,7 @@ type Vulnerability struct {
 
 // SecretFinding represents a secret found in an image
 type SecretFinding struct {
-	Type        string `json:"type"`         // api_key, password, private_key
+	Type        string `json:"type"` // api_key, password, private_key
 	File        string `json:"file"`
 	Line        int    `json:"line"`
 	Description string `json:"description"`
@@ -76,22 +76,22 @@ type Misconfiguration struct {
 
 // ComplianceResult represents compliance check results
 type ComplianceResult struct {
-	Passed  []string `json:"passed"`
-	Failed  []string `json:"failed"`
-	Score   float64  `json:"score"`
+	Passed []string `json:"passed"`
+	Failed []string `json:"failed"`
+	Score  float64  `json:"score"`
 }
 
 // ImageMetadata contains image metadata
 type ImageMetadata struct {
-	OS              string    `json:"os"`
-	Architecture    string    `json:"architecture"`
-	Size            int64     `json:"size"`
-	Created         time.Time `json:"created"`
-	Author          string    `json:"author"`
-	Signed          bool      `json:"signed"`
-	SignatureValid  bool      `json:"signature_valid"`
-	BaseImage       string    `json:"base_image"`
-	Labels          map[string]string `json:"labels"`
+	OS             string            `json:"os"`
+	Architecture   string            `json:"architecture"`
+	Size           int64             `json:"size"`
+	Created        time.Time         `json:"created"`
+	Author         string            `json:"author"`
+	Signed         bool              `json:"signed"`
+	SignatureValid bool              `json:"signature_valid"`
+	BaseImage      string            `json:"base_image"`
+	Labels         map[string]string `json:"labels"`
 }
 
 // NewSecurityScanner creates a new container security scanner
@@ -109,10 +109,10 @@ func (s *SecurityScanner) ScanImage(ctx context.Context, imageRef string) (*Imag
 	)
 
 	result := &ImageScanResult{
-		ImageRef:  imageRef,
-		ScannedAt: time.Now(),
-		Vulnerabilities: make([]Vulnerability, 0),
-		Secrets:         make([]SecretFinding, 0),
+		ImageRef:          imageRef,
+		ScannedAt:         time.Now(),
+		Vulnerabilities:   make([]Vulnerability, 0),
+		Secrets:           make([]SecretFinding, 0),
 		Misconfigurations: make([]Misconfiguration, 0),
 	}
 
@@ -260,12 +260,12 @@ func (s *SecurityScanner) calculateCompliance(result *ImageScanResult) Complianc
 
 	// Check various compliance requirements
 	checks := map[string]func(*ImageScanResult) bool{
-		"NO_CRITICAL_VULNS":    func(r *ImageScanResult) bool { return !s.hasCriticalVulns(r) },
-		"NO_HIGH_VULNS":        func(r *ImageScanResult) bool { return !s.hasHighVulns(r) },
-		"NO_SECRETS":           func(r *ImageScanResult) bool { return len(r.Secrets) == 0 },
-		"SIGNED_IMAGE":         func(r *ImageScanResult) bool { return r.Metadata.Signed && r.Metadata.SignatureValid },
-		"APPROVED_REGISTRY":    func(r *ImageScanResult) bool { return s.checkRegistryAllowed(r.Registry) == nil },
-		"NO_ROOT_USER":         func(r *ImageScanResult) bool { return !s.hasMisconfig(r, "RUN_AS_ROOT") },
+		"NO_CRITICAL_VULNS": func(r *ImageScanResult) bool { return !s.hasCriticalVulns(r) },
+		"NO_HIGH_VULNS":     func(r *ImageScanResult) bool { return !s.hasHighVulns(r) },
+		"NO_SECRETS":        func(r *ImageScanResult) bool { return len(r.Secrets) == 0 },
+		"SIGNED_IMAGE":      func(r *ImageScanResult) bool { return r.Metadata.Signed && r.Metadata.SignatureValid },
+		"APPROVED_REGISTRY": func(r *ImageScanResult) bool { return s.checkRegistryAllowed(r.Registry) == nil },
+		"NO_ROOT_USER":      func(r *ImageScanResult) bool { return !s.hasMisconfig(r, "RUN_AS_ROOT") },
 	}
 
 	passed := 0
@@ -359,14 +359,14 @@ func (s *SecurityScanner) determineStatus(result *ImageScanResult) string {
 
 // AdmissionPolicy enforces container security policies at admission time
 type AdmissionPolicy struct {
-	Name                  string   `yaml:"name"`
-	Enabled               bool     `yaml:"enabled"`
-	BlockOnFailure        bool     `yaml:"block_on_failure"`
-	VulnerabilityThreshold string  `yaml:"vulnerability_threshold"`
-	RequireSignedImages   bool     `yaml:"require_signed_images"`
-	AllowedRegistries     []string `yaml:"allowed_registries"`
-	BlockedImages         []string `yaml:"blocked_images"`
-	RequiredLabels        []string `yaml:"required_labels"`
+	Name                   string   `yaml:"name"`
+	Enabled                bool     `yaml:"enabled"`
+	BlockOnFailure         bool     `yaml:"block_on_failure"`
+	VulnerabilityThreshold string   `yaml:"vulnerability_threshold"`
+	RequireSignedImages    bool     `yaml:"require_signed_images"`
+	AllowedRegistries      []string `yaml:"allowed_registries"`
+	BlockedImages          []string `yaml:"blocked_images"`
+	RequiredLabels         []string `yaml:"required_labels"`
 }
 
 // ValidateAdmission validates a container against admission policies
@@ -418,4 +418,3 @@ func (s *SecurityScanner) ValidateAdmission(ctx context.Context, imageRef string
 
 	return len(reasons) == 0, reasons
 }
-
