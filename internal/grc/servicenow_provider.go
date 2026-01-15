@@ -384,15 +384,95 @@ func (s *ServiceNowGRCProvider) UpdateException(ctx context.Context, req *Except
 
 // SubmitApproval updates an approval record in ServiceNow.
 func (s *ServiceNowGRCProvider) SubmitApproval(ctx context.Context, exceptionID string, approver Approver) error {
-	// Implementation: Update sysapproval_approver record
-	// This requires looking up the approval record by exception and approver
-	return fmt.Errorf("ServiceNow approval submission not fully implemented")
+	if err := s.authenticate(ctx); err != nil {
+		return err
+	}
+
+	// Map approval decision to ServiceNow state
+	state := "rejected"
+	if approver.Decision == "APPROVE" || approver.Decision == "approved" {
+		state = "approved"
+	}
+
+	// Update the exception record with approval status
+	updateData := map[string]interface{}{
+		"approval":   state,
+		"u_comments": approver.Comments,
+	}
+
+	body, _ := json.Marshal(updateData)
+	reqURL := fmt.Sprintf("%s/api/now/table/%s/%s", s.config.InstanceURL, s.config.ExceptionTable, exceptionID)
+
+	httpReq, err := http.NewRequestWithContext(ctx, "PATCH", reqURL, bytes.NewBuffer(body))
+	if err != nil {
+		return fmt.Errorf("creating approval request: %w", err)
+	}
+
+	httpReq.Header.Set("Authorization", "Bearer "+s.authToken)
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("submitting approval: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("ServiceNow returned status %d for approval", resp.StatusCode)
+	}
+
+	return nil
 }
 
 // GetPendingApprovals returns exceptions pending approval from the given user.
 func (s *ServiceNowGRCProvider) GetPendingApprovals(ctx context.Context, approverEmail string) ([]ExceptionRequest, error) {
-	// Implementation: Query approval table by approver email
-	return nil, fmt.Errorf("ServiceNow pending approvals not fully implemented")
+	if err := s.authenticate(ctx); err != nil {
+		return nil, err
+	}
+
+	// Query for exceptions pending approval where user is in approver chain
+	query := fmt.Sprintf("approval=requested^requested_for=%s", url.QueryEscape(approverEmail))
+	reqURL := fmt.Sprintf(
+		"%s/api/now/table/%s?sysparm_query=%s",
+		s.config.InstanceURL,
+		s.config.ExceptionTable,
+		query,
+	)
+
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq.Header.Set("Authorization", "Bearer "+s.authToken)
+	httpReq.Header.Set("Accept", "application/json")
+
+	resp, err := s.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("querying pending approvals: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var snowResp struct {
+		Result []snowExceptionRecord `json:"result"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&snowResp); err != nil {
+		return nil, err
+	}
+
+	var results []ExceptionRequest
+	for _, record := range snowResp.Result {
+		results = append(results, ExceptionRequest{
+			ID:             record.SysID,
+			PolicyViolated: record.PolicyReference,
+			BusinessCase:   record.BusinessCase,
+			RequestorEmail: record.RequestedFor,
+			Status:         StatusPending,
+		})
+	}
+
+	return results, nil
 }
 
 // GetExceptionsByApplication returns all exceptions for an application.
@@ -446,6 +526,65 @@ func (s *ServiceNowGRCProvider) GetExceptionsByApplication(ctx context.Context, 
 
 // GetExpiringExceptions returns exceptions expiring within the given days.
 func (s *ServiceNowGRCProvider) GetExpiringExceptions(ctx context.Context, withinDays int) ([]ExceptionRequest, error) {
-	// Implementation: Query exceptions with expiration date within range
-	return nil, fmt.Errorf("ServiceNow expiring exceptions not fully implemented")
+	if err := s.authenticate(ctx); err != nil {
+		return nil, err
+	}
+
+	// Calculate date range
+	now := time.Now()
+	expiryDate := now.AddDate(0, 0, withinDays)
+
+	// Query for approved exceptions expiring within range
+	query := fmt.Sprintf(
+		"approval=approved^u_expiration_dateBETWEEN%s@%s",
+		now.Format("2006-01-02"),
+		expiryDate.Format("2006-01-02"),
+	)
+	reqURL := fmt.Sprintf(
+		"%s/api/now/table/%s?sysparm_query=%s",
+		s.config.InstanceURL,
+		s.config.ExceptionTable,
+		url.QueryEscape(query),
+	)
+
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq.Header.Set("Authorization", "Bearer "+s.authToken)
+	httpReq.Header.Set("Accept", "application/json")
+
+	resp, err := s.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("querying expiring exceptions: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var snowResp struct {
+		Result []snowExceptionRecord `json:"result"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&snowResp); err != nil {
+		return nil, err
+	}
+
+	var results []ExceptionRequest
+	for _, record := range snowResp.Result {
+		req := ExceptionRequest{
+			ID:             record.SysID,
+			PolicyViolated: record.PolicyReference,
+			BusinessCase:   record.BusinessCase,
+			RequestorEmail: record.RequestedFor,
+			Status:         StatusApproved,
+		}
+		if record.ExpirationDate != "" {
+			if exp, err := time.Parse("2006-01-02", record.ExpirationDate); err == nil {
+				req.ExpirationDate = &exp
+			}
+		}
+		results = append(results, req)
+	}
+
+	return results, nil
 }
