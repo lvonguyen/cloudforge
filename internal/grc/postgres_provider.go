@@ -3,6 +3,7 @@ package grc
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -367,12 +368,14 @@ func (p *PostgresGRCProvider) SubmitApproval(
 			id, exception_id, action, actor_email, new_value, timestamp
 		) VALUES ($1, $2, $3, $4, $5, $6)
 	`
+	// Use json.Marshal for safe JSON construction (prevents injection)
+	commentsJSON, _ := json.Marshal(map[string]string{"comments": approver.Comments})
 	_, err = tx.ExecContext(ctx, auditQuery,
 		uuid.New().String(),
 		exceptionID,
 		fmt.Sprintf("APPROVAL_%s", approver.Decision),
 		approver.Email,
-		fmt.Sprintf(`{"comments": "%s"}`, approver.Comments),
+		string(commentsJSON),
 		now,
 	)
 	if err != nil {
