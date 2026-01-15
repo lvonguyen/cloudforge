@@ -3,15 +3,19 @@ package api
 
 import (
 	"context"
+	"crypto"
 	"crypto/hmac"
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -52,13 +56,36 @@ type contextKey string
 const (
 	// ClaimsContextKey is the context key for storing validated claims.
 	ClaimsContextKey contextKey = "auth_claims"
+
+	// jwksCacheDuration is how long to cache JWKS before refreshing
+	jwksCacheDuration = 1 * time.Hour
 )
+
+// JWK represents a JSON Web Key
+type JWK struct {
+	Kty string `json:"kty"` // Key type (RSA, EC)
+	Kid string `json:"kid"` // Key ID
+	Use string `json:"use"` // Usage (sig = signature)
+	Alg string `json:"alg"` // Algorithm (RS256, ES256)
+	N   string `json:"n"`   // RSA modulus (base64url)
+	E   string `json:"e"`   // RSA exponent (base64url)
+}
+
+// JWKS represents a JSON Web Key Set
+type JWKS struct {
+	Keys []JWK `json:"keys"`
+}
 
 // AuthMiddleware provides JWT authentication for HTTP handlers.
 type AuthMiddleware struct {
-	config    AuthConfig
-	jwtSecret []byte
-	skipPaths map[string]bool
+	config     AuthConfig
+	jwtSecret  []byte
+	skipPaths  map[string]bool
+	jwksURL    string
+	jwksCache  *JWKS
+	jwksCacheT time.Time
+	jwksMu     sync.RWMutex
+	httpClient *http.Client
 }
 
 // NewAuthMiddleware creates a new authentication middleware.
@@ -67,6 +94,9 @@ func NewAuthMiddleware(config AuthConfig) (*AuthMiddleware, error) {
 	m := &AuthMiddleware{
 		config:    config,
 		skipPaths: make(map[string]bool),
+		httpClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
 	}
 
 	// Build skip paths map for O(1) lookup
@@ -74,18 +104,25 @@ func NewAuthMiddleware(config AuthConfig) (*AuthMiddleware, error) {
 		m.skipPaths[path] = true
 	}
 
-	// Load JWT secret from environment
+	// Load JWT secret from environment (for HS256)
 	if config.JWTSecretEnv != "" {
 		secret := os.Getenv(config.JWTSecretEnv)
-		if secret == "" {
-			return nil, fmt.Errorf("creating auth middleware: JWT secret environment variable %s is not set", config.JWTSecretEnv)
+		if secret != "" {
+			m.jwtSecret = []byte(secret)
 		}
-		m.jwtSecret = []byte(secret)
+	}
+
+	// Load JWKS URL from environment (for RS256/ES256)
+	if config.JWKSURLEnv != "" {
+		jwksURL := os.Getenv(config.JWKSURLEnv)
+		if jwksURL != "" {
+			m.jwksURL = jwksURL
+		}
 	}
 
 	// Validate that we have at least one auth method configured
-	if len(m.jwtSecret) == 0 && config.JWKSURLEnv == "" {
-		return nil, fmt.Errorf("creating auth middleware: either JWTSecretEnv or JWKSURLEnv must be configured")
+	if len(m.jwtSecret) == 0 && m.jwksURL == "" {
+		return nil, fmt.Errorf("creating auth middleware: either JWTSecretEnv or JWKSURLEnv must be configured with valid values")
 	}
 
 	return m, nil
@@ -158,8 +195,7 @@ func (m *AuthMiddleware) extractToken(r *http.Request) (string, error) {
 }
 
 // validateToken validates a JWT token and returns the claims.
-// Currently implements HS256 validation. For production OIDC/JWKS support,
-// consider using a library like github.com/golang-jwt/jwt/v5.
+// Supports both HS256 (symmetric) and RS256 (asymmetric via JWKS) algorithms.
 func (m *AuthMiddleware) validateToken(token string) (*Claims, error) {
 	// Split JWT into parts
 	parts := strings.Split(token, ".")
@@ -167,7 +203,7 @@ func (m *AuthMiddleware) validateToken(token string) (*Claims, error) {
 		return nil, fmt.Errorf("invalid token format")
 	}
 
-	// Decode header to check algorithm
+	// Decode header to check algorithm and key ID
 	headerJSON, err := base64URLDecode(parts[0])
 	if err != nil {
 		return nil, fmt.Errorf("decoding token header: %w", err)
@@ -176,20 +212,30 @@ func (m *AuthMiddleware) validateToken(token string) (*Claims, error) {
 	var header struct {
 		Alg string `json:"alg"`
 		Typ string `json:"typ"`
+		Kid string `json:"kid"` // Key ID for JWKS lookup
 	}
 	if err := json.Unmarshal(headerJSON, &header); err != nil {
 		return nil, fmt.Errorf("parsing token header: %w", err)
 	}
 
-	// Validate algorithm - only support HS256 for simplicity
-	// For RS256/ES256, integrate with JWKS endpoint
-	if header.Alg != "HS256" {
-		return nil, fmt.Errorf("unsupported algorithm: %s (only HS256 supported)", header.Alg)
-	}
-
-	// Verify signature
-	if err := m.verifyHS256Signature(parts[0], parts[1], parts[2]); err != nil {
-		return nil, err
+	// Verify signature based on algorithm
+	switch header.Alg {
+	case "HS256":
+		if len(m.jwtSecret) == 0 {
+			return nil, fmt.Errorf("HS256 token received but no JWT secret configured")
+		}
+		if err := m.verifyHS256Signature(parts[0], parts[1], parts[2]); err != nil {
+			return nil, err
+		}
+	case "RS256":
+		if m.jwksURL == "" {
+			return nil, fmt.Errorf("RS256 token received but no JWKS URL configured")
+		}
+		if err := m.verifyRS256Signature(parts[0], parts[1], parts[2], header.Kid); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unsupported algorithm: %s (supported: HS256, RS256)", header.Alg)
 	}
 
 	// Decode and parse claims
@@ -306,4 +352,123 @@ func computeHS256(message, secret []byte) []byte {
 	h := hmac.New(sha256.New, secret)
 	h.Write(message)
 	return h.Sum(nil)
+}
+
+// verifyRS256Signature verifies an RSA-SHA256 signature using JWKS.
+func (m *AuthMiddleware) verifyRS256Signature(header, payload, signature, kid string) error {
+	// Get the public key from JWKS
+	pubKey, err := m.getPublicKey(kid)
+	if err != nil {
+		return fmt.Errorf("getting public key: %w", err)
+	}
+
+	// Decode the signature
+	sigBytes, err := base64URLDecode(signature)
+	if err != nil {
+		return fmt.Errorf("decoding signature: %w", err)
+	}
+
+	// Compute hash of the message
+	message := header + "." + payload
+	hash := sha256.Sum256([]byte(message))
+
+	// Verify the signature
+	if err := rsa.VerifyPKCS1v15(pubKey, crypto.SHA256, hash[:], sigBytes); err != nil {
+		return fmt.Errorf("invalid token signature")
+	}
+
+	return nil
+}
+
+// getPublicKey retrieves and caches the public key from JWKS.
+func (m *AuthMiddleware) getPublicKey(kid string) (*rsa.PublicKey, error) {
+	jwks, err := m.fetchJWKS()
+	if err != nil {
+		return nil, err
+	}
+
+	// Find the key by ID
+	for _, key := range jwks.Keys {
+		if key.Kid == kid && key.Kty == "RSA" {
+			return jwkToRSAPublicKey(key)
+		}
+	}
+
+	// If no kid match and only one key, use it (common for simple setups)
+	if kid == "" && len(jwks.Keys) == 1 && jwks.Keys[0].Kty == "RSA" {
+		return jwkToRSAPublicKey(jwks.Keys[0])
+	}
+
+	return nil, fmt.Errorf("no matching key found in JWKS for kid: %s", kid)
+}
+
+// fetchJWKS fetches and caches the JWKS from the configured URL.
+func (m *AuthMiddleware) fetchJWKS() (*JWKS, error) {
+	m.jwksMu.RLock()
+	if m.jwksCache != nil && time.Since(m.jwksCacheT) < jwksCacheDuration {
+		cached := m.jwksCache
+		m.jwksMu.RUnlock()
+		return cached, nil
+	}
+	m.jwksMu.RUnlock()
+
+	// Fetch fresh JWKS
+	m.jwksMu.Lock()
+	defer m.jwksMu.Unlock()
+
+	// Double-check after acquiring write lock
+	if m.jwksCache != nil && time.Since(m.jwksCacheT) < jwksCacheDuration {
+		return m.jwksCache, nil
+	}
+
+	req, err := http.NewRequest("GET", m.jwksURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating JWKS request: %w", err)
+	}
+
+	resp, err := m.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetching JWKS: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("JWKS endpoint returned status %d", resp.StatusCode)
+	}
+
+	var jwks JWKS
+	if err := json.NewDecoder(resp.Body).Decode(&jwks); err != nil {
+		return nil, fmt.Errorf("decoding JWKS: %w", err)
+	}
+
+	m.jwksCache = &jwks
+	m.jwksCacheT = time.Now()
+
+	return &jwks, nil
+}
+
+// jwkToRSAPublicKey converts a JWK to an RSA public key.
+func jwkToRSAPublicKey(jwk JWK) (*rsa.PublicKey, error) {
+	// Decode modulus
+	nBytes, err := base64URLDecode(jwk.N)
+	if err != nil {
+		return nil, fmt.Errorf("decoding modulus: %w", err)
+	}
+
+	// Decode exponent
+	eBytes, err := base64URLDecode(jwk.E)
+	if err != nil {
+		return nil, fmt.Errorf("decoding exponent: %w", err)
+	}
+
+	// Convert exponent bytes to int
+	var e int
+	for _, b := range eBytes {
+		e = e<<8 + int(b)
+	}
+
+	return &rsa.PublicKey{
+		N: new(big.Int).SetBytes(nBytes),
+		E: e,
+	}, nil
 }
