@@ -1,0 +1,30 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "chargeback",
+    "cicd",
+    "cloudforge",
+    "CMDB",
+    "dedup",
+    "FFIEC",
+    "finops",
+    "GLBA",
+    "HITRUST",
+    "homelab",
+    "lvonguyen",
+    "MCSB",
+    "Qube",
+    "Rego",
+    "runbook",
+    "runbooks",
+    "showback",
+    "TISAX",
+    "Veracode"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    ".git",
+    "*.lock"
+  ]
+}
