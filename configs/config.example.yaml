@@ -74,3 +74,49 @@ logging:
 metrics:
   enabled: true
   port: 9090
+
+# Redis (for rate limiting and caching)
+redis:
+  address: localhost:6379
+  password_env: CLOUDFORGE_REDIS_PASSWORD
+  db: 0
+
+# Rate Limiting
+rate_limit:
+  enabled: true
+  default_requests_per_second: 10
+  default_requests_per_minute: 100
+  default_requests_per_hour: 1000
+  default_burst_size: 20
+  include_headers: true
+  fail_closed: false  # If true, deny requests when Redis is unavailable
+  trusted_proxies:
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+  # Tier-based limits (keyed by API tier/plan)
+  tiers:
+    anonymous:
+      requests_per_second: 2
+      requests_per_minute: 20
+      requests_per_hour: 100
+      requests_per_day: 500
+      burst_size: 5
+    free:
+      requests_per_second: 5
+      requests_per_minute: 60
+      requests_per_hour: 500
+      requests_per_day: 5000
+      burst_size: 10
+    professional:
+      requests_per_second: 50
+      requests_per_minute: 500
+      requests_per_hour: 5000
+      requests_per_day: 50000
+      burst_size: 100
+    enterprise:
+      requests_per_second: 200
+      requests_per_minute: 2000
+      requests_per_hour: 20000
+      requests_per_day: 200000
+      burst_size: 500

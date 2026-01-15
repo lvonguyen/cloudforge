@@ -14,8 +14,11 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/redis/go-redis/v9"
 	"github.com/yourusername/cloudforge/internal/api"
+	"github.com/yourusername/cloudforge/internal/api/gateway"
 	"github.com/yourusername/cloudforge/internal/grc"
+	"go.uber.org/zap"
 )
 
 const (
@@ -25,13 +28,16 @@ const (
 
 // Config holds application configuration
 type Config struct {
-	Port         string
-	GRCProvider  grc.ProviderType
-	JWTSecretEnv string // Environment variable name for JWT secret
-	JWTIssuer    string // Expected JWT issuer
-	JWTAudience  string // Expected JWT audience
-	TLSCertFile  string // Path to TLS certificate file
-	TLSKeyFile   string // Path to TLS key file
+	Port             string
+	GRCProvider      grc.ProviderType
+	JWTSecretEnv     string // Environment variable name for JWT secret
+	JWTIssuer        string // Expected JWT issuer
+	JWTAudience      string // Expected JWT audience
+	TLSCertFile      string // Path to TLS certificate file
+	TLSKeyFile       string // Path to TLS key file
+	RedisAddr        string // Redis address for rate limiting
+	RedisPasswordEnv string // Environment variable name for Redis password
+	RateLimitEnabled bool   // Enable rate limiting
 }
 
 // Server holds the application state
@@ -40,18 +46,30 @@ type Server struct {
 	grcProvider    grc.GRCProvider
 	router         *mux.Router
 	authMiddleware *api.AuthMiddleware
+	rateLimiter    *gateway.RateLimiter
+	logger         *zap.Logger
 }
 
 func main() {
+	// Initialize logger
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
+	defer func() { _ = logger.Sync() }()
+
 	// Load configuration
 	cfg := Config{
-		Port:         getEnv("PORT", "8080"),
-		GRCProvider:  grc.ProviderType(getEnv("GRC_PROVIDER", "memory")),
-		JWTSecretEnv: getEnv("JWT_SECRET_ENV", "CLOUDFORGE_JWT_SECRET"),
-		JWTIssuer:    getEnv("JWT_ISSUER", ""),
-		JWTAudience:  getEnv("JWT_AUDIENCE", ""),
-		TLSCertFile:  getEnv("TLS_CERT_FILE", ""),
-		TLSKeyFile:   getEnv("TLS_KEY_FILE", ""),
+		Port:             getEnv("PORT", "8080"),
+		GRCProvider:      grc.ProviderType(getEnv("GRC_PROVIDER", "memory")),
+		JWTSecretEnv:     getEnv("JWT_SECRET_ENV", "CLOUDFORGE_JWT_SECRET"),
+		JWTIssuer:        getEnv("JWT_ISSUER", ""),
+		JWTAudience:      getEnv("JWT_AUDIENCE", ""),
+		TLSCertFile:      getEnv("TLS_CERT_FILE", ""),
+		TLSKeyFile:       getEnv("TLS_KEY_FILE", ""),
+		RedisAddr:        getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPasswordEnv: getEnv("REDIS_PASSWORD_ENV", "CLOUDFORGE_REDIS_PASSWORD"),
+		RateLimitEnabled: getEnv("RATE_LIMIT_ENABLED", "true") == "true",
 	}
 
 	// Initialize GRC provider
@@ -73,12 +91,42 @@ func main() {
 		log.Fatalf("Failed to initialize auth middleware: %v", err)
 	}
 
+	// Initialize rate limiter (optional, depends on Redis availability)
+	var rateLimiter *gateway.RateLimiter
+	if cfg.RateLimitEnabled {
+		redisPassword := os.Getenv(cfg.RedisPasswordEnv)
+		redisClient := redis.NewClient(&redis.Options{
+			Addr:     cfg.RedisAddr,
+			Password: redisPassword,
+			DB:       0,
+		})
+
+		// Test Redis connection
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := redisClient.Ping(ctx).Err(); err != nil {
+			logger.Warn("Redis connection failed, rate limiting will use local fallback",
+				zap.Error(err),
+				zap.String("redis_addr", cfg.RedisAddr),
+			)
+		} else {
+			logger.Info("Redis connected for rate limiting",
+				zap.String("redis_addr", cfg.RedisAddr),
+			)
+		}
+		cancel()
+
+		rateLimiter = gateway.NewRateLimiter(redisClient, gateway.DefaultConfig(), logger)
+		logger.Info("Rate limiter initialized")
+	}
+
 	// Create server
 	srv := &Server{
 		config:         cfg,
 		grcProvider:    grcProvider,
 		router:         mux.NewRouter(),
 		authMiddleware: authMiddleware,
+		rateLimiter:    rateLimiter,
+		logger:         logger,
 	}
 
 	// Setup routes
@@ -143,8 +191,15 @@ func (s *Server) setupRoutes() {
 	// Health check (unauthenticated - skipped by middleware)
 	s.router.HandleFunc("/health", s.healthCheck).Methods("GET")
 
-	// API v1 routes with authentication middleware
+	// API v1 routes with authentication and rate limiting middleware
 	apiRouter := s.router.PathPrefix("/api/v1").Subrouter()
+
+	// Apply rate limiting first (before auth to prevent auth-based DoS)
+	if s.rateLimiter != nil {
+		apiRouter.Use(s.rateLimiter.Middleware(s.getTierFromRequest, s.getClientIDFromRequest))
+	}
+
+	// Apply authentication middleware
 	apiRouter.Use(s.authMiddleware.Middleware)
 
 	// Exception management
@@ -157,6 +212,51 @@ func (s *Server) setupRoutes() {
 
 	// Policy validation (called by Terraform/provisioning)
 	apiRouter.HandleFunc("/validate/exception", s.validateException).Methods("POST")
+}
+
+// getTierFromRequest extracts the API tier from the request.
+// This can be based on API key lookup, JWT claims, or headers.
+func (s *Server) getTierFromRequest(r *http.Request) string {
+	// Check for tier in JWT claims (set by auth middleware)
+	if claims, ok := api.GetClaimsFromContext(r.Context()); ok {
+		// Look for tier in scope or custom claim
+		if strings.Contains(claims.Scope, "enterprise") {
+			return "enterprise"
+		}
+		if strings.Contains(claims.Scope, "professional") {
+			return "professional"
+		}
+		if strings.Contains(claims.Scope, "basic") {
+			return "basic"
+		}
+		if claims.Subject != "" {
+			return "free" // Authenticated users get "free" tier minimum
+		}
+	}
+
+	// Check X-API-Tier header (for internal services)
+	if tier := r.Header.Get("X-API-Tier"); tier != "" {
+		return tier
+	}
+
+	// Default to anonymous for unauthenticated requests
+	return "anonymous"
+}
+
+// getClientIDFromRequest extracts the client identifier for rate limiting.
+func (s *Server) getClientIDFromRequest(r *http.Request) string {
+	// Prefer JWT subject (user ID)
+	if claims, ok := api.GetClaimsFromContext(r.Context()); ok && claims.Subject != "" {
+		return claims.Subject
+	}
+
+	// Fall back to API key if present
+	if apiKey := r.Header.Get("X-API-Key"); apiKey != "" {
+		return apiKey
+	}
+
+	// Empty string will cause rate limiter to fall back to IP address
+	return ""
 }
 
 func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
