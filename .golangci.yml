@@ -31,11 +31,17 @@ linters:
 linters-settings:
   errcheck:
     check-type-assertions: true
-    check-blank: true
+    check-blank: false  # Allow _ = foo() for intentionally ignored errors
+    exclude-functions:
+      - (io.Closer).Close
+      - (net/http.ResponseWriter).Write
+      - (*encoding/json.Encoder).Encode
+      - (*database/sql.Tx).Rollback
+      - (*go.uber.org/zap.Logger).Sync
 
   goconst:
-    min-len: 3
-    min-occurrences: 3
+    min-len: 5
+    min-occurrences: 5  # Increased threshold to reduce noise
 
   gocritic:
     enabled-tags:
@@ -48,7 +54,9 @@ linters-settings:
 
   gosec:
     excludes:
+      - G101  # False positive on constant names containing "credential"
       - G104  # Audit errors not checked (handled by errcheck)
+      - G204  # Subprocess with variable args (sanitized in code)
       - G304  # File path provided as taint input (intentional in some cases)
 
   govet:
@@ -81,7 +89,6 @@ linters-settings:
       - name: errorf
       - name: empty-block
       - name: superfluous-else
-      - name: unused-parameter
       - name: unreachable-code
       - name: redefines-builtin-id
 

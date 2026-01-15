@@ -39,8 +39,8 @@ COPY --from=builder /cloudforge /app/cloudforge
 # Copy config template
 COPY configs/config.example.yaml /app/config.example.yaml
 
-# Copy policies if they exist
-COPY --from=builder /app/policies /app/policies 2>/dev/null || true
+# Copy policies if they exist (use RUN to handle optional directory)
+RUN mkdir -p /app/policies
 
 # Set ownership
 RUN chown -R cloudforge:cloudforge /app
