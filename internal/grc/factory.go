@@ -43,13 +43,21 @@ func NewProvider(cfg Config) (GRCProvider, error) {
 		if cfg.Archer == nil {
 			return nil, fmt.Errorf("archer config required for archer provider")
 		}
-		return NewArcherGRCProvider(*cfg.Archer), nil
+		provider, err := NewArcherGRCProvider(*cfg.Archer)
+		if err != nil {
+			return nil, fmt.Errorf("initializing archer provider: %w", err)
+		}
+		return provider, nil
 
 	case ProviderTypeServiceNow:
 		if cfg.ServiceNow == nil {
 			return nil, fmt.Errorf("servicenow config required for servicenow provider")
 		}
-		return NewServiceNowGRCProvider(*cfg.ServiceNow), nil
+		provider, err := NewServiceNowGRCProvider(*cfg.ServiceNow)
+		if err != nil {
+			return nil, fmt.Errorf("initializing servicenow provider: %w", err)
+		}
+		return provider, nil
 
 	default:
 		return nil, fmt.Errorf("unknown provider type: %s", cfg.Type)

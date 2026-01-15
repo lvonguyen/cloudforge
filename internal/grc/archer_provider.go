@@ -4,16 +4,22 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 )
 
 // ArcherConfig contains configuration for RSA Archer GRC integration.
+// Credentials are loaded from environment variables for security.
 type ArcherConfig struct {
 	BaseURL      string
 	InstanceName string
 	Username     string
-	Password     string // or use OAuth
-	ModuleID     int    // Archer module/application ID for exceptions
+
+	// PasswordEnv is the name of the environment variable containing the password.
+	// The actual password is never stored in the struct.
+	PasswordEnv string
+
+	ModuleID int // Archer module/application ID for exceptions
 }
 
 // ArcherGRCProvider implements GRCProvider for RSA Archer.
@@ -27,14 +33,34 @@ type ArcherGRCProvider struct {
 	config     ArcherConfig
 	httpClient *http.Client
 	authToken  string //nolint:unused // Reserved for future auth implementation
+	password   string // loaded from env at initialization
 }
 
 // NewArcherGRCProvider creates a new RSA Archer GRC provider.
-func NewArcherGRCProvider(config ArcherConfig) *ArcherGRCProvider {
+// Returns an error if required credentials are missing from environment variables.
+func NewArcherGRCProvider(config ArcherConfig) (*ArcherGRCProvider, error) {
+	// Validate required fields
+	if config.BaseURL == "" {
+		return nil, fmt.Errorf("creating Archer provider: BaseURL is required")
+	}
+	if config.Username == "" {
+		return nil, fmt.Errorf("creating Archer provider: Username is required")
+	}
+
+	// Load password from environment
+	if config.PasswordEnv == "" {
+		return nil, fmt.Errorf("creating Archer provider: PasswordEnv must be specified")
+	}
+	password := os.Getenv(config.PasswordEnv)
+	if password == "" {
+		return nil, fmt.Errorf("creating Archer provider: password environment variable %s is not set", config.PasswordEnv)
+	}
+
 	return &ArcherGRCProvider{
 		config:     config,
 		httpClient: &http.Client{Timeout: 30 * time.Second},
-	}
+		password:   password,
+	}, nil
 }
 
 // CreateException creates a new exception request in Archer.

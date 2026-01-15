@@ -12,27 +12,35 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/yourusername/cloudforge/internal/api"
 	"github.com/yourusername/cloudforge/internal/grc"
 )
 
 // Config holds application configuration
 type Config struct {
-	Port        string
-	GRCProvider grc.ProviderType
+	Port          string
+	GRCProvider   grc.ProviderType
+	JWTSecretEnv  string // Environment variable name for JWT secret
+	JWTIssuer     string // Expected JWT issuer
+	JWTAudience   string // Expected JWT audience
 }
 
 // Server holds the application state
 type Server struct {
-	config      Config
-	grcProvider grc.GRCProvider
-	router      *mux.Router
+	config         Config
+	grcProvider    grc.GRCProvider
+	router         *mux.Router
+	authMiddleware *api.AuthMiddleware
 }
 
 func main() {
 	// Load configuration
 	cfg := Config{
-		Port:        getEnv("PORT", "8080"),
-		GRCProvider: grc.ProviderType(getEnv("GRC_PROVIDER", "memory")),
+		Port:         getEnv("PORT", "8080"),
+		GRCProvider:  grc.ProviderType(getEnv("GRC_PROVIDER", "memory")),
+		JWTSecretEnv: getEnv("JWT_SECRET_ENV", "CLOUDFORGE_JWT_SECRET"),
+		JWTIssuer:    getEnv("JWT_ISSUER", ""),
+		JWTAudience:  getEnv("JWT_AUDIENCE", ""),
 	}
 
 	// Initialize GRC provider
@@ -43,11 +51,23 @@ func main() {
 		log.Fatalf("Failed to initialize GRC provider: %v", err)
 	}
 
+	// Initialize authentication middleware
+	authMiddleware, err := api.NewAuthMiddleware(api.AuthConfig{
+		JWTSecretEnv: cfg.JWTSecretEnv,
+		Issuer:       cfg.JWTIssuer,
+		Audience:     cfg.JWTAudience,
+		SkipPaths:    []string{"/health"},
+	})
+	if err != nil {
+		log.Fatalf("Failed to initialize auth middleware: %v", err)
+	}
+
 	// Create server
 	srv := &Server{
-		config:      cfg,
-		grcProvider: grcProvider,
-		router:      mux.NewRouter(),
+		config:         cfg,
+		grcProvider:    grcProvider,
+		router:         mux.NewRouter(),
+		authMiddleware: authMiddleware,
 	}
 
 	// Setup routes
@@ -89,22 +109,23 @@ func main() {
 }
 
 func (s *Server) setupRoutes() {
-	// Health check
+	// Health check (unauthenticated - skipped by middleware)
 	s.router.HandleFunc("/health", s.healthCheck).Methods("GET")
 
-	// API v1 routes
-	api := s.router.PathPrefix("/api/v1").Subrouter()
+	// API v1 routes with authentication middleware
+	apiRouter := s.router.PathPrefix("/api/v1").Subrouter()
+	apiRouter.Use(s.authMiddleware.Middleware)
 
 	// Exception management
-	api.HandleFunc("/exceptions", s.createException).Methods("POST")
-	api.HandleFunc("/exceptions/{id}", s.getException).Methods("GET")
-	api.HandleFunc("/exceptions/{id}/approve", s.submitApproval).Methods("POST")
-	api.HandleFunc("/exceptions/pending", s.getPendingApprovals).Methods("GET")
-	api.HandleFunc("/exceptions/expiring", s.getExpiringExceptions).Methods("GET")
-	api.HandleFunc("/applications/{appId}/exceptions", s.getExceptionsByApp).Methods("GET")
+	apiRouter.HandleFunc("/exceptions", s.createException).Methods("POST")
+	apiRouter.HandleFunc("/exceptions/{id}", s.getException).Methods("GET")
+	apiRouter.HandleFunc("/exceptions/{id}/approve", s.submitApproval).Methods("POST")
+	apiRouter.HandleFunc("/exceptions/pending", s.getPendingApprovals).Methods("GET")
+	apiRouter.HandleFunc("/exceptions/expiring", s.getExpiringExceptions).Methods("GET")
+	apiRouter.HandleFunc("/applications/{appId}/exceptions", s.getExceptionsByApp).Methods("GET")
 
 	// Policy validation (called by Terraform/provisioning)
-	api.HandleFunc("/validate/exception", s.validateException).Methods("POST")
+	apiRouter.HandleFunc("/validate/exception", s.validateException).Methods("POST")
 }
 
 func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
