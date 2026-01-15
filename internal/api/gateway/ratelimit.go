@@ -4,8 +4,10 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,10 +17,18 @@ import (
 
 // RateLimiter provides configurable rate limiting for API endpoints
 type RateLimiter struct {
-	redis       *redis.Client
-	logger      *zap.Logger
-	config      RateLimitConfig
-	localLimits sync.Map //nolint:unused // Fallback for Redis unavailability
+	redis        *redis.Client
+	logger       *zap.Logger
+	config       RateLimitConfig
+	localLimits  sync.Map // Fallback counters for Redis unavailability
+	trustedProxy []net.IP // Trusted proxy IPs for X-Forwarded-For parsing
+}
+
+// localCounter tracks request counts for in-memory fallback rate limiting
+type localCounter struct {
+	count   int
+	resetAt time.Time
+	mu      sync.Mutex
 }
 
 // RateLimitConfig configures the rate limiter
@@ -40,6 +50,14 @@ type RateLimitConfig struct {
 
 	// Response headers
 	IncludeHeaders bool `yaml:"include_headers"`
+
+	// TrustedProxies is a list of IPs for trusted proxies
+	// X-Forwarded-For is only trusted when request comes from these IPs
+	TrustedProxies []string `yaml:"trusted_proxies"`
+
+	// FailClosed determines behavior when Redis is unavailable
+	// If true, requests are denied; if false, local fallback is used
+	FailClosed bool `yaml:"fail_closed"`
 }
 
 // TierLimits defines rate limits per API tier/plan
@@ -146,10 +164,20 @@ func NewRateLimiter(redisClient *redis.Client, cfg RateLimitConfig, logger *zap.
 		}
 	}
 
+	// Parse trusted proxy IPs
+	var trustedProxies []net.IP
+	for _, proxy := range cfg.TrustedProxies {
+		ip := net.ParseIP(proxy)
+		if ip != nil {
+			trustedProxies = append(trustedProxies, ip)
+		}
+	}
+
 	return &RateLimiter{
-		redis:  redisClient,
-		logger: logger,
-		config: cfg,
+		redis:        redisClient,
+		logger:       logger,
+		config:       cfg,
+		trustedProxy: trustedProxies,
 	}
 }
 
@@ -377,7 +405,7 @@ func (rl *RateLimiter) Middleware(getTier func(r *http.Request) string, getClien
 				Tier:      getTier(r),
 				Endpoint:  r.URL.Path,
 				Method:    r.Method,
-				IPAddress: getClientIP(r),
+				IPAddress: rl.getClientIP(r),
 				APIKey:    r.Header.Get("X-API-Key"),
 			}
 
@@ -385,7 +413,23 @@ func (rl *RateLimiter) Middleware(getTier func(r *http.Request) string, getClien
 			result, err := rl.Check(ctx, key)
 			if err != nil {
 				rl.logger.Error("Rate limit check failed", zap.Error(err))
-				// Allow request on error (fail open)
+
+				// Use local fallback or fail closed based on config
+				if rl.config.FailClosed {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusServiceUnavailable)
+					_, _ = w.Write([]byte(`{"error": "rate_limit_unavailable", "message": "Rate limiting service unavailable"}`))
+					return
+				}
+
+				// Local fallback rate limiting
+				if !rl.checkLocalFallback(key) {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusTooManyRequests)
+					_, _ = w.Write([]byte(`{"error": "rate_limit_exceeded", "message": "Too many requests (fallback mode)"}`))
+					return
+				}
+
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -427,23 +471,99 @@ func (rl *RateLimiter) Middleware(getTier func(r *http.Request) string, getClien
 	}
 }
 
-// getClientIP extracts the client IP from the request
-func getClientIP(r *http.Request) string {
-	// Check X-Forwarded-For header first (for proxies/load balancers)
-	xff := r.Header.Get("X-Forwarded-For")
-	if xff != "" {
-		// Take the first IP in the chain
-		return xff
+// getClientIP extracts the client IP from the request securely.
+// Only trusts X-Forwarded-For when the request comes from a trusted proxy.
+func (rl *RateLimiter) getClientIP(r *http.Request) string {
+	remoteIP := extractIP(r.RemoteAddr)
+
+	// Only trust proxy headers if request is from a trusted proxy
+	if rl.isTrustedProxy(remoteIP) {
+		// Parse X-Forwarded-For - take the rightmost untrusted IP
+		xff := r.Header.Get("X-Forwarded-For")
+		if xff != "" {
+			ips := strings.Split(xff, ",")
+			// Walk backwards to find the first untrusted IP (the real client)
+			for i := len(ips) - 1; i >= 0; i-- {
+				ip := strings.TrimSpace(ips[i])
+				if !rl.isTrustedProxy(ip) {
+					if net.ParseIP(ip) != nil {
+						return ip
+					}
+				}
+			}
+		}
+
+		// Check X-Real-IP header
+		xri := r.Header.Get("X-Real-IP")
+		if xri != "" && net.ParseIP(xri) != nil {
+			return xri
+		}
 	}
 
-	// Check X-Real-IP header
-	xri := r.Header.Get("X-Real-IP")
-	if xri != "" {
-		return xri
+	// Fall back to RemoteAddr (strip port if present)
+	return remoteIP
+}
+
+// extractIP removes port from IP:port format
+func extractIP(addr string) string {
+	if host, _, err := net.SplitHostPort(addr); err == nil {
+		return host
+	}
+	return addr
+}
+
+// isTrustedProxy checks if an IP is in the trusted proxy list
+func (rl *RateLimiter) isTrustedProxy(ipStr string) bool {
+	if len(rl.trustedProxy) == 0 {
+		return false // No trusted proxies configured
+	}
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return false
+	}
+	for _, trusted := range rl.trustedProxy {
+		if trusted.Equal(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+// checkLocalFallback performs local in-memory rate limiting when Redis is unavailable
+func (rl *RateLimiter) checkLocalFallback(key RateLimitKey) bool {
+	identifier := key.ClientID
+	if identifier == "" {
+		identifier = key.APIKey
+	}
+	if identifier == "" {
+		identifier = key.IPAddress
+	}
+	localKey := fmt.Sprintf("%s:%s:%s", key.Tier, identifier, key.Endpoint)
+
+	// Get or create counter
+	val, _ := rl.localLimits.LoadOrStore(localKey, &localCounter{
+		count:   0,
+		resetAt: time.Now().Add(time.Minute),
+	})
+	counter := val.(*localCounter)
+
+	counter.mu.Lock()
+	defer counter.mu.Unlock()
+
+	// Reset if window expired
+	if time.Now().After(counter.resetAt) {
+		counter.count = 0
+		counter.resetAt = time.Now().Add(time.Minute)
 	}
 
-	// Fall back to RemoteAddr
-	return r.RemoteAddr
+	// Check limit (use default per-minute limit)
+	limit := rl.config.DefaultRequestsPerMinute
+	if limit == 0 {
+		limit = 100
+	}
+
+	counter.count++
+	return counter.count <= limit
 }
 
 // DefaultConfig returns a sensible default configuration

@@ -174,8 +174,8 @@ func (s *Server) createException(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate required fields
-	if req.ApplicationID == "" || req.PolicyCode == "" {
-		writeErrorResponse(w, "application_id and policy_code are required", http.StatusBadRequest)
+	if req.ApplicationID == "" || req.PolicyViolated == "" {
+		writeErrorResponse(w, "application_id and policy_violated are required", http.StatusBadRequest)
 		return
 	}
 

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 )
@@ -226,21 +227,22 @@ func (s *ServiceNowGRCProvider) ValidateException(
 	}
 
 	// Query for approved, non-expired exceptions
+	// URL-encode user input to prevent query injection attacks
 	query := fmt.Sprintf(
 		"u_application_id=%s^u_policy_reference=%s^approval=approved^u_expiration_dateONOrAfter%s",
-		applicationID,
-		policyCode,
+		url.QueryEscape(applicationID),
+		url.QueryEscape(policyCode),
 		time.Now().Format("2006-01-02"),
 	)
 
-	url := fmt.Sprintf(
+	reqURL := fmt.Sprintf(
 		"%s/api/now/table/%s?sysparm_query=%s&sysparm_limit=1",
 		s.config.InstanceURL,
 		s.config.ExceptionTable,
 		query,
 	)
 
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -399,15 +401,16 @@ func (s *ServiceNowGRCProvider) GetExceptionsByApplication(ctx context.Context, 
 		return nil, err
 	}
 
-	query := fmt.Sprintf("u_application_id=%s", appID)
-	url := fmt.Sprintf(
+	// URL-encode user input to prevent query injection attacks
+	query := fmt.Sprintf("u_application_id=%s", url.QueryEscape(appID))
+	reqURL := fmt.Sprintf(
 		"%s/api/now/table/%s?sysparm_query=%s",
 		s.config.InstanceURL,
 		s.config.ExceptionTable,
 		query,
 	)
 
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
 	if err != nil {
 		return nil, err
 	}
