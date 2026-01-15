@@ -10,7 +10,6 @@ linters:
     - goconst
     - gocritic
     - gofmt
-    - goimports
     - gosec
     - gosimple
     - govet
@@ -48,9 +47,6 @@ linters-settings:
       - sprintfQuotedString # Style preference
       - builtinShadowDecl  # min/max shadowing common in pre-1.21 code
       - exitAfterDefer     # Intentional pattern in main.go
-
-  goimports:
-    local-prefixes: github.com/yourusername/cloudforge
 
   gosec:
     excludes:
