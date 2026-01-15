@@ -66,6 +66,7 @@ This is a **portfolio reference implementation**, not production software:
 7. **FinOps Module** - Cost aggregation interfaces only, no cloud API integration
 
 **Production Requirements:**
+
 - Add comprehensive test suites (unit + integration)
 - Wire rate limiting middleware to API routes
 - Implement OIDC authentication with real providers
@@ -78,12 +79,14 @@ This is a **portfolio reference implementation**, not production software:
 ## [*] What This Solves
 
 Enterprise cloud environments face a constant tension:
+
 - **Developers** want fast, self-service access to infrastructure
 - **Security** needs guardrails, approvals, and audit trails
 - **Finance** requires cost controls, tagging, and chargeback
 - **Compliance** demands policy enforcement and exception documentation
 
 CloudForge bridges these needs with a unified platform that provides:
+
 - Self-service portal for requesting cloud resources
 - Policy-as-code guardrails (OPA/Rego)
 - Golden path Terraform modules (pre-approved, versioned)
@@ -136,10 +139,12 @@ flowchart TB
     Policy --> Integration
 ```
 
+<!-- markdownlint-disable MD033 -->
 <details>
 <summary><strong>ASCII Diagram (Fallback)</strong></summary>
+<!-- markdownlint-enable MD033 -->
 
-```
+```text
 +-----------------------------------------------------------------------------+
 |                              PORTAL LAYER                                    |
 |         (Self-Service UI - React / Next.js)                                 |
@@ -182,7 +187,7 @@ flowchart TB
 
 ## [/] Repository Structure
 
-```
+```text
 cloudforge/
 ├── cmd/
 │   └── server/             # API server entrypoint
@@ -221,6 +226,7 @@ cloudforge/
 ## [+] Key Features
 
 ### Self-Service Portal
+
 - Application registration with metadata capture
 - Infrastructure request catalog (golden modules)
 - Exception request workflow
@@ -237,13 +243,16 @@ cloudforge/
 - Exception validation (GRC integration)
 
 ### GRC Integration
+
 Pluggable providers for enterprise GRC platforms:
+
 - **RSA Archer** - Full exception workflow integration
 - **ServiceNow GRC** - Native ServiceNow integration
 - **PostgreSQL** - Lightweight option for smaller orgs
 - **In-Memory** - For demos and testing
 
 ### AI Intelligence
+
 - Contextual risk scoring with business context
 - Finding explanation generation
 - Remediation runbook generation
@@ -290,6 +299,7 @@ Pluggable providers for enterprise GRC platforms:
 ## [>] Quick Start
 
 ### Prerequisites
+
 - Go 1.21+
 - Docker & Docker Compose
 - Terraform 1.5+
@@ -351,7 +361,7 @@ workflow:
 ### Architecture Decision Records
 
 | ADR | Decision |
-|-----|----------|
+| --- | -------- |
 | [ADR-001](docs/adr/ADR-001-programming-language.md) | Programming Language (Go) |
 | [ADR-002](docs/adr/ADR-002-database-selection.md) | Database Selection (PostgreSQL) |
 | [ADR-003](docs/adr/ADR-003-caching-strategy.md) | Caching Strategy (Redis) |
@@ -362,7 +372,7 @@ workflow:
 ### Runbooks
 
 | Runbook | Purpose |
-|---------|---------|
+| ------- | ------- |
 | [01-deployment](docs/runbooks/01-deployment.md) | Deployment procedures |
 | [02-incident-response](docs/runbooks/02-incident-response.md) | Incident handling |
 | [04-performance](docs/runbooks/04-performance-troubleshooting.md) | Performance issues |
@@ -389,7 +399,7 @@ workflow:
 ## [+] Observability
 
 | Capability | Implementation |
-|------------|----------------|
+| ---------- | -------------- |
 | Logging | Structured JSON logging with zap |
 | Metrics | Prometheus metrics at `/metrics` |
 | Tracing | OpenTelemetry distributed tracing |
@@ -403,7 +413,7 @@ workflow:
 Built-in support for 20+ frameworks:
 
 | Category | Frameworks |
-|----------|------------|
+| -------- | ---------- |
 | **General** | CIS, NIST CSF, ISO 27001, PCI-DSS |
 | **Cloud** | AWS Security Best Practice, GCP CIS, Azure MCSB |
 | **Healthcare** | HIPAA, HITRUST |
@@ -417,6 +427,7 @@ Built-in support for 20+ frameworks:
 ## [/] Roadmap
 
 ### Phase 1: Core Platform (Complete)
+
 - [x] Core API and HTTP handlers
 - [x] GRC abstraction layer (Archer, ServiceNow, PostgreSQL)
 - [x] OPA policy engine integration
@@ -426,6 +437,7 @@ Built-in support for 20+ frameworks:
 - [x] Structured logging and Prometheus metrics
 
 ### Phase 2: Security & Testing (In Progress)
+
 - [ ] Wire rate limiting to API routes
 - [ ] OIDC authentication integration (Okta/Entra ID)
 - [ ] Unit test coverage (target: 80%)
@@ -433,12 +445,14 @@ Built-in support for 20+ frameworks:
 - [ ] CI/CD pipeline with security scanning
 
 ### Phase 3: Portal & Workflows
+
 - [ ] Self-service portal UI (React/Next.js)
 - [ ] Temporal workflow testing and validation
 - [ ] Terraform golden module catalog
 - [ ] Infrastructure request forms
 
 ### Phase 4: FinOps & Reporting
+
 - [ ] Cloud cost API integration (AWS/Azure/GCP)
 - [ ] Cost estimation integration
 - [ ] Chargeback report generation
