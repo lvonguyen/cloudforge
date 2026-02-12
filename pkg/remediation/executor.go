@@ -85,12 +85,12 @@ func (e *Executor) Execute(ctx context.Context, finding *findings.PrioritizedFin
 }
 
 // ExecuteBatch processes multiple findings concurrently (up to maxConcurrency).
-func (e *Executor) ExecuteBatch(ctx context.Context, findings []*findings.PrioritizedFinding, maxConcurrency int) ([]*RemediationResult, error) {
+func (e *Executor) ExecuteBatch(ctx context.Context, batch []*findings.PrioritizedFinding, maxConcurrency int) ([]*RemediationResult, error) {
 	if maxConcurrency <= 0 {
 		maxConcurrency = 5 // Default: 5 concurrent remediations
 	}
 
-	results := make([]*RemediationResult, 0, len(findings))
+	results := make([]*RemediationResult, 0, len(batch))
 	sem := make(chan struct{}, maxConcurrency)
 
 	type resultPair struct {
@@ -99,10 +99,10 @@ func (e *Executor) ExecuteBatch(ctx context.Context, findings []*findings.Priori
 		index  int
 	}
 
-	resultChan := make(chan resultPair, len(findings))
+	resultChan := make(chan resultPair, len(batch))
 
 	// Launch goroutines
-	for i, finding := range findings {
+	for i, finding := range batch {
 		sem <- struct{}{} // Acquire semaphore
 		go func(idx int, f *findings.PrioritizedFinding) {
 			defer func() { <-sem }() // Release semaphore
@@ -113,12 +113,12 @@ func (e *Executor) ExecuteBatch(ctx context.Context, findings []*findings.Priori
 	}
 
 	// Collect results
-	for i := 0; i < len(findings); i++ {
+	for i := 0; i < len(batch); i++ {
 		pair := <-resultChan
 		if pair.err != nil {
 			// Log error but continue processing others
 			results = append(results, &RemediationResult{
-				FindingID: findings[pair.index].Finding.ID,
+				FindingID: batch[pair.index].Finding.ID,
 				Success:   false,
 				Error:     pair.err.Error(),
 			})

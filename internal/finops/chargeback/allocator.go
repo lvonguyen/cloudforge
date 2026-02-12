@@ -9,7 +9,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/yourusername/cloudforge/internal/finops"
+	"cloudforge/internal/finops"
 )
 
 // AllocatorConfig holds configuration for cost allocation

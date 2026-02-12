@@ -15,9 +15,9 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
-	"github.com/yourusername/cloudforge/internal/api"
-	"github.com/yourusername/cloudforge/internal/api/gateway"
-	"github.com/yourusername/cloudforge/internal/grc"
+	"cloudforge/internal/api"
+	"cloudforge/internal/api/gateway"
+	"cloudforge/internal/grc"
 	"go.uber.org/zap"
 )
 

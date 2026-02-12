@@ -5,7 +5,7 @@
 <!-- markdownlint-enable MD033 -->
 
 ![Development Status](https://img.shields.io/badge/status-active%20development-blue)
-![Implementation](https://img.shields.io/badge/implementation-70%25-green)
+![Implementation](https://img.shields.io/badge/implementation-75%25-green)
 
 ## Enterprise Cloud Governance Platform with Self-Service Provisioning
 
@@ -15,7 +15,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 ## [/] Implementation Status
 
-> **Current State:** Active development (~70% complete). Core API functional, GRC integration working, CI/CD pipeline configured.
+> **Current State:** Active development (~75% complete). Core API functional, GRC integration working, remediation dispatcher operational, CI/CD pipeline configured.
 
 | Component | Status | Notes |
 | --------- | ------ | ----- |
@@ -44,11 +44,23 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | Structured logging (zap) | Done | JSON format |
 | Prometheus metrics | Done | `/metrics` endpoint |
 | OpenTelemetry tracing | Partial | Basic spans only |
+| **Remediation Dispatcher** | | |
+| Executor engine | Done | Concurrent batch execution with semaphore |
+| Handler interface | Done | Remediate, Validate, DryRun, Tier |
+| Network handlers | Done | BlockPublicSSH (SSH/RDP/SG finding types) |
+| Security services | Done | GuardDuty enablement, Azure Defender (stub) |
+| Storage handlers | Done | S3 public access block |
+| Compute handlers | Done | IMDSv2 enforcement |
+| Identity handlers | Done | IAM key rotation (Tier 2) |
+| Secrets handlers | Done | Manual rotation guidance (no-op) |
+| Patching handlers | Done | SSM patch compliance (query-only, Tier 3) |
+| Rollback engine | Done | 48h rollback window, state snapshots |
+| Findings bridge | Done | Temporary bridge to cspm-aggregator types |
 | **Security** | | |
 | Rate limiting | Done | Redis-backed, tier-based limits |
 | OIDC authentication | Interface Only | Okta/Entra ID not integrated |
 | **Testing** | | |
-| Unit tests | 0% | No test coverage |
+| Unit tests | Partial | Executor engine tests (14 cases passing) |
 | Integration tests | 0% | |
 
 ---
@@ -57,7 +69,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 This is a **portfolio reference implementation**, not production software:
 
-1. **No Unit Tests** - Zero test coverage currently
+1. **Limited Unit Tests** - Executor engine tested, handler-level tests pending
 2. **OIDC Stub Only** - Authentication interface defined, no provider integration
 3. **No Portal UI** - React/Next.js portal not implemented
 4. **Temporal Workflows** - Workflow definitions exist, orchestration not fully tested
@@ -186,35 +198,48 @@ flowchart TB
 ```text
 cloudforge/
 ├── cmd/
-│   └── server/             # API server entrypoint
+│   ├── server/                    # API server entrypoint
+│   └── remediation-dispatcher/    # Remediation dispatcher service
 ├── internal/
-│   ├── ai/                 # AI provider integration (Claude, OpenAI)
-│   ├── api/                # API handlers and rate limiting
-│   ├── cicd/               # CI/CD security scanning
-│   │   ├── sast/           # SAST integrations (SonarQube, Checkov, Veracode)
-│   │   └── vcs/            # VCS integrations (GitHub, GitLab, Azure DevOps)
-│   ├── compliance/         # Compliance frameworks and deduplication
-│   ├── container/          # Container security module
-│   ├── grc/                # GRC provider abstraction (Archer, ServiceNow)
-│   ├── identity/           # Identity providers (Entra ID, Okta) + Zero Trust
-│   ├── observability/      # Logging, metrics, tracing, health checks
-│   ├── policy/             # OPA integration
-│   ├── waf/                # WAF golden templates and compliance scanner
-│   ├── workflow/           # Temporal workflow definitions
-│   └── finops/             # FinOps cost management (merged)
-│       ├── aggregator/     # Multi-cloud cost aggregation
-│       ├── anomaly/        # Cost anomaly detection
-│       ├── chargeback/     # Cost allocation engine
-│       └── reporter/       # Showback/chargeback reports
-├── migrations/             # Database migrations
-├── policies/               # OPA/Rego policies
-├── configs/                # Configuration templates
+│   ├── ai/                        # AI provider integration (Claude, OpenAI)
+│   ├── api/                       # API handlers and rate limiting
+│   ├── cicd/                      # CI/CD security scanning
+│   │   ├── sast/                  # SAST integrations (SonarQube, Checkov, Veracode)
+│   │   └── vcs/                   # VCS integrations (GitHub, GitLab, Azure DevOps)
+│   ├── compliance/                # Compliance frameworks and deduplication
+│   ├── container/                 # Container security module
+│   ├── findings/                  # Finding types (bridge to cspm-aggregator)
+│   ├── finops/                    # FinOps cost management
+│   │   ├── aggregator/            # Multi-cloud cost aggregation
+│   │   ├── anomaly/               # Cost anomaly detection
+│   │   ├── chargeback/            # Cost allocation engine
+│   │   └── reporter/              # Showback/chargeback reports
+│   ├── grc/                       # GRC provider abstraction (Archer, ServiceNow)
+│   ├── identity/                  # Identity providers (Entra ID, Okta) + Zero Trust
+│   ├── observability/             # Logging, metrics, tracing, health checks
+│   ├── policy/                    # OPA integration
+│   ├── remediation/               # Remediation domain handlers
+│   │   ├── compute/               # EC2 IMDSv2 enforcement
+│   │   ├── identity/              # IAM key rotation
+│   │   ├── network/               # SSH/RDP ingress blocking
+│   │   ├── patching/              # OS patch compliance (SSM)
+│   │   ├── private_cloud/         # Private cloud remediation (planned)
+│   │   ├── secrets/               # Exposed secret rotation guidance
+│   │   ├── security_services/     # GuardDuty, Azure Defender
+│   │   └── storage/               # S3 public access blocking
+│   ├── waf/                       # WAF golden templates and compliance scanner
+│   └── workflow/                  # Temporal workflow definitions
+├── pkg/
+│   └── remediation/               # Executor engine, Remediator interface, types
+├── migrations/                    # Database migrations
+├── policies/                      # OPA/Rego policies
+├── configs/                       # Configuration templates
 ├── docs/
-│   ├── architecture/       # HLD, DDD, data models
-│   ├── diagrams/           # Architecture diagrams (SVG)
-│   ├── adr/                # Architecture Decision Records
-│   └── runbooks/           # Operational procedures
-└── Makefile                # Build targets
+│   ├── architecture/              # HLD, DDD, data models
+│   ├── diagrams/                  # Architecture diagrams (SVG)
+│   ├── adr/                       # Architecture Decision Records
+│   └── runbooks/                  # Operational procedures
+└── Makefile                       # Build targets
 ```
 
 ---
@@ -270,6 +295,14 @@ Pluggable providers for enterprise GRC platforms:
 <!-- markdownlint-disable MD033 -->
 <img src="../../../reference/templates/icons/homelab-svg-assets/assets/grafana.svg" width="24" height="24" alt="FinOps">
 <!-- markdownlint-enable MD033 -->
+
+### Automated Remediation
+
+- **Tiered Execution**: Tier 1 (auto-safe), Tier 2 (requires verification), Tier 3 (change window)
+- **10 Handlers**: GuardDuty, SSH/RDP blocking, S3 public access, IMDSv2, IAM key rotation, Azure Defender, secrets guidance, OS patching
+- **Dry-Run Default**: All remediations preview actions before execution
+- **48-Hour Rollback**: State snapshots for every remediation with automated rollback scripts
+- **Concurrent Batch Execution**: Semaphore-controlled parallel processing
 
 ### FinOps Cost Management
 
@@ -444,13 +477,18 @@ Built-in support for 20+ frameworks:
 - [x] Compliance framework engine (20+ frameworks)
 - [x] Structured logging and Prometheus metrics
 
-### Phase 2: Security & Testing (In Progress)
+### Phase 2: Security, Remediation & Testing (In Progress)
 
 - [x] Wire rate limiting to API routes
 - [x] CI/CD pipeline with security scanning
+- [x] Remediation dispatcher with 10 handlers across 8 domains
+- [x] Tiered execution model (auto-safe / verify / change window)
+- [x] 48-hour rollback state engine
+- [x] Executor engine unit tests (14 cases)
 - [ ] OIDC authentication integration (Okta/Entra ID)
-- [ ] Unit test coverage (target: 80%)
+- [ ] Handler-level unit tests (target: 80% coverage)
 - [ ] Integration test suite
+- [ ] Merge cspm-aggregator into monorepo
 
 ### Phase 3: Portal & Workflows
 
@@ -466,6 +504,21 @@ Built-in support for 20+ frameworks:
 - [ ] Chargeback report generation
 - [ ] Compliance reporting dashboard
 - [ ] Budget alerting (Slack/PagerDuty)
+
+---
+
+## [/] Update History
+
+| Date | Author | Change |
+| ---- | ------ | ------ |
+| 2026-02-11 | lvonguyen | Add remediation dispatcher with 10 handlers across 8 domains |
+| 2026-02-11 | lvonguyen | Add executor engine with batch execution, dry-run, and rollback |
+| 2026-02-11 | lvonguyen | Add findings bridge package (temporary, pending cspm-aggregator merge) |
+| 2026-02-11 | lvonguyen | Add executor unit tests (14 cases) |
+| 2026-02-11 | lvonguyen | Add domain READMEs for all 8 remediation domains |
+| 2026-01-xx | lvonguyen | Add FinOps cost management module (aggregator, anomaly, chargeback) |
+| 2026-01-xx | lvonguyen | Add CI/CD security scanning (SAST, VCS integrations) |
+| 2025-12-xx | lvonguyen | Initial platform: API server, GRC, compliance, policy engine, AI |
 
 ---
 
