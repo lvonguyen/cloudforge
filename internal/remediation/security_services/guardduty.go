@@ -168,7 +168,8 @@ func (g *GuardDutyRemediator) DryRun(ctx context.Context, finding *findings.Prio
 	}
 
 	// Check if already enabled (optional pre-check)
-	client := guardduty.NewFromConfig(config.Config{Region: finding.Finding.Region})
+	cfg, _ := config.LoadDefaultConfig(ctx, config.WithRegion(finding.Finding.Region))
+	client := guardduty.NewFromConfig(cfg)
 	listOutput, err := client.ListDetectors(ctx, &guardduty.ListDetectorsInput{})
 	if err == nil && len(listOutput.DetectorIds) > 0 {
 		dryRun.Warnings = append(dryRun.Warnings, "GuardDuty may already be enabled in this region")

@@ -1,5 +1,7 @@
 # Binaries
 bin/
+/server
+/remediation-dispatcher
 *.exe
 *.exe~
 *.dll
@@ -58,6 +60,6 @@ temp/
 *.tfvars
 
 # Secrets
-secrets/
+/secrets/
 *.pem
 *.key
