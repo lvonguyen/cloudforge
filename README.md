@@ -511,14 +511,14 @@ Built-in support for 20+ frameworks:
 
 | Date | Author | Change |
 | ---- | ------ | ------ |
-| 2026-02-11 | lvonguyen | Add remediation dispatcher with 10 handlers across 8 domains |
-| 2026-02-11 | lvonguyen | Add executor engine with batch execution, dry-run, and rollback |
-| 2026-02-11 | lvonguyen | Add findings bridge package (temporary, pending cspm-aggregator merge) |
-| 2026-02-11 | lvonguyen | Add executor unit tests (14 cases) |
-| 2026-02-11 | lvonguyen | Add domain READMEs for all 8 remediation domains |
-| 2026-01-xx | lvonguyen | Add FinOps cost management module (aggregator, anomaly, chargeback) |
-| 2026-01-xx | lvonguyen | Add CI/CD security scanning (SAST, VCS integrations) |
-| 2025-12-xx | lvonguyen | Initial platform: API server, GRC, compliance, policy engine, AI |
+| 2026-02-11 | Liem Vo-Nguyen | Add remediation dispatcher with 10 handlers across 8 domains |
+| 2026-02-11 | Liem Vo-Nguyen | Add executor engine with batch execution, dry-run, and rollback |
+| 2026-02-11 | Liem Vo-Nguyen | Add findings bridge package (temporary, pending cspm-aggregator merge) |
+| 2026-02-11 | Liem Vo-Nguyen | Add executor unit tests (14 cases) |
+| 2026-02-11 | Liem Vo-Nguyen | Add domain READMEs for all 8 remediation domains |
+| 2026-01-xx | Liem Vo-Nguyen | Add FinOps cost management module (aggregator, anomaly, chargeback) |
+| 2026-01-xx | Liem Vo-Nguyen | Add CI/CD security scanning (SAST, VCS integrations) |
+| 2025-12-xx | Liem Vo-Nguyen | Initial platform: API server, GRC, compliance, policy engine, AI |
 
 ---
 
