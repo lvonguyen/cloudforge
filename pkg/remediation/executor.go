@@ -30,18 +30,27 @@ func (e *Executor) Register(findingType string, handler Remediator) {
 
 // Execute processes a finding and routes it to the appropriate handler.
 func (e *Executor) Execute(ctx context.Context, finding *findings.PrioritizedFinding) (*RemediationResult, error) {
+	// Validate finding to prevent nil pointer panics [SEC-001]
+	if finding == nil || finding.Finding == nil {
+		return nil, fmt.Errorf("finding or finding.Finding is nil")
+	}
+	if finding.Finding.ID == "" || finding.Finding.FindingType == "" {
+		return nil, fmt.Errorf("finding missing required fields: ID=%q, FindingType=%q",
+			finding.Finding.ID, finding.Finding.FindingType)
+	}
+
 	// Find handler for this finding type
 	handler, ok := e.handlers[finding.Finding.FindingType]
 	if !ok {
 		return nil, fmt.Errorf("no handler registered for finding type: %s", finding.Finding.FindingType)
 	}
 
-	// Check tier compatibility with auto-remediation setting
-	if !finding.AutoRemediationReady && handler.Tier() == 1 {
+	// Tier 1 = auto-safe (always runs). Tier 2+ require AutoRemediationReady [SEC-006]
+	if !finding.AutoRemediationReady && handler.Tier() > 1 {
 		return &RemediationResult{
 			FindingID: finding.Finding.ID,
 			Success:   false,
-			Message:   "Auto-remediation not enabled for this finding",
+			Message:   fmt.Sprintf("Auto-remediation not approved for tier %d finding", handler.Tier()),
 		}, nil
 	}
 
@@ -85,12 +94,14 @@ func (e *Executor) Execute(ctx context.Context, finding *findings.PrioritizedFin
 }
 
 // ExecuteBatch processes multiple findings concurrently (up to maxConcurrency).
+// Results are returned in the same order as the input batch [SEC-002].
 func (e *Executor) ExecuteBatch(ctx context.Context, batch []*findings.PrioritizedFinding, maxConcurrency int) ([]*RemediationResult, error) {
 	if maxConcurrency <= 0 {
-		maxConcurrency = 5 // Default: 5 concurrent remediations
+		maxConcurrency = 5
 	}
 
-	results := make([]*RemediationResult, 0, len(batch))
+	// Pre-allocate results at fixed indices to guarantee ordering [SEC-002]
+	results := make([]*RemediationResult, len(batch))
 	sem := make(chan struct{}, maxConcurrency)
 
 	type resultPair struct {
@@ -101,33 +112,62 @@ func (e *Executor) ExecuteBatch(ctx context.Context, batch []*findings.Prioritiz
 
 	resultChan := make(chan resultPair, len(batch))
 
-	// Launch goroutines
-	for i, finding := range batch {
-		sem <- struct{}{} // Acquire semaphore
-		go func(idx int, f *findings.PrioritizedFinding) {
-			defer func() { <-sem }() // Release semaphore
+	// Launch goroutines with context-aware semaphore [SEC-005]
+	launched := 0
+	cancelled := false
+	for i := range batch {
+		if cancelled {
+			results[i] = &RemediationResult{
+				FindingID: safeFindingID(batch[i]),
+				Success:   false,
+				Error:     fmt.Sprintf("cancelled: %v", ctx.Err()),
+			}
+			continue
+		}
 
+		select {
+		case sem <- struct{}{}:
+		case <-ctx.Done():
+			cancelled = true
+			results[i] = &RemediationResult{
+				FindingID: safeFindingID(batch[i]),
+				Success:   false,
+				Error:     fmt.Sprintf("cancelled: %v", ctx.Err()),
+			}
+			continue
+		}
+
+		launched++
+		go func(idx int, f *findings.PrioritizedFinding) {
+			defer func() { <-sem }()
 			result, err := e.Execute(ctx, f)
 			resultChan <- resultPair{result: result, err: err, index: idx}
-		}(i, finding)
+		}(i, batch[i])
 	}
 
-	// Collect results
-	for i := 0; i < len(batch); i++ {
+	// Collect results from launched goroutines at their correct indices
+	for i := 0; i < launched; i++ {
 		pair := <-resultChan
 		if pair.err != nil {
-			// Log error but continue processing others
-			results = append(results, &RemediationResult{
-				FindingID: batch[pair.index].Finding.ID,
+			results[pair.index] = &RemediationResult{
+				FindingID: safeFindingID(batch[pair.index]),
 				Success:   false,
 				Error:     pair.err.Error(),
-			})
+			}
 		} else {
-			results = append(results, pair.result)
+			results[pair.index] = pair.result
 		}
 	}
 
 	return results, nil
+}
+
+// safeFindingID extracts the finding ID safely, returning empty string for nil findings.
+func safeFindingID(f *findings.PrioritizedFinding) string {
+	if f != nil && f.Finding != nil {
+		return f.Finding.ID
+	}
+	return ""
 }
 
 // ListHandlers returns all registered finding types.

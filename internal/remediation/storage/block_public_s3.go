@@ -4,22 +4,23 @@ package storage
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/s3control"
-	s3controltypes "github.com/aws/aws-sdk-go-v2/service/s3control/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 
 	"cloudforge/internal/findings"
 	"cloudforge/pkg/remediation"
 )
 
-// BlockPublicS3Remediator blocks all public access on S3 buckets.
+// BlockPublicS3Remediator blocks public access on a specific S3 bucket.
 //
 // Finding Type: S3_PUBLIC_ACCESS
 // Tier: 1 (Auto-safe - blocking public access is always safe for non-static-site buckets)
-// Impact: Blocks all public access via PutPublicAccessBlock
+// Impact: Blocks all public access on the TARGET BUCKET via PutPublicAccessBlock [SEC-003]
 // CSPs: AWS
 type BlockPublicS3Remediator struct {
 	tier int
@@ -35,7 +36,7 @@ func (b *BlockPublicS3Remediator) Tier() int {
 	return b.tier
 }
 
-// Remediate enables the S3 account-level public access block.
+// Remediate enables the S3 bucket-level public access block [SEC-003].
 func (b *BlockPublicS3Remediator) Remediate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.RemediationResult, error) {
 	startTime := time.Now()
 
@@ -46,16 +47,21 @@ func (b *BlockPublicS3Remediator) Remediate(ctx context.Context, finding *findin
 		Actions:    []string{},
 	}
 
+	bucketName := extractBucketName(finding.Finding.ResourceID)
+	if bucketName == "" {
+		return nil, fmt.Errorf("could not extract bucket name from resource ID: %s", finding.Finding.ResourceID)
+	}
+
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(finding.Finding.Region))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
-	client := s3control.NewFromConfig(cfg)
+	client := s3.NewFromConfig(cfg)
 
-	_, err = client.PutPublicAccessBlock(ctx, &s3control.PutPublicAccessBlockInput{
-		AccountId: &finding.Finding.AccountID,
-		PublicAccessBlockConfiguration: &s3controltypes.PublicAccessBlockConfiguration{
+	_, err = client.PutPublicAccessBlock(ctx, &s3.PutPublicAccessBlockInput{
+		Bucket: aws.String(bucketName),
+		PublicAccessBlockConfiguration: &s3types.PublicAccessBlockConfiguration{
 			BlockPublicAcls:       aws.Bool(true),
 			BlockPublicPolicy:     aws.Bool(true),
 			IgnorePublicAcls:      aws.Bool(true),
@@ -67,11 +73,11 @@ func (b *BlockPublicS3Remediator) Remediate(ctx context.Context, finding *findin
 		result.CompletedAt = time.Now()
 		result.Duration = time.Since(startTime).String()
 		result.Error = err.Error()
-		return result, fmt.Errorf("failed to put public access block: %w", err)
+		return result, fmt.Errorf("failed to put public access block on bucket %s: %w", bucketName, err)
 	}
 
 	result.Actions = append(result.Actions,
-		fmt.Sprintf("Enabled BlockPublicAcls on account: %s", finding.Finding.AccountID),
+		fmt.Sprintf("Enabled BlockPublicAcls on bucket: %s", bucketName),
 		"Enabled BlockPublicPolicy",
 		"Enabled IgnorePublicAcls",
 		"Enabled RestrictPublicBuckets",
@@ -79,12 +85,12 @@ func (b *BlockPublicS3Remediator) Remediate(ctx context.Context, finding *findin
 	result.CompletedAt = time.Now()
 	result.Duration = time.Since(startTime).String()
 	result.Success = true
-	result.Message = fmt.Sprintf("All public access blocked for account: %s", finding.Finding.AccountID)
+	result.Message = fmt.Sprintf("All public access blocked for bucket: %s", bucketName)
 
 	return result, nil
 }
 
-// Validate verifies the public access block is enabled.
+// Validate verifies the public access block is enabled on the bucket.
 func (b *BlockPublicS3Remediator) Validate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.ValidationResult, error) {
 	validation := &remediation.ValidationResult{
 		FindingID:   finding.Finding.ID,
@@ -92,19 +98,21 @@ func (b *BlockPublicS3Remediator) Validate(ctx context.Context, finding *finding
 		Evidence:    []string{},
 	}
 
+	bucketName := extractBucketName(finding.Finding.ResourceID)
+
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(finding.Finding.Region))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
-	client := s3control.NewFromConfig(cfg)
+	client := s3.NewFromConfig(cfg)
 
-	output, err := client.GetPublicAccessBlock(ctx, &s3control.GetPublicAccessBlockInput{
-		AccountId: &finding.Finding.AccountID,
+	output, err := client.GetPublicAccessBlock(ctx, &s3.GetPublicAccessBlockInput{
+		Bucket: aws.String(bucketName),
 	})
 	if err != nil {
 		validation.IsCompliant = false
-		validation.Message = fmt.Sprintf("Failed to get public access block: %v", err)
+		validation.Message = fmt.Sprintf("Failed to get public access block for bucket %s: %v", bucketName, err)
 		return validation, nil
 	}
 
@@ -115,7 +123,7 @@ func (b *BlockPublicS3Remediator) Validate(ctx context.Context, finding *finding
 
 	if !allBlocked {
 		validation.IsCompliant = false
-		validation.Message = "Not all public access block settings are enabled"
+		validation.Message = fmt.Sprintf("Not all public access block settings are enabled for bucket %s", bucketName)
 		validation.Evidence = append(validation.Evidence,
 			fmt.Sprintf("BlockPublicAcls: %t", deref(pab.BlockPublicAcls)),
 			fmt.Sprintf("BlockPublicPolicy: %t", deref(pab.BlockPublicPolicy)),
@@ -126,7 +134,7 @@ func (b *BlockPublicS3Remediator) Validate(ctx context.Context, finding *finding
 	}
 
 	validation.IsCompliant = true
-	validation.Message = fmt.Sprintf("All public access blocked for account: %s", finding.Finding.AccountID)
+	validation.Message = fmt.Sprintf("All public access blocked for bucket: %s", bucketName)
 	validation.Evidence = append(validation.Evidence, "All 4 public access block settings enabled")
 
 	return validation, nil
@@ -134,16 +142,31 @@ func (b *BlockPublicS3Remediator) Validate(ctx context.Context, finding *finding
 
 // DryRun simulates blocking public access without making changes.
 func (b *BlockPublicS3Remediator) DryRun(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.DryRunResult, error) {
+	bucketName := extractBucketName(finding.Finding.ResourceID)
+
 	return &remediation.DryRunResult{
 		FindingID:        finding.Finding.ID,
 		WouldSucceed:     true,
 		PrerequisitesMet: true,
 		PlannedActions: []string{
-			fmt.Sprintf("Would enable BlockPublicAcls on account: %s", finding.Finding.AccountID),
+			fmt.Sprintf("Would enable BlockPublicAcls on bucket: %s", bucketName),
 			"Would enable BlockPublicPolicy",
 			"Would enable IgnorePublicAcls",
 			"Would enable RestrictPublicBuckets",
 		},
-		EstimatedImpact: "S3 buckets will no longer be publicly accessible. Static website hosting via S3 will break.",
+		EstimatedImpact: fmt.Sprintf("Bucket %s will no longer be publicly accessible. Static website hosting via S3 will break.", bucketName),
 	}, nil
+}
+
+// extractBucketName extracts the S3 bucket name from a resource ARN or name.
+func extractBucketName(resourceID string) string {
+	// Handle ARN format: arn:aws:s3:::bucket-name or arn:aws:s3:::bucket-name/key
+	if strings.HasPrefix(resourceID, "arn:") {
+		parts := strings.SplitN(resourceID, ":::", 2)
+		if len(parts) == 2 {
+			bucket := strings.SplitN(parts[1], "/", 2)[0]
+			return bucket
+		}
+	}
+	return resourceID
 }
