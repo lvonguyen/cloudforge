@@ -206,7 +206,8 @@ func TestExecutor_ExecuteDryRun(t *testing.T) {
 	}
 }
 
-func TestExecutor_AutoRemediationNotReady_Tier1(t *testing.T) {
+func TestExecutor_AutoRemediationNotReady_Tier1_Allowed(t *testing.T) {
+	// Tier 1 = auto-safe, should ALWAYS run regardless of AutoRemediationReady [SEC-006]
 	executor := NewExecutor(false)
 	mock := &mockRemediator{tier: 1}
 	executor.Register("OPEN_SSH_PORT", mock)
@@ -218,18 +219,16 @@ func TestExecutor_AutoRemediationNotReady_Tier1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.Success {
-		t.Fatal("expected Success=false when AutoRemediationReady=false and Tier 1")
+	if !result.Success {
+		t.Fatal("expected Success=true for Tier 1 (auto-safe) even with AutoRemediationReady=false")
 	}
-	if !strings.Contains(result.Message, "Auto-remediation not enabled") {
-		t.Fatalf("unexpected message: %s", result.Message)
-	}
-	if mock.remediateCalls != 0 {
-		t.Fatal("Remediate should not be called when auto-remediation is not ready")
+	if mock.remediateCalls != 1 {
+		t.Fatalf("expected 1 Remediate call for Tier 1, got %d", mock.remediateCalls)
 	}
 }
 
-func TestExecutor_AutoRemediationNotReady_Tier2_Allowed(t *testing.T) {
+func TestExecutor_AutoRemediationNotReady_Tier2_Blocked(t *testing.T) {
+	// Tier 2+ require AutoRemediationReady=true [SEC-006]
 	executor := NewExecutor(false)
 	mock := &mockRemediator{tier: 2}
 	executor.Register("OPEN_SSH_PORT", mock)
@@ -241,8 +240,11 @@ func TestExecutor_AutoRemediationNotReady_Tier2_Allowed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !result.Success {
-		t.Fatal("expected Success=true for Tier 2 handler even with AutoRemediationReady=false")
+	if result.Success {
+		t.Fatal("expected Success=false for Tier 2 when AutoRemediationReady=false")
+	}
+	if mock.remediateCalls != 0 {
+		t.Fatal("Remediate should not be called for unapproved Tier 2")
 	}
 }
 

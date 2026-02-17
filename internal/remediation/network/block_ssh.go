@@ -156,12 +156,15 @@ func (b *BlockPublicSSHRemediator) Validate(ctx context.Context, finding *findin
 
 	sg := output.SecurityGroups[0]
 
-	// Check for 0.0.0.0/0:22 ingress
+	// Check for 0.0.0.0/0:22 ingress [SEC-008: nil-safe pointer derefs]
 	hasPublicSSH := false
 	for _, perm := range sg.IpPermissions {
+		if perm.IpProtocol == nil || perm.FromPort == nil || perm.ToPort == nil {
+			continue
+		}
 		if *perm.IpProtocol == "tcp" && *perm.FromPort == 22 && *perm.ToPort == 22 {
 			for _, ipRange := range perm.IpRanges {
-				if *ipRange.CidrIp == "0.0.0.0/0" {
+				if ipRange.CidrIp != nil && *ipRange.CidrIp == "0.0.0.0/0" {
 					hasPublicSSH = true
 					break
 				}

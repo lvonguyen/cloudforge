@@ -178,7 +178,7 @@ func loadFindings(dir string) ([]*findings.PrioritizedFinding, error) {
 
 // captureRollbackState saves pre-remediation state for rollback capability.
 func captureRollbackState(ctx context.Context, findings []*findings.PrioritizedFinding, results []*remediation.RemediationResult) error {
-	if err := os.MkdirAll(*stateDir, 0755); err != nil {
+	if err := os.MkdirAll(*stateDir, 0700); err != nil {
 		return fmt.Errorf("failed to create state dir: %w", err)
 	}
 
@@ -205,8 +205,11 @@ func captureRollbackState(ctx context.Context, findings []*findings.PrioritizedF
 
 		// Write state file
 		stateFile := filepath.Join(*stateDir, fmt.Sprintf("%s-%s.json", runID, finding.Finding.ID))
-		data, _ := json.MarshalIndent(state, "", "  ")
-		if err := os.WriteFile(stateFile, data, 0644); err != nil {
+		data, err := json.MarshalIndent(state, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal state for %s: %w", finding.Finding.ID, err)
+		}
+		if err := os.WriteFile(stateFile, data, 0600); err != nil {
 			return fmt.Errorf("failed to write state file: %w", err)
 		}
 	}
@@ -349,7 +352,7 @@ func printSummary(results []*remediation.RemediationResult) {
 // writeResults writes remediation results to JSON for Asana integration.
 func writeResults(results []*remediation.RemediationResult) error {
 	resultsDir := "./results/remediation"
-	if err := os.MkdirAll(resultsDir, 0755); err != nil {
+	if err := os.MkdirAll(resultsDir, 0700); err != nil {
 		return fmt.Errorf("failed to create results dir: %w", err)
 	}
 
@@ -361,7 +364,7 @@ func writeResults(results []*remediation.RemediationResult) error {
 		return fmt.Errorf("failed to marshal results: %w", err)
 	}
 
-	if err := os.WriteFile(resultsFile, data, 0644); err != nil {
+	if err := os.WriteFile(resultsFile, data, 0600); err != nil {
 		return fmt.Errorf("failed to write results: %w", err)
 	}
 

@@ -82,14 +82,14 @@ func (r *RotateIAMKeysRemediator) Remediate(ctx context.Context, finding *findin
 			Status:      iamtypes.StatusTypeInactive,
 		})
 		if err != nil {
-			result.Error = fmt.Sprintf("failed to deactivate key %s: %v", *key.AccessKeyId, err)
+			result.Error = fmt.Sprintf("failed to deactivate key %s: %v", maskKeyID(key.AccessKeyId), err)
 			result.CompletedAt = time.Now()
 			result.Duration = time.Since(startTime).String()
 			return result, fmt.Errorf("failed to deactivate key: %w", err)
 		}
 
 		result.Actions = append(result.Actions,
-			fmt.Sprintf("Deactivated key %s (age: %d days)", *key.AccessKeyId, int(age.Hours()/24)),
+			fmt.Sprintf("Deactivated key %s (age: %d days)", maskKeyID(key.AccessKeyId), int(age.Hours()/24)),
 		)
 		deactivated++
 	}
@@ -174,4 +174,16 @@ func (r *RotateIAMKeysRemediator) DryRun(ctx context.Context, finding *findings.
 	}
 
 	return dryRun, nil
+}
+
+// maskKeyID masks an IAM access key ID for safe logging [SEC-007].
+func maskKeyID(keyID *string) string {
+	if keyID == nil {
+		return "<nil>"
+	}
+	k := *keyID
+	if len(k) <= 4 {
+		return "****"
+	}
+	return "****" + k[len(k)-4:]
 }
