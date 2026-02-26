@@ -11,12 +11,15 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 // AuthConfig holds configuration for the authentication middleware.
@@ -45,6 +48,7 @@ type Claims struct {
 	Issuer    string   `json:"iss"`
 	Audience  []string `json:"aud"`
 	ExpiresAt int64    `json:"exp"`
+	NotBefore int64    `json:"nbf"`
 	IssuedAt  int64    `json:"iat"`
 	Email     string   `json:"email,omitempty"`
 	Scope     string   `json:"scope,omitempty"`
@@ -86,14 +90,19 @@ type AuthMiddleware struct {
 	jwksCacheT time.Time
 	jwksMu     sync.RWMutex
 	httpClient *http.Client
+	logger     *zap.Logger
 }
 
 // NewAuthMiddleware creates a new authentication middleware.
 // Returns an error if required credentials are missing from environment.
-func NewAuthMiddleware(config AuthConfig) (*AuthMiddleware, error) {
+func NewAuthMiddleware(config AuthConfig, logger *zap.Logger) (*AuthMiddleware, error) {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
 	m := &AuthMiddleware{
 		config:    config,
 		skipPaths: make(map[string]bool),
+		logger:    logger,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -140,14 +149,22 @@ func (m *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 		// Extract token from Authorization header
 		token, err := m.extractToken(r)
 		if err != nil {
-			m.unauthorized(w, err.Error())
+			m.logger.Warn("auth: token extraction failed",
+				zap.String("remote_addr", r.RemoteAddr),
+				zap.Error(err),
+			)
+			m.unauthorized(w, "authentication failed")
 			return
 		}
 
 		// Validate token and extract claims
 		claims, err := m.validateToken(token)
 		if err != nil {
-			m.unauthorized(w, err.Error())
+			m.logger.Warn("auth: token validation failed",
+				zap.String("remote_addr", r.RemoteAddr),
+				zap.Error(err),
+			)
+			m.unauthorized(w, "authentication failed")
 			return
 		}
 
@@ -164,9 +181,9 @@ func (m *AuthMiddleware) shouldSkip(path string) bool {
 		return true
 	}
 
-	// Check for prefix matches (e.g., /health matches /health/ready)
+	// Check for sub-path matches (e.g., /health matches /health/ready but not /healthcare)
 	for skipPath := range m.skipPaths {
-		if strings.HasPrefix(path, skipPath) {
+		if strings.HasPrefix(path, skipPath+"/") {
 			return true
 		}
 	}
@@ -285,9 +302,17 @@ func (m *AuthMiddleware) verifyHS256Signature(header, payload, signature string)
 func (m *AuthMiddleware) validateClaims(claims *Claims) error {
 	now := time.Now().Unix()
 
-	// Check expiration
-	if claims.ExpiresAt != 0 && claims.ExpiresAt < now {
+	// Require expiration claim — tokens without exp are rejected
+	if claims.ExpiresAt == 0 {
+		return fmt.Errorf("token missing required exp claim")
+	}
+	if claims.ExpiresAt < now {
 		return fmt.Errorf("token expired")
+	}
+
+	// Check not-before (reject tokens used too early, with 60s clock skew)
+	if claims.NotBefore != 0 && now < claims.NotBefore-60 {
+		return fmt.Errorf("token not yet valid")
 	}
 
 	// Check issued at (reject tokens from the future)
@@ -436,8 +461,9 @@ func (m *AuthMiddleware) fetchJWKS() (*JWKS, error) {
 		return nil, fmt.Errorf("JWKS endpoint returned status %d", resp.StatusCode)
 	}
 
+	// Cap JWKS response to 64KB to prevent memory exhaustion from compromised endpoints
 	var jwks JWKS
-	if err := json.NewDecoder(resp.Body).Decode(&jwks); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<16)).Decode(&jwks); err != nil {
 		return nil, fmt.Errorf("decoding JWKS: %w", err)
 	}
 

@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+const (
+	// maxOPAInputSize caps the JSON-serialised OPA input at 1 MB to prevent
+	// memory exhaustion from pathological or malicious configuration payloads.
+	maxOPAInputSize = 1 << 20 // 1 MB
+)
+
 // Evaluator evaluates policies against OPA
 type Evaluator struct {
 	opaURL     string
@@ -62,6 +68,9 @@ func (e *Evaluator) Evaluate(ctx context.Context, input PolicyInput) (*PolicyRes
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+	if len(body) > maxOPAInputSize {
+		return nil, fmt.Errorf("OPA input exceeds maximum size of %d bytes", maxOPAInputSize)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST",

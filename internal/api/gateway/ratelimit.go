@@ -3,6 +3,7 @@ package gateway
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -274,8 +275,11 @@ func (rl *RateLimiter) checkWindow(ctx context.Context, key RateLimitKey, window
 		remaining = 0
 	}
 
-	// Calculate reset time
-	ttl, _ := rl.redis.TTL(ctx, redisKey).Result()
+	// Calculate reset time (guard against expired key returning negative TTL)
+	ttl, err := rl.redis.TTL(ctx, redisKey).Result()
+	if err != nil || ttl < 0 {
+		ttl = duration
+	}
 	resetAt := now.Add(ttl)
 
 	var retryAfter time.Duration
@@ -345,12 +349,13 @@ func (rl *RateLimiter) calculateEffectiveLimits(tier TierLimits, endpoint *Endpo
 		effective.RequestsPerMinute = endpoint.RequestsPerMinute
 	}
 
-	// Apply cost multiplier for expensive operations
+	// Apply cost multiplier for expensive operations.
+	// Use max(1, ...) to prevent truncation to zero from integer division.
 	if endpoint.CostMultiplier > 1 {
-		effective.RequestsPerSecond /= endpoint.CostMultiplier
-		effective.RequestsPerMinute /= endpoint.CostMultiplier
-		effective.RequestsPerHour /= endpoint.CostMultiplier
-		effective.RequestsPerDay /= endpoint.CostMultiplier
+		effective.RequestsPerSecond = max(1, effective.RequestsPerSecond/endpoint.CostMultiplier)
+		effective.RequestsPerMinute = max(1, effective.RequestsPerMinute/endpoint.CostMultiplier)
+		effective.RequestsPerHour = max(1, effective.RequestsPerHour/endpoint.CostMultiplier)
+		effective.RequestsPerDay = max(1, effective.RequestsPerDay/endpoint.CostMultiplier)
 	}
 
 	return effective
@@ -447,15 +452,14 @@ func (rl *RateLimiter) Middleware(getTier func(r *http.Request) string, getClien
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusTooManyRequests)
 
-				response := fmt.Sprintf(`{
-					"error": "rate_limit_exceeded",
-					"message": "%s",
-					"retry_after_seconds": %d,
-					"limit": %d,
-					"tier": "%s"
-				}`, result.Reason, int(result.RetryAfter.Seconds()), result.Limit, result.Tier)
-
-				_, _ = w.Write([]byte(response))
+				body, _ := json.Marshal(map[string]interface{}{
+					"error":               "rate_limit_exceeded",
+					"message":             result.Reason,
+					"retry_after_seconds": int(result.RetryAfter.Seconds()),
+					"limit":               result.Limit,
+					"tier":                result.Tier,
+				})
+				_, _ = w.Write(body)
 
 				rl.logger.Warn("Rate limit exceeded",
 					zap.String("client_id", key.ClientID),

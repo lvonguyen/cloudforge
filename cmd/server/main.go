@@ -13,11 +13,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gorilla/mux"
-	"github.com/redis/go-redis/v9"
 	"cloudforge/internal/api"
 	"cloudforge/internal/api/gateway"
 	"cloudforge/internal/grc"
+
+	"github.com/gorilla/mux"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -86,7 +87,7 @@ func main() {
 		Issuer:       cfg.JWTIssuer,
 		Audience:     cfg.JWTAudience,
 		SkipPaths:    []string{"/health"},
-	})
+	}, logger)
 	if err != nil {
 		log.Fatalf("Failed to initialize auth middleware: %v", err)
 	}
@@ -134,11 +135,12 @@ func main() {
 
 	// Create HTTP server with security middleware
 	httpServer := &http.Server{
-		Addr:         fmt.Sprintf(":%s", cfg.Port),
-		Handler:      srv.securityHeadersMiddleware(srv.router),
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:              fmt.Sprintf(":%s", cfg.Port),
+		Handler:           srv.securityHeadersMiddleware(srv.router),
+		ReadTimeout:       15 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	// Configure TLS if cert and key are provided
@@ -157,14 +159,14 @@ func main() {
 	// Start server in goroutine
 	go func() {
 		if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
-			log.Printf("CloudForge API server starting with TLS on port %s", cfg.Port)
+			logger.Info("CloudForge API server starting with TLS", zap.String("port", cfg.Port))
 			if err := httpServer.ListenAndServeTLS(cfg.TLSCertFile, cfg.TLSKeyFile); err != nil && err != http.ErrServerClosed {
-				log.Fatalf("Server error: %v", err)
+				logger.Fatal("Server error", zap.Error(err))
 			}
 		} else {
-			log.Printf("CloudForge API server starting on port %s (WARNING: TLS not configured)", cfg.Port)
+			logger.Warn("CloudForge API server starting without TLS", zap.String("port", cfg.Port))
 			if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				log.Fatalf("Server error: %v", err)
+				logger.Fatal("Server error", zap.Error(err))
 			}
 		}
 	}()
@@ -174,40 +176,45 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Shutting down server...")
+	logger.Info("Shutting down server...")
 
 	// Graceful shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := httpServer.Shutdown(ctx); err != nil {
-		log.Fatalf("Server forced to shutdown: %v", err)
+		logger.Fatal("Server forced to shutdown", zap.Error(err))
 	}
 
-	log.Println("Server stopped")
+	logger.Info("Server stopped")
 }
 
 func (s *Server) setupRoutes() {
 	// Health check (unauthenticated - skipped by middleware)
 	s.router.HandleFunc("/health", s.healthCheck).Methods("GET")
 
-	// API v1 routes with authentication and rate limiting middleware
+	// API v1 routes with authentication and rate limiting middleware.
+	// Auth runs first so that:
+	//   1. Unauthenticated requests are rejected before consuming rate limit budget.
+	//   2. Rate limits can be keyed on the verified identity (JWT subject) rather than IP.
 	apiRouter := s.router.PathPrefix("/api/v1").Subrouter()
 
-	// Apply rate limiting first (before auth to prevent auth-based DoS)
+	// Apply authentication middleware first
+	apiRouter.Use(s.authMiddleware.Middleware)
+
+	// Apply rate limiting after auth (identity is now available in context)
 	if s.rateLimiter != nil {
 		apiRouter.Use(s.rateLimiter.Middleware(s.getTierFromRequest, s.getClientIDFromRequest))
 	}
 
-	// Apply authentication middleware
-	apiRouter.Use(s.authMiddleware.Middleware)
-
 	// Exception management
+	// Literal paths must be registered before parameterized paths in gorilla/mux
+	// to prevent /{id} from shadowing /pending and /expiring.
 	apiRouter.HandleFunc("/exceptions", s.createException).Methods("POST")
-	apiRouter.HandleFunc("/exceptions/{id}", s.getException).Methods("GET")
-	apiRouter.HandleFunc("/exceptions/{id}/approve", s.submitApproval).Methods("POST")
 	apiRouter.HandleFunc("/exceptions/pending", s.getPendingApprovals).Methods("GET")
 	apiRouter.HandleFunc("/exceptions/expiring", s.getExpiringExceptions).Methods("GET")
+	apiRouter.HandleFunc("/exceptions/{id}", s.getException).Methods("GET")
+	apiRouter.HandleFunc("/exceptions/{id}/approve", s.submitApproval).Methods("POST")
 	apiRouter.HandleFunc("/applications/{appId}/exceptions", s.getExceptionsByApp).Methods("GET")
 
 	// Policy validation (called by Terraform/provisioning)
@@ -232,11 +239,6 @@ func (s *Server) getTierFromRequest(r *http.Request) string {
 		if claims.Subject != "" {
 			return "free" // Authenticated users get "free" tier minimum
 		}
-	}
-
-	// Check X-API-Tier header (for internal services)
-	if tier := r.Header.Get("X-API-Tier"); tier != "" {
-		return tier
 	}
 
 	// Default to anonymous for unauthenticated requests
@@ -269,7 +271,7 @@ func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) createException(w http.ResponseWriter, r *http.Request) {
 	var req grc.ExceptionRequest
-	if !decodeJSONBody(w, r, &req) {
+	if !s.decodeJSONBody(w, r, &req) {
 		return
 	}
 
@@ -279,9 +281,26 @@ func (s *Server) createException(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Enforce requestor identity from JWT — caller cannot impersonate another user.
+	claims, ok := api.GetClaimsFromContext(r.Context())
+	if !ok {
+		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
+	if req.RequestorEmail == "" {
+		req.RequestorEmail = claims.Email
+	} else if req.RequestorEmail != claims.Email {
+		s.logger.Warn("identity spoofing attempt on createException",
+			zap.String("claimed_email", req.RequestorEmail),
+			zap.String("authenticated_email", claims.Email),
+		)
+		writeErrorResponse(w, "requestor_email must match authenticated user", http.StatusForbidden)
+		return
+	}
+
 	created, err := s.grcProvider.CreateException(r.Context(), &req)
 	if err != nil {
-		writeInternalError(w, err, "create exception")
+		s.writeInternalError(w, err, "create exception")
 		return
 	}
 
@@ -296,8 +315,19 @@ func (s *Server) getException(w http.ResponseWriter, r *http.Request) {
 
 	exc, err := s.grcProvider.GetException(r.Context(), id)
 	if err != nil {
-		log.Printf("get exception failed: %v", err)
+		s.logger.Error("get exception failed", zap.Error(err))
 		writeErrorResponse(w, "exception not found", http.StatusNotFound)
+		return
+	}
+
+	// Authorization: require admin scope or JWT subject matching the exception's app owner.
+	claims, ok := api.GetClaimsFromContext(r.Context())
+	if !ok {
+		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
+	if !strings.Contains(claims.Scope, "admin") && claims.Subject != exc.ApplicationID {
+		writeErrorResponse(w, "forbidden: requires admin scope or matching application identity", http.StatusForbidden)
 		return
 	}
 
@@ -310,18 +340,25 @@ func (s *Server) submitApproval(w http.ResponseWriter, r *http.Request) {
 	id := vars["id"]
 
 	var approver grc.Approver
-	if !decodeJSONBody(w, r, &approver) {
+	if !s.decodeJSONBody(w, r, &approver) {
 		return
 	}
 
-	// Validate required fields
+	// Enforce that the approver email matches the authenticated JWT identity
+	claims, ok := api.GetClaimsFromContext(r.Context())
+	if !ok {
+		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
 	if approver.Email == "" {
-		writeErrorResponse(w, "approver email is required", http.StatusBadRequest)
+		approver.Email = claims.Email
+	} else if approver.Email != claims.Email {
+		writeErrorResponse(w, "approver email must match authenticated user", http.StatusForbidden)
 		return
 	}
 
 	if err := s.grcProvider.SubmitApproval(r.Context(), id, approver); err != nil {
-		writeInternalError(w, err, "submit approval")
+		s.writeInternalError(w, err, "submit approval")
 		return
 	}
 
@@ -330,15 +367,24 @@ func (s *Server) submitApproval(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getPendingApprovals(w http.ResponseWriter, r *http.Request) {
+	// Enforce that the query matches the authenticated JWT identity
+	claims, ok := api.GetClaimsFromContext(r.Context())
+	if !ok {
+		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
+
 	email := r.URL.Query().Get("approver_email")
 	if email == "" {
-		writeErrorResponse(w, "approver_email query parameter required", http.StatusBadRequest)
+		email = claims.Email
+	} else if email != claims.Email {
+		writeErrorResponse(w, "can only query your own pending approvals", http.StatusForbidden)
 		return
 	}
 
 	pending, err := s.grcProvider.GetPendingApprovals(r.Context(), email)
 	if err != nil {
-		writeInternalError(w, err, "get pending approvals")
+		s.writeInternalError(w, err, "get pending approvals")
 		return
 	}
 
@@ -347,9 +393,15 @@ func (s *Server) getPendingApprovals(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getExpiringExceptions(w http.ResponseWriter, r *http.Request) {
+	claims, ok := api.GetClaimsFromContext(r.Context())
+	if !ok || !strings.Contains(claims.Scope, "compliance") {
+		writeErrorResponse(w, "forbidden: requires compliance scope", http.StatusForbidden)
+		return
+	}
+
 	expiring, err := s.grcProvider.GetExpiringExceptions(r.Context(), 30)
 	if err != nil {
-		writeInternalError(w, err, "get expiring exceptions")
+		s.writeInternalError(w, err, "get expiring exceptions")
 		return
 	}
 
@@ -361,9 +413,20 @@ func (s *Server) getExceptionsByApp(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	appID := vars["appId"]
 
+	// Authorization: require admin scope or JWT subject matching appId
+	claims, ok := api.GetClaimsFromContext(r.Context())
+	if !ok {
+		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
+	if !strings.Contains(claims.Scope, "admin") && claims.Subject != appID {
+		writeErrorResponse(w, "forbidden: requires admin scope or matching application identity", http.StatusForbidden)
+		return
+	}
+
 	exceptions, err := s.grcProvider.GetExceptionsByApplication(r.Context(), appID)
 	if err != nil {
-		writeInternalError(w, err, "get exceptions by app")
+		s.writeInternalError(w, err, "get exceptions by app")
 		return
 	}
 
@@ -379,13 +442,13 @@ type ValidateExceptionRequest struct {
 
 func (s *Server) validateException(w http.ResponseWriter, r *http.Request) {
 	var req ValidateExceptionRequest
-	if !decodeJSONBody(w, r, &req) {
+	if !s.decodeJSONBody(w, r, &req) {
 		return
 	}
 
 	validation, err := s.grcProvider.ValidateException(r.Context(), req.ApplicationID, req.PolicyCode)
 	if err != nil {
-		writeInternalError(w, err, "validate exception")
+		s.writeInternalError(w, err, "validate exception")
 		return
 	}
 
@@ -400,10 +463,15 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-// securityHeadersMiddleware adds security headers including HSTS
+// securityHeadersMiddleware adds security headers.
+// HSTS is only set on TLS connections or when the request was forwarded over HTTPS
+// (X-Forwarded-Proto: https). Setting HSTS on plain HTTP causes browser lockout in dev.
 func (s *Server) securityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		isTLS := r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
+		if isTLS {
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		}
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
@@ -413,7 +481,7 @@ func (s *Server) securityHeadersMiddleware(next http.Handler) http.Handler {
 }
 
 // decodeJSONBody decodes JSON request body with size limit and validation.
-func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) bool {
+func (s *Server) decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
 
 	decoder := json.NewDecoder(r.Body)
@@ -429,7 +497,7 @@ func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) boo
 		default:
 			msg = "invalid request body"
 		}
-		log.Printf("JSON decode error: %v", err)
+		s.logger.Warn("JSON decode error", zap.Error(err))
 		writeErrorResponse(w, msg, http.StatusBadRequest)
 		return false
 	}
@@ -444,7 +512,7 @@ func writeErrorResponse(w http.ResponseWriter, msg string, statusCode int) {
 }
 
 // writeInternalError logs the actual error and returns a generic message to the client
-func writeInternalError(w http.ResponseWriter, err error, operation string) {
-	log.Printf("%s failed: %v", operation, err)
+func (s *Server) writeInternalError(w http.ResponseWriter, err error, operation string) {
+	s.logger.Error("operation failed", zap.String("operation", operation), zap.Error(err))
 	writeErrorResponse(w, "internal server error", http.StatusInternalServerError)
 }

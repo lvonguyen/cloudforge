@@ -5,11 +5,29 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
+	"sync"
 	"time"
 )
+
+// snowSafeInput matches only alphanumeric characters, hyphens, underscores, dots, and @.
+// Any input that doesn't match is rejected to prevent sysparm_query injection.
+var snowSafeInput = regexp.MustCompile(`^[a-zA-Z0-9._@\-]+$`)
+
+// validateSNOWInput rejects input containing characters that could alter sysparm_query semantics.
+func validateSNOWInput(field, value string) error {
+	if value == "" {
+		return fmt.Errorf("%s must not be empty", field)
+	}
+	if !snowSafeInput.MatchString(value) {
+		return fmt.Errorf("%s contains invalid characters", field)
+	}
+	return nil
+}
 
 // ServiceNowConfig contains configuration for ServiceNow GRC integration.
 // Credentials are loaded from environment variables for security.
@@ -37,6 +55,7 @@ type ServiceNowConfig struct {
 type ServiceNowGRCProvider struct {
 	config       ServiceNowConfig
 	httpClient   *http.Client
+	authMu       sync.RWMutex // guards authToken and tokenExp
 	authToken    string
 	tokenExp     time.Time
 	password     string // loaded from env at initialization
@@ -110,7 +129,10 @@ type snowExceptionRecord struct {
 }
 
 func (s *ServiceNowGRCProvider) authenticate(ctx context.Context) error {
-	// Check if token still valid
+	s.authMu.Lock()
+	defer s.authMu.Unlock()
+
+	// Double-check after acquiring lock (another goroutine may have refreshed)
 	if s.authToken != "" && time.Now().Before(s.tokenExp) {
 		return nil
 	}
@@ -118,15 +140,15 @@ func (s *ServiceNowGRCProvider) authenticate(ctx context.Context) error {
 	// OAuth2 token request
 	tokenURL := fmt.Sprintf("%s/oauth_token.do", s.config.InstanceURL)
 
-	data := fmt.Sprintf(
-		"grant_type=password&client_id=%s&client_secret=%s&username=%s&password=%s",
-		s.config.ClientID,
-		s.clientSecret,
-		s.config.Username,
-		s.password,
-	)
+	form := url.Values{
+		"grant_type":    {"password"},
+		"client_id":     {s.config.ClientID},
+		"client_secret": {s.clientSecret},
+		"username":      {s.config.Username},
+		"password":      {s.password},
+	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", tokenURL, bytes.NewBufferString(data))
+	req, err := http.NewRequestWithContext(ctx, "POST", tokenURL, bytes.NewBufferString(form.Encode()))
 	if err != nil {
 		return fmt.Errorf("failed to create auth request: %w", err)
 	}
@@ -143,14 +165,29 @@ func (s *ServiceNowGRCProvider) authenticate(ctx context.Context) error {
 		ExpiresIn   int    `json:"expires_in"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("ServiceNow auth failed with HTTP %d", resp.StatusCode)
+	}
+
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&tokenResp); err != nil {
 		return fmt.Errorf("failed to decode token response: %w", err)
 	}
 
 	s.authToken = tokenResp.AccessToken
-	s.tokenExp = time.Now().Add(time.Duration(tokenResp.ExpiresIn-60) * time.Second)
+	expiresIn := tokenResp.ExpiresIn
+	if expiresIn <= 0 {
+		expiresIn = 3600 // Default to 1 hour when server returns 0 or negative
+	}
+	s.tokenExp = time.Now().Add(time.Duration(expiresIn-60) * time.Second)
 
 	return nil
+}
+
+// getAuthToken returns the current auth token with read-lock protection.
+func (s *ServiceNowGRCProvider) getAuthToken() string {
+	s.authMu.RLock()
+	defer s.authMu.RUnlock()
+	return s.authToken
 }
 
 // CreateException creates a new exception request in ServiceNow.
@@ -179,15 +216,18 @@ func (s *ServiceNowGRCProvider) CreateException(
 		snowRecord["u_expiration_date"] = req.ExpirationDate.Format("2006-01-02")
 	}
 
-	body, _ := json.Marshal(snowRecord)
+	body, err := json.Marshal(snowRecord)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling exception request: %w", err)
+	}
 
-	url := fmt.Sprintf("%s/api/now/table/%s", s.config.InstanceURL, s.config.ExceptionTable)
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(body))
+	reqURL := fmt.Sprintf("%s/api/now/table/%s", s.config.InstanceURL, s.config.ExceptionTable)
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", reqURL, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
 
-	httpReq.Header.Set("Authorization", "Bearer "+s.authToken)
+	httpReq.Header.Set("Authorization", "Bearer "+s.getAuthToken())
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "application/json")
 
@@ -202,7 +242,7 @@ func (s *ServiceNowGRCProvider) CreateException(
 	}
 
 	var snowResp snowResponse
-	if err := json.NewDecoder(resp.Body).Decode(&snowResp); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&snowResp); err != nil {
 		return nil, err
 	}
 
@@ -222,6 +262,13 @@ func (s *ServiceNowGRCProvider) ValidateException(
 	ctx context.Context,
 	applicationID, policyCode string,
 ) (*ExceptionValidation, error) {
+	if err := validateSNOWInput("applicationID", applicationID); err != nil {
+		return nil, fmt.Errorf("validating exception: %w", err)
+	}
+	if err := validateSNOWInput("policyCode", policyCode); err != nil {
+		return nil, fmt.Errorf("validating exception: %w", err)
+	}
+
 	if err := s.authenticate(ctx); err != nil {
 		return nil, err
 	}
@@ -247,7 +294,7 @@ func (s *ServiceNowGRCProvider) ValidateException(
 		return nil, err
 	}
 
-	httpReq.Header.Set("Authorization", "Bearer "+s.authToken)
+	httpReq.Header.Set("Authorization", "Bearer "+s.getAuthToken())
 	httpReq.Header.Set("Accept", "application/json")
 
 	resp, err := s.httpClient.Do(httpReq)
@@ -260,7 +307,7 @@ func (s *ServiceNowGRCProvider) ValidateException(
 		Result []snowExceptionRecord `json:"result"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&snowResp); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&snowResp); err != nil {
 		return nil, err
 	}
 
@@ -299,7 +346,7 @@ func (s *ServiceNowGRCProvider) GetException(ctx context.Context, id string) (*E
 		return nil, err
 	}
 
-	httpReq.Header.Set("Authorization", "Bearer "+s.authToken)
+	httpReq.Header.Set("Authorization", "Bearer "+s.getAuthToken())
 	httpReq.Header.Set("Accept", "application/json")
 
 	resp, err := s.httpClient.Do(httpReq)
@@ -313,7 +360,7 @@ func (s *ServiceNowGRCProvider) GetException(ctx context.Context, id string) (*E
 	}
 
 	var snowResp snowResponse
-	if err := json.NewDecoder(resp.Body).Decode(&snowResp); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&snowResp); err != nil {
 		return nil, err
 	}
 
@@ -358,15 +405,18 @@ func (s *ServiceNowGRCProvider) UpdateException(ctx context.Context, req *Except
 		snowRecord["u_expiration_date"] = req.ExpirationDate.Format("2006-01-02")
 	}
 
-	body, _ := json.Marshal(snowRecord)
+	body, err := json.Marshal(snowRecord)
+	if err != nil {
+		return fmt.Errorf("marshaling exception update: %w", err)
+	}
 
-	url := fmt.Sprintf("%s/api/now/table/%s/%s", s.config.InstanceURL, s.config.ExceptionTable, req.ID)
-	httpReq, err := http.NewRequestWithContext(ctx, "PATCH", url, bytes.NewBuffer(body))
+	reqURL := fmt.Sprintf("%s/api/now/table/%s/%s", s.config.InstanceURL, s.config.ExceptionTable, req.ID)
+	httpReq, err := http.NewRequestWithContext(ctx, "PATCH", reqURL, bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
 
-	httpReq.Header.Set("Authorization", "Bearer "+s.authToken)
+	httpReq.Header.Set("Authorization", "Bearer "+s.getAuthToken())
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := s.httpClient.Do(httpReq)
@@ -390,7 +440,7 @@ func (s *ServiceNowGRCProvider) SubmitApproval(ctx context.Context, exceptionID 
 
 	// Map approval decision to ServiceNow state
 	state := "rejected"
-	if approver.Decision == "APPROVE" || approver.Decision == "approved" {
+	if approver.Decision == StatusApproved {
 		state = "approved"
 	}
 
@@ -400,7 +450,10 @@ func (s *ServiceNowGRCProvider) SubmitApproval(ctx context.Context, exceptionID 
 		"u_comments": approver.Comments,
 	}
 
-	body, _ := json.Marshal(updateData)
+	body, err := json.Marshal(updateData)
+	if err != nil {
+		return fmt.Errorf("marshaling approval update: %w", err)
+	}
 	reqURL := fmt.Sprintf("%s/api/now/table/%s/%s", s.config.InstanceURL, s.config.ExceptionTable, exceptionID)
 
 	httpReq, err := http.NewRequestWithContext(ctx, "PATCH", reqURL, bytes.NewBuffer(body))
@@ -408,7 +461,7 @@ func (s *ServiceNowGRCProvider) SubmitApproval(ctx context.Context, exceptionID 
 		return fmt.Errorf("creating approval request: %w", err)
 	}
 
-	httpReq.Header.Set("Authorization", "Bearer "+s.authToken)
+	httpReq.Header.Set("Authorization", "Bearer "+s.getAuthToken())
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := s.httpClient.Do(httpReq)
@@ -426,14 +479,19 @@ func (s *ServiceNowGRCProvider) SubmitApproval(ctx context.Context, exceptionID 
 
 // GetPendingApprovals returns exceptions pending approval from the given user.
 func (s *ServiceNowGRCProvider) GetPendingApprovals(ctx context.Context, approverEmail string) ([]ExceptionRequest, error) {
+	if err := validateSNOWInput("approverEmail", approverEmail); err != nil {
+		return nil, fmt.Errorf("querying pending approvals: %w", err)
+	}
+
 	if err := s.authenticate(ctx); err != nil {
 		return nil, err
 	}
 
-	// Query for exceptions pending approval where user is in approver chain
+	// Query for exceptions pending approval where user is in approver chain.
+	// URL-encode the full query value so ^ operators survive in the query string.
 	query := fmt.Sprintf("approval=requested^requested_for=%s", url.QueryEscape(approverEmail))
 	reqURL := fmt.Sprintf(
-		"%s/api/now/table/%s?sysparm_query=%s",
+		"%s/api/now/table/%s?sysparm_query=%s&sysparm_limit=100",
 		s.config.InstanceURL,
 		s.config.ExceptionTable,
 		query,
@@ -444,7 +502,7 @@ func (s *ServiceNowGRCProvider) GetPendingApprovals(ctx context.Context, approve
 		return nil, err
 	}
 
-	httpReq.Header.Set("Authorization", "Bearer "+s.authToken)
+	httpReq.Header.Set("Authorization", "Bearer "+s.getAuthToken())
 	httpReq.Header.Set("Accept", "application/json")
 
 	resp, err := s.httpClient.Do(httpReq)
@@ -457,7 +515,7 @@ func (s *ServiceNowGRCProvider) GetPendingApprovals(ctx context.Context, approve
 		Result []snowExceptionRecord `json:"result"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&snowResp); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&snowResp); err != nil {
 		return nil, err
 	}
 
@@ -477,6 +535,10 @@ func (s *ServiceNowGRCProvider) GetPendingApprovals(ctx context.Context, approve
 
 // GetExceptionsByApplication returns all exceptions for an application.
 func (s *ServiceNowGRCProvider) GetExceptionsByApplication(ctx context.Context, appID string) ([]ExceptionRequest, error) {
+	if err := validateSNOWInput("appID", appID); err != nil {
+		return nil, fmt.Errorf("querying exceptions by application: %w", err)
+	}
+
 	if err := s.authenticate(ctx); err != nil {
 		return nil, err
 	}
@@ -484,7 +546,7 @@ func (s *ServiceNowGRCProvider) GetExceptionsByApplication(ctx context.Context, 
 	// URL-encode user input to prevent query injection attacks
 	query := fmt.Sprintf("u_application_id=%s", url.QueryEscape(appID))
 	reqURL := fmt.Sprintf(
-		"%s/api/now/table/%s?sysparm_query=%s",
+		"%s/api/now/table/%s?sysparm_query=%s&sysparm_limit=200",
 		s.config.InstanceURL,
 		s.config.ExceptionTable,
 		query,
@@ -495,7 +557,7 @@ func (s *ServiceNowGRCProvider) GetExceptionsByApplication(ctx context.Context, 
 		return nil, err
 	}
 
-	httpReq.Header.Set("Authorization", "Bearer "+s.authToken)
+	httpReq.Header.Set("Authorization", "Bearer "+s.getAuthToken())
 	httpReq.Header.Set("Accept", "application/json")
 
 	resp, err := s.httpClient.Do(httpReq)
@@ -508,7 +570,7 @@ func (s *ServiceNowGRCProvider) GetExceptionsByApplication(ctx context.Context, 
 		Result []snowExceptionRecord `json:"result"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&snowResp); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&snowResp); err != nil {
 		return nil, err
 	}
 
@@ -541,10 +603,10 @@ func (s *ServiceNowGRCProvider) GetExpiringExceptions(ctx context.Context, withi
 		expiryDate.Format("2006-01-02"),
 	)
 	reqURL := fmt.Sprintf(
-		"%s/api/now/table/%s?sysparm_query=%s",
+		"%s/api/now/table/%s?sysparm_query=%s&sysparm_limit=100",
 		s.config.InstanceURL,
 		s.config.ExceptionTable,
-		url.QueryEscape(query),
+		query,
 	)
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
@@ -552,7 +614,7 @@ func (s *ServiceNowGRCProvider) GetExpiringExceptions(ctx context.Context, withi
 		return nil, err
 	}
 
-	httpReq.Header.Set("Authorization", "Bearer "+s.authToken)
+	httpReq.Header.Set("Authorization", "Bearer "+s.getAuthToken())
 	httpReq.Header.Set("Accept", "application/json")
 
 	resp, err := s.httpClient.Do(httpReq)
@@ -565,7 +627,7 @@ func (s *ServiceNowGRCProvider) GetExpiringExceptions(ctx context.Context, withi
 		Result []snowExceptionRecord `json:"result"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&snowResp); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&snowResp); err != nil {
 		return nil, err
 	}
 

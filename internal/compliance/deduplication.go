@@ -3,7 +3,6 @@ package compliance
 
 import (
 	"sort"
-	"strings"
 )
 
 // Deduplicator handles finding deduplication logic
@@ -116,12 +115,29 @@ func (d *Deduplicator) loadBuiltInMappings() {
 	d.ruleHierarchy["IAM.4"] = 1
 	d.ruleHierarchy["IAM.5"] = 1
 
-	// Checkov rules are secondary
-	for ruleID := range d.ruleHierarchy {
-		if strings.HasPrefix(ruleID, "CKV_") {
-			d.ruleHierarchy[ruleID] = 10
-		}
-	}
+	// Checkov rules are secondary — set priority directly since they appear in equivalence maps
+	d.ruleHierarchy["CKV_AWS_19"] = 10
+	d.ruleHierarchy["CKV_AWS_20"] = 10
+	d.ruleHierarchy["CKV_AWS_21"] = 10
+	d.ruleHierarchy["CKV_AWS_23"] = 10
+	d.ruleHierarchy["CKV_AWS_24"] = 10
+	d.ruleHierarchy["CKV_AWS_25"] = 10
+	d.ruleHierarchy["CKV_AWS_41"] = 10
+	d.ruleHierarchy["CKV_AWS_9"] = 10
+	d.ruleHierarchy["CKV_AWS_3"] = 10
+	d.ruleHierarchy["CKV_AWS_16"] = 10
+	d.ruleHierarchy["CKV_AWS_17"] = 10
+	d.ruleHierarchy["CKV_AWS_2"] = 10
+	d.ruleHierarchy["CKV_AWS_36"] = 10
+	d.ruleHierarchy["CKV_AWS_67"] = 10
+	d.ruleHierarchy["CKV_GCP_28"] = 10
+	d.ruleHierarchy["CKV_GCP_29"] = 10
+	d.ruleHierarchy["CKV_GCP_2"] = 10
+	d.ruleHierarchy["CKV_GCP_3"] = 10
+	d.ruleHierarchy["CKV_AZURE_34"] = 10
+	d.ruleHierarchy["CKV_AZURE_35"] = 10
+	d.ruleHierarchy["CKV_AZURE_9"] = 10
+	d.ruleHierarchy["CKV_AZURE_10"] = 10
 }
 
 // Deduplicate determines if a finding should be kept or is a duplicate

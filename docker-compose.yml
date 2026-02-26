@@ -9,7 +9,8 @@ services:
     environment:
       - PORT=8080
       - GRC_PROVIDER=postgres
-      - DATABASE_URL=postgres://cloudforge:cloudforge@postgres:5432/cloudforge?sslmode=disable
+      # [!] Production: set POSTGRES_PASSWORD via .env or secret manager
+      - DATABASE_URL=postgres://cloudforge:${POSTGRES_PASSWORD:-changeme}@postgres:5432/cloudforge?sslmode=prefer
       - OPA_URL=http://opa:8181
     depends_on:
       postgres:
@@ -23,7 +24,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: cloudforge
-      POSTGRES_PASSWORD: cloudforge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: cloudforge
     ports:
       - "5432:5432"
@@ -59,7 +60,7 @@ services:
       - DB=postgresql
       - DB_PORT=5432
       - POSTGRES_USER=cloudforge
-      - POSTGRES_PWD=cloudforge
+      - POSTGRES_PWD=${POSTGRES_PASSWORD:-changeme}
       - POSTGRES_SEEDS=postgres
     depends_on:
       postgres:

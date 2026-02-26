@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"cloudforge/internal/findings"
@@ -36,13 +37,13 @@ var (
 
 // RemediationState captures the pre-remediation state for rollback.
 type RemediationState struct {
-	FindingID       string                       `json:"finding_id"`
-	Handler         string                       `json:"handler"`
-	Timestamp       time.Time                    `json:"timestamp"`
-	PreState        map[string]interface{}       `json:"pre_state"`       // Resource state before remediation
-	Result          *remediation.RemediationResult `json:"result"`
-	RollbackScript  string                       `json:"rollback_script"` // Commands to undo the change
-	ExpiresAt       time.Time                    `json:"expires_at"`      // Rollback window expiry
+	FindingID      string                         `json:"finding_id"`
+	Handler        string                         `json:"handler"`
+	Timestamp      time.Time                      `json:"timestamp"`
+	PreState       map[string]interface{}         `json:"pre_state"` // Resource state before remediation
+	Result         *remediation.RemediationResult `json:"result"`
+	RollbackScript string                         `json:"rollback_script"` // Commands to undo the change
+	ExpiresAt      time.Time                      `json:"expires_at"`      // Rollback window expiry
 }
 
 func main() {
@@ -51,6 +52,13 @@ func main() {
 	ctx := context.Background()
 
 	// Handle rollback mode
+	if *rollbackID != "" || *rollbackAll {
+		if err := authorizeRollback(); err != nil {
+			fmt.Fprintf(os.Stderr, "Authorization failed: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
 	if *rollbackID != "" {
 		if err := rollbackRemediation(ctx, *rollbackID); err != nil {
 			fmt.Fprintf(os.Stderr, "Rollback failed: %v\n", err)
@@ -177,27 +185,38 @@ func loadFindings(dir string) ([]*findings.PrioritizedFinding, error) {
 }
 
 // captureRollbackState saves pre-remediation state for rollback capability.
-func captureRollbackState(ctx context.Context, findings []*findings.PrioritizedFinding, results []*remediation.RemediationResult) error {
+func captureRollbackState(ctx context.Context, findingsList []*findings.PrioritizedFinding, results []*remediation.RemediationResult) error {
 	if err := os.MkdirAll(*stateDir, 0700); err != nil {
 		return fmt.Errorf("failed to create state dir: %w", err)
+	}
+
+	// Build a lookup map so we match findings to results by ID, not by index.
+	// Index correlation is fragile if ordering assumptions change.
+	findingsByID := make(map[string]*findings.PrioritizedFinding, len(findingsList))
+	for _, f := range findingsList {
+		findingsByID[f.Finding.ID] = f
 	}
 
 	timestamp := time.Now()
 	runID := timestamp.Format("20060102-150405")
 
-	for i, result := range results {
+	for _, result := range results {
 		if !result.Success {
 			continue // Don't save state for failed remediations
 		}
 
-		finding := findings[i]
+		finding, ok := findingsByID[result.FindingID]
+		if !ok {
+			fmt.Fprintf(os.Stderr, "WARNING: No matching finding for result ID %s\n", result.FindingID)
+			continue
+		}
 		state := RemediationState{
-			FindingID:  finding.Finding.ID,
-			Handler:    finding.Finding.FindingType,
-			Timestamp:  timestamp,
-			Result:     result,
-			PreState:   capturePreState(finding),
-			ExpiresAt:  timestamp.Add(48 * time.Hour), // 48h rollback window
+			FindingID: finding.Finding.ID,
+			Handler:   finding.Finding.FindingType,
+			Timestamp: timestamp,
+			Result:    result,
+			PreState:  captureHandlerPreState(finding, result),
+			ExpiresAt: timestamp.Add(48 * time.Hour), // 48h rollback window
 		}
 
 		// Generate rollback script
@@ -214,21 +233,14 @@ func captureRollbackState(ctx context.Context, findings []*findings.PrioritizedF
 		}
 	}
 
-	fmt.Printf("Captured rollback state for %d successful remediations (expires in 48h)\n", len(results))
-	return nil
-}
-
-// capturePreState extracts relevant pre-remediation state from the finding.
-func capturePreState(finding *findings.PrioritizedFinding) map[string]interface{} {
-	// This would ideally query the actual resource state before remediation
-	// For now, capture what we know from the finding
-	return map[string]interface{}{
-		"resource_id":   finding.Finding.ResourceID,
-		"resource_type": finding.Finding.ResourceType,
-		"region":        finding.Finding.Region,
-		"account_id":    finding.Finding.AccountID,
-		"finding_type":  finding.Finding.FindingType,
+	successCount := 0
+	for _, r := range results {
+		if r.Success {
+			successCount++
+		}
 	}
+	fmt.Printf("Captured rollback state for %d successful remediations (expires in 48h)\n", successCount)
+	return nil
 }
 
 // generateRollbackScript creates executable commands to undo the remediation.
@@ -253,6 +265,14 @@ func generateRollbackScript(finding *findings.PrioritizedFinding, result *remedi
 // rollbackRemediation undoes a specific remediation by ID.
 func rollbackRemediation(ctx context.Context, rollbackID string) error {
 	stateFile := filepath.Join(*stateDir, rollbackID+".json")
+
+	// Guard against path traversal: resolved path must stay within stateDir.
+	absState, _ := filepath.Abs(stateFile)
+	absDir, _ := filepath.Abs(*stateDir)
+	if !strings.HasPrefix(absState, absDir+string(filepath.Separator)) {
+		return fmt.Errorf("invalid rollback ID: path traversal detected")
+	}
+
 	data, err := os.ReadFile(stateFile)
 	if err != nil {
 		return fmt.Errorf("rollback state not found: %w", err)
@@ -296,6 +316,9 @@ func rollbackLastRun(ctx context.Context) error {
 	var latestRun string
 	for _, file := range files {
 		base := filepath.Base(file)
+		if len(base) < 15 {
+			continue // skip non-conformant files
+		}
 		runID := base[:15] // YYYYMMDD-HHMMSS
 		if runID > latestRun {
 			latestRun = runID
@@ -307,13 +330,15 @@ func rollbackLastRun(ctx context.Context) error {
 	// Rollback all findings from that run
 	count := 0
 	for _, file := range files {
-		if filepath.Base(file)[:15] == latestRun {
-			rollbackID := filepath.Base(file[:len(file)-5]) // Remove .json
-			if err := rollbackRemediation(ctx, rollbackID); err != nil {
-				fmt.Fprintf(os.Stderr, "WARNING: Failed to rollback %s: %v\n", rollbackID, err)
-			} else {
-				count++
-			}
+		base := filepath.Base(file)
+		if len(base) < 15 || base[:15] != latestRun {
+			continue
+		}
+		rollbackID := strings.TrimSuffix(base, ".json")
+		if err := rollbackRemediation(ctx, rollbackID); err != nil {
+			fmt.Fprintf(os.Stderr, "WARNING: Failed to rollback %s: %v\n", rollbackID, err)
+		} else {
+			count++
 		}
 	}
 
@@ -347,6 +372,21 @@ func printSummary(results []*remediation.RemediationResult) {
 			}
 		}
 	}
+}
+
+// authorizeRollback verifies the caller has permission to perform rollback operations.
+// Rollbacks re-open security remediations, so they require explicit authorization via
+// the CLOUDFORGE_ROLLBACK_TOKEN environment variable set by the deployment pipeline.
+func authorizeRollback() error {
+	token := os.Getenv("CLOUDFORGE_ROLLBACK_TOKEN")
+	if token == "" {
+		return fmt.Errorf("CLOUDFORGE_ROLLBACK_TOKEN environment variable is required for rollback operations")
+	}
+	if len(token) < 16 {
+		return fmt.Errorf("CLOUDFORGE_ROLLBACK_TOKEN is too short (minimum 16 characters)")
+	}
+	fmt.Println("Rollback authorization verified")
+	return nil
 }
 
 // writeResults writes remediation results to JSON for Asana integration.
