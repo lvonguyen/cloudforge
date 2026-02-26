@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 // PostgresGRCProvider implements GRCProvider using PostgreSQL.
@@ -185,6 +186,9 @@ func (p *PostgresGRCProvider) GetException(ctx context.Context, id string) (*Exc
 
 		req.ApproverChain = append(req.ApproverChain, approver)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
+	}
 
 	// Load risk assessment
 	riskQuery := `
@@ -223,6 +227,9 @@ func (p *PostgresGRCProvider) GetException(ctx context.Context, id string) (*Exc
 			return nil, fmt.Errorf("failed to scan control: %w", err)
 		}
 		req.CompensatingCtrls = append(req.CompensatingCtrls, ctrl)
+	}
+	if err := ctrlRows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
 	}
 
 	return req, nil
@@ -317,7 +324,7 @@ func (p *PostgresGRCProvider) SubmitApproval(
 		SET decision = $1, comments = $2, decided_at = $3
 		WHERE exception_id = $4 AND approver_email = $5
 	`
-	_, err = tx.ExecContext(ctx, approverQuery,
+	approverResult, err := tx.ExecContext(ctx, approverQuery,
 		approver.Decision,
 		approver.Comments,
 		now,
@@ -326,6 +333,10 @@ func (p *PostgresGRCProvider) SubmitApproval(
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update approver: %w", err)
+	}
+	rowsAffected, _ := approverResult.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("approver %s is not in the approval chain for exception %s", approver.Email, exceptionID)
 	}
 
 	// Check if all approvers have decided
@@ -385,7 +396,102 @@ func (p *PostgresGRCProvider) SubmitApproval(
 	return tx.Commit()
 }
 
+// batchGetExceptions fetches a list of exception IDs in two queries:
+// one for the core exception rows and one for all their approval chains.
+// This eliminates the N+1 query pattern present when calling GetException in a loop.
+func (p *PostgresGRCProvider) batchGetExceptions(ctx context.Context, ids []string) ([]ExceptionRequest, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	// Fetch all core exception rows in one query using ANY($1).
+	coreQuery := `
+		SELECT
+			id, application_id, requestor_email, request_type,
+			policy_violated, resource_requested, business_case,
+			status, expiration_date, created_at, updated_at
+		FROM exception_requests
+		WHERE id = ANY($1)
+	`
+	coreRows, err := p.db.QueryContext(ctx, coreQuery, pq.Array(ids))
+	if err != nil {
+		return nil, fmt.Errorf("batch fetching exceptions: %w", err)
+	}
+	defer coreRows.Close()
+
+	excByID := make(map[string]*ExceptionRequest, len(ids))
+	var order []string
+	for coreRows.Next() {
+		req := &ExceptionRequest{}
+		var expiration sql.NullTime
+		if err := coreRows.Scan(
+			&req.ID, &req.ApplicationID, &req.RequestorEmail, &req.RequestType,
+			&req.PolicyViolated, &req.ResourceRequested, &req.BusinessCase,
+			&req.Status, &expiration, &req.CreatedAt, &req.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scanning exception row: %w", err)
+		}
+		if expiration.Valid {
+			req.ExpirationDate = &expiration.Time
+		}
+		excByID[req.ID] = req
+		order = append(order, req.ID)
+	}
+	if err := coreRows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating exception rows: %w", err)
+	}
+
+	// Fetch all approval chain rows for the batch in one query.
+	approverQuery := `
+		SELECT exception_id, approver_email, approver_role, decision, comments, decided_at
+		FROM approval_chain
+		WHERE exception_id = ANY($1)
+		ORDER BY exception_id, sequence_order
+	`
+	approverRows, err := p.db.QueryContext(ctx, approverQuery, pq.Array(ids))
+	if err != nil {
+		return nil, fmt.Errorf("batch fetching approvers: %w", err)
+	}
+	defer approverRows.Close()
+
+	for approverRows.Next() {
+		var excID string
+		var approver Approver
+		var decision sql.NullString
+		var comments sql.NullString
+		var decidedAt sql.NullTime
+		if err := approverRows.Scan(&excID, &approver.Email, &approver.Role, &decision, &comments, &decidedAt); err != nil {
+			return nil, fmt.Errorf("scanning approver row: %w", err)
+		}
+		if decision.Valid {
+			approver.Decision = ApprovalStatus(decision.String)
+		}
+		if comments.Valid {
+			approver.Comments = comments.String
+		}
+		if decidedAt.Valid {
+			approver.DecidedAt = &decidedAt.Time
+		}
+		if exc, ok := excByID[excID]; ok {
+			exc.ApproverChain = append(exc.ApproverChain, approver)
+		}
+	}
+	if err := approverRows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating approver rows: %w", err)
+	}
+
+	// Return in the order we received IDs (stable output).
+	results := make([]ExceptionRequest, 0, len(order))
+	for _, id := range order {
+		if exc, ok := excByID[id]; ok {
+			results = append(results, *exc)
+		}
+	}
+	return results, nil
+}
+
 // GetPendingApprovals returns exceptions awaiting approval from the given user.
+// Uses a batch query to avoid N+1 queries when loading exception details.
 func (p *PostgresGRCProvider) GetPendingApprovals(
 	ctx context.Context,
 	approverEmail string,
@@ -405,24 +511,23 @@ func (p *PostgresGRCProvider) GetPendingApprovals(
 	}
 	defer rows.Close()
 
-	var results []ExceptionRequest
+	var ids []string
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err != nil {
 			return nil, fmt.Errorf("failed to scan id: %w", err)
 		}
-
-		exc, err := p.GetException(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		results = append(results, *exc)
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
 	}
 
-	return results, nil
+	return p.batchGetExceptions(ctx, ids)
 }
 
 // GetExceptionsByApplication returns all exceptions for an application.
+// Uses a batch query to avoid N+1 queries when loading exception details.
 func (p *PostgresGRCProvider) GetExceptionsByApplication(
 	ctx context.Context,
 	appID string,
@@ -439,24 +544,23 @@ func (p *PostgresGRCProvider) GetExceptionsByApplication(
 	}
 	defer rows.Close()
 
-	var results []ExceptionRequest
+	var ids []string
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err != nil {
 			return nil, fmt.Errorf("failed to scan id: %w", err)
 		}
-
-		exc, err := p.GetException(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		results = append(results, *exc)
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
 	}
 
-	return results, nil
+	return p.batchGetExceptions(ctx, ids)
 }
 
 // GetExpiringExceptions returns approved exceptions expiring within the given number of days.
+// Uses a batch query to avoid N+1 queries when loading exception details.
 func (p *PostgresGRCProvider) GetExpiringExceptions(
 	ctx context.Context,
 	withinDays int,
@@ -478,19 +582,17 @@ func (p *PostgresGRCProvider) GetExpiringExceptions(
 	}
 	defer rows.Close()
 
-	var results []ExceptionRequest
+	var ids []string
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err != nil {
 			return nil, fmt.Errorf("failed to scan id: %w", err)
 		}
-
-		exc, err := p.GetException(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		results = append(results, *exc)
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
 	}
 
-	return results, nil
+	return p.batchGetExceptions(ctx, ids)
 }

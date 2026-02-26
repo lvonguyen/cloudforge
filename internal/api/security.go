@@ -164,6 +164,23 @@ type OAuthFlow struct {
 	Scopes           map[string]string `json:"scopes"`
 }
 
+// sensitiveFieldPatterns matches response field names that may expose sensitive data.
+// Compiled once at package init to avoid per-call regex compilation overhead.
+var sensitiveFieldPatterns = []struct {
+	pattern *regexp.Regexp
+	name    string
+}{
+	{regexp.MustCompile(`(?i)(password|passwd|pwd)`), "password"},
+	{regexp.MustCompile(`(?i)(ssn|social.?security)`), "SSN"},
+	{regexp.MustCompile(`(?i)(credit.?card|card.?number|cvv|ccn)`), "credit card"},
+	{regexp.MustCompile(`(?i)(secret|private.?key)`), "secret"},
+	{regexp.MustCompile(`(?i)(token|api.?key)`), "token"},
+}
+
+// bolaIDPattern matches path parameters that contain "id" (case-insensitive),
+// used to detect potential BOLA-vulnerable endpoints.
+var bolaIDPattern = regexp.MustCompile(`\{[^}]+[Ii]d\}`)
+
 // NewSecurityScanner creates a new API security scanner
 func NewSecurityScanner(cfg ScannerConfig, logger *zap.Logger) *SecurityScanner {
 	return &SecurityScanner{
@@ -403,17 +420,6 @@ func (s *SecurityScanner) checkSecuritySchemes(spec *APISpec, result *APIScanRes
 }
 
 func (s *SecurityScanner) checkSensitiveData(spec *APISpec, result *APIScanResult) {
-	sensitivePatterns := []struct {
-		pattern *regexp.Regexp
-		name    string
-	}{
-		{regexp.MustCompile(`(?i)(password|passwd|pwd)`), "password"},
-		{regexp.MustCompile(`(?i)(ssn|social.?security)`), "SSN"},
-		{regexp.MustCompile(`(?i)(credit.?card|card.?number|cvv|ccn)`), "credit card"},
-		{regexp.MustCompile(`(?i)(secret|private.?key)`), "secret"},
-		{regexp.MustCompile(`(?i)(token|api.?key)`), "token"},
-	}
-
 	for path, pathItem := range spec.Paths {
 		operations := []*Operation{pathItem.Get, pathItem.Post, pathItem.Put, pathItem.Patch}
 		for _, op := range operations {
@@ -425,7 +431,7 @@ func (s *SecurityScanner) checkSensitiveData(spec *APISpec, result *APIScanResul
 			for code, response := range op.Responses {
 				for contentType, schema := range response.Content {
 					for propName := range schema.Properties {
-						for _, pattern := range sensitivePatterns {
+						for _, pattern := range sensitiveFieldPatterns {
 							if pattern.pattern.MatchString(propName) {
 								result.Findings = append(result.Findings, APIFinding{
 									ID:          "SENSITIVE_DATA_EXPOSURE",
@@ -493,9 +499,8 @@ func (s *SecurityScanner) isSensitivePath(path string) bool {
 }
 
 func (s *SecurityScanner) hasPotentialBOLA(path, method string) bool {
-	// Check for object IDs in path
-	idPattern := regexp.MustCompile(`\{[^}]+[Ii]d\}`)
-	hasID := idPattern.MatchString(path)
+	// Check for object IDs in path using the package-level compiled regex.
+	hasID := bolaIDPattern.MatchString(path)
 
 	// Methods that typically need BOLA protection
 	dangerousMethods := map[string]bool{"GET": true, "PUT": true, "DELETE": true, "PATCH": true}

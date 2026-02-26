@@ -42,12 +42,14 @@ func (m *MemoryGRCProvider) CreateException(
 }
 
 // GetException retrieves an exception by ID.
+// Returns a copy to prevent data races from callers mutating the stored struct.
 func (m *MemoryGRCProvider) GetException(ctx context.Context, id string) (*ExceptionRequest, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	if exc, ok := m.exceptions[id]; ok {
-		return exc, nil
+		copy := *exc
+		return &copy, nil
 	}
 	return nil, fmt.Errorf("exception %s not found", id)
 }
@@ -114,18 +116,24 @@ func (m *MemoryGRCProvider) SubmitApproval(
 	}
 
 	// Find approver in chain and update
+	found := false
 	for i := range exc.ApproverChain {
 		if exc.ApproverChain[i].Email == approver.Email {
 			now := time.Now()
 			exc.ApproverChain[i].Decision = approver.Decision
 			exc.ApproverChain[i].Comments = approver.Comments
 			exc.ApproverChain[i].DecidedAt = &now
+			found = true
 			break
 		}
 	}
+	if !found {
+		return fmt.Errorf("approver %s is not in the approval chain for exception %s", approver.Email, exceptionID)
+	}
 
-	// Check if all approvers have approved
-	allApproved := true
+	// Check if all approvers have approved.
+	// An empty approval chain must not result in auto-approval.
+	allApproved := len(exc.ApproverChain) > 0
 	anyRejected := false
 	for _, a := range exc.ApproverChain {
 		if a.Decision == "" {
@@ -198,12 +206,14 @@ func (m *MemoryGRCProvider) GetExpiringExceptions(
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	cutoff := time.Now().AddDate(0, 0, withinDays)
+	now := time.Now()
+	cutoff := now.AddDate(0, 0, withinDays)
 	var expiring []ExceptionRequest
 
 	for _, exc := range m.exceptions {
 		if exc.Status == StatusApproved &&
 			exc.ExpirationDate != nil &&
+			exc.ExpirationDate.After(now) &&
 			exc.ExpirationDate.Before(cutoff) {
 			expiring = append(expiring, *exc)
 		}

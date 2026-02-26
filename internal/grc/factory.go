@@ -29,9 +29,7 @@ type Config struct {
 func NewProvider(cfg Config) (GRCProvider, error) {
 	switch cfg.Type {
 	case ProviderTypeMemory:
-		provider := NewMemoryGRCProvider()
-		provider.SeedTestData()
-		return provider, nil
+		return NewMemoryGRCProvider(), nil
 
 	case ProviderTypePostgres:
 		if cfg.Postgres == nil {
