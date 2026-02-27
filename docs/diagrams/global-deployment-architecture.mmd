@@ -1,0 +1,70 @@
+flowchart TB
+    Client([Client Request]) --> GTM
+
+    subgraph GTM [Global Traffic Management]
+        direction LR
+        R53[AWS Route 53\nLatency Routing]
+        ATM[Azure Traffic Manager\nPerformance]
+        CDNS[GCP Cloud DNS\nGlobal LB]
+    end
+
+    GTM --> AWSP
+    GTM --> AZUREP
+    GTM --> GCPP
+
+    subgraph TIER1 [Tier 1 — Active Primary Regions]
+        subgraph AWSP [AWS us-east-1]
+            AWSEKS[EKS Cluster 3-AZ\nAPI + OPA + Temporal + Worker]
+            AWSRDS[(RDS PostgreSQL\nMulti-AZ r6g.large)]
+            AWSREDIS[(ElastiCache Redis\nCluster Mode)]
+        end
+
+        subgraph AZUREP [Azure westeurope]
+            AKSCLUSTER[AKS Cluster 3-AZ\nAPI + OPA + Temporal + Worker]
+            AZURESQL[(Azure SQL\nBusiness Critical)]
+            AZUREDIS[(Azure Cache\nZone-Redundant)]
+        end
+    end
+
+    subgraph TIER2 [Tier 2 — Warm Standby DR]
+        subgraph GCPP [GCP us-east1]
+            GKEDR[GKE Cluster\n0 pods — scale up lt 10min]
+            CLOUDSQLDR[(Cloud SQL\nRegional Replica)]
+            MEMDR[(Memorystore\nCold Standby)]
+        end
+    end
+
+    subgraph TIER3 [Tier 3 — Edge — Policy Evaluation Only]
+        EDGE1[OPA Sidecar\nRead-only bundle]
+        EDGE2[OPA Sidecar\nRead-only bundle]
+        EDGE3[OPA Sidecar\nRead-only bundle]
+    end
+
+    AWSRDS -. "pg_logical async replication RPO lt 5s" .-> CLOUDSQLDR
+    AZURESQL -. "pg_logical async replication RPO lt 5s" .-> CLOUDSQLDR
+
+    subgraph CDN [CDN Layer]
+        CF[AWS CloudFront\nStatic: 1yr TTL]
+        AFD[Azure Front Door\nStatic: 1yr TTL]
+        GCDN[GCP Cloud CDN\nStatic: 1yr TTL]
+    end
+
+    GTM --> CDN
+
+    subgraph OPA_BUNDLE [OPA Bundle Distribution]
+        GIT[Git Policy Repo\nSource of Truth]
+        GIT --> S3BUNDLE[S3 Bundle Store\nus-east-1 + eu-west-1]
+        GIT --> BLOBUNDLE[Azure Blob\nGeo-Replicated]
+        GIT --> GCSBUNDLE[GCS Dual-Region\nNAM4 + EUR4]
+    end
+
+    S3BUNDLE -.-> EDGE1
+    BLOBUNDLE -.-> EDGE2
+    GCSBUNDLE -.-> EDGE3
+
+    style TIER1 fill:#f59e0b,color:#000
+    style TIER2 fill:#ef4444,color:#fff
+    style TIER3 fill:#6b7280,color:#fff
+    style CDN fill:#1e40af,color:#fff
+    style OPA_BUNDLE fill:#374151,color:#fff
+    style GTM fill:#1e40af,color:#fff
