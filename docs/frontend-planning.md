@@ -296,7 +296,7 @@ Ranked by value for Senior Security Architect roles (Deloitte, Vercel, GitLab, S
 
 **3. Compliance Framework Grid (`/ops/compliance`)** — Breadth signal
 - 20+ frameworks visualized (NIST CSF, PCI-DSS, HIPAA, ISO 42001, TISAX) shows enterprise depth
-- Automotive frames (ISO 21434, TISAX) differentiate for Hyundai narrative
+- Automotive frames (ISO 21434, TISAX) differentiate for automotive sector narrative
 - Deloitte / Stripe: high signal. Vercel / GitLab: less relevant.
 
 ### Tier 2 — Strong Supporting Evidence

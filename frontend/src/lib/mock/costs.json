@@ -114,7 +114,7 @@
     {
       "id": "ano-002",
       "provider": "azure",
-      "account_id": "sub-haea-qa",
+      "account_id": "sub-acme-qa",
       "service_name": "Virtual Machines",
       "detected_at": "2026-01-27T10:00:00Z",
       "expected_cost": 4200,
