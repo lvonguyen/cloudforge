@@ -188,7 +188,7 @@ if finding.AutoRemediationReady {
 
 ```bash
 # AWS
-export AWS_PROFILE=haea-remediation  # SecurityAdmin role
+export AWS_PROFILE=acme-remediation  # SecurityAdmin role
 
 # Azure
 export AZURE_CLIENT_ID=<contributor-sp>

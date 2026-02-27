@@ -164,7 +164,7 @@ Security Architect | Multi-Cloud | DevSecOps
 
 - 10+ years enterprise security experience
 - AWS, Azure, GCP certified
-- Previous: Hyundai, healthcare, finance sectors
+- Previous: automotive, healthcare, finance sectors
 - Expertise: CSPM, threat intel, compliance automation
 
 LinkedIn: linkedin.com/in/liemvonguyen

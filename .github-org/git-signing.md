@@ -175,8 +175,8 @@ If you have different keys for Personal vs Work:
 [includeIf "gitdir:~/repos/remote/gl/lvonguyen/"]
     path = ~/.gitconfig-personal
 
-[includeIf "gitdir:~/repos/remote/gl/haea/"]
-    path = ~/.gitconfig-haea
+[includeIf "gitdir:~/repos/remote/gl/corp/"]
+    path = ~/.gitconfig-corp
 ```
 
 ```bash
@@ -185,8 +185,8 @@ If you have different keys for Personal vs Work:
     email = liem@vonguyen.io
     signingkey = ssh-ed25519 AAAA... # Personal key
 
-# ~/.gitconfig-haea
+# ~/.gitconfig-corp
 [user]
-    email = liem.vo-nguyen@haea.com
+    email = liem.vo-nguyen@corp.example.com
     signingkey = ssh-ed25519 BBBB... # Work key
 ```
