@@ -25,6 +25,10 @@ type RollbackFunc func(ctx context.Context, state *remediation.RollbackState) (*
 // rollbackRegistry maps finding types to their rollback functions.
 var rollbackRegistry = map[string]RollbackFunc{}
 
+func init() {
+	registerRollbackHandlers()
+}
+
 // registerRollbackHandlers populates the rollback registry.
 // Only handlers with deterministic, safe rollback paths are registered.
 func registerRollbackHandlers() {
@@ -69,21 +73,6 @@ func rollbackGuardDuty(ctx context.Context, state *remediation.RollbackState) (*
 	result.Message = fmt.Sprintf("Deleted GuardDuty detector %s in %s", detectorID, state.Region)
 	result.Actions = []string{fmt.Sprintf("Deleted detector %s", detectorID)}
 	return result, nil
-}
-
-// TODO(human): Implement rollbackBlockSSH
-// This function should re-add the 0.0.0.0/0:22 ingress rule to the security group
-// that was locked down during remediation.
-//
-// Available in state.PreState:
-//   - "security_group_id" (string) - the SG that was modified
-//
-// Available in state: Region, AccountID
-//
-// Use ec2.AuthorizeSecurityGroupIngress with the same rule shape as
-// the forward path in network/block_ssh.go (tcp/22, 0.0.0.0/0).
-func rollbackBlockSSH(ctx context.Context, state *remediation.RollbackState) (*remediation.RollbackResult, error) {
-	return nil, fmt.Errorf("not implemented: see TODO(human) in rollback.go")
 }
 
 // rollbackBlockPublicS3 removes the account-level public access block that was applied.

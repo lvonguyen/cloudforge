@@ -20,12 +20,12 @@ const (
 
 // ProviderConfig holds configuration for a single AI provider.
 type ProviderConfig struct {
-	Type        ProviderType `yaml:"type"`
-	Region      string       `yaml:"region,omitempty"`
-	ProjectID   string       `yaml:"project_id,omitempty"`
-	Model       string       `yaml:"model,omitempty"`
-	BaseURL     string       `yaml:"base_url,omitempty"`
-	APIKeyEnvVar string      `yaml:"api_key_env_var,omitempty"`
+	Type         ProviderType `yaml:"type"`
+	Region       string       `yaml:"region,omitempty"`
+	ProjectID    string       `yaml:"project_id,omitempty"`
+	Model        string       `yaml:"model,omitempty"`
+	BaseURL      string       `yaml:"base_url,omitempty"`
+	APIKeyEnvVar string       `yaml:"api_key_env_var,omitempty"`
 }
 
 // AIConfig is the top-level AI routing configuration.

@@ -56,7 +56,7 @@ func (g *GuardDutyRemediator) Remediate(ctx context.Context, finding *findings.P
 
 	// Enable GuardDuty
 	output, err := client.CreateDetector(ctx, &guardduty.CreateDetectorInput{
-		Enable: aws.Bool(true),
+		Enable:                     aws.Bool(true),
 		FindingPublishingFrequency: types.FindingPublishingFrequencyFifteenMinutes,
 		DataSources: &types.DataSourceConfigurations{
 			S3Logs: &types.S3LogsConfiguration{
@@ -146,8 +146,8 @@ func (g *GuardDutyRemediator) Validate(ctx context.Context, finding *findings.Pr
 // DryRun simulates enabling GuardDuty without making changes.
 func (g *GuardDutyRemediator) DryRun(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.DryRunResult, error) {
 	dryRun := &remediation.DryRunResult{
-		FindingID:       finding.Finding.ID,
-		WouldSucceed:    true,
+		FindingID:        finding.Finding.ID,
+		WouldSucceed:     true,
 		PrerequisitesMet: true,
 		PlannedActions: []string{
 			fmt.Sprintf("Would enable GuardDuty in region: %s", finding.Finding.Region),
