@@ -1,0 +1,51 @@
+# CloudForge Backend — delegates to root Dockerfile
+# This file exists for deploy/docker/ convention.
+# The canonical Dockerfile is at the repository root.
+#
+# Usage:
+#   docker build -f deploy/docker/Dockerfile.backend -t cloudforge-api .
+#
+# Or use the root Dockerfile directly:
+#   docker build -t cloudforge-api .
+
+# Re-use root Dockerfile via build context
+FROM golang:1.24-alpine AS builder
+
+ARG VERSION=dev
+
+WORKDIR /app
+
+RUN apk add --no-cache git ca-certificates tzdata
+
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-w -s -X main.Version=${VERSION}" \
+    -o /cloudforge \
+    ./cmd/server
+
+FROM alpine:3.20
+
+RUN addgroup -g 1000 cloudforge && \
+    adduser -u 1000 -G cloudforge -s /sbin/nologin -D cloudforge
+
+RUN apk add --no-cache ca-certificates tzdata
+
+WORKDIR /app
+
+COPY --from=builder /cloudforge /app/cloudforge
+COPY configs/config.example.yaml /app/configs/config.yaml
+
+RUN chown -R cloudforge:cloudforge /app
+
+USER cloudforge
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD wget -qO- http://localhost:8080/health || exit 1
+
+ENTRYPOINT ["/app/cloudforge"]
