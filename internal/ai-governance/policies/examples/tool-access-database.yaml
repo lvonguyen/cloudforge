@@ -1,0 +1,123 @@
+# Tool Access Policy Example
+# This policy controls which tools agents can invoke and with what parameters
+
+# Policy Metadata
+name: database-tool-restrictions
+description: |
+  Restricts database tool access for data analyst agents.
+  Prevents destructive operations and limits query scope.
+type: tool_access
+version: "1.0"
+enabled: true
+priority: 100
+
+# Scope - which agents this policy applies to
+scope:
+  agents:
+    - data-analyst-agent
+    - report-generator-agent
+  environments:
+    - staging
+    - production
+  teams:
+    - analytics
+
+# Rules
+rules:
+  # SQL Query Tool
+  - tool: sql_query
+    conditions:
+      # Only allow SELECT operations
+      allowed_operations:
+        - SELECT
+      
+      # Forbidden operations (explicit deny)
+      forbidden_operations:
+        - INSERT
+        - UPDATE
+        - DELETE
+        - DROP
+        - TRUNCATE
+        - ALTER
+      
+      # Limit result set size
+      max_rows: 10000
+      
+      # Allowed database schemas
+      allowed_schemas:
+        - public
+        - analytics
+        - reporting
+      
+      # Tables that should never be accessed
+      forbidden_tables:
+        - users
+        - credentials
+        - api_keys
+        - audit_log
+        - payment_info
+      
+      # Require WHERE clause (no full table scans)
+      require_where_clause: true
+      
+      # Maximum query execution time (seconds)
+      max_execution_time: 60
+    
+    actions:
+      on_match: allow
+      on_violation: deny
+      audit: true
+  
+  # File Write Tool - explicitly denied
+  - tool: file_write
+    conditions: {}
+    actions:
+      on_match: deny
+      reason: "File write operations are not permitted for analyst agents"
+      audit: true
+      alert:
+        severity: high
+        channels:
+          - slack
+          - email
+  
+  # HTTP Request Tool - limited to internal APIs
+  - tool: http_request
+    conditions:
+      allowed_domains:
+        - api.internal.company.com
+        - data.internal.company.com
+      
+      allowed_methods:
+        - GET
+      
+      # Don't allow query params that could exfiltrate data
+      forbidden_query_params:
+        - api_key
+        - token
+        - secret
+      
+      # Require internal auth header
+      required_headers:
+        - X-Internal-Auth
+    
+    actions:
+      on_match: allow
+      on_violation: deny
+      audit: true
+
+# Rate Limits (per-agent)
+rate_limits:
+  sql_query:
+    max_per_minute: 30
+    max_per_hour: 500
+  http_request:
+    max_per_minute: 60
+    max_per_hour: 1000
+
+# Metadata for audit
+metadata:
+  created_by: security-team
+  approved_by: ciso
+  review_date: "2025-01-15"
+  classification: internal
