@@ -16,6 +16,12 @@ import (
 	"cloudforge/pkg/remediation"
 )
 
+// ec2API defines the EC2 operations used by this remediator.
+type ec2API interface {
+	RevokeSecurityGroupIngress(ctx context.Context, params *ec2.RevokeSecurityGroupIngressInput, optFns ...func(*ec2.Options)) (*ec2.RevokeSecurityGroupIngressOutput, error)
+	DescribeSecurityGroups(ctx context.Context, params *ec2.DescribeSecurityGroupsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeSecurityGroupsOutput, error)
+}
+
 // BlockPublicSSHRemediator removes 0.0.0.0/0 SSH ingress rules from security groups.
 //
 // Finding Types: OPEN_SSH_PORT, AWS.EC2.SecurityGroup.SSH, GCP.OPEN_SSH_PORT
@@ -23,12 +29,35 @@ import (
 // Impact: Removes 0.0.0.0/0:22 ingress, may require VPN/bastion for SSH access
 // CSPs: AWS (EC2), GCP (Compute Engine), Azure (NSG)
 type BlockPublicSSHRemediator struct {
-	tier int
+	tier   int
+	client ec2API
+}
+
+// WithEC2Client injects a custom EC2 client (used in tests).
+func WithEC2Client(c ec2API) func(*BlockPublicSSHRemediator) {
+	return func(r *BlockPublicSSHRemediator) {
+		r.client = c
+	}
 }
 
 // NewBlockPublicSSHRemediator creates a new handler for blocking public SSH access.
-func NewBlockPublicSSHRemediator() *BlockPublicSSHRemediator {
-	return &BlockPublicSSHRemediator{tier: 1}
+func NewBlockPublicSSHRemediator(opts ...func(*BlockPublicSSHRemediator)) *BlockPublicSSHRemediator {
+	r := &BlockPublicSSHRemediator{tier: 1}
+	for _, o := range opts {
+		o(r)
+	}
+	return r
+}
+
+func (b *BlockPublicSSHRemediator) getClient(ctx context.Context, region string) (ec2API, error) {
+	if b.client != nil {
+		return b.client, nil
+	}
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+	}
+	return ec2.NewFromConfig(cfg), nil
 }
 
 // Tier returns the complexity tier (1 = auto-safe for non-bastion hosts).
@@ -63,13 +92,10 @@ func (b *BlockPublicSSHRemediator) Remediate(ctx context.Context, finding *findi
 
 // remediateAWS handles AWS EC2 security groups.
 func (b *BlockPublicSSHRemediator) remediateAWS(ctx context.Context, finding *findings.PrioritizedFinding, result *remediation.RemediationResult) (*remediation.RemediationResult, error) {
-	// Load AWS config
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(finding.Finding.Region))
+	client, err := b.getClient(ctx, finding.Finding.Region)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+		return nil, err
 	}
-
-	client := ec2.NewFromConfig(cfg)
 
 	// Extract security group ID from resource ID (e.g., "arn:aws:ec2:region:account:security-group/sg-123")
 	sgID := extractSGID(finding.Finding.ResourceID)
@@ -131,13 +157,11 @@ func (b *BlockPublicSSHRemediator) Validate(ctx context.Context, finding *findin
 		Evidence:    []string{},
 	}
 
-	// Load AWS config
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(finding.Finding.Region))
+	client, err := b.getClient(ctx, finding.Finding.Region)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+		return nil, err
 	}
 
-	client := ec2.NewFromConfig(cfg)
 	sgID := extractSGID(finding.Finding.ResourceID)
 
 	// Describe security group
