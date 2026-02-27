@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   Shield, Cloud, Activity, Search, Bot, BarChart3,
-  ArrowRight, GitBranch, Server, Lock,
+  ArrowRight, GitBranch, Server,
 } from 'lucide-react'
 
 interface ProjectCard {
@@ -12,6 +12,7 @@ interface ProjectCard {
   tier: 'flagship' | 'supporting'
   description: string
   icon: React.ElementType
+  iconSvg?: string
   color: string
   bg: string
   tags: string[]
@@ -28,6 +29,7 @@ const PROJECTS: ProjectCard[] = [
     description:
       'Enterprise cloud security platform — policy-as-code provisioning, AI-powered risk scoring, automated remediation, and multi-cloud compliance across AWS, Azure, and GCP.',
     icon: Shield,
+    iconSvg: '/icons/cloudforge-logo.svg',
     color: 'text-blue-600',
     bg: 'bg-blue-50',
     tags: ['Go', 'OPA/Rego', 'React', 'Terraform', 'Multi-Cloud'],
@@ -46,6 +48,7 @@ const PROJECTS: ProjectCard[] = [
     description:
       'Threat intelligence platform — MITRE ATT&CK mapping, real-time feed aggregation (OTX, MISP, VirusTotal), IoC correlation, and STIX/TAXII distribution.',
     icon: Search,
+    iconSvg: '/icons/threatforge-logo.svg',
     color: 'text-red-600',
     bg: 'bg-red-50',
     tags: ['Go', 'MITRE ATT&CK', 'STIX/TAXII', 'gRPC'],
@@ -64,6 +67,7 @@ const PROJECTS: ProjectCard[] = [
     description:
       'Cloud Security Posture Management — normalizes findings from AWS SecurityHub, Azure Defender, and GCP SCC into a unified schema with LLM-powered contextual risk scoring.',
     icon: Cloud,
+    iconSvg: '/icons/cspm-logo.svg',
     color: 'text-green-600',
     bg: 'bg-green-50',
     tags: ['Go', 'EPSS', 'CISA KEV', 'Risk Scoring', 'Multi-Cloud'],
@@ -82,6 +86,7 @@ const PROJECTS: ProjectCard[] = [
     description:
       'Unified observability pipeline — collects metrics, logs, and alerts from AWS CloudWatch, Azure Monitor, and GCP Cloud Monitoring with cross-cloud alert correlation.',
     icon: Activity,
+    iconSvg: '/icons/mco-logo.svg',
     color: 'text-purple-600',
     bg: 'bg-purple-50',
     tags: ['Go', 'Prometheus', 'OpsGenie', 'CloudWatch', 'Stackdriver'],
@@ -100,6 +105,7 @@ const PROJECTS: ProjectCard[] = [
     description:
       'AI agent governance framework — STRIDE+ATLAS threat modeling, embedded OPA policy engine, agent registry, maturity assessment, and observability hooks.',
     icon: Bot,
+    iconSvg: '/icons/ai-governance-logo.svg',
     color: 'text-indigo-600',
     bg: 'bg-indigo-50',
     tags: ['Go', 'OPA', 'STRIDE', 'ATLAS', 'LLM Security'],
@@ -118,6 +124,7 @@ const PROJECTS: ProjectCard[] = [
     description:
       'Multi-cloud cost optimization — chargeback allocation, anomaly detection, spend forecasting, and budget alerts across AWS, Azure, and GCP billing APIs.',
     icon: BarChart3,
+    iconSvg: '/icons/finops-logo.svg',
     color: 'text-amber-600',
     bg: 'bg-amber-50',
     tags: ['Go', 'Cost Explorer', 'Billing API', 'Forecasting'],
@@ -145,8 +152,8 @@ export default function Landing() {
       {/* Header */}
       <div className="space-y-1">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center">
-            <Lock className="h-5 w-5 text-white" />
+          <div className="h-10 w-10 rounded-lg overflow-hidden">
+            <img src="/icons/cloudforge-logo.svg" alt="CloudForge" className="h-10 w-10" />
           </div>
           <div>
             <h1 className="text-xl font-semibold tracking-tight">CloudForge Portfolio</h1>
@@ -209,8 +216,12 @@ function ProjectTile({ project }: { project: ProjectCard }) {
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2.5">
-              <div className={`h-9 w-9 rounded-lg ${project.bg} flex items-center justify-center`}>
-                <Icon className={`h-4 w-4 ${project.color}`} />
+              <div className={`h-9 w-9 rounded-lg ${project.bg} flex items-center justify-center overflow-hidden`}>
+                {project.iconSvg ? (
+                  <img src={project.iconSvg} alt={project.name} className="h-9 w-9" />
+                ) : (
+                  <Icon className={`h-4 w-4 ${project.color}`} />
+                )}
               </div>
               <div>
                 <CardTitle className="text-sm font-semibold">{project.name}</CardTitle>
