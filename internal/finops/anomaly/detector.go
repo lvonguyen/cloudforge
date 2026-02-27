@@ -104,7 +104,7 @@ func (d *Detector) calculateBaseline(records []finops.CostRecord) Baseline {
 	var values []float64
 
 	for _, r := range records {
-		if r.Date.Before(cutoff) {
+		if r.Date.After(cutoff) {
 			values = append(values, r.Cost)
 		}
 	}

@@ -138,6 +138,11 @@ func (b *BlockPublicS3Remediator) Validate(ctx context.Context, finding *finding
 	}
 
 	pab := output.PublicAccessBlockConfiguration
+	if pab == nil {
+		validation.IsCompliant = false
+		validation.Message = fmt.Sprintf("No public access block configured for account %s", accountID)
+		return validation, nil
+	}
 	deref := func(b *bool) bool { return b != nil && *b }
 	allBlocked := deref(pab.BlockPublicAcls) && deref(pab.BlockPublicPolicy) &&
 		deref(pab.IgnorePublicAcls) && deref(pab.RestrictPublicBuckets)

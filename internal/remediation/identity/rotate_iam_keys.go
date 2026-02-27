@@ -71,6 +71,9 @@ func (r *RotateIAMKeysRemediator) Remediate(ctx context.Context, finding *findin
 			continue
 		}
 
+		if key.CreateDate == nil {
+			continue
+		}
 		age := time.Since(*key.CreateDate)
 		if age.Hours()/24 < float64(r.maxAgeDays) {
 			continue

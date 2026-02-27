@@ -100,18 +100,15 @@ func (e *Engine) LoadPolicies(ctx context.Context, paths []string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	var r *rego.Rego
-	for _, path := range paths {
-		r = rego.New(
-			rego.Query("data.cloudforge.ai"),
-			rego.Store(e.store),
-			rego.Load([]string{path}, nil),
-		)
-	}
-
-	if r == nil {
+	if len(paths) == 0 {
 		return fmt.Errorf("no policy paths provided")
 	}
+
+	r := rego.New(
+		rego.Query("data.cloudforge.ai"),
+		rego.Store(e.store),
+		rego.Load(paths, nil),
+	)
 
 	pq, err := r.PrepareForEval(ctx)
 	if err != nil {
