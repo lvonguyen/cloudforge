@@ -1,0 +1,41 @@
+sequenceDiagram
+    autonumber
+    participant HC as Health Check Monitor
+    participant PD as PagerDuty
+    participant OC as On-Call Engineer
+    participant DNS as DNS Layer
+    participant DR as DR Region
+    participant DB as Database Replica
+    participant SM as Smoke Tests
+
+    HC->>HC: GET /health every 10s
+    HC->>HC: 3 consecutive failures detected
+    HC->>PD: Alert: Primary region unhealthy
+    PD->>OC: Page (immediate)
+
+    OC->>DB: Verify replica lag < 60s
+    DB-->>OC: Replication lag confirmed
+
+    OC->>DR: Scale up K8s cluster
+    Note over DR: kubectl scale deploy --replicas=3
+
+    DR-->>OC: Pods Running + Readiness passed
+
+    OC->>DB: Promote replica to primary
+    Note over DB: aws rds promote-read-replica\nor gcloud sql promote-replica
+
+    DB-->>OC: Promotion complete
+
+    OC->>OC: Sync object storage (rclone delta)
+    OC->>OC: Restore secrets to DR vault
+
+    OC->>DNS: Update DNS record to DR endpoint
+    Note over DNS: TTL 30s — propagates in 60-90s
+
+    DNS-->>OC: Propagation confirmed
+
+    OC->>SM: Run synthetic smoke tests
+    SM-->>OC: All checks pass
+
+    OC->>OC: Post status update to status.cloudforge.io
+    Note over OC,SM: Total switchover: 23-53 min (within 2h RTO)

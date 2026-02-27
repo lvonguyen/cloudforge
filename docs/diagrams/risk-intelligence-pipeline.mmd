@@ -1,0 +1,47 @@
+flowchart TD
+    A([Finding Input]) --> B[Layer 1: Parallel Context Enrichment]
+
+    subgraph B [Layer 1: Parallel Context Enrichment]
+        direction LR
+        B1[EPSS v4\nExploitation Probability]
+        B2[CISA KEV\nKnown Exploited CVEs]
+        B3[Environment Classifier\nTier1-Prod vs sandbox]
+        B4[Package Reachability\nIs vulnerable code executed?]
+        B5[IAM Scope\nBlast radius via role chaining]
+    end
+
+    B --> C[Layer 2: Pattern Matching]
+
+    subgraph C [Layer 2: Pattern Matching]
+        direction LR
+        C1[Toxic Combination Detection\nMulti-finding chain analysis]
+        C2[Meta-Pattern Engine\n18 known toxic combos]
+        C3[Chokepoint Identification\nHigh-centrality graph nodes]
+    end
+
+    C --> D[Layer 3: Adjudication]
+
+    subgraph D [Layer 3: Adjudication]
+        direction TB
+        D1{Confidence\nThreshold}
+        D2[Auto-Adjust Severity\nLLM scoring with guardrails]
+        D3[Human Review Queue\nConf below threshold]
+        D4{Guardrail\nChecks}
+        D5[GR-001: CRITICAL + Tier1-Prod\nhard floor — never downgrade]
+        D6[GR-002: PCI/PII\nmin severity = MEDIUM]
+        D7[GR-003: Unknown package usage\ncap confidence at 0.70]
+        D1 -->|conf >= 0.70| D2
+        D1 -->|conf < 0.70| D3
+        D2 --> D4
+        D4 --> D5
+        D4 --> D6
+        D4 --> D7
+    end
+
+    D --> E([Adjusted Finding + Risk Score])
+
+    style B fill:#1e40af,color:#fff
+    style C fill:#1e40af,color:#fff
+    style D fill:#1e40af,color:#fff
+    style E fill:#22c55e,color:#fff
+    style A fill:#374151,color:#fff
