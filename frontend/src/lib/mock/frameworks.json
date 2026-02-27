@@ -1,0 +1,114 @@
+[
+  {
+    "id": "nist-csf",
+    "name": "NIST CSF 2.0",
+    "description": "NIST Cybersecurity Framework v2.0 — voluntary framework for managing cybersecurity risk.",
+    "version": "2.0",
+    "category": "security",
+    "total_controls": 108,
+    "controls_passing": 87,
+    "controls_failing": 21,
+    "score": 80.6,
+    "relevant_for": ["aws", "azure", "gcp"],
+    "categories": [
+      { "id": "GOVERN", "name": "Govern", "passing": 12, "failing": 3, "score": 80.0 },
+      { "id": "IDENTIFY", "name": "Identify", "passing": 18, "failing": 4, "score": 81.8 },
+      { "id": "PROTECT", "name": "Protect", "passing": 22, "failing": 6, "score": 78.6 },
+      { "id": "DETECT", "name": "Detect", "passing": 15, "failing": 4, "score": 78.9 },
+      { "id": "RESPOND", "name": "Respond", "passing": 12, "failing": 2, "score": 85.7 },
+      { "id": "RECOVER", "name": "Recover", "passing": 8, "failing": 2, "score": 80.0 }
+    ]
+  },
+  {
+    "id": "pci-dss",
+    "name": "PCI-DSS v4.0",
+    "description": "Payment Card Industry Data Security Standard v4.0 — required for payment card processing environments.",
+    "version": "4.0",
+    "category": "compliance",
+    "total_controls": 64,
+    "controls_passing": 52,
+    "controls_failing": 12,
+    "score": 81.3,
+    "relevant_for": ["aws", "azure"],
+    "categories": [
+      { "id": "REQ-1-2", "name": "Network Security", "passing": 8, "failing": 2, "score": 80.0 },
+      { "id": "REQ-3-4", "name": "Data Protection", "passing": 10, "failing": 3, "score": 76.9 },
+      { "id": "REQ-5-6", "name": "Vulnerability Management", "passing": 9, "failing": 2, "score": 81.8 },
+      { "id": "REQ-7-8", "name": "Access Control", "passing": 11, "failing": 2, "score": 84.6 },
+      { "id": "REQ-9-12", "name": "Monitoring & Testing", "passing": 14, "failing": 3, "score": 82.4 }
+    ]
+  },
+  {
+    "id": "hipaa",
+    "name": "HIPAA",
+    "description": "Health Insurance Portability and Accountability Act — required for US healthcare data.",
+    "version": "2024",
+    "category": "compliance",
+    "total_controls": 42,
+    "controls_passing": 38,
+    "controls_failing": 4,
+    "score": 90.5,
+    "relevant_for": ["aws"],
+    "categories": [
+      { "id": "ADMIN", "name": "Administrative Safeguards", "passing": 14, "failing": 1, "score": 93.3 },
+      { "id": "PHYSICAL", "name": "Physical Safeguards", "passing": 8, "failing": 0, "score": 100.0 },
+      { "id": "TECHNICAL", "name": "Technical Safeguards", "passing": 12, "failing": 2, "score": 85.7 },
+      { "id": "BREACH", "name": "Breach Notification", "passing": 4, "failing": 1, "score": 80.0 }
+    ]
+  },
+  {
+    "id": "iso-27001",
+    "name": "ISO 27001:2022",
+    "description": "International standard for information security management systems (ISMS).",
+    "version": "2022",
+    "category": "security",
+    "total_controls": 93,
+    "controls_passing": 71,
+    "controls_failing": 22,
+    "score": 76.3,
+    "relevant_for": ["aws", "azure", "gcp"],
+    "categories": [
+      { "id": "A.5", "name": "Organizational Controls", "passing": 15, "failing": 4, "score": 78.9 },
+      { "id": "A.6", "name": "People Controls", "passing": 6, "failing": 2, "score": 75.0 },
+      { "id": "A.7", "name": "Physical Controls", "passing": 8, "failing": 1, "score": 88.9 },
+      { "id": "A.8", "name": "Technological Controls", "passing": 42, "failing": 15, "score": 73.7 }
+    ]
+  },
+  {
+    "id": "iso-42001",
+    "name": "ISO 42001:2023",
+    "description": "Artificial Intelligence Management System (AIMS) — requirements for responsible AI development and deployment.",
+    "version": "2023",
+    "category": "ai-governance",
+    "total_controls": 38,
+    "controls_passing": 21,
+    "controls_failing": 17,
+    "score": 55.3,
+    "relevant_for": ["aws", "azure", "gcp"],
+    "categories": [
+      { "id": "CONTEXT", "name": "Context of Organization", "passing": 4, "failing": 2, "score": 66.7 },
+      { "id": "LEADERSHIP", "name": "Leadership & AI Policy", "passing": 5, "failing": 3, "score": 62.5 },
+      { "id": "PLANNING", "name": "Planning & Risk Assessment", "passing": 4, "failing": 4, "score": 50.0 },
+      { "id": "SUPPORT", "name": "Support & Resources", "passing": 4, "failing": 3, "score": 57.1 },
+      { "id": "OPERATION", "name": "Operational AI Controls", "passing": 4, "failing": 5, "score": 44.4 }
+    ]
+  },
+  {
+    "id": "tisax",
+    "name": "TISAX",
+    "description": "Trusted Information Security Assessment Exchange — automotive supply chain security (VDA ISA 6.0).",
+    "version": "6.0",
+    "category": "automotive",
+    "total_controls": 56,
+    "controls_passing": 44,
+    "controls_failing": 12,
+    "score": 78.6,
+    "relevant_for": ["azure"],
+    "categories": [
+      { "id": "INFORMATION", "name": "Information Security", "passing": 16, "failing": 4, "score": 80.0 },
+      { "id": "PROTOTYPE", "name": "Prototype Protection", "passing": 8, "failing": 2, "score": 80.0 },
+      { "id": "CONNECTED", "name": "Connected Vehicle", "passing": 12, "failing": 4, "score": 75.0 },
+      { "id": "THIRD-PARTY", "name": "Third Party Management", "passing": 8, "failing": 2, "score": 80.0 }
+    ]
+  }
+]
