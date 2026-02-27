@@ -18,22 +18,22 @@ import (
 
 // Agent represents a registered AI agent in the system.
 type Agent struct {
-	ID           uuid.UUID    `json:"id" db:"id"`
-	Name         string       `json:"name" db:"name"`
-	Description  string       `json:"description" db:"description"`
-	Framework    string       `json:"framework" db:"framework"` // langchain, crewai, autogen
-	Version      string       `json:"version" db:"version"`
-	Owner        string       `json:"owner" db:"owner"`
-	Team         string       `json:"team" db:"team"`
-	Environment  string       `json:"environment" db:"environment"` // dev, staging, prod
-	Capabilities []Capability `json:"capabilities" db:"capabilities"`
+	ID           uuid.UUID     `json:"id" db:"id"`
+	Name         string        `json:"name" db:"name"`
+	Description  string        `json:"description" db:"description"`
+	Framework    string        `json:"framework" db:"framework"` // langchain, crewai, autogen
+	Version      string        `json:"version" db:"version"`
+	Owner        string        `json:"owner" db:"owner"`
+	Team         string        `json:"team" db:"team"`
+	Environment  string        `json:"environment" db:"environment"` // dev, staging, prod
+	Capabilities []Capability  `json:"capabilities" db:"capabilities"`
 	Tools        []ToolBinding `json:"tools" db:"tools"`
-	Policies     []string     `json:"policies" db:"policies"` // Policy IDs bound to agent
-	RiskLevel    string       `json:"risk_level" db:"risk_level"`
-	Status       AgentStatus  `json:"status" db:"status"`
-	LastActiveAt *time.Time   `json:"last_active_at,omitempty" db:"last_active_at"`
-	CreatedAt    time.Time    `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time    `json:"updated_at" db:"updated_at"`
+	Policies     []string      `json:"policies" db:"policies"` // Policy IDs bound to agent
+	RiskLevel    string        `json:"risk_level" db:"risk_level"`
+	Status       AgentStatus   `json:"status" db:"status"`
+	LastActiveAt *time.Time    `json:"last_active_at,omitempty" db:"last_active_at"`
+	CreatedAt    time.Time     `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time     `json:"updated_at" db:"updated_at"`
 }
 
 // AgentStatus represents the operational status of an agent.
@@ -329,7 +329,7 @@ type Mitigation struct {
 	ControlType    string   `json:"control_type"` // preventive, detective, corrective
 	Implementation string   `json:"implementation"`
 	MappedControls []string `json:"mapped_controls"` // References to compliance framework controls
-	Status         string   `json:"status"`           // proposed, implemented, verified
+	Status         string   `json:"status"`          // proposed, implemented, verified
 }
 
 // RiskSummary provides aggregate risk statistics.

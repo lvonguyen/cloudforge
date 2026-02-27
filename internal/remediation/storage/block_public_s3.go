@@ -4,7 +4,6 @@ package storage
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -182,16 +181,4 @@ func (b *BlockPublicS3Remediator) DryRun(ctx context.Context, finding *findings.
 		},
 		EstimatedImpact: fmt.Sprintf("Account %s: all buckets will block public access. static website hosting via S3 will require CloudFront.", accountID),
 	}, nil
-}
-
-// extractBucketName extracts the S3 bucket name from a resource ARN or name.
-func extractBucketName(resourceID string) string {
-	if strings.HasPrefix(resourceID, "arn:") {
-		parts := strings.SplitN(resourceID, ":::", 2)
-		if len(parts) == 2 {
-			bucket := strings.SplitN(parts[1], "/", 2)[0]
-			return bucket
-		}
-	}
-	return resourceID
 }
