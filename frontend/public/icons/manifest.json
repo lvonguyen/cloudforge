@@ -1,0 +1,81 @@
+{
+  "icons": [
+    {
+      "name": "CloudForge Logo",
+      "file": "cloudforge-logo.svg",
+      "path": "/icons/cloudforge-logo.svg",
+      "description": "Main CloudForge product logo — shield with cloud and hammer motif",
+      "colors": {
+        "primary": "#1e40af",
+        "secondary": "#3b82f6"
+      },
+      "viewBox": "0 0 64 64"
+    },
+    {
+      "name": "ThreatForge Logo",
+      "file": "threatforge-logo.svg",
+      "path": "/icons/threatforge-logo.svg",
+      "description": "ThreatForge threat detection — magnifying glass over crosshair with alert",
+      "colors": {
+        "primary": "#dc2626",
+        "secondary": "#991b1b"
+      },
+      "viewBox": "0 0 64 64"
+    },
+    {
+      "name": "CSPM Logo",
+      "file": "cspm-logo.svg",
+      "path": "/icons/cspm-logo.svg",
+      "description": "CSPM Aggregator — cloud with shield and checkmark",
+      "colors": {
+        "primary": "#16a34a",
+        "secondary": "#166534"
+      },
+      "viewBox": "0 0 64 64"
+    },
+    {
+      "name": "Multicloud Observability Logo",
+      "file": "mco-logo.svg",
+      "path": "/icons/mco-logo.svg",
+      "description": "Multicloud Observability — three connected nodes with pulse wave",
+      "colors": {
+        "primary": "#9333ea",
+        "secondary": "#6b21a8"
+      },
+      "viewBox": "0 0 64 64"
+    },
+    {
+      "name": "AI Governance Logo",
+      "file": "ai-governance-logo.svg",
+      "path": "/icons/ai-governance-logo.svg",
+      "description": "AI Governance — brain/circuit with policy lock",
+      "colors": {
+        "primary": "#4f46e5",
+        "secondary": "#3730a3"
+      },
+      "viewBox": "0 0 64 64"
+    },
+    {
+      "name": "FinOps Logo",
+      "file": "finops-logo.svg",
+      "path": "/icons/finops-logo.svg",
+      "description": "FinOps Platform — bar chart with trend line and dollar sign",
+      "colors": {
+        "primary": "#d97706",
+        "secondary": "#92400e"
+      },
+      "viewBox": "0 0 64 64"
+    },
+    {
+      "name": "Favicon",
+      "file": "favicon.svg",
+      "path": "/icons/favicon.svg",
+      "description": "Simplified CloudForge shield favicon, works at 16x16 and 32x32",
+      "colors": {
+        "primary": "#1e40af",
+        "secondary": "#3b82f6"
+      },
+      "viewBox": "0 0 32 32"
+    }
+  ]
+}
