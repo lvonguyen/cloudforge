@@ -129,6 +129,14 @@ flowchart TB
         B4["🔍 Compliance Scan Workflow"]
     end
 
+    subgraph AIGovernance["AI Governance (Embedded OPA)"]
+        style AIGovernance fill:#7c3aed,stroke:#4c1d95,color:#fff
+        E1["Agent Registry"]
+        E2["Embedded OPA Engine"]
+        E3["STRIDE + ATLAS Models"]
+        E4["Maturity Assessment"]
+    end
+
     subgraph Policy["🛡️ Policy Engine (OPA / Rego)"]
         style Policy fill:#1e40af,stroke:#1e3a8a,color:#fff
         C1["🌍 Region Policies"]
@@ -146,7 +154,8 @@ flowchart TB
     end
 
     Portal --> Orchestration
-    Orchestration --> Policy
+    Orchestration --> AIGovernance
+    AIGovernance --> Policy
     Policy --> Integration
 ```
 
