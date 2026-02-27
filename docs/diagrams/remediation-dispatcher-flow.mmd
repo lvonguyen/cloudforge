@@ -1,0 +1,43 @@
+stateDiagram-v2
+    direction TB
+
+    [*] --> PENDING : Finding received
+
+    PENDING --> VALIDATING : Execute() called
+
+    VALIDATING --> TIER_GATE : Fields valid
+    VALIDATING --> [*] : nil / missing fields — error returned
+
+    TIER_GATE --> DRY_RUN : dryRun=true
+    TIER_GATE --> T1_EXECUTE : Tier 1 — auto-safe (always runs)
+    TIER_GATE --> T2_EXECUTE : Tier 2 — AutoRemediationReady=true
+    TIER_GATE --> SKIPPED : Tier 2/3 — AutoRemediationReady=false
+    TIER_GATE --> SKIPPED : Tier 3 — change window required
+
+    DRY_RUN --> [*] : DryRunResult returned (no state change)
+
+    T1_EXECUTE --> VALIDATING_RESULT : handler.Remediate()
+    T2_EXECUTE --> VALIDATING_RESULT : handler.Remediate()
+
+    VALIDATING_RESULT --> COMPLETED : handler.Validate() — IsCompliant=true
+    VALIDATING_RESULT --> FAILED : handler.Validate() — IsCompliant=false
+    VALIDATING_RESULT --> FAILED : handler error
+
+    COMPLETED --> ROLLBACK_ELIGIBLE : within 48h window
+    ROLLBACK_ELIGIBLE --> ROLLED_BACK : rollback triggered
+    ROLLED_BACK --> [*]
+
+    SKIPPED --> [*]
+    FAILED --> [*]
+    COMPLETED --> [*]
+
+    note right of TIER_GATE
+        T1: always auto-safe
+        T2: needs AutoRemediationReady=true
+        T3: full change approval + window
+    end note
+
+    note right of COMPLETED
+        RollbackState captured pre-remediation
+        Window expires after 48h
+    end note
