@@ -1,0 +1,49 @@
+flowchart LR
+    A([plan-with-policy.sh]) --> S1
+
+    S1["Step 1\nterraform init\n-backend=false"]
+    S1 --> S2
+
+    S2["Step 2\nterraform plan\n-var cloud_provider=PROVIDER\n-out=plan.tfplan"]
+    S2 --> S3
+
+    S3["Step 3\nterraform show -json\nplan.tfplan > plan.json"]
+    S3 --> GATE
+
+    subgraph GATE [OPA Policy Gate]
+        direction TB
+        CT["Step 4\nconftest test plan.json\n--policy policies/\n--namespace terraform"]
+        CT --> EXIT{Exit Code}
+        EXIT -->|0 — all passed| ALLOW[Allow Apply]
+        EXIT -->|2 — warnings| WARN[Human Review\nRequired]
+        EXIT -->|1 — violations| BLOCK[Apply Blocked\nFix violations]
+    end
+
+    ALLOW --> S5
+    WARN --> S5
+    BLOCK --> FIX([Fix Rego\nViolations])
+    FIX --> S2
+
+    S5["Step 5\nterraform apply\nplan.tfplan"]
+    S5 --> DONE([Deploy Complete])
+
+    subgraph POLICIES [Rego Policies Evaluated]
+        direction TB
+        P1[SECURITY-001\nEncryption at rest]
+        P2[SECURITY-002\nS3 server-side encryption]
+        P3[SECURITY-003\nNo public Cloud Run ingress]
+        P4[SECURITY-004\nNo public EC2 IP]
+        P5[SECURITY-005\nTLS 1.2+ on ALB]
+        P6[SECURITY-006\nTLS 1.2+ on GCP SSL]
+        P7[SECURITY-007\nNo default VPC usage]
+        P8[SECURITY-008\nNo wildcard IAM actions]
+    end
+
+    CT -.->|evaluates| POLICIES
+
+    style GATE fill:#1e40af,color:#fff
+    style ALLOW fill:#22c55e,color:#fff
+    style BLOCK fill:#ef4444,color:#fff
+    style WARN fill:#f59e0b,color:#000
+    style DONE fill:#22c55e,color:#fff
+    style POLICIES fill:#374151,color:#fff
