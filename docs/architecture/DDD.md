@@ -577,7 +577,7 @@ defer span.End()
 | `CF_DATABASE_URL` | PostgreSQL connection string | - |
 | `CF_REDIS_URL` | Redis connection string | - |
 | `CF_AI_PROVIDER` | AI provider (anthropic/openai) | anthropic |
-| `CF_AI_MODEL` | AI model name | claude-opus-4-5-20250514 |
+| `CF_AI_MODEL` | AI model name | claude-opus-4-6 |
 | `CF_LOG_LEVEL` | Log level | info |
 | `CF_METRICS_PORT` | Prometheus metrics port | 9090 |
 
@@ -602,7 +602,7 @@ redis:
 
 ai:
   provider: anthropic
-  model: claude-opus-4-5-20250514
+  model: claude-opus-4-6
   max_tokens: 4096
   contextual_risk_weight: 0.4
 

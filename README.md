@@ -1,11 +1,9 @@
 # CloudForge
 
-<!-- markdownlint-disable MD033 -->
-<img src="../../../reference/templates/icons/homelab-svg-assets/assets/cloudflare.svg" width="48" height="48" alt="CloudForge" align="left" style="margin-right: 10px;">
-<!-- markdownlint-enable MD033 -->
-
+![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green)
 ![Development Status](https://img.shields.io/badge/status-active%20development-blue)
-![Implementation](https://img.shields.io/badge/implementation-75%25-green)
+![Implementation](https://img.shields.io/badge/implementation-80%25-green)
 
 ## Enterprise Cloud Governance Platform with Self-Service Provisioning
 
@@ -37,6 +35,11 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | Provider abstraction | Done | Claude/OpenAI interface |
 | Risk analysis | Done | AI-powered scoring |
 | Remediation generation | Partial | Basic implementation |
+| **AI Governance** | | |
+| OPA engine (embedded) | Done | In-process OPA for agent tool/data-flow control |
+| Agent registry | Done | Observability, status tracking, lifecycle |
+| STRIDE/ATLAS threat models | Done | Structured threat modeling per agent type |
+| Maturity assessment | Done | Governance maturity scoring |
 | **Policy Engine** | | |
 | OPA integration | Done | Policy evaluation working |
 | Rego policies | Done | Region, cost, network policies |
@@ -202,6 +205,7 @@ cloudforge/
 │   └── remediation-dispatcher/    # Remediation dispatcher service
 ├── internal/
 │   ├── ai/                        # AI provider integration (Claude, OpenAI)
+│   ├── ai-governance/             # AI governance module (OPA engine, agent registry, STRIDE/ATLAS)
 │   ├── api/                       # API handlers and rate limiting
 │   ├── cicd/                      # CI/CD security scanning
 │   │   ├── sast/                  # SAST integrations (SonarQube, Checkov, Veracode)
@@ -253,10 +257,6 @@ cloudforge/
 - Exception request workflow
 - Compliance dashboards
 
-<!-- markdownlint-disable MD033 -->
-<img src="../../../reference/templates/icons/homelab-svg-assets/assets/vault.svg" width="24" height="24" alt="Policy">
-<!-- markdownlint-enable MD033 -->
-
 ### Policy-as-Code
 
 - Region restrictions (data residency)
@@ -281,9 +281,13 @@ Pluggable providers for enterprise GRC platforms:
 - Remediation runbook generation
 - Request triage and routing
 
-<!-- markdownlint-disable MD033 -->
-<img src="../../../reference/templates/icons/homelab-svg-assets/assets/terraform.svg" width="24" height="24" alt="IaC">
-<!-- markdownlint-enable MD033 -->
+### AI Governance (Merged from AgentGuard)
+
+- **Embedded OPA engine** — in-process Rego evaluation for AI agent tool and data-flow control (namespace: `cloudforge.ai.*`)
+- **Agent registry** — lifecycle tracking, observability, status management across agent fleet
+- **Threat modeling** — STRIDE + ATLAS threat models per registered agent type
+- **Maturity assessment** — governance readiness scoring across 5 maturity dimensions
+- **Dual-track OPA** — cloud provisioning path uses external OPA server; AI governance uses embedded Go library — complementary, not conflicting
 
 ### Multi-Cloud Support
 
@@ -291,10 +295,6 @@ Pluggable providers for enterprise GRC platforms:
 - Azure (45 Subscriptions)
 - GCP (93 Projects)
 - Extensible provider pattern
-
-<!-- markdownlint-disable MD033 -->
-<img src="../../../reference/templates/icons/homelab-svg-assets/assets/grafana.svg" width="24" height="24" alt="FinOps">
-<!-- markdownlint-enable MD033 -->
 
 ### Automated Remediation
 
@@ -311,10 +311,6 @@ Pluggable providers for enterprise GRC platforms:
 - **Chargeback/Showback**: Tag-based cost allocation with automated reports
 - **Budget Tracking**: Proactive budget alerts via Slack/PagerDuty
 - **Optimization**: Resource rightsizing and savings recommendations
-
-<!-- markdownlint-disable MD033 -->
-<img src="../../../reference/templates/icons/homelab-svg-assets/assets/terraform.svg" width="32" height="32" alt="Tech Stack">
-<!-- markdownlint-enable MD033 -->
 
 ## [+] Tech Stack
 
@@ -337,7 +333,7 @@ Pluggable providers for enterprise GRC platforms:
 
 ### Prerequisites
 
-- Go 1.21+
+- Go 1.24+
 - Docker & Docker Compose
 - Terraform 1.5+
 - OPA CLI
@@ -394,6 +390,8 @@ workflow:
 | [Detailed Design](docs/architecture/DDD.md) | ADRs, API specs, data models |
 | [DR/BC Plan](docs/DR-BC.md) | Disaster recovery procedures |
 | [Component Rationale](docs/architecture/component-rationale.md) | Build vs buy decisions |
+| [Frontend Planning](docs/frontend-planning.md) | React/Vite UI — 18 screens, 3 role views, phased build plan |
+| [IaC Planning](docs/iac-planning.md) | Terraform modules, Rego policies, deployment architecture |
 
 ### Architecture Decision Records
 
@@ -416,10 +414,6 @@ workflow:
 
 ---
 
-<!-- markdownlint-disable MD033 -->
-<img src="../../../reference/templates/icons/homelab-svg-assets/assets/vault.svg" width="32" height="32" alt="Security">
-<!-- markdownlint-enable MD033 -->
-
 ## [!] Security
 
 - All API endpoints require authentication (OIDC via Entra ID/Okta)
@@ -432,10 +426,6 @@ workflow:
 - CI/CD pipeline security (SAST/DAST integration)
 
 ---
-
-<!-- markdownlint-disable MD033 -->
-<img src="../../../reference/templates/icons/homelab-svg-assets/assets/grafana.svg" width="32" height="32" alt="Observability">
-<!-- markdownlint-enable MD033 -->
 
 ## [+] Observability
 
@@ -477,7 +467,7 @@ Built-in support for 20+ frameworks:
 - [x] Compliance framework engine (20+ frameworks)
 - [x] Structured logging and Prometheus metrics
 
-### Phase 2: Security, Remediation & Testing (In Progress)
+### Phase 2: Security, Remediation & AI Governance (In Progress)
 
 - [x] Wire rate limiting to API routes
 - [x] CI/CD pipeline with security scanning
@@ -485,6 +475,9 @@ Built-in support for 20+ frameworks:
 - [x] Tiered execution model (auto-safe / verify / change window)
 - [x] 48-hour rollback state engine
 - [x] Executor engine unit tests (14 cases)
+- [x] AI governance module — embedded OPA engine, agent registry, STRIDE/ATLAS threat models
+- [x] Security audit fixes (SEC-001 through SEC-012)
+- [x] Architecture hardening — BOLA fix, N+1 queries, CI pinning
 - [ ] OIDC authentication integration (Okta/Entra ID)
 - [ ] Handler-level unit tests (target: 80% coverage)
 - [ ] Integration test suite
@@ -511,11 +504,16 @@ Built-in support for 20+ frameworks:
 
 | Date | Author | Change |
 | ---- | ------ | ------ |
+| 2026-02-27 | Liem Vo-Nguyen | Add frontend planning doc (18 screens, 3 roles, phased build) |
+| 2026-02-27 | Liem Vo-Nguyen | Add IaC planning doc (Terraform modules, Rego policies, deploy arch) |
+| 2026-02-26 | Liem Vo-Nguyen | Add AI governance module — embedded OPA engine, agent registry, STRIDE/ATLAS threat models (merged from AgentGuard) |
+| 2026-02-26 | Liem Vo-Nguyen | Add MIT license |
+| 2026-02-26 | Liem Vo-Nguyen | Architecture hardening — BOLA fix, N+1 queries, CI pinning, OPA cap |
+| 2026-02-26 | Liem Vo-Nguyen | Apply security audit fixes SEC-001 through SEC-012 |
 | 2026-02-11 | Liem Vo-Nguyen | Add remediation dispatcher with 10 handlers across 8 domains |
 | 2026-02-11 | Liem Vo-Nguyen | Add executor engine with batch execution, dry-run, and rollback |
 | 2026-02-11 | Liem Vo-Nguyen | Add findings bridge package (temporary, pending cspm-aggregator merge) |
 | 2026-02-11 | Liem Vo-Nguyen | Add executor unit tests (14 cases) |
-| 2026-02-11 | Liem Vo-Nguyen | Add domain READMEs for all 8 remediation domains |
 | 2026-01-xx | Liem Vo-Nguyen | Add FinOps cost management module (aggregator, anomaly, chargeback) |
 | 2026-01-xx | Liem Vo-Nguyen | Add CI/CD security scanning (SAST, VCS integrations) |
 | 2025-12-xx | Liem Vo-Nguyen | Initial platform: API server, GRC, compliance, policy engine, AI |
