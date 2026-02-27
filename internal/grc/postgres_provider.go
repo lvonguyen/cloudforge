@@ -206,8 +206,13 @@ func (p *PostgresGRCProvider) GetException(ctx context.Context, id string) (*Exc
 		&risk.AssessedBy,
 		&risk.AssessedAt,
 	)
-	if err == nil {
+	switch {
+	case err == nil:
 		req.RiskAssessment = &risk
+	case errors.Is(err, sql.ErrNoRows):
+		// No risk assessment — acceptable
+	default:
+		return nil, fmt.Errorf("querying risk assessment: %w", err)
 	}
 
 	// Load compensating controls

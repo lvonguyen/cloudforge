@@ -302,6 +302,11 @@ func (m *AuthMiddleware) verifyHS256Signature(header, payload, signature string)
 func (m *AuthMiddleware) validateClaims(claims *Claims) error {
 	now := time.Now().Unix()
 
+	// Require subject — tokens without a subject identity are rejected
+	if claims.Subject == "" {
+		return fmt.Errorf("token missing required sub claim")
+	}
+
 	// Require expiration claim — tokens without exp are rejected
 	if claims.ExpiresAt == 0 {
 		return fmt.Errorf("token missing required exp claim")
