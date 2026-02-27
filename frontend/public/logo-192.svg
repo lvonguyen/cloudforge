@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192" fill="none">
+  <!-- Shield base -->
+  <path d="M96 12L24 42v54c0 42 31.8 81 72 90 40.2-9 72-48 72-90V42L96 12z" fill="#1e40af" stroke="#3b82f6" stroke-width="8"/>
+  <!-- Cloud shape inside shield -->
+  <path d="M66 108c-10.2 0-18-7.8-18-18 0-8.4 6-15.6 13.8-17.4C63.6 64.8 71.4 60 81 60c12 0 22.2 8.4 24 19.8 1.2-.6 2.4-.6 3-.6 8.4 0 15 6.6 15 15 0 7.2-4.8 13.2-12 13.8H66z" fill="white" opacity="0.9"/>
+  <!-- Forge spark / lightning bolt -->
+  <path d="M93 87l-9 18h12l-9 18 21-27h-12l9-9z" fill="#f59e0b"/>
+</svg>
