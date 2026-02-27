@@ -342,9 +342,9 @@ Pluggable providers for enterprise GRC platforms:
 
 ### Multi-Cloud Support
 
-- AWS (4 Organizations, 270+ accounts)
-- Azure (45 Subscriptions)
-- GCP (93 Projects)
+- AWS (multiple Organizations, 2,400+ accounts)
+- Azure (750+ Subscriptions)
+- GCP (350+ Projects)
 - Extensible provider pattern
 
 ### Automated Remediation

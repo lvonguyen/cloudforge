@@ -18,7 +18,7 @@ CloudForge is an enterprise Internal Developer Platform (IDP) that enables secur
 - Gold templates defining blessed configurations with automated drift detection
 - AI-assisted remediation runbooks that accelerate finding closure
 
-**Target Scale:** 270+ cloud environments across 4 AWS Organizations, 93 GCP projects, and 45 Azure subscriptions.
+**Target Scale:** 3,500+ cloud environments across multiple AWS Organizations, 750+ Azure subscriptions, and 350+ GCP projects.
 
 ---
 
@@ -80,7 +80,7 @@ CloudForge is an enterprise Internal Developer Platform (IDP) that enables secur
             ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
             │     AWS     │   │    Azure    │   │     GCP     │
             │ Security Hub│   │  Defender   │   │     SCC     │
-            │   4 Orgs    │   │   45 Subs   │   │  93 Projects│
+            │  Multi-Org  │   │  750+ Subs  │   │350+ Projects│
             └─────────────┘   └─────────────┘   └─────────────┘
 ```
 

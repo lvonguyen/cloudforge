@@ -1,7 +1,7 @@
 # Wiz Attack Path Analysis: Architecture Insights & Project Enhancement Roadmap
 
 **Author:** Liem Von Nguyen | **Date:** 2026-02-26
-**Targets:** csmp-aggregator, AgentGuard | **Context:** Enterprise multi-cloud (270+ envs)
+**Targets:** csmp-aggregator, AgentGuard | **Context:** Enterprise multi-cloud (3,500+ envs)
 
 ---
 
@@ -48,14 +48,14 @@ Wiz extended the graph model for AI workloads — mapping AI models, training in
 ## 2. csmp-aggregator Enhancements
 
 ### Current State (from CLAUDE.md)
-Go-based CSPM aggregator with Claude Opus 4.5 AI scoring. Aggregates findings across 270+ environments (4 AWS orgs, 93 GCP projects, 45 Azure subscriptions).
+Go-based CSPM aggregator with Claude Opus 4.5 AI scoring. Aggregates findings across 3,500+ environments (multiple AWS Organizations, 350+ GCP projects, 750+ Azure subscriptions).
 
 ### Enhancement Roadmap
 
 #### E1: Graph Database Layer (High Priority)
 **What:** Add Neo4j or Amazon Neptune as a relationship store alongside existing finding storage.
 
-**Why:** The aggregator already ingests findings from 270+ environments across multiple cloud accounts. Today those findings are correlated by metadata (account, resource ID). A graph layer enables relationship-aware correlation — "this finding on resource A matters because resource A has a trust relationship to resource B which holds sensitive data."
+**Why:** The aggregator already ingests findings from 3,500+ environments across multiple cloud accounts. Today those findings are correlated by metadata (account, resource ID). A graph layer enables relationship-aware correlation — "this finding on resource A matters because resource A has a trust relationship to resource B which holds sensitive data."
 
 **Implementation approach:**
 - Model cloud resources as nodes (EC2, S3, IAM Role, GCP VM, Azure VM, etc.)
@@ -109,9 +109,9 @@ Go-based CSPM aggregator with Claude Opus 4.5 AI scoring. Aggregates findings ac
 - Weight scoring factors: exploit availability > network exposure > identity chain depth > data sensitivity
 
 #### E4: Cross-Account Path Analysis (Medium Priority)
-**What:** Map trust relationships across 4 AWS orgs, 93 GCP projects, 45 Azure subs.
+**What:** Map trust relationships across multiple AWS Organizations, 350+ GCP projects, 750+ Azure subscriptions.
 
-**Why:** Cross-account lateral movement is the blind spot for cloud-native CSPM tools. With 270+ environments across multiple orgs and subscriptions, cross-account trust chains are a significant attack surface that no single-account tool can see.
+**Why:** Cross-account lateral movement is the blind spot for cloud-native CSPM tools. With 3,500+ environments across multiple orgs and subscriptions, cross-account trust chains are a significant attack surface that no single-account tool can see.
 
 **Implementation approach:**
 - Ingest IAM trust policies, resource policies, and cross-account roles
@@ -182,10 +182,10 @@ AI security governance — greenfield positioning project.
 ### Connecting Wiz Knowledge to Enterprise CSPM Experience
 
 **"Why graph-based security matters at scale":**
-> "Managing CSPM across 270+ cloud environments — 4 AWS orgs, 93 GCP projects, 45 Azure subs — traditional finding-by-finding remediation doesn't scale. Achieving high closure rates requires tier-based automation, but the next evolution is relationship-aware prioritization. Wiz proved with their Neptune-backed graph processing 1.2B relationships daily that the real signal isn't individual findings — it's the toxic combinations. I'm building toward that with csmp-aggregator's graph layer."
+> "Managing CSPM across 3,500+ cloud environments — multiple AWS Organizations, 350+ GCP projects, 750+ Azure subscriptions — traditional finding-by-finding remediation doesn't scale. Achieving high closure rates requires tier-based automation, but the next evolution is relationship-aware prioritization. Wiz proved with their Neptune-backed graph processing 1.2B relationships daily that the real signal isn't individual findings — it's the toxic combinations. I'm building toward that with csmp-aggregator's graph layer."
 
 **"Toxic combinations reduce noise":**
-> "The challenge at enterprise scale isn't finding issues — it's prioritizing them. 10,000 medium-severity findings across 270 environments creates alert fatigue. Wiz's insight is that chaining those findings through graph traversal surfaces the 20-30 paths that actually represent breach risk. That's the difference between 'this S3 bucket is misconfigured' and 'this misconfigured S3 bucket containing PHI is reachable through a 3-hop role chain from an internet-exposed instance with a known CVE.'"
+> "The challenge at enterprise scale isn't finding issues — it's prioritizing them. 10,000+ medium-severity findings across 3,500+ environments creates alert fatigue. Wiz's insight is that chaining those findings through graph traversal surfaces the 20-30 paths that actually represent breach risk. That's the difference between 'this S3 bucket is misconfigured' and 'this misconfigured S3 bucket containing PHI is reachable through a 3-hop role chain from an internet-exposed instance with a known CVE.'"
 
 **"Cross-cloud is the blind spot":**
 > "Most cloud-native tools operate within a single cloud's blast radius. Spanning AWS, GCP, and Azure simultaneously, cross-cloud trust relationships and lateral movement paths are invisible to single-cloud tools. That's why a unified graph approach — which Wiz pioneered — is essential for organizations with multi-cloud estates."
@@ -219,4 +219,4 @@ E1 (graph DB layer) is the foundation — everything else builds on it. E2 (toxi
 - Wiz toxic combinations methodology and 7 risk dimensions
 - Wiz Defend hybrid agentless + eBPF runtime architecture
 - Wiz AI-SPM and AI Security Graph capabilities
-- Enterprise CSPM operational context: 270+ environments, tier-based remediation automation
+- Enterprise CSPM operational context: 3,500+ environments, tier-based remediation automation
