@@ -1,0 +1,192 @@
+# Data Flow Policy Example
+# Controls how data moves through agent execution chains based on classification
+
+name: pii-protection-policy
+description: |
+  Prevents PII and confidential data from flowing to unauthorized destinations.
+  Requires redaction for external outputs and LLM contexts.
+type: data_flow
+version: "1.0"
+enabled: true
+priority: 200
+
+# Scope
+scope:
+  agents: ["*"]  # Applies to all agents
+  environments:
+    - staging
+    - production
+
+# Data Classification Definitions
+classifications:
+  - name: PII
+    description: Personally Identifiable Information
+    patterns:
+      - email
+      - phone
+      - ssn
+      - address
+      - name
+      - date_of_birth
+    
+  - name: CONFIDENTIAL
+    description: Business confidential information
+    patterns:
+      - financial_data
+      - revenue
+      - customer_list
+      - pricing
+    
+  - name: RESTRICTED
+    description: Highly restricted data
+    patterns:
+      - credentials
+      - api_keys
+      - passwords
+      - encryption_keys
+    
+  - name: PUBLIC
+    description: Public information
+    patterns: []
+
+# Flow Rules
+rules:
+  # PII Protection
+  - classification: PII
+    allowed_destinations:
+      - internal_database
+      - audit_log
+      - encrypted_storage
+    
+    denied_destinations:
+      - external_api
+      - public_output
+      - llm_context  # Don't send PII back to LLM
+    
+    on_violation: redact
+    
+    redaction_config:
+      method: mask  # Options: mask, hash, remove
+      mask_char: "*"
+      preserve_format: true  # Keep format for validation
+      exceptions:
+        - internal_analytics  # Allow for aggregate analytics
+  
+  # Confidential Data
+  - classification: CONFIDENTIAL
+    allowed_destinations:
+      - internal_database
+      - audit_log
+      - encrypted_storage
+      - internal_api
+    
+    denied_destinations:
+      - external_api
+      - public_output
+    
+    on_violation: deny
+    
+    requirements:
+      encryption: required
+      audit_access: true
+      approval_required: false
+  
+  # Restricted Data - Highest Protection
+  - classification: RESTRICTED
+    allowed_destinations:
+      - secure_vault
+      - audit_log
+    
+    denied_destinations:
+      - "*"  # Deny all except explicit allows
+    
+    on_violation: deny
+    
+    requirements:
+      encryption: required
+      audit_access: true
+      approval_required: true
+      mfa_required: true
+    
+    alerts:
+      on_access: true
+      severity: critical
+  
+  # Public Data - No restrictions
+  - classification: PUBLIC
+    allowed_destinations: ["*"]
+    on_violation: allow
+
+# PII Field Definitions (for automatic detection)
+pii_fields:
+  - field_name: email
+    patterns:
+      - "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$"
+    redaction: "***@***.***"
+  
+  - field_name: phone
+    patterns:
+      - "^\\+?[1-9]\\d{1,14}$"
+      - "^\\(?\\d{3}\\)?[-.\\s]?\\d{3}[-.\\s]?\\d{4}$"
+    redaction: "***-***-****"
+  
+  - field_name: ssn
+    patterns:
+      - "^\\d{3}-\\d{2}-\\d{4}$"
+      - "^\\d{9}$"
+    redaction: "***-**-****"
+  
+  - field_name: credit_card
+    patterns:
+      - "^\\d{13,19}$"
+      - "^\\d{4}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{4}$"
+    redaction: "****-****-****-****"
+
+# Destination Definitions
+destinations:
+  - name: internal_database
+    type: internal
+    trusted: true
+    
+  - name: external_api
+    type: external
+    trusted: false
+    
+  - name: llm_context
+    type: ai_model
+    trusted: false
+    description: "Data sent back to LLM for context"
+    
+  - name: public_output
+    type: external
+    trusted: false
+    description: "Output visible to end users"
+    
+  - name: encrypted_storage
+    type: internal
+    trusted: true
+    requirements:
+      encryption: AES-256
+    
+  - name: secure_vault
+    type: internal
+    trusted: true
+    requirements:
+      encryption: AES-256
+      hsm_backed: true
+
+# Audit Configuration
+audit:
+  log_all_access: true
+  log_destination: audit_log
+  include_data_hash: true
+  include_classification: true
+  retention_days: 365
+
+metadata:
+  created_by: security-team
+  compliance: 
+    - GDPR
+    - CCPA
+    - HIPAA
+  review_date: "2025-02-01"
