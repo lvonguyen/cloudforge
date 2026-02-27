@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <!-- Left node -->
+  <circle cx="12" cy="32" r="7" fill="#9333ea" stroke="#7e22ce" stroke-width="1.5"/>
+  <!-- Center node (larger, primary) -->
+  <circle cx="32" cy="20" r="9" fill="#9333ea" stroke="#7e22ce" stroke-width="1.5"/>
+  <!-- Right node -->
+  <circle cx="52" cy="32" r="7" fill="#9333ea" stroke="#7e22ce" stroke-width="1.5"/>
+  <!-- Connecting line left-center -->
+  <line x1="18.5" y1="29.5" x2="24" y2="24.5"
+        stroke="#9333ea" stroke-width="2" stroke-linecap="round"/>
+  <!-- Connecting line center-right -->
+  <line x1="40" y1="24.5" x2="45.5" y2="29.5"
+        stroke="#9333ea" stroke-width="2" stroke-linecap="round"/>
+  <!-- Pulse wave (bottom) -->
+  <polyline points="8,50 16,50 20,42 25,56 30,44 35,50 40,50 44,43 48,54 52,50 56,50"
+            stroke="#6b21a8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
