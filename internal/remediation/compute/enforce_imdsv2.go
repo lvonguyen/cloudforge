@@ -16,6 +16,12 @@ import (
 	"cloudforge/pkg/remediation"
 )
 
+// ec2MetadataAPI defines the EC2 operations used by this remediator.
+type ec2MetadataAPI interface {
+	ModifyInstanceMetadataOptions(ctx context.Context, params *ec2.ModifyInstanceMetadataOptionsInput, optFns ...func(*ec2.Options)) (*ec2.ModifyInstanceMetadataOptionsOutput, error)
+	DescribeInstances(ctx context.Context, params *ec2.DescribeInstancesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeInstancesOutput, error)
+}
+
 // EnforceIMDSv2Remediator enforces IMDSv2 (Instance Metadata Service v2) on EC2 instances.
 //
 // Finding Type: EC2_IMDSV1_ENABLED
@@ -23,12 +29,35 @@ import (
 // Impact: Requires all metadata requests to use session tokens, mitigates SSRF attacks
 // CSPs: AWS
 type EnforceIMDSv2Remediator struct {
-	tier int
+	tier   int
+	client ec2MetadataAPI
+}
+
+// WithEC2MetadataClient injects a custom EC2 client (used in tests).
+func WithEC2MetadataClient(c ec2MetadataAPI) func(*EnforceIMDSv2Remediator) {
+	return func(r *EnforceIMDSv2Remediator) {
+		r.client = c
+	}
 }
 
 // NewEnforceIMDSv2Remediator creates a new handler for enforcing IMDSv2.
-func NewEnforceIMDSv2Remediator() *EnforceIMDSv2Remediator {
-	return &EnforceIMDSv2Remediator{tier: 1}
+func NewEnforceIMDSv2Remediator(opts ...func(*EnforceIMDSv2Remediator)) *EnforceIMDSv2Remediator {
+	r := &EnforceIMDSv2Remediator{tier: 1}
+	for _, o := range opts {
+		o(r)
+	}
+	return r
+}
+
+func (e *EnforceIMDSv2Remediator) getClient(ctx context.Context, region string) (ec2MetadataAPI, error) {
+	if e.client != nil {
+		return e.client, nil
+	}
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+	}
+	return ec2.NewFromConfig(cfg), nil
 }
 
 // Tier returns the complexity tier (1 = auto-safe).
@@ -47,12 +76,11 @@ func (e *EnforceIMDSv2Remediator) Remediate(ctx context.Context, finding *findin
 		Actions:    []string{},
 	}
 
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(finding.Finding.Region))
+	client, err := e.getClient(ctx, finding.Finding.Region)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+		return nil, err
 	}
 
-	client := ec2.NewFromConfig(cfg)
 	instanceID := extractInstanceID(finding.Finding.ResourceID)
 
 	_, err = client.ModifyInstanceMetadataOptions(ctx, &ec2.ModifyInstanceMetadataOptionsInput{
@@ -86,12 +114,11 @@ func (e *EnforceIMDSv2Remediator) Validate(ctx context.Context, finding *finding
 		Evidence:    []string{},
 	}
 
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(finding.Finding.Region))
+	client, err := e.getClient(ctx, finding.Finding.Region)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+		return nil, err
 	}
 
-	client := ec2.NewFromConfig(cfg)
 	instanceID := extractInstanceID(finding.Finding.ResourceID)
 
 	output, err := client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
