@@ -1,8 +1,11 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '@/lib/api'
 import { AuthProvider } from '@/lib/auth'
 import { AppShell } from '@/components/layout/AppShell'
+
+// Landing
+import Landing from '@/pages/Landing'
 
 // Admin pages
 import AdminDashboard from '@/pages/admin/Dashboard'
@@ -35,8 +38,8 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route element={<AppShell />}>
-              {/* Default redirect */}
-              <Route index element={<Navigate to="/admin" replace />} />
+              {/* Portfolio landing page */}
+              <Route index element={<Landing />} />
 
               {/* Admin routes */}
               <Route path="/admin" element={<AdminDashboard />} />
