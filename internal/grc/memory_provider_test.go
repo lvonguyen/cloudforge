@@ -382,21 +382,14 @@ func TestMemoryGRCProvider_GetExpiringExceptions(t *testing.T) {
 		t.Fatalf("GetExpiringExceptions failed: %v", err)
 	}
 
-	// Should only return soon and already-expired (both before cutoff and approved)
-	if len(expiring) != 2 {
-		t.Errorf("expected 2 expiring exceptions, got %d", len(expiring))
+	// Should only return exp-soon (already-expired records are filtered out)
+	if len(expiring) != 1 {
+		t.Errorf("expected 1 expiring exception, got %d", len(expiring))
 	}
 
-	// Verify the correct ones are returned
-	ids := make(map[string]bool)
-	for _, e := range expiring {
-		ids[e.ID] = true
-	}
-	if !ids["exp-soon"] {
-		t.Error("expected exp-soon in results")
-	}
-	if !ids["already-expired"] {
-		t.Error("expected already-expired in results")
+	// Verify the correct one is returned
+	if len(expiring) > 0 && expiring[0].ID != "exp-soon" {
+		t.Errorf("expected exp-soon in results, got %s", expiring[0].ID)
 	}
 }
 

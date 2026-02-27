@@ -361,15 +361,7 @@ func GetClaimsFromContext(ctx context.Context) (*Claims, bool) {
 
 // base64URLDecode decodes a base64url-encoded string (JWT format).
 func base64URLDecode(s string) ([]byte, error) {
-	// Add padding if necessary
-	switch len(s) % 4 {
-	case 2:
-		s += "=="
-	case 3:
-		s += "="
-	}
-
-	return base64.URLEncoding.DecodeString(s)
+	return base64.RawURLEncoding.DecodeString(s)
 }
 
 // computeHS256 computes HMAC-SHA256 signature.

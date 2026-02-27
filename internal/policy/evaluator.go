@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -205,10 +206,14 @@ type ExceptionEvaluationResult struct {
 	Denials           []string `json:"denials"`
 }
 
-// extractPolicyCode extracts policy code from message (e.g., "AWS-001: ...")
+// extractPolicyCode extracts policy code from message (e.g., "AWS-001: ...", "AZURE-002: ...")
 func extractPolicyCode(msg string) string {
-	if len(msg) > 8 && msg[3] == '-' {
-		return msg[:7]
+	idx := strings.Index(msg, ":")
+	if idx > 0 && idx <= 10 {
+		code := strings.TrimSpace(msg[:idx])
+		if strings.Contains(code, "-") {
+			return code
+		}
 	}
 	return "UNKNOWN"
 }

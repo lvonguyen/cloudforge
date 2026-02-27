@@ -36,7 +36,8 @@ func (m *MemoryGRCProvider) CreateException(
 	req.CreatedAt = time.Now()
 	req.UpdatedAt = time.Now()
 
-	m.exceptions[req.ID] = req
+	stored := *req
+	m.exceptions[req.ID] = &stored
 
 	return req, nil
 }
@@ -64,7 +65,8 @@ func (m *MemoryGRCProvider) UpdateException(ctx context.Context, req *ExceptionR
 	}
 
 	req.UpdatedAt = time.Now()
-	m.exceptions[req.ID] = req
+	stored := *req
+	m.exceptions[req.ID] = &stored
 
 	return nil
 }

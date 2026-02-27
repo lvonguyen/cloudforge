@@ -29,13 +29,12 @@ var rollbackRegistry = map[string]RollbackFunc{}
 // Only handlers with deterministic, safe rollback paths are registered.
 func registerRollbackHandlers() {
 	rollbackRegistry["GuardDuty.1"] = rollbackGuardDuty
-	rollbackRegistry["OPEN_SSH_PORT"] = rollbackBlockSSH
-	rollbackRegistry["AWS.EC2.SecurityGroup.SSH"] = rollbackBlockSSH
 	rollbackRegistry["S3_PUBLIC_ACCESS"] = rollbackBlockPublicS3
 	rollbackRegistry["IAM_OLD_ACCESS_KEY"] = rollbackRotateIAMKeys
 	rollbackRegistry["EC2_IMDSV1_ENABLED"] = rollbackEnforceIMDS
 
 	// No rollback for:
+	// - OPEN_SSH_PORT / AWS.EC2.SecurityGroup.SSH (not yet implemented)
 	// - EXPOSED_SECRET (manual rotation cannot be undone)
 	// - OS_PATCH_MISSING (uninstalling patches is dangerous)
 	// - Defender.Storage (Azure stub, nothing to rollback)

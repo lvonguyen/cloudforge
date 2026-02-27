@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -140,7 +141,7 @@ func (p *PostgresGRCProvider) GetException(ctx context.Context, id string) (*Exc
 		&req.CreatedAt,
 		&req.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("exception %s not found", id)
 	}
 	if err != nil {
@@ -282,7 +283,7 @@ func (p *PostgresGRCProvider) ValidateException(
 
 	err := p.db.QueryRowContext(ctx, query, applicationID, policyCode).Scan(&id, &expiration)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return &ExceptionValidation{
 			Valid:  false,
 			Reason: fmt.Sprintf("No approved exception for policy %s", policyCode),
