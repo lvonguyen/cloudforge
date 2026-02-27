@@ -95,7 +95,7 @@ func (p *VertexProvider) CompleteWithSystem(ctx context.Context, systemPrompt, u
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20)) // 10 MB safety limit
 	if err != nil {
 		return "", fmt.Errorf("reading vertex response: %w", err)
 	}
