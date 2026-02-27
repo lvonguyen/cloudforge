@@ -3,7 +3,7 @@
 ![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Development Status](https://img.shields.io/badge/status-active%20development-blue)
-![Implementation](https://img.shields.io/badge/implementation-80%25-green)
+![Implementation](https://img.shields.io/badge/implementation-85%25-green)
 
 ## Enterprise Cloud Governance Platform with Self-Service Provisioning
 
@@ -13,7 +13,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 ## [/] Implementation Status
 
-> **Current State:** Active development (~75% complete). Core API functional, GRC integration working, remediation dispatcher operational, CI/CD pipeline configured.
+> **Current State:** Active development (~85% complete). Core API functional, GRC integration working, remediation dispatcher operational, CI/CD pipeline hardened, IaC deploy layer with multi-cloud Terraform modules and policy-as-code.
 
 | Component | Status | Notes |
 | --------- | ------ | ----- |
@@ -62,6 +62,20 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | **Security** | | |
 | Rate limiting | Done | Redis-backed, tier-based limits |
 | OIDC authentication | Interface Only | Okta/Entra ID not integrated |
+| **IaC / Deploy** | | |
+| Terraform modules (compute) | Done | Cloud Run + ECS Fargate + Azure Container Apps |
+| Terraform modules (database) | Done | Cloud SQL + RDS + Azure PostgreSQL |
+| Terraform modules (redis) | Done | Memorystore + ElastiCache + Azure Cache |
+| Rego policies (IaC) | Done | 5 policies, 25 rules (security, cost, naming, network, AI) |
+| Policy gate script | Done | `terraform plan` + `conftest` pipeline |
+| Deploy Dockerfiles | Done | Multi-stage frontend (nginx) + backend (Go) |
+| Environment configs | Done | Dev environment with GCS remote state |
+| **Risk Intelligence** | | |
+| Contextual risk schema | Done | AttackPathContext, ToxicComboDetails, MITRE fields |
+| LLM severity re-scoring | Done | Claude-powered with blast radius + EPSS + KEV inputs |
+| Severity normalization | Done | Per-CSP normalization (AWS ASFF, Azure, GCP) |
+| Attack path computation | Planned | Graph-based traversal (see roadmap) |
+| Threat intel enrichment | Planned | EPSS, CISA KEV, GreyNoise integration |
 | **Testing** | | |
 | Unit tests | Partial | Executor engine tests (14 cases passing) |
 | Integration tests | 0% | |
@@ -245,7 +259,17 @@ cloudforge/
 ├── pkg/
 │   └── remediation/               # Executor engine, Remediator interface, types
 ├── migrations/                    # Database migrations
-├── policies/                      # OPA/Rego policies
+├── deploy/
+│   ├── terraform/
+│   │   ├── modules/               # Multi-cloud Terraform modules
+│   │   │   ├── compute/           # Cloud Run / ECS Fargate / Azure Container Apps
+│   │   │   ├── database/          # Cloud SQL / RDS / Azure PostgreSQL
+│   │   │   └── redis/             # Memorystore / ElastiCache / Azure Cache
+│   │   ├── environments/          # Per-environment configs (dev, staging, prod)
+│   │   └── policies/              # Rego policies for IaC validation (conftest)
+│   ├── scripts/                   # plan-with-policy.sh, deploy.sh
+│   └── docker/                    # Frontend (nginx) + Backend (Go) Dockerfiles
+├── policies/                      # OPA/Rego runtime policies
 ├── configs/                       # Configuration templates
 ├── docs/
 │   ├── architecture/              # HLD, DDD, data models
@@ -297,6 +321,24 @@ Pluggable providers for enterprise GRC platforms:
 - **Threat modeling** — STRIDE + ATLAS threat models per registered agent type
 - **Maturity assessment** — governance readiness scoring across 5 maturity dimensions
 - **Dual-track OPA** — cloud provisioning path uses external OPA server; AI governance uses embedded Go library — complementary, not conflicting
+
+### Infrastructure as Code (Deploy Layer)
+
+- **Multi-cloud Terraform modules** — compute (Cloud Run / ECS Fargate / Azure Container Apps), database (Cloud SQL / RDS / Azure PostgreSQL), redis (Memorystore / ElastiCache / Azure Cache)
+- **Policy-as-code gate** — 5 Rego policies (25 rules) validated via `conftest` against `terraform plan` JSON before any apply
+- **Three-layer OPA governance** — (1) plan-time IaC validation, (2) runtime policy evaluation via external OPA server, (3) in-process embedded OPA for AI agent governance
+- **Deploy scripts** — dry-run-by-default deployment with policy violation gate and human-readable remediation guidance
+- **Container images** — multi-stage Dockerfiles for frontend (nginx + SPA routing) and backend (Go + healthcheck)
+
+![Dual-OPA Architecture](docs/diagrams/dual-opa-architecture.svg)
+
+### Risk Intelligence
+
+- **Contextual risk scoring** — LLM-powered severity re-scoring that considers asset tier, environment (prod/dev/sandbox), internet exposure, blast radius, and compensating controls
+- **Severity normalization** — per-CSP normalization (AWS ASFF normalized scores, Azure severity labels, GCP attack exposure scores) into unified severity taxonomy
+- **Threat intel schema** — ready for EPSS, CISA KEV, GreyNoise, and OTX enrichment (population pipeline in roadmap)
+- **Attack path schema** — `AttackPathContext` with blast radius count, IAM escalation path, chokepoint detection, toxic combination flag (graph computation engine in roadmap)
+- **MITRE ATT&CK mapping** — tactic and technique fields on findings for kill-chain context
 
 ### Multi-Cloud Support
 
@@ -401,6 +443,8 @@ workflow:
 | [Component Rationale](docs/architecture/component-rationale.md) | Build vs buy decisions |
 | [Frontend Planning](docs/frontend-planning.md) | React/Vite UI — 18 screens, 3 role views, phased build plan |
 | [IaC Planning](docs/iac-planning.md) | Terraform modules, Rego policies, deployment architecture |
+| [Dual-OPA Architecture](docs/diagrams/dual-opa-architecture.mmd) | Cloud provisioning OPA (HTTP) vs AI governance OPA (embedded) |
+| [Attack Path Enhancements](wiz-attack-path-enhancements.md) | Wiz-adjacent graph-based attack path analysis roadmap |
 
 ### Architecture Decision Records
 
@@ -492,14 +536,26 @@ Built-in support for 20+ frameworks:
 - [ ] Integration test suite
 - [ ] Merge cspm-aggregator into monorepo
 
-### Phase 3: Portal & Workflows
+### Phase 3: IaC, Portal & Workflows
 
-- [ ] Self-service portal UI (React/Next.js)
+- [x] Multi-cloud Terraform modules (compute, database, redis)
+- [x] Rego policy gate for IaC validation (5 policies, 25 rules)
+- [x] Deploy scripts with dry-run-by-default and policy violation gate
+- [x] Container Dockerfiles (frontend nginx + backend Go)
+- [ ] Self-service portal UI (React/Vite + shadcn/ui)
 - [ ] Temporal workflow testing and validation
-- [ ] Terraform golden module catalog
-- [ ] Infrastructure request forms
+- [ ] Terraform networking module and staging/prod environments
 
-### Phase 4: FinOps & Reporting
+### Phase 4: Risk Intelligence & Attack Path Analysis
+
+- [ ] Contextual severity validation engine (environment-aware re-scoring)
+- [ ] Threat intel feed integration (EPSS, CISA KEV, GreyNoise)
+- [ ] Attack path computation engine (graph-based traversal)
+- [ ] Toxic combination detection (multi-finding chain analysis)
+- [ ] Blast radius computation (IAM + network reachability)
+- [ ] False-severity edge case detection (package reachability, compensating controls)
+
+### Phase 5: FinOps & Reporting
 
 - [ ] Cloud cost API integration (AWS/Azure/GCP)
 - [ ] Cost estimation integration
@@ -513,6 +569,10 @@ Built-in support for 20+ frameworks:
 
 | Date | Author | Change |
 | ---- | ------ | ------ |
+| 2026-02-27 | Liem Vo-Nguyen | Add IaC deploy layer — 3 TF modules, 5 Rego policies, scripts, Dockerfiles |
+| 2026-02-27 | Liem Vo-Nguyen | Harden CI supply-chain: SHA-pin all third-party GH Actions |
+| 2026-02-27 | Liem Vo-Nguyen | Add dual-OPA architecture diagram, regenerate architecture SVGs |
+| 2026-02-27 | Liem Vo-Nguyen | Add Risk Intelligence section — attack path schema, contextual risk roadmap |
 | 2026-02-27 | Liem Vo-Nguyen | Add frontend planning doc (18 screens, 3 roles, phased build) |
 | 2026-02-27 | Liem Vo-Nguyen | Add IaC planning doc (Terraform modules, Rego policies, deploy arch) |
 | 2026-02-26 | Liem Vo-Nguyen | Add AI governance module — embedded OPA engine, agent registry, STRIDE/ATLAS threat models (merged from AgentGuard) |

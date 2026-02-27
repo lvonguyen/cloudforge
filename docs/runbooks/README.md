@@ -8,13 +8,12 @@ This directory contains operational runbooks for CloudForge. Each runbook provid
 
 | Runbook | Description | Priority |
 |---------|-------------|----------|
-| [01-deployment.md](./01-deployment.md) | Deployment procedures | High |
-| [02-incident-response.md](./02-incident-response.md) | Incident handling | Critical |
-| [03-database-operations.md](./03-database-operations.md) | Database maintenance | High |
-| [04-performance-troubleshooting.md](./04-performance-troubleshooting.md) | Performance issues | Medium |
-| [05-security-incidents.md](./05-security-incidents.md) | Security response | Critical |
-| [06-disaster-recovery.md](./06-disaster-recovery.md) | DR procedures | Critical |
-| [07-monitoring-alerts.md](./07-monitoring-alerts.md) | Alert handling | Medium |
+| [01-deployment.md](./01-deployment.md) | Deployment procedures, rollout, rollback | High |
+| [02-incident-response.md](./02-incident-response.md) | Incident triage, classification, post-mortem | Critical |
+| [03-dr-failover.md](./03-dr-failover.md) | DR failover per CSP, failback, communication templates | Critical |
+| [04-performance-troubleshooting.md](./04-performance-troubleshooting.md) | CPU/memory profiling, DB analysis, optimization | Medium |
+| [05-remediation-operations.md](./05-remediation-operations.md) | Remediation dispatcher, per-handler ops, rollback, emergency stop | High |
+| [06-policy-management.md](./06-policy-management.md) | OPA lifecycle, dual-OPA ops, IaC policy gates, Rego testing | High |
 
 ## Runbook Template
 
