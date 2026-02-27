@@ -1,0 +1,283 @@
+[
+  {
+    "trace_id": "tr-20260227-001",
+    "agent_id": "550e8400-e29b-41d4-a716-446655440002",
+    "session_id": "sess-abc123",
+    "user_id": "ops-automated",
+    "start_time": "2026-02-27T09:15:00Z",
+    "end_time": "2026-02-27T09:15:47Z",
+    "duration_ms": 47230,
+    "status": "blocked",
+    "spans": [
+      {
+        "span_id": "sp-001",
+        "name": "agent:RemediationBot:run",
+        "type": "agent",
+        "start_time": "2026-02-27T09:15:00Z",
+        "end_time": "2026-02-27T09:15:47Z",
+        "duration_ms": 47230,
+        "status": "blocked",
+        "attributes": { "finding_id": "f-008", "tier": 1 },
+        "events": [],
+        "data": {}
+      },
+      {
+        "span_id": "sp-002",
+        "parent_span_id": "sp-001",
+        "name": "tool:DryRunValidation:f-008",
+        "type": "tool",
+        "start_time": "2026-02-27T09:15:02Z",
+        "end_time": "2026-02-27T09:15:08Z",
+        "duration_ms": 6120,
+        "status": "completed",
+        "attributes": { "tool": "dry-run-validator", "finding_id": "f-008" },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "DryRunValidation",
+            "tool_category": "validation",
+            "input_hash": "sha256:a1b2c3",
+            "output_hash": "sha256:d4e5f6",
+            "parameter_count": 2,
+            "external_call": false
+          }
+        }
+      },
+      {
+        "span_id": "sp-003",
+        "parent_span_id": "sp-001",
+        "name": "llm:claude-sonnet-4-6:remediation-plan",
+        "type": "llm",
+        "start_time": "2026-02-27T09:15:10Z",
+        "end_time": "2026-02-27T09:15:18Z",
+        "duration_ms": 8340,
+        "status": "completed",
+        "attributes": { "model": "claude-sonnet-4-6", "purpose": "remediation-planning" },
+        "events": [],
+        "data": {
+          "llm": {
+            "model": "claude-sonnet-4-6",
+            "provider": "anthropic",
+            "prompt_tokens": 1240,
+            "completion_tokens": 380,
+            "total_tokens": 1620,
+            "temperature": 0.1,
+            "max_tokens": 2048,
+            "prompt_hash": "sha256:plan001",
+            "finish_reason": "stop"
+          }
+        }
+      },
+      {
+        "span_id": "sp-004",
+        "parent_span_id": "sp-001",
+        "name": "tool:AWSRemediate:rds-disable-public",
+        "type": "tool",
+        "start_time": "2026-02-27T09:15:20Z",
+        "end_time": "2026-02-27T09:15:22Z",
+        "duration_ms": 2100,
+        "status": "blocked",
+        "attributes": { "tool": "AWSRemediate", "action": "ModifyDBInstance", "resource": "db-payments-01" },
+        "events": [
+          { "timestamp": "2026-02-27T09:15:21Z", "name": "policy.deny", "attributes": { "policy_id": "pol-003", "reason": "PROD database modification requires change window" } }
+        ],
+        "data": {
+          "tool": {
+            "tool_name": "AWSRemediate",
+            "tool_category": "cloud-api",
+            "input_hash": "sha256:rem001",
+            "output_hash": "sha256:blocked",
+            "parameter_count": 3,
+            "external_call": true,
+            "policy_decision": {
+              "policy_id": "pol-003",
+              "decision": "deny",
+              "reason": "Production database modification requires approved change window (CW-2026-0089). Tier 3 escalation created.",
+              "eval_time_us": 840,
+              "timestamp": "2026-02-27T09:15:21Z"
+            }
+          }
+        }
+      },
+      {
+        "span_id": "sp-005",
+        "parent_span_id": "sp-001",
+        "name": "tool:CreateAsanaTask:tier3-escalation",
+        "type": "tool",
+        "start_time": "2026-02-27T09:15:25Z",
+        "end_time": "2026-02-27T09:15:30Z",
+        "duration_ms": 5200,
+        "status": "completed",
+        "attributes": { "tool": "CreateAsanaTask", "task_url": "https://app.asana.com/0/123/456" },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "CreateAsanaTask",
+            "tool_category": "ticketing",
+            "input_hash": "sha256:task001",
+            "output_hash": "sha256:task002",
+            "parameter_count": 4,
+            "external_call": true
+          }
+        }
+      }
+    ],
+    "security_signals": [
+      {
+        "id": "sig-001",
+        "trace_id": "tr-20260227-001",
+        "span_id": "sp-004",
+        "type": "policy_violation",
+        "severity": "medium",
+        "title": "Remediation blocked by change window policy",
+        "description": "RemediationBot attempted to modify production RDS instance outside of approved change window. Policy pol-003 blocked execution. Tier 3 escalation created.",
+        "evidence": { "policy_id": "pol-003", "resource": "db-payments-01", "action": "ModifyDBInstance" },
+        "timestamp": "2026-02-27T09:15:21Z",
+        "mitigated": true
+      }
+    ],
+    "metrics": {
+      "total_spans": 5,
+      "llm_calls": 1,
+      "tool_invocations": 3,
+      "total_tokens": 1620,
+      "estimated_cost_usd": 0.0049,
+      "policy_evaluations": 1,
+      "security_signals": 1
+    },
+    "metadata": { "trigger": "scheduled-scan", "finding_severity": "CRITICAL" }
+  },
+  {
+    "trace_id": "tr-20260227-002",
+    "agent_id": "550e8400-e29b-41d4-a716-446655440001",
+    "session_id": "sess-def456",
+    "user_id": "audit-cron",
+    "start_time": "2026-02-27T08:30:00Z",
+    "end_time": "2026-02-27T08:31:42Z",
+    "duration_ms": 102340,
+    "status": "completed",
+    "spans": [
+      {
+        "span_id": "sp-101",
+        "name": "agent:CloudAudit:scan",
+        "type": "agent",
+        "start_time": "2026-02-27T08:30:00Z",
+        "end_time": "2026-02-27T08:31:42Z",
+        "duration_ms": 102340,
+        "status": "completed",
+        "attributes": { "accounts_scanned": 12, "findings_generated": 8 },
+        "events": [],
+        "data": {}
+      },
+      {
+        "span_id": "sp-102",
+        "parent_span_id": "sp-101",
+        "name": "tool:DescribeEC2Instances:scan",
+        "type": "tool",
+        "start_time": "2026-02-27T08:30:02Z",
+        "end_time": "2026-02-27T08:30:18Z",
+        "duration_ms": 16000,
+        "status": "completed",
+        "attributes": { "instances_returned": 342 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "DescribeEC2Instances",
+            "tool_category": "cloud-api",
+            "input_hash": "sha256:scan001",
+            "output_hash": "sha256:scan002",
+            "parameter_count": 1,
+            "external_call": true,
+            "policy_decision": {
+              "policy_id": "pol-001",
+              "decision": "allow",
+              "reason": "Read-only cloud API access permitted",
+              "eval_time_us": 230,
+              "timestamp": "2026-02-27T08:30:02Z"
+            }
+          }
+        }
+      },
+      {
+        "span_id": "sp-103",
+        "parent_span_id": "sp-101",
+        "name": "tool:EvaluatePolicy:batch",
+        "type": "tool",
+        "start_time": "2026-02-27T08:30:20Z",
+        "end_time": "2026-02-27T08:31:10Z",
+        "duration_ms": 50000,
+        "status": "completed",
+        "attributes": { "evaluations": 342, "violations": 8 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "EvaluatePolicy",
+            "tool_category": "policy",
+            "input_hash": "sha256:pol001",
+            "output_hash": "sha256:pol002",
+            "parameter_count": 2,
+            "external_call": false
+          }
+        }
+      },
+      {
+        "span_id": "sp-104",
+        "parent_span_id": "sp-101",
+        "name": "llm:claude-sonnet-4-6:ai-risk-scoring",
+        "type": "llm",
+        "start_time": "2026-02-27T08:31:12Z",
+        "end_time": "2026-02-27T08:31:38Z",
+        "duration_ms": 26000,
+        "status": "completed",
+        "attributes": { "purpose": "ai-risk-scoring", "findings": 8 },
+        "events": [],
+        "data": {
+          "llm": {
+            "model": "claude-sonnet-4-6",
+            "provider": "anthropic",
+            "prompt_tokens": 8420,
+            "completion_tokens": 1840,
+            "total_tokens": 10260,
+            "temperature": 0.0,
+            "max_tokens": 4096,
+            "prompt_hash": "sha256:risk001",
+            "finish_reason": "stop"
+          }
+        }
+      },
+      {
+        "span_id": "sp-105",
+        "parent_span_id": "sp-101",
+        "name": "tool:WriteReport:s3",
+        "type": "tool",
+        "start_time": "2026-02-27T08:31:40Z",
+        "end_time": "2026-02-27T08:31:42Z",
+        "duration_ms": 2000,
+        "status": "completed",
+        "attributes": { "bucket": "cf-reports", "key": "audits/2026-02-27/scan-001.json" },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "WriteReport",
+            "tool_category": "storage",
+            "input_hash": "sha256:rep001",
+            "output_hash": "sha256:rep002",
+            "parameter_count": 2,
+            "external_call": true
+          }
+        }
+      }
+    ],
+    "security_signals": [],
+    "metrics": {
+      "total_spans": 5,
+      "llm_calls": 1,
+      "tool_invocations": 3,
+      "total_tokens": 10260,
+      "estimated_cost_usd": 0.0308,
+      "policy_evaluations": 1,
+      "security_signals": 0
+    },
+    "metadata": { "trigger": "cron:0 8 * * *", "scan_type": "full" }
+  }
+]

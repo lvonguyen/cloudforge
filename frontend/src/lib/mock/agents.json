@@ -1,0 +1,101 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "name": "CloudAudit Agent",
+    "description": "Autonomous agent for continuous cloud configuration auditing. Uses LangChain to orchestrate multi-step compliance checks across AWS, Azure, and GCP.",
+    "framework": "langchain",
+    "version": "2.1.0",
+    "owner": "liem@cloudforge.dev",
+    "team": "security-platform",
+    "environment": "prod",
+    "capabilities": [
+      { "name": "cloud-api-access", "description": "Read-only access to cloud provider APIs", "data_access": ["aws:describe:*", "azure:read:*", "gcp:list:*"], "risk_level": "low" },
+      { "name": "policy-evaluation", "description": "Evaluate OPA policies against resource configs", "data_access": ["internal:policies:read"], "risk_level": "low" },
+      { "name": "report-generation", "description": "Generate compliance reports and write to S3", "data_access": ["s3:put:cf-reports/*"], "risk_level": "medium" }
+    ],
+    "tools": [
+      { "tool_id": "aws-describe-instances", "name": "DescribeEC2Instances", "category": "cloud-api", "permissions": ["ec2:DescribeInstances"], "parameters": {} },
+      { "tool_id": "opa-evaluate", "name": "EvaluatePolicy", "category": "policy", "permissions": ["internal"], "parameters": {} },
+      { "tool_id": "s3-report-writer", "name": "WriteReport", "category": "storage", "permissions": ["s3:PutObject"], "parameters": { "bucket": "cf-reports" } }
+    ],
+    "policies": ["pol-001", "pol-002"],
+    "risk_level": "low",
+    "status": "active",
+    "last_active_at": "2026-02-27T08:30:00Z",
+    "created_at": "2026-01-15T09:00:00Z",
+    "updated_at": "2026-02-20T14:00:00Z"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440002",
+    "name": "RemediationBot",
+    "description": "Automated remediation agent using AutoGen multi-agent framework. Executes Tier 1/2 remediations with pre-flight dry-run validation and rollback capability.",
+    "framework": "autogen",
+    "version": "1.4.2",
+    "owner": "ops-team@cloudforge.dev",
+    "team": "cloud-ops",
+    "environment": "prod",
+    "capabilities": [
+      { "name": "cloud-write-access", "description": "Write access for remediation actions", "data_access": ["aws:modify:ec2,s3,rds", "azure:write:network,compute", "gcp:update:gke,storage"], "risk_level": "high" },
+      { "name": "ticket-creation", "description": "Create Asana tasks for Tier 3 escalations", "data_access": ["asana:tasks:create"], "risk_level": "low" },
+      { "name": "dry-run-validation", "description": "Simulate remediation before execution", "data_access": ["internal:simulator"], "risk_level": "low" }
+    ],
+    "tools": [
+      { "tool_id": "aws-remediate", "name": "AWSRemediate", "category": "cloud-api", "permissions": ["ec2:ModifyInstanceAttribute", "s3:PutBucketAcl", "rds:ModifyDBInstance"], "parameters": {} },
+      { "tool_id": "asana-create-task", "name": "CreateAsanaTask", "category": "ticketing", "permissions": ["asana:write"], "parameters": {} }
+    ],
+    "policies": ["pol-001", "pol-003", "pol-004"],
+    "risk_level": "high",
+    "status": "active",
+    "last_active_at": "2026-02-27T09:15:00Z",
+    "created_at": "2026-01-20T10:00:00Z",
+    "updated_at": "2026-02-25T16:00:00Z"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440003",
+    "name": "ThreatIntelAgent",
+    "description": "Threat intelligence correlation agent using CrewAI. Cross-references CISA KEV, MITRE ATT&CK, and internal findings to prioritize response.",
+    "framework": "crewai",
+    "version": "0.8.1",
+    "owner": "security@cloudforge.dev",
+    "team": "threat-intel",
+    "environment": "staging",
+    "capabilities": [
+      { "name": "external-api-access", "description": "Access CISA KEV and MITRE APIs", "data_access": ["external:cisa.gov", "external:attack.mitre.org"], "risk_level": "medium" },
+      { "name": "findings-read", "description": "Read all security findings", "data_access": ["internal:findings:read:all"], "risk_level": "low" }
+    ],
+    "tools": [
+      { "tool_id": "cisa-kev-fetch", "name": "FetchCISAKEV", "category": "threat-intel", "permissions": ["external:https"], "parameters": { "url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json" } },
+      { "tool_id": "findings-search", "name": "SearchFindings", "category": "internal-api", "permissions": ["internal:read"], "parameters": {} }
+    ],
+    "policies": ["pol-001", "pol-005"],
+    "risk_level": "medium",
+    "status": "suspended",
+    "last_active_at": "2026-02-24T12:00:00Z",
+    "created_at": "2026-02-01T11:00:00Z",
+    "updated_at": "2026-02-24T12:30:00Z"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440004",
+    "name": "CostOptimizer",
+    "description": "FinOps optimization agent using LangGraph stateful workflow. Analyzes cost anomalies, identifies rightsizing opportunities, and generates chargeback allocations.",
+    "framework": "langgraph",
+    "version": "0.2.5",
+    "owner": "finops@cloudforge.dev",
+    "team": "finops",
+    "environment": "prod",
+    "capabilities": [
+      { "name": "billing-api-access", "description": "Read billing data from all cloud providers", "data_access": ["aws:billing:read", "azure:cost-management:read", "gcp:billing:read"], "risk_level": "low" },
+      { "name": "recommendation-write", "description": "Write optimization recommendations to database", "data_access": ["internal:recommendations:write"], "risk_level": "low" }
+    ],
+    "tools": [
+      { "tool_id": "aws-cost-explorer", "name": "AWSCostExplorer", "category": "billing", "permissions": ["ce:GetCostAndUsage"], "parameters": {} },
+      { "tool_id": "azure-cost-mgmt", "name": "AzureCostManagement", "category": "billing", "permissions": ["Microsoft.CostManagement/read"], "parameters": {} }
+    ],
+    "policies": ["pol-001", "pol-002"],
+    "risk_level": "low",
+    "status": "active",
+    "last_active_at": "2026-02-27T06:00:00Z",
+    "created_at": "2026-02-10T13:00:00Z",
+    "updated_at": "2026-02-26T09:00:00Z"
+  }
+]
