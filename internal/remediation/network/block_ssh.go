@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 
-	"cloudforge/internal/findings"
+	cspmscoring "cloudforge/internal/cspm/scoring"
 	"cloudforge/pkg/remediation"
 )
 
@@ -66,7 +66,7 @@ func (b *BlockPublicSSHRemediator) Tier() int {
 }
 
 // Remediate removes the 0.0.0.0/0:22 ingress rule from the security group.
-func (b *BlockPublicSSHRemediator) Remediate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.RemediationResult, error) {
+func (b *BlockPublicSSHRemediator) Remediate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.RemediationResult, error) {
 	startTime := time.Now()
 
 	result := &remediation.RemediationResult{
@@ -91,7 +91,7 @@ func (b *BlockPublicSSHRemediator) Remediate(ctx context.Context, finding *findi
 }
 
 // remediateAWS handles AWS EC2 security groups.
-func (b *BlockPublicSSHRemediator) remediateAWS(ctx context.Context, finding *findings.PrioritizedFinding, result *remediation.RemediationResult) (*remediation.RemediationResult, error) {
+func (b *BlockPublicSSHRemediator) remediateAWS(ctx context.Context, finding *cspmscoring.PrioritizedFinding, result *remediation.RemediationResult) (*remediation.RemediationResult, error) {
 	client, err := b.getClient(ctx, finding.Finding.Region)
 	if err != nil {
 		return nil, err
@@ -132,7 +132,7 @@ func (b *BlockPublicSSHRemediator) remediateAWS(ctx context.Context, finding *fi
 }
 
 // remediateGCP handles GCP firewall rules (stub for now).
-func (b *BlockPublicSSHRemediator) remediateGCP(ctx context.Context, finding *findings.PrioritizedFinding, result *remediation.RemediationResult) (*remediation.RemediationResult, error) {
+func (b *BlockPublicSSHRemediator) remediateGCP(ctx context.Context, finding *cspmscoring.PrioritizedFinding, result *remediation.RemediationResult) (*remediation.RemediationResult, error) {
 	// TODO: Implement GCP firewall rule remediation
 	// Use google.golang.org/api/compute/v1
 	result.Message = "GCP SSH remediation not yet implemented"
@@ -141,7 +141,7 @@ func (b *BlockPublicSSHRemediator) remediateGCP(ctx context.Context, finding *fi
 }
 
 // remediateAzure handles Azure Network Security Groups (stub for now).
-func (b *BlockPublicSSHRemediator) remediateAzure(ctx context.Context, finding *findings.PrioritizedFinding, result *remediation.RemediationResult) (*remediation.RemediationResult, error) {
+func (b *BlockPublicSSHRemediator) remediateAzure(ctx context.Context, finding *cspmscoring.PrioritizedFinding, result *remediation.RemediationResult) (*remediation.RemediationResult, error) {
 	// TODO: Implement Azure NSG remediation
 	// Use github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork
 	result.Message = "Azure NSG remediation not yet implemented"
@@ -150,7 +150,7 @@ func (b *BlockPublicSSHRemediator) remediateAzure(ctx context.Context, finding *
 }
 
 // Validate verifies the 0.0.0.0/0:22 rule is removed.
-func (b *BlockPublicSSHRemediator) Validate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.ValidationResult, error) {
+func (b *BlockPublicSSHRemediator) Validate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.ValidationResult, error) {
 	validation := &remediation.ValidationResult{
 		FindingID:   finding.Finding.ID,
 		ValidatedAt: time.Now(),
@@ -211,7 +211,7 @@ func (b *BlockPublicSSHRemediator) Validate(ctx context.Context, finding *findin
 }
 
 // DryRun simulates blocking SSH without making changes.
-func (b *BlockPublicSSHRemediator) DryRun(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.DryRunResult, error) {
+func (b *BlockPublicSSHRemediator) DryRun(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.DryRunResult, error) {
 	sgID := extractSGID(finding.Finding.ResourceID)
 
 	dryRun := &remediation.DryRunResult{

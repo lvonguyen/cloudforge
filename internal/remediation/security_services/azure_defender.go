@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"cloudforge/internal/findings"
+	cspmscoring "cloudforge/internal/cspm/scoring"
 	"cloudforge/pkg/remediation"
 )
 
@@ -35,7 +35,7 @@ func (a *AzureDefenderStorageRemediator) Tier() int {
 }
 
 // Remediate is a stub that reports Azure SDK integration is pending.
-func (a *AzureDefenderStorageRemediator) Remediate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.RemediationResult, error) {
+func (a *AzureDefenderStorageRemediator) Remediate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.RemediationResult, error) {
 	startTime := time.Now()
 
 	return &remediation.RemediationResult{
@@ -54,7 +54,7 @@ func (a *AzureDefenderStorageRemediator) Remediate(ctx context.Context, finding 
 }
 
 // Validate is a stub that reports Azure SDK integration is pending.
-func (a *AzureDefenderStorageRemediator) Validate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.ValidationResult, error) {
+func (a *AzureDefenderStorageRemediator) Validate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.ValidationResult, error) {
 	return &remediation.ValidationResult{
 		FindingID:   finding.Finding.ID,
 		IsCompliant: false,
@@ -68,7 +68,7 @@ func (a *AzureDefenderStorageRemediator) Validate(ctx context.Context, finding *
 }
 
 // DryRun reports what would happen when Azure SDK is integrated.
-func (a *AzureDefenderStorageRemediator) DryRun(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.DryRunResult, error) {
+func (a *AzureDefenderStorageRemediator) DryRun(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.DryRunResult, error) {
 	return &remediation.DryRunResult{
 		FindingID:        finding.Finding.ID,
 		WouldSucceed:     true,

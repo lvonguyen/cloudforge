@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 
-	"cloudforge/internal/findings"
+	cspmscoring "cloudforge/internal/cspm/scoring"
 	"cloudforge/pkg/remediation"
 )
 
@@ -66,7 +66,7 @@ func (e *EnforceIMDSv2Remediator) Tier() int {
 }
 
 // Remediate sets HttpTokens=required on the EC2 instance to enforce IMDSv2.
-func (e *EnforceIMDSv2Remediator) Remediate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.RemediationResult, error) {
+func (e *EnforceIMDSv2Remediator) Remediate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.RemediationResult, error) {
 	startTime := time.Now()
 
 	result := &remediation.RemediationResult{
@@ -107,7 +107,7 @@ func (e *EnforceIMDSv2Remediator) Remediate(ctx context.Context, finding *findin
 }
 
 // Validate verifies IMDSv2 is enforced on the instance.
-func (e *EnforceIMDSv2Remediator) Validate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.ValidationResult, error) {
+func (e *EnforceIMDSv2Remediator) Validate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.ValidationResult, error) {
 	validation := &remediation.ValidationResult{
 		FindingID:   finding.Finding.ID,
 		ValidatedAt: time.Now(),
@@ -154,7 +154,7 @@ func (e *EnforceIMDSv2Remediator) Validate(ctx context.Context, finding *finding
 }
 
 // DryRun simulates enforcing IMDSv2 without making changes.
-func (e *EnforceIMDSv2Remediator) DryRun(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.DryRunResult, error) {
+func (e *EnforceIMDSv2Remediator) DryRun(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.DryRunResult, error) {
 	instanceID := extractInstanceID(finding.Finding.ResourceID)
 
 	return &remediation.DryRunResult{

@@ -15,7 +15,7 @@ import (
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3control"
 
-	"cloudforge/internal/findings"
+	cspmscoring "cloudforge/internal/cspm/scoring"
 	"cloudforge/pkg/remediation"
 )
 
@@ -195,7 +195,7 @@ func extractInstanceIDFromState(resourceID string) string {
 
 // captureHandlerPreState captures handler-specific state after remediation.
 // This provides the data needed for rollback (detector IDs, key IDs, SG IDs).
-func captureHandlerPreState(finding *findings.PrioritizedFinding, result *remediation.RemediationResult) map[string]interface{} {
+func captureHandlerPreState(finding *cspmscoring.PrioritizedFinding, result *remediation.RemediationResult) map[string]interface{} {
 	preState := map[string]interface{}{
 		"resource_id": finding.Finding.ResourceID,
 		"region":      finding.Finding.Region,

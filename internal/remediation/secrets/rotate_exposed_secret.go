@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"cloudforge/internal/findings"
+	cspmscoring "cloudforge/internal/cspm/scoring"
 	"cloudforge/pkg/remediation"
 )
 
@@ -37,7 +37,7 @@ func (r *RotateExposedSecretRemediator) Tier() int {
 
 // Remediate logs the finding and recommends manual rotation.
 // This handler intentionally does NOT auto-rotate secrets.
-func (r *RotateExposedSecretRemediator) Remediate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.RemediationResult, error) {
+func (r *RotateExposedSecretRemediator) Remediate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.RemediationResult, error) {
 	startTime := time.Now()
 
 	return &remediation.RemediationResult{
@@ -58,7 +58,7 @@ func (r *RotateExposedSecretRemediator) Remediate(ctx context.Context, finding *
 }
 
 // Validate reports that manual verification is required.
-func (r *RotateExposedSecretRemediator) Validate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.ValidationResult, error) {
+func (r *RotateExposedSecretRemediator) Validate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.ValidationResult, error) {
 	return &remediation.ValidationResult{
 		FindingID:   finding.Finding.ID,
 		IsCompliant: false,
@@ -73,7 +73,7 @@ func (r *RotateExposedSecretRemediator) Validate(ctx context.Context, finding *f
 }
 
 // DryRun describes the manual rotation procedure.
-func (r *RotateExposedSecretRemediator) DryRun(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.DryRunResult, error) {
+func (r *RotateExposedSecretRemediator) DryRun(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.DryRunResult, error) {
 	return &remediation.DryRunResult{
 		FindingID:        finding.Finding.ID,
 		WouldSucceed:     false,

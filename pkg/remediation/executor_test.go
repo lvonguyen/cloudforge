@@ -8,15 +8,15 @@ import (
 	"sync"
 	"testing"
 
-	"cloudforge/internal/findings"
+	cspmscoring "cloudforge/internal/cspm/scoring"
 )
 
 // mockRemediator implements the Remediator interface for testing.
 type mockRemediator struct {
 	tier           int
-	remediateFunc  func(ctx context.Context, finding *findings.PrioritizedFinding) (*RemediationResult, error)
-	validateFunc   func(ctx context.Context, finding *findings.PrioritizedFinding) (*ValidationResult, error)
-	dryRunFunc     func(ctx context.Context, finding *findings.PrioritizedFinding) (*DryRunResult, error)
+	remediateFunc  func(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*RemediationResult, error)
+	validateFunc   func(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*ValidationResult, error)
+	dryRunFunc     func(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*DryRunResult, error)
 	remediateCalls int
 	validateCalls  int
 	dryRunCalls    int
@@ -25,7 +25,7 @@ type mockRemediator struct {
 
 func (m *mockRemediator) Tier() int { return m.tier }
 
-func (m *mockRemediator) Remediate(ctx context.Context, finding *findings.PrioritizedFinding) (*RemediationResult, error) {
+func (m *mockRemediator) Remediate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*RemediationResult, error) {
 	m.mu.Lock()
 	m.remediateCalls++
 	m.mu.Unlock()
@@ -39,7 +39,7 @@ func (m *mockRemediator) Remediate(ctx context.Context, finding *findings.Priori
 	}, nil
 }
 
-func (m *mockRemediator) Validate(ctx context.Context, finding *findings.PrioritizedFinding) (*ValidationResult, error) {
+func (m *mockRemediator) Validate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*ValidationResult, error) {
 	m.mu.Lock()
 	m.validateCalls++
 	m.mu.Unlock()
@@ -53,7 +53,7 @@ func (m *mockRemediator) Validate(ctx context.Context, finding *findings.Priorit
 	}, nil
 }
 
-func (m *mockRemediator) DryRun(ctx context.Context, finding *findings.PrioritizedFinding) (*DryRunResult, error) {
+func (m *mockRemediator) DryRun(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*DryRunResult, error) {
 	m.mu.Lock()
 	m.dryRunCalls++
 	m.mu.Unlock()
@@ -67,9 +67,9 @@ func (m *mockRemediator) DryRun(ctx context.Context, finding *findings.Prioritiz
 	}, nil
 }
 
-func makeFinding(id, findingType string) *findings.PrioritizedFinding {
-	return &findings.PrioritizedFinding{
-		Finding: &findings.Finding{
+func makeFinding(id, findingType string) *cspmscoring.PrioritizedFinding {
+	return &cspmscoring.PrioritizedFinding{
+		Finding: &cspmscoring.Finding{
 			ID:          id,
 			FindingType: findingType,
 			Source:      "test-source",
@@ -172,7 +172,7 @@ func TestExecutor_ExecuteDryRun(t *testing.T) {
 			executor := NewExecutor(true) // dry-run mode
 			mock := &mockRemediator{
 				tier: 1,
-				dryRunFunc: func(_ context.Context, _ *findings.PrioritizedFinding) (*DryRunResult, error) {
+				dryRunFunc: func(_ context.Context, _ *cspmscoring.PrioritizedFinding) (*DryRunResult, error) {
 					return tt.dryRunResult, tt.dryRunErr
 				},
 			}
@@ -279,7 +279,7 @@ func TestExecutor_ValidationFailure(t *testing.T) {
 			executor := NewExecutor(false)
 			mock := &mockRemediator{
 				tier: 1,
-				validateFunc: func(_ context.Context, _ *findings.PrioritizedFinding) (*ValidationResult, error) {
+				validateFunc: func(_ context.Context, _ *cspmscoring.PrioritizedFinding) (*ValidationResult, error) {
 					return tt.validateRes, tt.validateErr
 				},
 			}
@@ -343,7 +343,7 @@ func TestExecutor_ExecuteBatch(t *testing.T) {
 			mock := &mockRemediator{tier: 1}
 			executor.Register("S3_PUBLIC_ACCESS", mock)
 
-			var batch []*findings.PrioritizedFinding
+			var batch []*cspmscoring.PrioritizedFinding
 			for i := 0; i < tt.numFindings; i++ {
 				batch = append(batch, makeFinding(fmt.Sprintf("f-%d", i), "S3_PUBLIC_ACCESS"))
 			}
@@ -365,7 +365,7 @@ func TestExecutor_ExecuteBatch_MixedResults(t *testing.T) {
 	goodHandler := &mockRemediator{tier: 1}
 	executor.Register("GOOD_TYPE", goodHandler)
 
-	batch := []*findings.PrioritizedFinding{
+	batch := []*cspmscoring.PrioritizedFinding{
 		makeFinding("f-good-1", "GOOD_TYPE"),
 		makeFinding("f-bad-1", "BAD_TYPE"),
 		makeFinding("f-good-2", "GOOD_TYPE"),

@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"cloudforge/internal/findings"
+	cspmscoring "cloudforge/internal/cspm/scoring"
 	"cloudforge/internal/remediation/compute"
 	"cloudforge/internal/remediation/identity"
 	"cloudforge/internal/remediation/network"
@@ -155,13 +155,13 @@ func registerHandlers(executor *remediation.Executor) {
 }
 
 // loadFindings reads all JSON files from the findings directory.
-func loadFindings(dir string) ([]*findings.PrioritizedFinding, error) {
+func loadFindings(dir string) ([]*cspmscoring.PrioritizedFinding, error) {
 	files, err := filepath.Glob(filepath.Join(dir, "*.json"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to glob findings: %w", err)
 	}
 
-	var results []*findings.PrioritizedFinding
+	var results []*cspmscoring.PrioritizedFinding
 	for _, file := range files {
 		data, err := os.ReadFile(file)
 		if err != nil {
@@ -169,7 +169,7 @@ func loadFindings(dir string) ([]*findings.PrioritizedFinding, error) {
 			continue
 		}
 
-		var finding findings.PrioritizedFinding
+		var finding cspmscoring.PrioritizedFinding
 		if err := json.Unmarshal(data, &finding); err != nil {
 			fmt.Fprintf(os.Stderr, "WARNING: Failed to parse %s: %v\n", file, err)
 			continue
@@ -185,14 +185,14 @@ func loadFindings(dir string) ([]*findings.PrioritizedFinding, error) {
 }
 
 // captureRollbackState saves pre-remediation state for rollback capability.
-func captureRollbackState(ctx context.Context, findingsList []*findings.PrioritizedFinding, results []*remediation.RemediationResult) error {
+func captureRollbackState(ctx context.Context, findingsList []*cspmscoring.PrioritizedFinding, results []*remediation.RemediationResult) error {
 	if err := os.MkdirAll(*stateDir, 0700); err != nil {
 		return fmt.Errorf("failed to create state dir: %w", err)
 	}
 
 	// Build a lookup map so we match findings to results by ID, not by index.
 	// Index correlation is fragile if ordering assumptions change.
-	findingsByID := make(map[string]*findings.PrioritizedFinding, len(findingsList))
+	findingsByID := make(map[string]*cspmscoring.PrioritizedFinding, len(findingsList))
 	for _, f := range findingsList {
 		findingsByID[f.Finding.ID] = f
 	}
@@ -244,7 +244,7 @@ func captureRollbackState(ctx context.Context, findingsList []*findings.Prioriti
 }
 
 // generateRollbackScript creates executable commands to undo the remediation.
-func generateRollbackScript(finding *findings.PrioritizedFinding, result *remediation.RemediationResult) string {
+func generateRollbackScript(finding *cspmscoring.PrioritizedFinding, result *remediation.RemediationResult) string {
 	// Generate CSP-specific rollback commands based on finding type
 	switch finding.Finding.FindingType {
 	case "GuardDuty.1":

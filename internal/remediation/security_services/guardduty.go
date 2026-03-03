@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/guardduty"
 	"github.com/aws/aws-sdk-go-v2/service/guardduty/types"
 
-	"cloudforge/internal/findings"
+	cspmscoring "cloudforge/internal/cspm/scoring"
 	"cloudforge/pkg/remediation"
 )
 
@@ -36,7 +36,7 @@ func (g *GuardDutyRemediator) Tier() int {
 }
 
 // Remediate enables GuardDuty in the specified region.
-func (g *GuardDutyRemediator) Remediate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.RemediationResult, error) {
+func (g *GuardDutyRemediator) Remediate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.RemediationResult, error) {
 	startTime := time.Now()
 
 	result := &remediation.RemediationResult{
@@ -91,7 +91,7 @@ func (g *GuardDutyRemediator) Remediate(ctx context.Context, finding *findings.P
 }
 
 // Validate verifies GuardDuty is enabled and active.
-func (g *GuardDutyRemediator) Validate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.ValidationResult, error) {
+func (g *GuardDutyRemediator) Validate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.ValidationResult, error) {
 	validation := &remediation.ValidationResult{
 		FindingID:   finding.Finding.ID,
 		ValidatedAt: time.Now(),
@@ -144,7 +144,7 @@ func (g *GuardDutyRemediator) Validate(ctx context.Context, finding *findings.Pr
 }
 
 // DryRun simulates enabling GuardDuty without making changes.
-func (g *GuardDutyRemediator) DryRun(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.DryRunResult, error) {
+func (g *GuardDutyRemediator) DryRun(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.DryRunResult, error) {
 	dryRun := &remediation.DryRunResult{
 		FindingID:        finding.Finding.ID,
 		WouldSucceed:     true,

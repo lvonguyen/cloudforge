@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3control"
 	s3controltypes "github.com/aws/aws-sdk-go-v2/service/s3control/types"
 
-	"cloudforge/internal/findings"
+	cspmscoring "cloudforge/internal/cspm/scoring"
 	"cloudforge/pkg/remediation"
 )
 
@@ -65,7 +65,7 @@ func (b *BlockPublicS3Remediator) Tier() int {
 }
 
 // Remediate applies account-level S3 Public Access Block [SEC-003].
-func (b *BlockPublicS3Remediator) Remediate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.RemediationResult, error) {
+func (b *BlockPublicS3Remediator) Remediate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.RemediationResult, error) {
 	startTime := time.Now()
 
 	result := &remediation.RemediationResult{
@@ -113,7 +113,7 @@ func (b *BlockPublicS3Remediator) Remediate(ctx context.Context, finding *findin
 }
 
 // Validate verifies the account-level public access block is enabled.
-func (b *BlockPublicS3Remediator) Validate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.ValidationResult, error) {
+func (b *BlockPublicS3Remediator) Validate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.ValidationResult, error) {
 	validation := &remediation.ValidationResult{
 		FindingID:   finding.Finding.ID,
 		ValidatedAt: time.Now(),
@@ -166,7 +166,7 @@ func (b *BlockPublicS3Remediator) Validate(ctx context.Context, finding *finding
 }
 
 // DryRun simulates blocking public access without making changes.
-func (b *BlockPublicS3Remediator) DryRun(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.DryRunResult, error) {
+func (b *BlockPublicS3Remediator) DryRun(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.DryRunResult, error) {
 	accountID := finding.Finding.AccountID
 
 	return &remediation.DryRunResult{
