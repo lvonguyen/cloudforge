@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"cloudforge/internal/findings"
+	cspmscoring "cloudforge/internal/cspm/scoring"
 )
 
 // Executor dispatches findings to appropriate remediation handlers.
@@ -29,7 +29,7 @@ func (e *Executor) Register(findingType string, handler Remediator) {
 }
 
 // Execute processes a finding and routes it to the appropriate handler.
-func (e *Executor) Execute(ctx context.Context, finding *findings.PrioritizedFinding) (*RemediationResult, error) {
+func (e *Executor) Execute(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*RemediationResult, error) {
 	// Validate finding to prevent nil pointer panics [SEC-001]
 	if finding == nil || finding.Finding == nil {
 		return nil, fmt.Errorf("finding or finding.Finding is nil")
@@ -95,7 +95,7 @@ func (e *Executor) Execute(ctx context.Context, finding *findings.PrioritizedFin
 
 // ExecuteBatch processes multiple findings concurrently (up to maxConcurrency).
 // Results are returned in the same order as the input batch [SEC-002].
-func (e *Executor) ExecuteBatch(ctx context.Context, batch []*findings.PrioritizedFinding, maxConcurrency int) ([]*RemediationResult, error) {
+func (e *Executor) ExecuteBatch(ctx context.Context, batch []*cspmscoring.PrioritizedFinding, maxConcurrency int) ([]*RemediationResult, error) {
 	if maxConcurrency <= 0 {
 		maxConcurrency = 5
 	}
@@ -138,7 +138,7 @@ func (e *Executor) ExecuteBatch(ctx context.Context, batch []*findings.Prioritiz
 		}
 
 		launched++
-		go func(idx int, f *findings.PrioritizedFinding) {
+		go func(idx int, f *cspmscoring.PrioritizedFinding) {
 			defer func() { <-sem }()
 			result, err := e.Execute(ctx, f)
 			resultChan <- resultPair{result: result, err: err, index: idx}
@@ -163,7 +163,7 @@ func (e *Executor) ExecuteBatch(ctx context.Context, batch []*findings.Prioritiz
 }
 
 // safeFindingID extracts the finding ID safely, returning empty string for nil findings.
-func safeFindingID(f *findings.PrioritizedFinding) string {
+func safeFindingID(f *cspmscoring.PrioritizedFinding) string {
 	if f != nil && f.Finding != nil {
 		return f.Finding.ID
 	}

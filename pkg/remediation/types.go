@@ -5,16 +5,16 @@ import (
 	"context"
 	"time"
 
-	"cloudforge/internal/findings"
+	cspmscoring "cloudforge/internal/cspm/scoring"
 )
 
 // Remediator is the interface that all remediation handlers must implement.
 type Remediator interface {
 	// Remediate executes the remediation action for the given finding.
-	Remediate(ctx context.Context, finding *findings.PrioritizedFinding) (*RemediationResult, error)
+	Remediate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*RemediationResult, error)
 
 	// Validate verifies that the remediation was successful.
-	Validate(ctx context.Context, finding *findings.PrioritizedFinding) (*ValidationResult, error)
+	Validate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*ValidationResult, error)
 
 	// Tier returns the complexity tier (1-3) for this remediation.
 	// Tier 1: Auto-safe, no approval needed (DEV/STG)
@@ -23,7 +23,7 @@ type Remediator interface {
 	Tier() int
 
 	// DryRun simulates the remediation without making changes.
-	DryRun(ctx context.Context, finding *findings.PrioritizedFinding) (*DryRunResult, error)
+	DryRun(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*DryRunResult, error)
 }
 
 // RemediationResult contains the outcome of a remediation action.

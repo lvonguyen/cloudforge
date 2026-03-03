@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 
-	"cloudforge/internal/findings"
+	cspmscoring "cloudforge/internal/cspm/scoring"
 	"cloudforge/pkg/remediation"
 )
 
@@ -37,7 +37,7 @@ func (r *RotateIAMKeysRemediator) Tier() int {
 }
 
 // Remediate deactivates IAM access keys older than the configured threshold.
-func (r *RotateIAMKeysRemediator) Remediate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.RemediationResult, error) {
+func (r *RotateIAMKeysRemediator) Remediate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.RemediationResult, error) {
 	startTime := time.Now()
 
 	result := &remediation.RemediationResult{
@@ -112,7 +112,7 @@ func (r *RotateIAMKeysRemediator) Remediate(ctx context.Context, finding *findin
 }
 
 // Validate verifies no active keys exceed the age threshold.
-func (r *RotateIAMKeysRemediator) Validate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.ValidationResult, error) {
+func (r *RotateIAMKeysRemediator) Validate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.ValidationResult, error) {
 	validation := &remediation.ValidationResult{
 		FindingID:   finding.Finding.ID,
 		ValidatedAt: time.Now(),
@@ -160,7 +160,7 @@ func (r *RotateIAMKeysRemediator) Validate(ctx context.Context, finding *finding
 }
 
 // DryRun simulates key rotation without making changes.
-func (r *RotateIAMKeysRemediator) DryRun(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.DryRunResult, error) {
+func (r *RotateIAMKeysRemediator) DryRun(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.DryRunResult, error) {
 	dryRun := &remediation.DryRunResult{
 		FindingID:        finding.Finding.ID,
 		WouldSucceed:     true,

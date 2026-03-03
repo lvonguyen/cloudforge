@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 
-	"cloudforge/internal/findings"
+	cspmscoring "cloudforge/internal/cspm/scoring"
 	"cloudforge/pkg/remediation"
 )
 
@@ -36,7 +36,7 @@ func (o *OSPatchRemediator) Tier() int {
 
 // Remediate queries SSM for patch compliance status and reports missing patches.
 // It does NOT auto-apply patches -- that requires a change window and explicit approval.
-func (o *OSPatchRemediator) Remediate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.RemediationResult, error) {
+func (o *OSPatchRemediator) Remediate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.RemediationResult, error) {
 	startTime := time.Now()
 
 	result := &remediation.RemediationResult{
@@ -97,7 +97,7 @@ func (o *OSPatchRemediator) Remediate(ctx context.Context, finding *findings.Pri
 }
 
 // Validate checks current patch compliance status.
-func (o *OSPatchRemediator) Validate(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.ValidationResult, error) {
+func (o *OSPatchRemediator) Validate(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.ValidationResult, error) {
 	validation := &remediation.ValidationResult{
 		FindingID:   finding.Finding.ID,
 		ValidatedAt: time.Now(),
@@ -148,7 +148,7 @@ func (o *OSPatchRemediator) Validate(ctx context.Context, finding *findings.Prio
 }
 
 // DryRun reports patch status and estimated remediation impact.
-func (o *OSPatchRemediator) DryRun(ctx context.Context, finding *findings.PrioritizedFinding) (*remediation.DryRunResult, error) {
+func (o *OSPatchRemediator) DryRun(ctx context.Context, finding *cspmscoring.PrioritizedFinding) (*remediation.DryRunResult, error) {
 	instanceID := extractInstanceID(finding.Finding.ResourceID)
 
 	return &remediation.DryRunResult{
