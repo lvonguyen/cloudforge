@@ -219,7 +219,7 @@ func (pm *PriorityMatrix) calculatePriority(severity string, tier ComplexityTier
 	var rationale string
 
 	switch severity {
-	case "CRITICAL":
+	case SevCritical:
 		if tier <= Tier2 {
 			priority = P1
 			rationale = fmt.Sprintf("CRITICAL severity with %s complexity requires immediate action", tier)
@@ -228,7 +228,7 @@ func (pm *PriorityMatrix) calculatePriority(severity string, tier ComplexityTier
 			rationale = fmt.Sprintf("CRITICAL severity but %s complexity requires coordination", tier)
 		}
 
-	case "HIGH":
+	case SevHigh:
 		switch tier {
 		case Tier1:
 			priority = P1
@@ -241,7 +241,7 @@ func (pm *PriorityMatrix) calculatePriority(severity string, tier ComplexityTier
 			rationale = "HIGH severity but high complexity requires change management process"
 		}
 
-	case "MEDIUM":
+	case SevMedium:
 		if tier == Tier1 {
 			priority = P3
 			rationale = "MEDIUM severity with low complexity - good candidate for batch remediation"
@@ -250,7 +250,7 @@ func (pm *PriorityMatrix) calculatePriority(severity string, tier ComplexityTier
 			rationale = "MEDIUM severity - address in normal remediation cycle"
 		}
 
-	case "LOW":
+	case SevLow:
 		if tier == Tier1 {
 			priority = P4
 			rationale = "LOW severity with low complexity - automate when convenient"
@@ -475,13 +475,13 @@ func (pm *PriorityMatrix) routeToQueue(result *PrioritizedFinding) {
 // getSLADays returns SLA deadline in days based on severity.
 func (pm *PriorityMatrix) getSLADays(severity string) int {
 	switch severity {
-	case "CRITICAL":
+	case SevCritical:
 		return 7
-	case "HIGH":
+	case SevHigh:
 		return 14
-	case "MEDIUM":
+	case SevMedium:
 		return 30
-	case "LOW":
+	case SevLow:
 		return 90
 	default:
 		return 90

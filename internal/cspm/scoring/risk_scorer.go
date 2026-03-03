@@ -11,6 +11,20 @@ import (
 	"time"
 )
 
+// Severity level constants for security findings.
+const (
+	SevCritical      = "CRITICAL"
+	SevHigh          = "HIGH"
+	SevMedium        = "MEDIUM"
+	SevLow           = "LOW"
+	SevInformational = "INFORMATIONAL"
+)
+
+// Environment type constants.
+const (
+	EnvSandbox = "sandbox"
+)
+
 // Finding represents a security finding to be scored.
 type Finding struct {
 	ID           string    `json:"id"`
@@ -182,7 +196,7 @@ func DefaultRiskScorerConfig() RiskScorerConfig {
 		Temperature:                              0.1,
 		MaxTokens:                                1024,
 		NeverDowngradeCriticalProdInternetFacing: true,
-		MinimumSeverityForPCIPII:                 "MEDIUM",
+		MinimumSeverityForPCIPII:                 SevMedium,
 		AutoAcceptLowInSandbox:                   true,
 		CapConfidenceWhenPackageUsageUnknown:     0.7,
 		HighFPRateThreshold:                      0.3,
@@ -281,11 +295,11 @@ func (rs *RiskScorer) ScoreFinding(ctx context.Context, finding *Finding) (*Risk
 func (rs *RiskScorer) checkAutoAccept(finding *Finding) *RiskAssessment {
 	// Auto-accept LOW severity in sandbox environments
 	if rs.config.AutoAcceptLowInSandbox &&
-		finding.Severity == "LOW" &&
-		finding.Context.EnvType == "sandbox" {
+		finding.Severity == SevLow &&
+		finding.Context.EnvType == EnvSandbox {
 		return &RiskAssessment{
 			OriginalSeverity:   finding.Severity,
-			AdjustedSeverity:   "LOW",
+			AdjustedSeverity:   SevLow,
 			SeverityChanged:    false,
 			SeverityDirection:  "unchanged",
 			RiskScore:          15,
@@ -301,11 +315,11 @@ func (rs *RiskScorer) checkAutoAccept(finding *Finding) *RiskAssessment {
 
 	// Auto-accept if high FP rate and non-critical
 	if finding.Context.FPRateForType > rs.config.HighFPRateThreshold &&
-		finding.Severity != "CRITICAL" &&
+		finding.Severity != SevCritical &&
 		finding.Context.FalsePositiveHistory >= 3 {
 		return &RiskAssessment{
 			OriginalSeverity:   finding.Severity,
-			AdjustedSeverity:   "LOW",
+			AdjustedSeverity:   SevLow,
 			SeverityChanged:    true,
 			SeverityDirection:  "downgraded",
 			RiskScore:          20,
@@ -449,11 +463,11 @@ func (rs *RiskScorer) parseResponse(content string, finding *Finding) (*RiskAsse
 func (rs *RiskScorer) applyGuardrails(assessment *RiskAssessment, finding *Finding) {
 	// Rule 1: Never downgrade CRITICAL on Tier1-Prod + internet-facing
 	if rs.config.NeverDowngradeCriticalProdInternetFacing {
-		if finding.Severity == "CRITICAL" &&
+		if finding.Severity == SevCritical &&
 			finding.Context.AssetTier == "Tier1-Prod" &&
 			finding.Context.InternetFacing {
-			if severityToInt(assessment.AdjustedSeverity) > severityToInt("CRITICAL") {
-				assessment.AdjustedSeverity = "CRITICAL"
+			if severityToInt(assessment.AdjustedSeverity) > severityToInt(SevCritical) {
+				assessment.AdjustedSeverity = SevCritical
 				assessment.SeverityChanged = false
 				assessment.SeverityDirection = "unchanged"
 				assessment.AggravatingFactors = append(assessment.AggravatingFactors,
@@ -505,7 +519,7 @@ func envSeverityMultiplier(envType string) float64 {
 		return 0.8
 	case "dev", "development":
 		return 0.5
-	case "sandbox", "sbx", "test", "qa", "uat":
+	case EnvSandbox, "sbx", "test", "qa", "uat":
 		return 0.3
 	default:
 		return 1.0 // unknown — treat conservatively
@@ -514,15 +528,15 @@ func envSeverityMultiplier(envType string) float64 {
 
 func severityToInt(sev string) int {
 	switch strings.ToUpper(sev) {
-	case "CRITICAL":
+	case SevCritical:
 		return 1
-	case "HIGH":
+	case SevHigh:
 		return 2
-	case "MEDIUM":
+	case SevMedium:
 		return 3
-	case "LOW":
+	case SevLow:
 		return 4
-	case "INFORMATIONAL":
+	case SevInformational:
 		return 5
 	default:
 		return 5
@@ -531,13 +545,13 @@ func severityToInt(sev string) int {
 
 func severityToMinScore(sev string) int {
 	switch strings.ToUpper(sev) {
-	case "CRITICAL":
+	case SevCritical:
 		return 85
-	case "HIGH":
+	case SevHigh:
 		return 65
-	case "MEDIUM":
+	case SevMedium:
 		return 40
-	case "LOW":
+	case SevLow:
 		return 15
 	default:
 		return 1
@@ -546,13 +560,13 @@ func severityToMinScore(sev string) int {
 
 func severityToMaxScore(sev string) int {
 	switch strings.ToUpper(sev) {
-	case "CRITICAL":
+	case SevCritical:
 		return 100
-	case "HIGH":
+	case SevHigh:
 		return 84
-	case "MEDIUM":
+	case SevMedium:
 		return 64
-	case "LOW":
+	case SevLow:
 		return 39
 	default:
 		return 14

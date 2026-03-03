@@ -146,7 +146,7 @@ func envTypeToAssetTier(envType string) string {
 		return "Tier2-NonProd"
 	case "dev", "development":
 		return "Tier3-Dev"
-	case "sandbox", "sbx", "test", "qa", "uat":
+	case EnvSandbox, "sbx", "test", "qa", "uat":
 		return "Tier3-Dev"
 	default:
 		// Unknown — treat as prod for conservative risk assessment.
