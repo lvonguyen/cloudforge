@@ -1,4 +1,4 @@
-.PHONY: build run test clean docker-build docker-up docker-down migrate lint fmt help
+.PHONY: build run test clean docker-build docker-up docker-down migrate lint fmt help build-cspm run-cspm test-cspm
 
 # Variables
 BINARY_NAME=cloudforge
@@ -21,6 +21,9 @@ help:
 	@echo "  make migrate      Run database migrations"
 	@echo "  make clean        Clean build artifacts"
 	@echo "  make opa-test     Test OPA policies"
+	@echo "  make build-cspm   Build cspm-aggregator binary"
+	@echo "  make run-cspm     Run cspm-aggregator locally"
+	@echo "  make test-cspm    Run cspm-aggregator tests"
 
 # Build binary
 build:
@@ -87,6 +90,16 @@ opa-eval:
 clean:
 	rm -rf bin/
 	rm -f coverage.out coverage.html
+
+# CSPM Aggregator
+build-cspm:
+	$(GO) build -o bin/cspm-aggregator ./cmd/cspm-aggregator
+
+run-cspm:
+	$(GO) run ./cmd/cspm-aggregator
+
+test-cspm:
+	$(GO) test -v ./internal/cspm/...
 
 # Development setup
 dev-setup:

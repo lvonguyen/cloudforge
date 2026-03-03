@@ -3,6 +3,7 @@
   "language": "en",
   "words": [
     "ADLS",
+    "aggregator",
     "agentguard",
     "alertmanager",
     "alienvault",
@@ -181,6 +182,7 @@
     "DAST",
     "SBOM",
     "SCC",
+    "securityhub",
     "semver",
     "sentinelone",
     "servicenow",
@@ -207,6 +209,7 @@
     "temporal",
     "Temporal",
     "threatforge",
+    "threatintel",
     "TISAX",
     "TOCTOU",
     "tokenizer",
@@ -232,7 +235,13 @@
     "workloads",
     "xss",
     "XSS",
-    "zap"
+    "zap",
+
+    "Errorf", "docstrings", "venv", "tfvars",
+    "qwen", "parallelizable", "Cherny",
+    "agentic", "techdebt",
+    "worktree", "worktrees",
+    "sultano", "Antipattern"
   ],
   "ignorePaths": [
     "node_modules",
