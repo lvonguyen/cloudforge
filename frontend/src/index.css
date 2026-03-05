@@ -1,34 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222.2 84% 4.9%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222.2 84% 4.9%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(222.2 84% 4.9%);
-  --color-primary: hsl(222.2 47.4% 11.2%);
-  --color-primary-foreground: hsl(210 40% 98%);
-  --color-secondary: hsl(210 40% 96.1%);
-  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
-  --color-accent: hsl(210 40% 96.1%);
-  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(214.3 31.8% 91.4%);
-  --color-input: hsl(214.3 31.8% 91.4%);
-  --color-ring: hsl(222.2 84% 4.9%);
-  --color-sidebar-background: hsl(0 0% 98%);
-  --color-sidebar-foreground: hsl(240 5.3% 26.1%);
-  --color-sidebar-primary: hsl(240 5.9% 10%);
-  --color-sidebar-primary-foreground: hsl(0 0% 98%);
-  --color-sidebar-accent: hsl(240 4.8% 95.9%);
-  --color-sidebar-accent-foreground: hsl(240 5.9% 10%);
-  --color-sidebar-border: hsl(220 13% 91%);
-  --color-sidebar-ring: hsl(217.2 91.2% 59.8%);
-  --radius: 0.5rem;
+  /* Portfolio design tokens — light mode */
+  --color-background: #E7E7E6;
+  --color-foreground: #1F2822;
+  --color-card: #CFCBBF;
+  --color-card-foreground: #1F2822;
+  --color-popover: #CFCBBF;
+  --color-popover-foreground: #1F2822;
+  --color-primary: #1F2822;
+  --color-primary-foreground: #E7E7E6;
+  --color-secondary: #CFCBBF;
+  --color-secondary-foreground: #1F2822;
+  --color-muted: #CFCBBF;
+  --color-muted-foreground: #4E4A3E;
+  --color-accent: #F5D288;
+  --color-accent-foreground: #1F2822;
+  --color-destructive: #DC2626;
+  --color-destructive-foreground: #E7E7E6;
+  --color-border: #B8B19C;
+  --color-input: #B8B19C;
+  --color-ring: #F5D288;
+  --color-sidebar-background: #CFCBBF;
+  --color-sidebar-foreground: #1F2822;
+  --color-sidebar-primary: #1F2822;
+  --color-sidebar-primary-foreground: #E7E7E6;
+  --color-sidebar-accent: #B8B19C;
+  --color-sidebar-accent-foreground: #1F2822;
+  --color-sidebar-border: #B8B19C;
+  --color-sidebar-ring: #F5D288;
+  --radius: 0px;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 @layer base {
@@ -38,6 +44,38 @@
   body {
     background-color: theme(colors.background);
     color: theme(colors.foreground);
+    font-family: theme(fontFamily.sans);
     margin: 0;
+  }
+
+  /* Dark mode overrides */
+  .dark {
+    --color-background: #1A1D1A;
+    --color-foreground: #E7E7E6;
+    --color-card: #252A25;
+    --color-card-foreground: #E7E7E6;
+    --color-popover: #252A25;
+    --color-popover-foreground: #E7E7E6;
+    --color-primary: #E7E7E6;
+    --color-primary-foreground: #1A1D1A;
+    --color-secondary: #252A25;
+    --color-secondary-foreground: #E7E7E6;
+    --color-muted: #252A25;
+    --color-muted-foreground: #9B9588;
+    --color-accent: #F5D288;
+    --color-accent-foreground: #1A1D1A;
+    --color-destructive: #EF4444;
+    --color-destructive-foreground: #E7E7E6;
+    --color-border: #3D3B34;
+    --color-input: #3D3B34;
+    --color-ring: #F5D288;
+    --color-sidebar-background: #252A25;
+    --color-sidebar-foreground: #E7E7E6;
+    --color-sidebar-primary: #E7E7E6;
+    --color-sidebar-primary-foreground: #1A1D1A;
+    --color-sidebar-accent: #3D3B34;
+    --color-sidebar-accent-foreground: #E7E7E6;
+    --color-sidebar-border: #3D3B34;
+    --color-sidebar-ring: #F5D288;
   }
 }

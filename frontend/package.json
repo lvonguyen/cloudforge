@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "cloudforge-demo",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "pages:build": "tsc -b && vite build",
+    "deploy": "npx wrangler@latest pages deploy dist --project-name=cloudforge-demo"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
