@@ -88,5 +88,4 @@ If we need >100K TPS or global distribution:
 ## Related Decisions
 
 - ADR-003: Caching Strategy
-- ADR-006: Data Retention Policy
 

@@ -120,5 +120,4 @@ Retry-After: 45  # Only on 429
 ## Related Decisions
 
 - ADR-003: Caching Strategy (Redis selection)
-- ADR-007: Error Handling Strategy
 

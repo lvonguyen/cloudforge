@@ -101,7 +101,7 @@ flowchart TB
 | Portal Layer | Self-service UI for requests and dashboards | Backstage / React |
 | Orchestration Engine | Workflow management for approvals and provisioning | Temporal |
 | Policy Engine | Evaluate requests against governance rules | OPA / Rego |
-| AI Risk Analyzer | Contextual risk scoring, toxic combo detection | Claude Opus 4.5 / GPT-4 |
+| AI Risk Analyzer | Contextual risk scoring, toxic combo detection | Claude Opus 4.6 / GPT-4 |
 | Compliance Engine | Multi-framework compliance mapping and assessment | Go |
 | WAF Module | Golden templates and compliance scanning | Go |
 | Container Security | Image scanning, runtime security | Go + Trivy |
@@ -325,7 +325,7 @@ See [Technical Runbooks](../runbooks/README.md) for detailed operational procedu
 | Cache | Redis |
 | Orchestration | Temporal |
 | Policy Engine | OPA / Rego |
-| AI | Anthropic Claude Opus 4.5, OpenAI GPT-4 |
+| AI | Anthropic Claude Opus 4.6, OpenAI GPT-4 |
 | IaC | Terraform |
 | Container Runtime | Kubernetes (EKS/AKS/GKE) |
 

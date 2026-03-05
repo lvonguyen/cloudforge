@@ -54,7 +54,7 @@ Developer Request → Policy Evaluation → Automated Approval → Secure Provis
 |------------|-------------|
 | **Policy-as-Code** | OPA/Rego guardrails across AWS, Azure, GCP |
 | **20+ Compliance Frameworks** | CIS, NIST, ISO, PCI-DSS, HIPAA, SOX, FedRAMP, ISO 21434 |
-| **AI Risk Analysis** | Claude Opus 4.5 contextual scoring |
+| **AI Risk Analysis** | Claude Opus 4.6 contextual scoring |
 | **Toxic Combo Detection** | Identifies high-risk finding combinations |
 | **Smart Deduplication** | Consolidates findings from multiple scanners |
 | **CI/CD Integration** | GitHub, GitLab, Azure DevOps + SonarQube, Checkov, Veracode |

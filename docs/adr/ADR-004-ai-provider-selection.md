@@ -18,18 +18,18 @@ We need AI capabilities for:
 
 ### Options Considered
 
-1. **Anthropic Claude Opus 4.5** - Large context, strong reasoning
+1. **Anthropic Claude Opus 4.6** - Large context, strong reasoning
 2. **OpenAI GPT-4 Turbo** - Fast, cost-effective, proven
 3. **Self-hosted LLM (Llama)** - Privacy, no API costs
 4. **AWS Bedrock** - Managed, multiple models
 
 ## Decision
 
-We will use **Anthropic Claude Opus 4.5** as primary, with **OpenAI GPT-4** as fallback.
+We will use **Anthropic Claude Opus 4.6** as primary, with **OpenAI GPT-4** as fallback.
 
 ## Rationale
 
-### Claude Opus 4.5 Primary
+### Claude Opus 4.6 Primary
 
 | Factor | Reasoning |
 |--------|-----------|
@@ -59,11 +59,11 @@ We will use **Anthropic Claude Opus 4.5** as primary, with **OpenAI GPT-4** as f
 
 ```
 if request.requires_deep_analysis:
-    provider = "claude-opus-4.5"
+    provider = "claude-opus-4-6"
 elif request.high_volume:
     provider = "gpt-4-turbo"
 else:
-    provider = "claude-opus-4.5"
+    provider = "claude-opus-4-6"
 ```
 
 ### Cost Optimization
@@ -111,6 +111,5 @@ except APIError:
 
 ## Related Decisions
 
-- ADR-005: Data Privacy Controls
-- ADR-007: Error Handling Strategy
+- ADR-005: Rate Limiting Strategy
 

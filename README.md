@@ -3,7 +3,7 @@
 ![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Development Status](https://img.shields.io/badge/status-active%20development-blue)
-![Implementation](https://img.shields.io/badge/implementation-85%25-green)
+![Implementation](https://img.shields.io/badge/implementation-92%25-green)
 
 ## Enterprise Cloud Governance Platform with Self-Service Provisioning
 
@@ -13,13 +13,13 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 ## [/] Implementation Status
 
-> **Current State:** Active development (~85% complete). Core API functional, GRC integration working, remediation dispatcher operational, CI/CD pipeline hardened, IaC deploy layer with multi-cloud Terraform modules and policy-as-code.
+> **Current State:** Active development (~92% complete). Core API functional, GRC integration working, remediation dispatcher operational, CI/CD pipeline hardened, IaC deploy layer with multi-cloud Terraform modules and policy-as-code, self-service portal built and deployed.
 
 | Component | Status | Notes |
 | --------- | ------ | ----- |
 | **Core API** | | |
 | HTTP handlers | Done | Full API surface implemented |
-| Configuration (Viper) | Done | YAML + env var overrides |
+| Configuration | Done | Environment variables + custom YAML loader with env overrides |
 | Health endpoints | Done | `/health`, `/ready`, `/live` |
 | **GRC Integration** | | |
 | Provider abstraction | Done | Interface + factory pattern |
@@ -61,7 +61,8 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | Findings bridge | Done | Temporary bridge to cspm-aggregator types |
 | **Security** | | |
 | Rate limiting | Done | Redis-backed, tier-based limits |
-| OIDC authentication | Interface Only | Okta/Entra ID not integrated |
+| JWT authentication | Done | HS256/RS256 validation, JWKS caching, wired into router |
+| OIDC provider integration | Interface Only | Okta/Entra ID providers exist, not wired into auth flow |
 | **IaC / Deploy** | | |
 | Terraform modules (compute) | Done | Cloud Run + ECS Fargate + Azure Container Apps |
 | Terraform modules (database) | Done | Cloud SQL + RDS + Azure PostgreSQL |
@@ -70,15 +71,23 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | Policy gate script | Done | `terraform plan` + `conftest` pipeline |
 | Deploy Dockerfiles | Done | Multi-stage frontend (nginx) + backend (Go) |
 | Environment configs | Done | Dev environment with GCS remote state |
+| **Portal** | | |
+| React SPA (frontend/) | Done | React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui |
+| 18 route pages | Done | Admin, Operator, Requester role views |
+| Dark mode | Done | CSS variable overrides, anti-flash script |
+| Cloudflare Pages deploy | Done | cloudforge-demo.lvonguyen.com |
 | **Risk Intelligence** | | |
 | Contextual risk schema | Done | AttackPathContext, ToxicComboDetails, MITRE fields |
 | LLM severity re-scoring | Done | Claude-powered with blast radius + EPSS + KEV inputs |
 | Severity normalization | Done | Per-CSP normalization (AWS ASFF, Azure, GCP) |
 | Attack path computation | Planned | Graph-based traversal (see roadmap) |
-| Threat intel enrichment | Planned | EPSS, CISA KEV, GreyNoise integration |
+| EPSS scoring | Done | HTTP client with 12h cache, batch fetching from FIRST API |
+| CISA KEV catalog | Done | In-memory catalog with auto-refresh from CISA feed |
+| GreyNoise integration | Planned | Schema field defined, no API client |
 | **Testing** | | |
-| Unit tests | Partial | Executor engine tests (14 cases passing) |
+| Unit tests | Partial | 24 test files, 369 test functions (ai, compliance, cspm, grc, remediation) |
 | Integration tests | 0% | |
+| Authorization (RBAC) | Not Started | No role-based access control middleware |
 
 ---
 
@@ -88,15 +97,13 @@ This is a **portfolio reference implementation**, not production software:
 
 1. **Limited Unit Tests** - Executor engine tested, handler-level tests pending
 2. **OIDC Stub Only** - Authentication interface defined, no provider integration
-3. **No Portal UI** - React/Next.js portal not implemented
-4. **Temporal Workflows** - Workflow definitions exist, orchestration not fully tested
-5. **FinOps Module** - Cost aggregation interfaces only, no cloud API integration
+3. **Temporal Workflows** - Workflow definitions exist, orchestration not fully tested
+4. **FinOps Module** - Cost aggregation interfaces only, no cloud API integration
 
 **Production Requirements:**
 
 - Add comprehensive test suites (unit + integration)
 - Implement OIDC authentication with real providers
-- Build self-service portal UI
 - Test and validate Temporal workflows
 
 ---
@@ -127,23 +134,23 @@ CloudForge bridges these needs with a unified platform that provides:
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia'}}}%%
 flowchart TB
-    subgraph Portal["🖥️ Portal Layer (React / Next.js)"]
+    subgraph Portal["[Portal] React 19 / Vite 7"]
         style Portal fill:#3b82f6,stroke:#1e3a8a,color:#fff
-        A1["📝 App Registration"]
-        A2["📚 Infra Catalog"]
-        A3["⚠️ Exception Request"]
-        A4["📊 Dashboard and Reports"]
+        A1["App Registration"]
+        A2["Infra Catalog"]
+        A3["Exception Request"]
+        A4["Dashboard and Reports"]
     end
 
-    subgraph Orchestration["⚙️ Orchestration Layer (Temporal)"]
+    subgraph Orchestration["[Orchestration] Temporal"]
         style Orchestration fill:#f59e0b,stroke:#b45309,color:#fff
-        B1["📋 Registration Workflow"]
-        B2["✅ Approval Workflow"]
-        B3["🚀 Provisioning Workflow"]
-        B4["🔍 Compliance Scan Workflow"]
+        B1["Registration Workflow"]
+        B2["Approval Workflow"]
+        B3["Provisioning Workflow"]
+        B4["Compliance Scan Workflow"]
     end
 
-    subgraph AIGovernance["AI Governance (Embedded OPA)"]
+    subgraph AIGovernance["[AI Governance] Embedded OPA"]
         style AIGovernance fill:#7c3aed,stroke:#4c1d95,color:#fff
         E1["Agent Registry"]
         E2["Embedded OPA Engine"]
@@ -151,20 +158,20 @@ flowchart TB
         E4["Maturity Assessment"]
     end
 
-    subgraph Policy["🛡️ Policy Engine (OPA / Rego)"]
+    subgraph Policy["[Policy Engine] OPA / Rego"]
         style Policy fill:#1e40af,stroke:#1e3a8a,color:#fff
-        C1["🌍 Region Policies"]
-        C2["💰 Cost Policies"]
-        C3["🔒 Network Policies"]
-        C4["📜 Exception Validator"]
+        C1["Region Policies"]
+        C2["Cost Policies"]
+        C3["Network Policies"]
+        C4["Exception Validator"]
     end
 
-    subgraph Integration["🔗 Integration Layer"]
+    subgraph Integration["[Integration Layer]"]
         style Integration fill:#22c55e,stroke:#166534,color:#fff
-        D1["📦 CMDB - ServiceNow"]
-        D2["📋 GRC - Archer"]
-        D3["🏗️ Terraform - Atlantis"]
-        D4["☁️ Cloud APIs"]
+        D1["CMDB - ServiceNow"]
+        D2["GRC - Archer"]
+        D3["Terraform - Atlantis"]
+        D4["Cloud APIs"]
     end
 
     Portal --> Orchestration
@@ -181,7 +188,7 @@ flowchart TB
 ```text
 +-----------------------------------------------------------------------------+
 |                              PORTAL LAYER                                    |
-|         (Self-Service UI - React / Next.js)                                 |
+|         (Self-Service UI - React 19 / Vite 7)                               |
 |  +-------------+  +-------------+  +-------------+  +-------------+         |
 |  |    App      |  |   Infra     |  |  Exception  |  |  Dashboard  |         |
 |  | Registration|  |  Catalog    |  |   Request   |  |  & Reports  |         |
@@ -271,6 +278,14 @@ cloudforge/
 │   └── docker/                    # Frontend (nginx) + Backend (Go) Dockerfiles
 ├── policies/                      # OPA/Rego runtime policies
 ├── configs/                       # Configuration templates
+├── frontend/                      # Self-service portal (React 19 + Vite 7)
+│   ├── src/
+│   │   ├── pages/                 # 18 route pages (admin, ops, portal views)
+│   │   ├── components/            # shadcn/ui component layer
+│   │   ├── hooks/                 # Custom hooks (deploy preview, etc.)
+│   │   ├── lib/                   # API client, auth, utilities
+│   │   └── types/                 # TypeScript type definitions
+│   └── public/                    # Static assets and logos
 ├── docs/
 │   ├── architecture/              # HLD, DDD, data models
 │   ├── diagrams/                  # Architecture diagrams (SVG)
@@ -368,7 +383,7 @@ Pluggable providers for enterprise GRC platforms:
 | Component | Technology | Purpose |
 | --------- | ---------- | ------- |
 | API Server | [Go 1.24](https://go.dev/) | Core platform API |
-| Portal | React / Next.js | Self-service UI (planned) |
+| Portal | [React 19](https://react.dev/) / [Vite 7](https://vitejs.dev/) | Self-service SPA — Tailwind CSS v4, shadcn/ui, Cloudflare Pages |
 | Workflows | [Temporal](https://temporal.io/) | Orchestration, approvals |
 | Policies | [OPA / Rego](https://www.openpolicyagent.org/) | Guardrails, validation |
 | IaC | [Terraform](https://www.terraform.io/) | Resource provisioning |
@@ -407,6 +422,11 @@ make run
 
 # Run tests
 make test
+
+# Start frontend dev server
+cd frontend
+npm install
+npm run dev       # http://localhost:5173
 ```
 
 ### Configuration
@@ -443,8 +463,14 @@ workflow:
 | [Component Rationale](docs/architecture/component-rationale.md) | Build vs buy decisions |
 | [Frontend Planning](docs/frontend-planning.md) | React/Vite UI — 18 screens, 3 role views, phased build plan |
 | [IaC Planning](docs/iac-planning.md) | Terraform modules, Rego policies, deployment architecture |
-| [Dual-OPA Architecture](docs/diagrams/dual-opa-architecture.mmd) | Cloud provisioning OPA (HTTP) vs AI governance OPA (embedded) |
-| [Attack Path Enhancements](wiz-attack-path-enhancements.md) | Wiz-adjacent graph-based attack path analysis roadmap |
+| [Dual-OPA Architecture](docs/diagrams/dual-opa-architecture.svg) | Cloud provisioning OPA (HTTP) vs AI governance OPA (embedded) |
+| [Attack Path Enhancements](docs/research/wiz-attack-path-enhancements.md) | Wiz-adjacent graph-based attack path analysis roadmap |
+| [Compliance Deployment Models](docs/diagrams/compliance-deployment-models.svg) | Multi-cloud compliance topology |
+| [Failover Sequence](docs/diagrams/failover-sequence.svg) | DR failover steps and timing |
+| [Global Deployment](docs/diagrams/global-deployment-architecture.svg) | Multi-region deployment layout |
+| [IaC Deploy Pipeline](docs/diagrams/iac-deploy-pipeline.svg) | Terraform/conftest CI/CD flow |
+| [Remediation Dispatcher](docs/diagrams/remediation-dispatcher-flow.svg) | Automated remediation routing |
+| [Risk Intelligence Pipeline](docs/diagrams/risk-intelligence-pipeline.svg) | Risk scoring data pipeline |
 
 ### Architecture Decision Records
 
@@ -456,6 +482,7 @@ workflow:
 | [ADR-004](docs/adr/ADR-004-ai-provider-selection.md) | AI Provider (Anthropic Claude) |
 | [ADR-005](docs/adr/ADR-005-rate-limiting.md) | Rate Limiting Strategy |
 | [ADR-006](docs/adr/ADR-006-authentication.md) | Authentication (OIDC) |
+| [ADR-007](docs/adr/ADR-007-grc-integration.md) | GRC Integration Pattern |
 
 ### Runbooks
 
@@ -463,7 +490,10 @@ workflow:
 | ------- | ------- |
 | [01-deployment](docs/runbooks/01-deployment.md) | Deployment procedures |
 | [02-incident-response](docs/runbooks/02-incident-response.md) | Incident handling |
+| [03-dr-failover](docs/runbooks/03-dr-failover.md) | DR failover procedures |
 | [04-performance](docs/runbooks/04-performance-troubleshooting.md) | Performance issues |
+| [05-remediation-operations](docs/runbooks/05-remediation-operations.md) | Remediation operations |
+| [06-policy-management](docs/runbooks/06-policy-management.md) | OPA policy management |
 
 ---
 
@@ -542,7 +572,7 @@ Built-in support for 20+ frameworks:
 - [x] Rego policy gate for IaC validation (5 policies, 25 rules)
 - [x] Deploy scripts with dry-run-by-default and policy violation gate
 - [x] Container Dockerfiles (frontend nginx + backend Go)
-- [ ] Self-service portal UI (React/Vite + shadcn/ui)
+- [x] Self-service portal UI (React 19 / Vite 7 + shadcn/ui) — deployed to cloudforge-demo.lvonguyen.com
 - [ ] Temporal workflow testing and validation
 - [ ] Terraform networking module and staging/prod environments
 
@@ -569,6 +599,8 @@ Built-in support for 20+ frameworks:
 
 | Date | Author | Change |
 | ---- | ------ | ------ |
+| 2026-03-04 | Liem Vo-Nguyen | Build and deploy self-service portal — React 19, Vite 7, 18 pages, 3 role views, dark mode, Cloudflare Pages |
+| 2026-03-04 | Liem Vo-Nguyen | Documentation reorg — archive superseded docs, add diagram refs, fix stale README |
 | 2026-02-27 | Liem Vo-Nguyen | Add IaC deploy layer — 3 TF modules, 5 Rego policies, scripts, Dockerfiles |
 | 2026-02-27 | Liem Vo-Nguyen | Harden CI supply-chain: SHA-pin all third-party GH Actions |
 | 2026-02-27 | Liem Vo-Nguyen | Add dual-OPA architecture diagram, regenerate architecture SVGs |
@@ -583,9 +615,9 @@ Built-in support for 20+ frameworks:
 | 2026-02-11 | Liem Vo-Nguyen | Add executor engine with batch execution, dry-run, and rollback |
 | 2026-02-11 | Liem Vo-Nguyen | Add findings bridge package (temporary, pending cspm-aggregator merge) |
 | 2026-02-11 | Liem Vo-Nguyen | Add executor unit tests (14 cases) |
-| 2026-01-xx | Liem Vo-Nguyen | Add FinOps cost management module (aggregator, anomaly, chargeback) |
-| 2026-01-xx | Liem Vo-Nguyen | Add CI/CD security scanning (SAST, VCS integrations) |
-| 2025-12-xx | Liem Vo-Nguyen | Initial platform: API server, GRC, compliance, policy engine, AI |
+| 2026-01-15 | Liem Vo-Nguyen | Add FinOps cost management module (aggregator, anomaly, chargeback) |
+| 2026-01-15 | Liem Vo-Nguyen | Add CI/CD security scanning (SAST, VCS integrations) |
+| 2025-12-15 | Liem Vo-Nguyen | Initial platform: API server, GRC, compliance, policy engine, AI |
 
 ---
 
