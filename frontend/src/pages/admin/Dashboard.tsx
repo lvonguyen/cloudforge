@@ -1,3 +1,4 @@
+import { Fragment, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +35,8 @@ const TREND = [
 ]
 
 export default function AdminDashboard() {
+  const [expandedExc, setExpandedExc] = useState<string | null>(null)
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -48,7 +51,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {KPI_CARDS.map(({ label, value, sub, icon: Icon, color, bg, link }) => (
           <Link key={label} to={link} className="group">
-            <Card className="hover:border-accent/50 hover:-translate-y-0.5 transition-all duration-200">
+            <Card className="hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div>
@@ -87,7 +90,7 @@ export default function AdminDashboard() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Exception Queue</CardTitle>
-            <Link to="/ops/command-center" className="text-xs text-primary hover:underline">View All →</Link>
+            <Link to="/ops" className="text-xs text-primary hover:underline">View All →</Link>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -104,18 +107,42 @@ export default function AdminDashboard() {
             </TableHeader>
             <TableBody>
               {EXCEPTION_QUEUE.map(exc => (
-                <TableRow key={exc.id}>
-                  <TableCell className="text-xs pl-4"><Link to={`/portal/requests/${exc.id}`} className="text-primary hover:underline font-mono">{exc.id}</Link></TableCell>
-                  <TableCell className="text-xs">{exc.app}</TableCell>
-                  <TableCell><Badge variant="outline" className="text-[10px]">{exc.type}</Badge></TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{exc.resource}</TableCell>
-                  <TableCell>
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[exc.status] ?? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300'}`}>
-                      {exc.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className={`text-xs font-medium ${exc.sla === '—' ? 'text-muted-foreground' : 'text-orange-600 dark:text-orange-400'}`}>{exc.sla}</TableCell>
-                </TableRow>
+                <Fragment key={exc.id}>
+                  <TableRow>
+                    <TableCell className="text-xs pl-4">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedExc(expandedExc === exc.id ? null : exc.id)}
+                        className="text-primary hover:underline font-mono cursor-pointer bg-transparent border-none p-0"
+                      >
+                        {exc.id}
+                      </button>
+                    </TableCell>
+                    <TableCell className="text-xs">{exc.app}</TableCell>
+                    <TableCell><Badge variant="outline" className="text-[10px]">{exc.type}</Badge></TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{exc.resource}</TableCell>
+                    <TableCell>
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-none ${STATUS_COLORS[exc.status] ?? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300'}`}>
+                        {exc.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className={`text-xs font-medium ${exc.sla === '—' ? 'text-muted-foreground' : 'text-orange-600 dark:text-orange-400'}`}>{exc.sla}</TableCell>
+                  </TableRow>
+                  {expandedExc === exc.id && (
+                    <TableRow key={`${exc.id}-detail`}>
+                      <TableCell colSpan={6} className="bg-muted/30 px-4 py-3">
+                        <div className="grid grid-cols-3 gap-x-6 gap-y-2 text-xs">
+                          <div><span className="text-muted-foreground">Application:</span> <span className="font-medium">{exc.app}</span></div>
+                          <div><span className="text-muted-foreground">Type:</span> <span className="font-mono">{exc.type}</span></div>
+                          <div><span className="text-muted-foreground">Resource:</span> <span className="font-medium">{exc.resource}</span></div>
+                          <div><span className="text-muted-foreground">Status:</span> <span className={`font-medium px-1.5 py-0.5 rounded-none ${STATUS_COLORS[exc.status] ?? ''}`}>{exc.status}</span></div>
+                          <div><span className="text-muted-foreground">SLA:</span> <span className={`font-medium ${exc.sla === '—' ? '' : 'text-orange-600 dark:text-orange-400'}`}>{exc.sla}</span></div>
+                          <div><span className="text-muted-foreground">Created:</span> <span className="font-medium">{exc.created}</span></div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </Fragment>
               ))}
             </TableBody>
           </Table>

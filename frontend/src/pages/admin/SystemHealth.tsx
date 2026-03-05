@@ -55,10 +55,21 @@ export default function SystemHealth() {
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-yellow-50 dark:bg-yellow-950/20 text-yellow-700 dark:text-yellow-300 text-xs font-medium">
           <AlertTriangle className="h-3.5 w-3.5" />{summary.degraded} degraded
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 text-xs font-medium">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-red-600 text-white dark:bg-red-700 dark:text-white text-xs font-medium">
           <XCircle className="h-3.5 w-3.5" />{summary.down} down
         </div>
       </div>
+
+      {(summary.degraded > 0 || summary.down > 0) && (
+        <div className="rounded-none border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20 px-4 py-3 text-sm text-yellow-800 dark:text-yellow-300">
+          <p className="font-medium">Action required</p>
+          <ul className="mt-1 list-disc pl-4 text-xs space-y-0.5">
+            {SERVICES.filter(s => s.status !== 'healthy').map(s => (
+              <li key={s.name}><strong>{s.name}</strong> — {s.status}. Last seen {s.last_check}.</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Service grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -103,17 +114,6 @@ export default function SystemHealth() {
         })}
       </div>
 
-      {/* Degraded / down callout */}
-      {(summary.degraded > 0 || summary.down > 0) && (
-        <div className="rounded-none border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20 px-4 py-3 text-sm text-yellow-800 dark:text-yellow-300">
-          <p className="font-medium">Action required</p>
-          <ul className="mt-1 list-disc pl-4 text-xs space-y-0.5">
-            {SERVICES.filter(s => s.status !== 'healthy').map(s => (
-              <li key={s.name}><strong>{s.name}</strong> — {s.status}. Last seen {s.last_check}.</li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   )
 }

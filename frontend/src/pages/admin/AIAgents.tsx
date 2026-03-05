@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useAgents } from '@/hooks/useAgents'
 import { AgentCard } from '@/components/ai/AgentCard'
+import { CheckCircle2, AlertTriangle, XCircle } from 'lucide-react'
 
 export default function AIAgents() {
   const navigate = useNavigate()
@@ -8,6 +9,12 @@ export default function AIAgents() {
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground">Loading agents…</div>
+  }
+
+  const statusCounts = {
+    active: agents.filter(a => a.status === 'active').length,
+    suspended: agents.filter(a => a.status === 'suspended').length,
+    inactive: agents.filter(a => a.status === 'inactive').length,
   }
 
   return (
@@ -18,7 +25,24 @@ export default function AIAgents() {
           <p className="text-sm text-muted-foreground">{agents.length} registered agents</p>
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="flex gap-3">
+        {statusCounts.active > 0 && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-300 text-xs font-medium">
+            <CheckCircle2 className="h-3.5 w-3.5" />{statusCounts.active} active
+          </div>
+        )}
+        {statusCounts.suspended > 0 && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 text-xs font-medium">
+            <XCircle className="h-3.5 w-3.5" />{statusCounts.suspended} suspended
+          </div>
+        )}
+        {statusCounts.inactive > 0 && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-gray-100 dark:bg-gray-900/30 text-gray-600 dark:text-gray-400 text-xs font-medium">
+            <AlertTriangle className="h-3.5 w-3.5" />{statusCounts.inactive} inactive
+          </div>
+        )}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {agents.map(agent => (
           <AgentCard
             key={agent.id}

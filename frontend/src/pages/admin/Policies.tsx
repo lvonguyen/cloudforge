@@ -85,17 +85,17 @@ export default function Policies() {
             {filtered.length} policies
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="text-xs pl-4">Name</TableHead>
-                <TableHead className="text-xs">Namespace</TableHead>
+                <TableHead className="text-xs hidden md:table-cell">Namespace</TableHead>
                 <TableHead className="text-xs">Category</TableHead>
                 <TableHead className="text-xs">Status</TableHead>
                 <TableHead className="text-xs text-right">Evaluations</TableHead>
                 <TableHead className="text-xs text-right">Denials</TableHead>
-                <TableHead className="text-xs">Last Updated</TableHead>
+                <TableHead className="text-xs hidden lg:table-cell">Last Updated</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -107,7 +107,7 @@ export default function Policies() {
                       <p className="text-xs font-mono font-medium">{pol.name}</p>
                       <p className="text-[10px] text-muted-foreground">{pol.id}</p>
                     </TableCell>
-                    <TableCell className="text-[10px] font-mono text-muted-foreground">{pol.namespace}</TableCell>
+                    <TableCell className="text-[10px] font-mono text-muted-foreground hidden md:table-cell">{pol.namespace}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className={`text-[10px] ${CATEGORY_COLORS[pol.category] ?? ''}`}>
                         {pol.category}
@@ -123,7 +123,7 @@ export default function Policies() {
                     <TableCell className="text-xs text-right">
                       <span className={pol.denials > 0 ? 'text-red-600 dark:text-red-400 font-medium' : 'text-muted-foreground'}>{pol.denials}</span>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{pol.last_updated}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">{pol.last_updated}</TableCell>
                   </TableRow>
                 )
               })}

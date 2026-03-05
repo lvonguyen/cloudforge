@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
@@ -91,11 +90,27 @@ export default function AuditLog() {
         </Select>
         <div className="ml-auto flex items-center gap-2">
           {(['success', 'denied', 'error'] as const).map(r => (
-            <Badge key={r} variant="outline" className={`text-[10px] ${RESULT_CONFIG[r]}`}>
-              {EVENTS.filter(e => e.result === r).length} {r}
-            </Badge>
+            <button
+              key={r}
+              onClick={() => setResultFilter(prev => prev === r ? 'all' : r)}
+              className={`text-[10px] font-medium px-2 py-0.5 rounded-none cursor-pointer transition-colors ${
+                resultFilter === r ? RESULT_CONFIG[r] + ' ring-1 ring-current' : RESULT_CONFIG[r] + ' opacity-60 hover:opacity-100'
+              }`}
+            >
+              {EVENTS.filter(e => e.result === r).length} {r.toUpperCase()}
+            </button>
           ))}
         </div>
+      </div>
+
+      <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+        <span>Action colors:</span>
+        <span className="text-green-600 dark:text-green-400">approve/complete</span>
+        <span className="text-blue-600 dark:text-blue-400">remediate</span>
+        <span className="text-indigo-600 dark:text-indigo-400">evaluate</span>
+        <span className="text-purple-600 dark:text-purple-400">create</span>
+        <span className="text-cyan-600 dark:text-cyan-400">start</span>
+        <span className="text-yellow-600 dark:text-yellow-400">suppress</span>
       </div>
 
       <Card>
@@ -104,7 +119,7 @@ export default function AuditLog() {
             {filtered.length} events
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
