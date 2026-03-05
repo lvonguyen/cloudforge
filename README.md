@@ -60,9 +60,10 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | Rollback engine | Done | 48h rollback window, state snapshots |
 | Findings bridge | Done | Temporary bridge to cspm-aggregator types |
 | **Security** | | |
-| Rate limiting | Done | Redis-backed, tier-based limits |
+| Rate limiting | Done | Redis-backed, tier-based, wired into `/api/v1` routes |
 | JWT authentication | Done | HS256/RS256 validation, JWKS caching, wired into router |
 | OIDC provider integration | Interface Only | Okta/Entra ID providers exist, not wired into auth flow |
+| Authorization (RBAC) | Not Started | No role-based access control middleware |
 | **IaC / Deploy** | | |
 | Terraform modules (compute) | Done | Cloud Run + ECS Fargate + Azure Container Apps |
 | Terraform modules (database) | Done | Cloud SQL + RDS + Azure PostgreSQL |
@@ -87,7 +88,6 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | **Testing** | | |
 | Unit tests | Partial | 24 test files, 369 test functions (ai, compliance, cspm, grc, remediation) |
 | Integration tests | 0% | |
-| Authorization (RBAC) | Not Started | No role-based access control middleware |
 
 ---
 
@@ -95,15 +95,17 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 This is a **portfolio reference implementation**, not production software:
 
-1. **Limited Unit Tests** - Executor engine tested, handler-level tests pending
-2. **OIDC Stub Only** - Authentication interface defined, no provider integration
-3. **Temporal Workflows** - Workflow definitions exist, orchestration not fully tested
-4. **FinOps Module** - Cost aggregation interfaces only, no cloud API integration
+1. **Test Coverage Gap** - 24 test files (369 functions) cover cspm, grc, remediation, ai, compliance; handler-level and integration tests pending
+2. **OIDC Provider Stub** - JWT auth middleware is production-ready (HS256/RS256, JWKS), but Okta/Entra ID providers not wired into auth flow
+3. **No RBAC** - All authenticated users have full access; no role-based authorization middleware
+4. **Temporal Workflows** - Workflow definitions exist, orchestration not fully tested
+5. **FinOps Module** - Cost aggregation interfaces only, no cloud API integration
 
 **Production Requirements:**
 
-- Add comprehensive test suites (unit + integration)
-- Implement OIDC authentication with real providers
+- Expand test suites (handler-level unit tests + integration tests)
+- Wire Okta/Entra ID providers into JWT auth flow
+- Implement RBAC authorization middleware
 - Test and validate Temporal workflows
 
 ---
@@ -351,7 +353,7 @@ Pluggable providers for enterprise GRC platforms:
 
 - **Contextual risk scoring** — LLM-powered severity re-scoring that considers asset tier, environment (prod/dev/sandbox), internet exposure, blast radius, and compensating controls
 - **Severity normalization** — per-CSP normalization (AWS ASFF normalized scores, Azure severity labels, GCP attack exposure scores) into unified severity taxonomy
-- **Threat intel schema** — ready for EPSS, CISA KEV, GreyNoise, and OTX enrichment (population pipeline in roadmap)
+- **Threat intel enrichment** — EPSS scoring (FIRST API, 12h cache) and CISA KEV catalog (auto-refresh) integrated into risk pipeline; GreyNoise schema defined (client planned)
 - **Attack path schema** — `AttackPathContext` with blast radius count, IAM escalation path, chokepoint detection, toxic combination flag (graph computation engine in roadmap)
 - **MITRE ATT&CK mapping** — tactic and technique fields on findings for kill-chain context
 
@@ -557,11 +559,13 @@ Built-in support for 20+ frameworks:
 - [x] Remediation dispatcher with 10 handlers across 8 domains
 - [x] Tiered execution model (auto-safe / verify / change window)
 - [x] 48-hour rollback state engine
-- [x] Executor engine unit tests (14 cases)
+- [x] Unit tests — 24 files, 369 functions (cspm, grc, remediation, ai, compliance)
 - [x] AI governance module — embedded OPA engine, agent registry, STRIDE/ATLAS threat models
 - [x] Security audit fixes (SEC-001 through SEC-012)
 - [x] Architecture hardening — BOLA fix, N+1 queries, CI pinning
-- [ ] OIDC authentication integration (Okta/Entra ID)
+- [x] JWT authentication middleware (HS256/RS256, JWKS caching)
+- [ ] Wire Okta/Entra ID providers into auth flow
+- [ ] RBAC authorization middleware (role-based endpoint access)
 - [ ] Handler-level unit tests (target: 80% coverage)
 - [ ] Integration test suite
 - [ ] Merge cspm-aggregator into monorepo
@@ -578,8 +582,10 @@ Built-in support for 20+ frameworks:
 
 ### Phase 4: Risk Intelligence & Attack Path Analysis
 
-- [ ] Contextual severity validation engine (environment-aware re-scoring)
-- [ ] Threat intel feed integration (EPSS, CISA KEV, GreyNoise)
+- [x] Contextual severity validation engine (environment-aware re-scoring)
+- [x] EPSS scoring integration (FIRST API, batch fetching, 12h cache)
+- [x] CISA KEV catalog integration (auto-refresh, known exploit lookup)
+- [ ] GreyNoise integration (API client for IP classification)
 - [ ] Attack path computation engine (graph-based traversal)
 - [ ] Toxic combination detection (multi-finding chain analysis)
 - [ ] Blast radius computation (IAM + network reachability)
