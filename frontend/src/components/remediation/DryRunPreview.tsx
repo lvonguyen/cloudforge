@@ -3,7 +3,7 @@ import type { DryRunResult } from '@/types/remediation'
 
 export function DryRunPreview({ result }: { result: DryRunResult }) {
   return (
-    <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+    <div className="rounded-none border border-border bg-muted/30 p-3 space-y-2">
       <div className="flex items-center gap-2 text-sm font-medium">
         {result.would_succeed ? (
           <CheckCircle className="h-4 w-4 text-green-600" />

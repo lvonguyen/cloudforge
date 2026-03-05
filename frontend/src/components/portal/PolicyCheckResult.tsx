@@ -10,7 +10,7 @@ interface Props {
 export function PolicyCheckResult({ result, onRequestException }: Props) {
   if (result.denials.length === 0 && result.warnings.length === 0) {
     return (
-      <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+      <div className="flex items-center gap-2 rounded-none border border-green-200 bg-green-50 p-3 text-sm text-green-800">
         <CheckCircle className="h-4 w-4" />
         <span className="font-medium">All policy checks passed</span>
       </div>

@@ -12,12 +12,12 @@ const SPAN_ICONS: Record<SpanType, LucideIcon> = {
 }
 
 const SPAN_COLORS: Record<SpanType, string> = {
-  llm: 'border-purple-300 bg-purple-50',
-  retrieval: 'border-blue-300 bg-blue-50',
-  tool: 'border-orange-300 bg-orange-50',
-  chain: 'border-gray-300 bg-gray-50',
-  agent: 'border-indigo-300 bg-indigo-50',
-  policy: 'border-red-300 bg-red-50',
+  llm: 'border-purple-300 bg-purple-50 dark:border-purple-800 dark:bg-purple-950/20',
+  retrieval: 'border-blue-300 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/20',
+  tool: 'border-orange-300 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/20',
+  chain: 'border-gray-300 bg-gray-50 dark:border-gray-800 dark:bg-gray-950/20',
+  agent: 'border-indigo-300 bg-indigo-50 dark:border-indigo-800 dark:bg-indigo-950/20',
+  policy: 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/20',
 }
 
 export function TraceTimeline({ spans }: { spans: Span[] }) {
@@ -40,14 +40,14 @@ export function TraceTimeline({ spans }: { spans: Span[] }) {
         )}
         <div
           className={cn(
-            'flex items-start gap-2 rounded-md border px-3 py-2 text-xs',
+            'flex items-start gap-2 rounded-none border px-3 py-2 text-xs',
             colorClass,
-            blocked && 'border-red-400 bg-red-50'
+            blocked && 'border-red-400 bg-red-50 dark:border-red-700 dark:bg-red-950/20'
           )}
         >
-          <Icon className={cn('h-3.5 w-3.5 mt-0.5 shrink-0', blocked && 'text-red-600')} />
+          <Icon className={cn('h-3.5 w-3.5 mt-0.5 shrink-0', blocked && 'text-red-600 dark:text-red-400')} />
           <div className="flex-1 min-w-0">
-            <p className={cn('font-medium font-mono truncate', blocked && 'text-red-700')}>{span.name}</p>
+            <p className={cn('font-medium font-mono truncate', blocked && 'text-red-700 dark:text-red-400')}>{span.name}</p>
             <div className="flex items-center gap-2 mt-0.5 text-muted-foreground">
               <span>{span.duration_ms}ms</span>
               {span.data.llm && (
@@ -56,18 +56,18 @@ export function TraceTimeline({ spans }: { spans: Span[] }) {
               {policyDecision && (
                 <span className={cn(
                   'font-medium',
-                  policyDecision.decision === 'deny' ? 'text-red-600' :
-                  policyDecision.decision === 'warn' ? 'text-yellow-600' : 'text-green-600'
+                  policyDecision.decision === 'deny' ? 'text-red-600 dark:text-red-400' :
+                  policyDecision.decision === 'warn' ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'
                 )}>
                   Policy: {policyDecision.decision.toUpperCase()}
                 </span>
               )}
             </div>
             {policyDecision?.decision === 'deny' && (
-              <p className="mt-1 text-red-700 leading-tight">{policyDecision.reason}</p>
+              <p className="mt-1 text-red-700 dark:text-red-400 leading-tight">{policyDecision.reason}</p>
             )}
           </div>
-          <span className={cn('text-[10px] font-medium shrink-0', blocked ? 'text-red-600' : 'text-muted-foreground')}>
+          <span className={cn('text-[10px] font-medium shrink-0', blocked ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground')}>
             {span.status}
           </span>
         </div>

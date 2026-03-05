@@ -9,8 +9,8 @@ export interface User {
 }
 
 const DEFAULT_USER: User = {
-  name: 'Liem VN',
-  email: 'liem@cloudforge.dev',
+  name: 'Admin One',
+  email: 'admin1@contoso.dev',
   role: 'admin',
 }
 

@@ -28,16 +28,16 @@ const QUEUE: QueueItem[] = [
 ]
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: 'bg-gray-100 text-gray-700',
-  in_progress: 'bg-blue-100 text-blue-700',
-  completed: 'bg-green-100 text-green-700',
-  failed: 'bg-red-100 text-red-700',
+  pending: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300',
+  in_progress: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  failed: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
 }
 
 const PROVIDER_COLORS: Record<string, string> = {
-  aws: 'bg-orange-100 text-orange-700',
-  gcp: 'bg-green-100 text-green-700',
-  azure: 'bg-blue-100 text-blue-700',
+  aws: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+  gcp: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  azure: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
 }
 
 function TierSection({ tier, items }: { tier: 1 | 2 | 3; items: QueueItem[] }) {
@@ -63,18 +63,18 @@ function TierSection({ tier, items }: { tier: 1 | 2 | 3; items: QueueItem[] }) {
         <span className="ml-auto text-xs text-muted-foreground">{items.length} item{items.length !== 1 ? 's' : ''}</span>
       </div>
       {items.map(item => (
-        <Card key={item.id} className={item.status === 'failed' ? 'border-red-200' : ''}>
+        <Card key={item.id} className={item.status === 'failed' ? 'border-red-200 dark:border-red-800' : ''}>
           <CardContent className="p-4">
             <div className="flex items-start gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[item.status] ?? 'bg-gray-100 text-gray-700'}`}>{item.status}</span>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[item.status] ?? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300'}`}>{item.status}</span>
                   <Badge variant="secondary" className={`text-[10px] ${PROVIDER_COLORS[item.provider] ?? ''}`}>{item.provider.toUpperCase()}</Badge>
                   {item.dry_run_ok === true && (
-                    <span className="text-[10px] text-green-600 flex items-center gap-0.5"><CheckCircle2 className="h-3 w-3" />dry-run passed</span>
+                    <span className="text-[10px] text-green-600 dark:text-green-400 flex items-center gap-0.5"><CheckCircle2 className="h-3 w-3" />dry-run passed</span>
                   )}
                   {item.dry_run_ok === false && (
-                    <span className="text-[10px] text-red-600">dry-run failed</span>
+                    <span className="text-[10px] text-red-600 dark:text-red-400">dry-run failed</span>
                   )}
                 </div>
                 <p className="text-sm font-medium leading-snug">{item.title}</p>

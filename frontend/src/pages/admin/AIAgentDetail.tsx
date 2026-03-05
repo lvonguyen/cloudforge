@@ -130,25 +130,25 @@ const MOCK_THREAT_MODEL: ThreatModel = {
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 const RISK_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
-  critical: { bg: 'bg-red-100', text: 'text-red-800', label: 'Critical' },
-  high:     { bg: 'bg-orange-100', text: 'text-orange-800', label: 'High' },
-  medium:   { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Medium' },
-  low:      { bg: 'bg-green-100', text: 'text-green-800', label: 'Low' },
+  critical: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-800 dark:text-red-300', label: 'Critical' },
+  high:     { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-800 dark:text-orange-300', label: 'High' },
+  medium:   { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-800 dark:text-yellow-300', label: 'Medium' },
+  low:      { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-800 dark:text-green-300', label: 'Low' },
 }
 
 const STRIDE_META: Record<STRIDECategory, { label: string; color: string; abbr: string }> = {
-  spoofing:               { label: 'Spoofing',               color: 'border-purple-300 bg-purple-50',  abbr: 'S' },
-  tampering:              { label: 'Tampering',              color: 'border-orange-300 bg-orange-50',  abbr: 'T' },
-  repudiation:            { label: 'Repudiation',            color: 'border-gray-300 bg-gray-50',      abbr: 'R' },
-  information_disclosure: { label: 'Info Disclosure',        color: 'border-blue-300 bg-blue-50',      abbr: 'I' },
-  denial_of_service:      { label: 'Denial of Service',      color: 'border-red-300 bg-red-50',        abbr: 'D' },
-  elevation_of_privilege: { label: 'Elevation of Privilege', color: 'border-rose-300 bg-rose-50',      abbr: 'E' },
+  spoofing:               { label: 'Spoofing',               color: 'border-purple-300 bg-purple-50 dark:border-purple-700 dark:bg-purple-950/20',  abbr: 'S' },
+  tampering:              { label: 'Tampering',              color: 'border-orange-300 bg-orange-50 dark:border-orange-700 dark:bg-orange-950/20',  abbr: 'T' },
+  repudiation:            { label: 'Repudiation',            color: 'border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-950/20',      abbr: 'R' },
+  information_disclosure: { label: 'Info Disclosure',        color: 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/20',      abbr: 'I' },
+  denial_of_service:      { label: 'Denial of Service',      color: 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-950/20',        abbr: 'D' },
+  elevation_of_privilege: { label: 'Elevation of Privilege', color: 'border-rose-300 bg-rose-50 dark:border-rose-700 dark:bg-rose-950/20',      abbr: 'E' },
 }
 
 const MITIGATION_STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; className: string }> = {
-  implemented: { icon: CheckCircle2, className: 'text-green-600' },
-  planned:     { icon: AlertTriangle, className: 'text-yellow-600' },
-  'not started': { icon: XCircle, className: 'text-red-500' },
+  implemented: { icon: CheckCircle2, className: 'text-green-600 dark:text-green-400' },
+  planned:     { icon: AlertTriangle, className: 'text-yellow-600 dark:text-yellow-400' },
+  'not started': { icon: XCircle, className: 'text-red-500 dark:text-red-400' },
 }
 
 const SIGNAL_TYPE_LABELS: Record<SignalType, string> = {
@@ -175,14 +175,14 @@ function formatTs(iso: string) {
 function TraceRow({ trace }: { trace: AgentTrace }) {
   const [expanded, setExpanded] = useState(false)
   const statusColors: Record<string, string> = {
-    completed: 'text-green-700 bg-green-50',
-    blocked:   'text-red-700 bg-red-50',
-    failed:    'text-red-700 bg-red-50',
-    running:   'text-blue-700 bg-blue-50',
+    completed: 'text-green-700 bg-green-50 dark:text-green-300 dark:bg-green-950/20',
+    blocked:   'text-red-700 bg-red-50 dark:text-red-300 dark:bg-red-950/20',
+    failed:    'text-red-700 bg-red-50 dark:text-red-300 dark:bg-red-950/20',
+    running:   'text-blue-700 bg-blue-50 dark:text-blue-300 dark:bg-blue-950/20',
   }
 
   return (
-    <div className="border rounded-md overflow-hidden">
+    <div className="border rounded-none overflow-hidden">
       <button
         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left"
         onClick={() => setExpanded(v => !v)}
@@ -195,7 +195,7 @@ function TraceRow({ trace }: { trace: AgentTrace }) {
           </div>
           <div className="text-xs text-muted-foreground">{formatTs(trace.start_time)}</div>
           <div className="text-xs">{formatDuration(trace.duration_ms)}</div>
-          <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full w-fit', statusColors[trace.status] ?? 'text-gray-600 bg-gray-50')}>
+          <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full w-fit', statusColors[trace.status] ?? 'text-gray-600 bg-gray-50 dark:text-gray-300 dark:bg-gray-950/20')}>
             {trace.status}
           </span>
         </div>
@@ -205,7 +205,7 @@ function TraceRow({ trace }: { trace: AgentTrace }) {
           <span>{trace.metrics.total_tokens.toLocaleString()} tokens</span>
           <span>${trace.metrics.estimated_cost_usd.toFixed(4)}</span>
           {trace.metrics.security_signals > 0 && (
-            <span className="text-red-600 font-medium">{trace.metrics.security_signals} signal{trace.metrics.security_signals !== 1 ? 's' : ''}</span>
+            <span className="text-red-600 dark:text-red-400 font-medium">{trace.metrics.security_signals} signal{trace.metrics.security_signals !== 1 ? 's' : ''}</span>
           )}
         </div>
       </button>
@@ -257,8 +257,8 @@ export default function AIAgentDetail() {
       {/* Agent header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4">
-          <div className="h-12 w-12 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-            <Bot className="h-6 w-6 text-indigo-700" />
+          <div className="h-12 w-12 rounded-none bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
+            <Bot className="h-6 w-6 text-indigo-700 dark:text-indigo-300" />
           </div>
           <div>
             <div className="flex items-center gap-3 flex-wrap">
@@ -290,12 +290,12 @@ export default function AIAgentDetail() {
         {/* Quick stats */}
         <div className="flex gap-3 shrink-0">
           {[
-            { label: 'Traces', value: traces.length, color: 'text-indigo-700' },
-            { label: 'Signals', value: allSignals.length, color: allSignals.length > 0 ? 'text-red-600' : 'text-green-600' },
-            { label: 'Tools', value: agent.tools.length, color: 'text-orange-600' },
-            { label: 'Policies', value: agent.policies.length, color: 'text-blue-600' },
+            { label: 'Traces', value: traces.length, color: 'text-indigo-700 dark:text-indigo-300' },
+            { label: 'Signals', value: allSignals.length, color: allSignals.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400' },
+            { label: 'Tools', value: agent.tools.length, color: 'text-orange-600 dark:text-orange-400' },
+            { label: 'Policies', value: agent.policies.length, color: 'text-blue-600 dark:text-blue-400' },
           ].map(({ label, value, color }) => (
-            <div key={label} className="text-center px-4 py-2 bg-muted/50 rounded-lg min-w-[64px]">
+            <div key={label} className="text-center px-4 py-2 bg-muted/50 rounded-none min-w-[64px]">
               <p className={cn('text-xl font-bold', color)}>{value}</p>
               <p className="text-[10px] text-muted-foreground">{label}</p>
             </div>
@@ -340,9 +340,9 @@ export default function AIAgentDetail() {
           <div className="grid grid-cols-4 gap-4">
             {[
               { label: 'Total Threats', value: MOCK_THREAT_MODEL.risk_summary.total_threats, color: 'text-foreground' },
-              { label: 'Critical', value: MOCK_THREAT_MODEL.risk_summary.threats_by_risk.critical ?? 0, color: 'text-red-700' },
-              { label: 'Coverage', value: `${MOCK_THREAT_MODEL.risk_summary.mitigation_coverage}%`, color: 'text-green-700' },
-              { label: 'Residual Risk', value: `${MOCK_THREAT_MODEL.risk_summary.residual_risk_score}/5`, color: 'text-orange-700' },
+              { label: 'Critical', value: MOCK_THREAT_MODEL.risk_summary.threats_by_risk.critical ?? 0, color: 'text-red-700 dark:text-red-400' },
+              { label: 'Coverage', value: `${MOCK_THREAT_MODEL.risk_summary.mitigation_coverage}%`, color: 'text-green-700 dark:text-green-400' },
+              { label: 'Residual Risk', value: `${MOCK_THREAT_MODEL.risk_summary.residual_risk_score}/5`, color: 'text-orange-700 dark:text-orange-400' },
             ].map(({ label, value, color }) => (
               <Card key={label}>
                 <CardContent className="p-4">
@@ -471,7 +471,7 @@ export default function AIAgentDetail() {
           )}
 
           {allSignals.length === 0 ? (
-            <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-md px-4 py-3">
+            <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-none px-4 py-3">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
               No security signals detected for this agent.
             </div>
@@ -480,7 +480,7 @@ export default function AIAgentDetail() {
           ) : (
             <div className="space-y-3">
               {filteredSignals.map(sig => (
-                <Card key={sig.id} className={cn(sig.mitigated ? '' : 'border-red-200')}>
+                <Card key={sig.id} className={cn(sig.mitigated ? '' : 'border-red-200 dark:border-red-800')}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -494,7 +494,7 @@ export default function AIAgentDetail() {
                       <div className="shrink-0 flex flex-col items-end gap-1">
                         <span className={cn(
                           'text-[10px] font-medium px-2 py-0.5 rounded-full',
-                          sig.mitigated ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          sig.mitigated ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
                         )}>
                           {sig.mitigated ? 'Mitigated' : 'Open'}
                         </span>

@@ -46,9 +46,9 @@ const MODULES: CatalogModule[] = [
 ]
 
 const PROVIDER_COLORS: Record<string, string> = {
-  aws: 'bg-orange-100 text-orange-700',
-  azure: 'bg-blue-100 text-blue-700',
-  gcp: 'bg-green-100 text-green-700',
+  aws: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+  azure: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  gcp: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
 }
 
 const PROVIDER_FILTER = ['ALL', 'aws', 'azure', 'gcp'] as const
@@ -76,7 +76,7 @@ export default function Catalog() {
           <button
             key={p}
             onClick={() => setProviderFilter(p)}
-            className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+            className={`px-3 py-1 text-xs rounded-none font-medium transition-colors ${
               providerFilter === p ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
@@ -94,7 +94,7 @@ export default function Catalog() {
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                    <div className="h-8 w-8 rounded-none bg-muted flex items-center justify-center shrink-0">
                       <Icon className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div>

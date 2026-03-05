@@ -17,17 +17,17 @@ interface UserRow {
 }
 
 const USERS: UserRow[] = [
-  { id: 'u-001', name: 'Liem VN', email: 'liem@cloudforge.dev', role: 'admin', team: 'Platform Security', last_login: '2026-02-26 09:14', status: 'active' },
-  { id: 'u-002', name: 'Priya Sharma', email: 'priya@cloudforge.dev', role: 'operator', team: 'Cloud Ops', last_login: '2026-02-26 08:52', status: 'active' },
-  { id: 'u-003', name: 'James Chen', email: 'jchen@cloudforge.dev', role: 'operator', team: 'Cloud Ops', last_login: '2026-02-25 17:30', status: 'active' },
-  { id: 'u-004', name: 'Fatima Al-Hassan', email: 'falhassan@cloudforge.dev', role: 'requester', team: 'Data Platform', last_login: '2026-02-24 14:05', status: 'active' },
-  { id: 'u-005', name: 'Marcus Williams', email: 'mwilliams@cloudforge.dev', role: 'requester', team: 'Payments', last_login: '2026-02-20 11:42', status: 'inactive' },
+  { id: 'u-001', name: 'Admin One', email: 'admin1@contoso.dev', role: 'admin', team: 'Platform Security', last_login: '2026-02-26 09:14', status: 'active' },
+  { id: 'u-002', name: 'Operator One', email: 'operator1@contoso.dev', role: 'operator', team: 'Cloud Ops', last_login: '2026-02-26 08:52', status: 'active' },
+  { id: 'u-003', name: 'Operator Two', email: 'operator2@contoso.dev', role: 'operator', team: 'Cloud Ops', last_login: '2026-02-25 17:30', status: 'active' },
+  { id: 'u-004', name: 'User One', email: 'user1@contoso.dev', role: 'requester', team: 'Data Platform', last_login: '2026-02-24 14:05', status: 'active' },
+  { id: 'u-005', name: 'User Two', email: 'user2@contoso.dev', role: 'requester', team: 'Payments', last_login: '2026-02-20 11:42', status: 'inactive' },
 ]
 
 const ROLE_COLORS: Record<string, string> = {
-  admin: 'bg-red-100 text-red-700',
-  operator: 'bg-blue-100 text-blue-700',
-  requester: 'bg-gray-100 text-gray-700',
+  admin: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  operator: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  requester: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300',
 }
 
 export default function Users() {
@@ -48,7 +48,7 @@ export default function Users() {
       {/* Role summary */}
       <div className="flex gap-3">
         {(['admin', 'operator', 'requester'] as const).map(role => (
-          <div key={role} className={`px-3 py-1.5 rounded-md text-xs font-medium ${ROLE_COLORS[role]}`}>
+          <div key={role} className={`px-3 py-1.5 rounded-none text-xs font-medium ${ROLE_COLORS[role]}`}>
             {role.charAt(0).toUpperCase() + role.slice(1)}: {USERS.filter(u => u.role === role).length}
           </div>
         ))}
@@ -90,7 +90,7 @@ export default function Users() {
                   <TableCell className="text-xs">{user.team}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{user.last_login}</TableCell>
                   <TableCell>
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${user.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${user.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-900/30 dark:text-gray-400'}`}>
                       {user.status}
                     </span>
                   </TableCell>

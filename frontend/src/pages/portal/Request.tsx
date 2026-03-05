@@ -108,7 +108,7 @@ function StepResourceSelection({
           {CATALOG.map(item => (
             <div
               key={item.id}
-              className={`cursor-pointer rounded-lg ring-2 transition-all ${
+              className={`cursor-pointer rounded-none ring-2 transition-all ${
                 selectedId === item.id ? 'ring-primary' : 'ring-transparent hover:ring-muted-foreground/30'
               }`}
               onClick={() => {
@@ -389,7 +389,7 @@ function StepPolicyValidation({
         onRequestException={code => onAcceptException(code)}
       />
       {acceptedExceptions.length > 0 && (
-        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+        <div className="rounded-none border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
           <p className="font-medium">Exception requests queued ({acceptedExceptions.length})</p>
           <ul className="mt-1 list-disc pl-4 text-xs">
             {acceptedExceptions.map(code => <li key={code}>{code}</li>)}
@@ -423,7 +423,7 @@ function StepReview({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-md border p-4 space-y-3">
+      <div className="rounded-none border p-4 space-y-3">
         <h3 className="text-sm font-semibold">Request Summary</h3>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
           <span className="text-muted-foreground">Resource</span>
@@ -444,7 +444,7 @@ function StepReview({
       </div>
 
       {policyResult && (
-        <div className="rounded-md border p-4 space-y-2">
+        <div className="rounded-none border p-4 space-y-2">
           <h3 className="text-sm font-semibold">Policy Check</h3>
           {policyResult.allowed && acceptedExceptions.length === 0 ? (
             <div className="flex items-center gap-2 text-sm text-green-700">
@@ -467,7 +467,7 @@ function StepReview({
             onChange={e => onBusinessCaseChange(e.target.value)}
             placeholder="Explain why this exception is needed and how risk will be mitigated..."
             rows={4}
-            className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none resize-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+            className="w-full rounded-none border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none resize-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
           />
           {!businessCase.trim() && (
             <p className="text-xs text-destructive">Business case required when requesting exceptions</p>

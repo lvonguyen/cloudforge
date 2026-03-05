@@ -30,19 +30,19 @@ const POLICIES: Policy[] = [
 ]
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; className: string; label: string }> = {
-  active: { icon: CheckCircle2, className: 'text-green-600', label: 'Active' },
-  inactive: { icon: AlertTriangle, className: 'text-gray-400', label: 'Inactive' },
-  draft: { icon: Clock, className: 'text-yellow-600', label: 'Draft' },
+  active: { icon: CheckCircle2, className: 'text-green-600 dark:text-green-400', label: 'Active' },
+  inactive: { icon: AlertTriangle, className: 'text-gray-400 dark:text-gray-500', label: 'Inactive' },
+  draft: { icon: Clock, className: 'text-yellow-600 dark:text-yellow-400', label: 'Draft' },
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  provisioning: 'bg-blue-100 text-blue-700',
-  tagging: 'bg-gray-100 text-gray-700',
-  'ai-governance': 'bg-indigo-100 text-indigo-700',
-  security: 'bg-red-100 text-red-700',
-  identity: 'bg-purple-100 text-purple-700',
-  network: 'bg-orange-100 text-orange-700',
-  storage: 'bg-yellow-100 text-yellow-700',
+  provisioning: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  tagging: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300',
+  'ai-governance': 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
+  security: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  identity: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+  network: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+  storage: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
 }
 
 export default function Policies() {
@@ -68,7 +68,7 @@ export default function Policies() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-3 py-1 text-xs rounded-md font-medium transition-colors capitalize ${
+            className={`px-3 py-1 text-xs rounded-none font-medium transition-colors capitalize ${
               filter === f ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
@@ -119,7 +119,7 @@ export default function Policies() {
                     </TableCell>
                     <TableCell className="text-xs text-right">{pol.evaluations.toLocaleString()}</TableCell>
                     <TableCell className="text-xs text-right">
-                      <span className={pol.denials > 0 ? 'text-red-600 font-medium' : 'text-muted-foreground'}>{pol.denials}</span>
+                      <span className={pol.denials > 0 ? 'text-red-600 dark:text-red-400 font-medium' : 'text-muted-foreground'}>{pol.denials}</span>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{pol.last_updated}</TableCell>
                   </TableRow>

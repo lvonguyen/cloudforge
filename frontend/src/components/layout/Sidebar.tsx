@@ -100,7 +100,7 @@ export function Sidebar() {
                       to={item.to}
                       end={item.to === '/admin' || item.to === '/ops' || item.to === '/portal'}
                       className={cn(
-                        'flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors',
+                        'flex items-center gap-2.5 rounded-none px-2 py-1.5 text-sm transition-colors',
                         active
                           ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
                           : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
