@@ -51,6 +51,7 @@ type Server struct {
 	authMiddleware *api.AuthMiddleware
 	rateLimiter    *gateway.RateLimiter
 	logger         *zap.Logger
+	mockData       *MockData
 }
 
 func main() {
@@ -131,6 +132,19 @@ func main() {
 		rateLimiter:    rateLimiter,
 		logger:         logger,
 	}
+
+	// Load mock data from frontend JSON files
+	mockData, err := loadMockData(mockDataDir())
+	if err != nil {
+		log.Fatalf("Failed to load mock data: %v", err)
+	}
+	srv.mockData = mockData
+	logger.Info("Mock data loaded",
+		zap.Int("findings", len(mockData.Findings)),
+		zap.Int("agents", len(mockData.Agents)),
+		zap.Int("frameworks", len(mockData.Frameworks)),
+		zap.Int("remediations", len(mockData.Remediations)),
+	)
 
 	// Setup routes
 	srv.setupRoutes()
@@ -235,6 +249,40 @@ func (s *Server) setupRoutes() {
 	// Policy validation — require operator or admin
 	apiRouter.Handle("/validate/exception", // operator, admin
 		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.validateException)),
+	).Methods("POST")
+
+	// Findings — read endpoints
+	apiRouter.Handle("/findings",
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listFindings)),
+	).Methods("GET")
+	apiRouter.Handle("/findings/{id}",
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getFinding)),
+	).Methods("GET")
+
+	// Compliance
+	apiRouter.Handle("/compliance/frameworks",
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listFrameworks)),
+	).Methods("GET")
+
+	// Agents
+	apiRouter.Handle("/agents",
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAgents)),
+	).Methods("GET")
+	apiRouter.Handle("/agents/{id}",
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAgent)),
+	).Methods("GET")
+
+	// Costs
+	apiRouter.Handle("/costs/summary",
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getCostSummary)),
+	).Methods("GET")
+
+	// Remediations
+	apiRouter.Handle("/remediations",
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listRemediations)),
+	).Methods("GET")
+	apiRouter.Handle("/remediations/{id}/execute",
+		api.RequireRole(api.RoleAdmin)(http.HandlerFunc(s.executeRemediation)),
 	).Methods("POST")
 }
 
