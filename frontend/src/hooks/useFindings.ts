@@ -1,26 +1,23 @@
 import { useQuery } from '@tanstack/react-query'
-import findingsData from '@/lib/mock/findings.json'
+import { apiClient } from '@/lib/api'
 import type { Finding } from '@/types/compliance'
 
-const findings = findingsData as Finding[]
-
 export function useFindings(filters?: { severity?: string; provider?: string; status?: string }) {
+  const params = new URLSearchParams()
+  if (filters?.severity) params.set('severity', filters.severity)
+  if (filters?.provider) params.set('provider', filters.provider)
+  if (filters?.status) params.set('status', filters.status)
+  const qs = params.toString()
   return useQuery({
     queryKey: ['findings', filters],
-    queryFn: async () => {
-      let result = findings
-      if (filters?.severity) result = result.filter(f => f.severity === filters.severity)
-      if (filters?.provider) result = result.filter(f => f.cloud_provider === filters.provider)
-      if (filters?.status) result = result.filter(f => f.status === filters.status)
-      return result
-    },
+    queryFn: () => apiClient.get<Finding[]>(`/findings${qs ? `?${qs}` : ''}`),
   })
 }
 
 export function useFinding(id: string) {
   return useQuery({
     queryKey: ['findings', id],
-    queryFn: async () => findings.find(f => f.id === id) ?? null,
+    queryFn: () => apiClient.get<Finding>(`/findings/${id}`),
     enabled: Boolean(id),
   })
 }

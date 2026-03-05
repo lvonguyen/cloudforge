@@ -15,6 +15,7 @@ export default function FindingDetail() {
   const { data: finding, isLoading } = useFinding(id ?? '')
   const { openTimeline } = useTracePanel()
   const remediateCooldown = useActionCooldown({ key: `remediate-${id ?? ''}`, cooldownMs: 10_000 })
+  const suppressCooldown = useActionCooldown({ key: `suppress-${id ?? ''}`, cooldownMs: 15_000 })
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground p-6">Loading finding…</div>
@@ -76,7 +77,32 @@ export default function FindingDetail() {
           >
             <CheckCircle2 className="h-3.5 w-3.5" />{!remediateCooldown.canFire ? 'Running\u2026' : 'Remediate'}
           </Button>
-          <Button size="sm" variant="outline" className="text-xs">Suppress</Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs"
+            disabled={!suppressCooldown.canFire}
+            onClick={() => {
+              if (!suppressCooldown.canFire) return
+              openTimeline('Suppressing: ' + finding.title, [
+                {
+                  span_id: 'span-sup-1',
+                  name: 'suppress:' + finding.resource_name,
+                  type: 'tool',
+                  start_time: new Date().toISOString(),
+                  end_time: new Date(Date.now() + 1800).toISOString(),
+                  duration_ms: 1800,
+                  status: 'ok',
+                  attributes: { 'finding.id': finding.id, action: 'suppress' },
+                  events: [],
+                  data: {},
+                },
+              ])
+              suppressCooldown.fire()
+            }}
+          >
+            {!suppressCooldown.canFire ? 'Suppressing\u2026' : 'Suppress'}
+          </Button>
         </div>
       </div>
 
