@@ -45,6 +45,11 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		t.Fatalf("creating auth middleware: %v", err)
 	}
 
+	mockData, err := loadMockData(mockDataDir())
+	if err != nil {
+		t.Fatalf("loading mock data: %v", err)
+	}
+
 	srv := &Server{
 		config: Config{
 			Port: "0",
@@ -53,6 +58,7 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		router:         mux.NewRouter(),
 		authMiddleware: authMiddleware,
 		logger:         logger,
+		mockData:       mockData,
 	}
 
 	srv.setupRoutes()
