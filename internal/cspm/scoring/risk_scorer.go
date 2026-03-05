@@ -9,6 +9,9 @@ import (
 	"log/slog"
 	"strings"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Severity level constants for security findings.
@@ -233,6 +236,13 @@ func (rs *RiskScorer) WithRuleEngines(fp FPEvaluator, fn FNEvaluator) *RiskScore
 
 // ScoreFinding performs contextual risk assessment on a finding.
 func (rs *RiskScorer) ScoreFinding(ctx context.Context, finding *Finding) (*RiskAssessment, error) {
+	ctx, span := otel.Tracer("cloudforge.cspm").Start(ctx, "cspm.score")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("finding.id", finding.ID),
+		attribute.String("finding.severity", finding.Severity),
+	)
+
 	// Step 1: Enrich context if not already populated
 	if finding.Context.AssetTier == "" {
 		if err := rs.enricher.EnrichContext(ctx, finding); err != nil {

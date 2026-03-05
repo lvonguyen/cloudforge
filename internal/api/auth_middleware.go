@@ -52,6 +52,7 @@ type Claims struct {
 	IssuedAt  int64    `json:"iat"`
 	Email     string   `json:"email,omitempty"`
 	Scope     string   `json:"scope,omitempty"`
+	Groups    []string `json:"groups,omitempty"` // CF Access groups or IdP groups
 }
 
 // contextKey is a custom type for context keys to avoid collisions.

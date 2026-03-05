@@ -111,6 +111,11 @@ jobs:
         with:
           args: '-no-fail -fmt sarif -out gosec-results.sarif ./...'
 
+      - name: Fix Gosec SARIF schema
+        if: always() && !cancelled() && hashFiles('gosec-results.sarif') != ''
+        run: |
+          jq 'del(.runs[].results[].fixes)' gosec-results.sarif > tmp.sarif && mv tmp.sarif gosec-results.sarif
+
       - name: Upload Gosec SARIF
         uses: github/codeql-action/upload-sarif@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
         if: always() && !cancelled() && hashFiles('gosec-results.sarif') != ''
