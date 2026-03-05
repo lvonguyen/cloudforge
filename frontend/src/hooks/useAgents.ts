@@ -1,9 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api'
-import tracesData from '@/lib/mock/traces.json'
 import type { Agent, AgentTrace } from '@/types/ai-governance'
-
-const traces = tracesData as AgentTrace[]
 
 export function useAgents() {
   return useQuery({
@@ -23,7 +20,7 @@ export function useAgent(id: string) {
 export function useAgentTraces(agentId: string) {
   return useQuery({
     queryKey: ['agents', agentId, 'traces'],
-    queryFn: async () => traces.filter(t => t.agent_id === agentId),
+    queryFn: () => apiClient.get<AgentTrace[]>(`/agents/${agentId}/traces`),
     enabled: Boolean(agentId),
   })
 }

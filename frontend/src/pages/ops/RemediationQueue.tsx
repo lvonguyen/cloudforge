@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,14 +18,14 @@ interface QueueItem {
   provider: string
   tier: 1 | 2 | 3
   handler: string
-  status: 'pending' | 'in_progress' | 'completed' | 'failed'
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped'
   dry_run_ok: boolean | null
   created_at: string
 }
 
 function toQueueItem(r: RemediationRecord): QueueItem {
   const dryRunOk = r.result
-    ? r.result.success
+    ? r.result?.success
     : r.status === 'pending' ? null : null
   return {
     id: r.id,
@@ -34,7 +35,7 @@ function toQueueItem(r: RemediationRecord): QueueItem {
     provider: r.domain,
     tier: (r.tier >= 1 && r.tier <= 3 ? r.tier : 2) as 1 | 2 | 3,
     handler: r.handler,
-    status: r.status === 'skipped' ? 'failed' : r.status,
+    status: r.status,
     dry_run_ok: dryRunOk,
     created_at: r.created_at,
   }
@@ -45,6 +46,7 @@ const STATUS_COLORS: Record<string, string> = {
   in_progress: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
   completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
   failed: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  skipped: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
 }
 
 const PROVIDER_COLORS: Record<string, string> = {
@@ -58,6 +60,7 @@ function QueueItemCard({ item }: { item: QueueItem }) {
   const executeCooldown = useActionCooldown({ key: `execute-${item.id}`, cooldownMs: 30_000 })
   const dryRunCooldown = useActionCooldown({ key: `dryrun-${item.id}`, cooldownMs: 15_000 })
   const retryCooldown = useActionCooldown({ key: `retry-${item.id}`, cooldownMs: 30_000 })
+  const [dryRunPassed, setDryRunPassed] = useState(false)
 
   function handleExecute() {
     if (!executeCooldown.canFire) return
@@ -76,6 +79,7 @@ function QueueItemCard({ item }: { item: QueueItem }) {
       estimated_impact: 'Low — scoped to single resource',
     })
     dryRunCooldown.fire()
+    setDryRunPassed(true)
   }
 
   return (
@@ -86,7 +90,7 @@ function QueueItemCard({ item }: { item: QueueItem }) {
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[item.status] ?? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300'}`}>{item.status}</span>
               <Badge variant="secondary" className={`text-[10px] ${PROVIDER_COLORS[item.provider] ?? ''}`}>{item.provider.toUpperCase()}</Badge>
-              {item.dry_run_ok === true && (
+              {(item.dry_run_ok === true || dryRunPassed) && (
                 <span className="text-[10px] text-green-600 dark:text-green-400 flex items-center gap-0.5"><CheckCircle2 className="h-3 w-3" />dry-run passed</span>
               )}
               {item.dry_run_ok === false && (
@@ -104,14 +108,14 @@ function QueueItemCard({ item }: { item: QueueItem }) {
               <Button
                 size="sm"
                 className="text-xs h-7 gap-1"
-                disabled={!executeCooldown.canFire || item.dry_run_ok === null}
+                disabled={!executeCooldown.canFire || (item.dry_run_ok === null && !dryRunPassed)}
                 onClick={handleExecute}
               >
                 <Play className="h-3 w-3" />
                 {!executeCooldown.canFire ? 'Running\u2026' : 'Execute'}
               </Button>
             )}
-            {item.dry_run_ok === null && item.status === 'pending' && (
+            {item.dry_run_ok === null && !dryRunPassed && item.status === 'pending' && (
               <Button
                 size="sm"
                 variant="outline"

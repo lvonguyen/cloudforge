@@ -8,6 +8,8 @@ import {
 } from '@/components/ui/table'
 import { FileCode, CheckCircle2, AlertTriangle, Clock } from 'lucide-react'
 import { usePolicies } from '@/hooks/usePolicies'
+import { useTracePanel } from '@/lib/trace-panel-context'
+import { useActionCooldown } from '@/hooks/useActionCooldown'
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; className: string; label: string }> = {
   active: { icon: CheckCircle2, className: 'text-green-600 dark:text-green-400', label: 'Active' },
@@ -30,7 +32,9 @@ export default function Policies() {
   const [filter, setFilter] = useState<string>('all')
 
   const { data: allPolicies = [] } = usePolicies()
-  const filtered = filter === 'all' ? allPolicies : allPolicies.filter(p => p.status === filter || p.category === filter)
+  const { openTimeline } = useTracePanel()
+  const newPolicyCooldown = useActionCooldown({ key: 'new-policy', cooldownMs: 3_000 })
+  const filtered = filter === 'all' ? allPolicies : allPolicies.filter(p => p.status === filter)
 
   return (
     <div className="space-y-6">
@@ -39,8 +43,68 @@ export default function Policies() {
           <h1 className="text-xl font-semibold">Policy Manager</h1>
           <p className="text-sm text-muted-foreground mt-0.5">OPA policies enforced at provisioning time</p>
         </div>
-        <Button size="sm" variant="outline" className="text-xs gap-1.5">
-          <FileCode className="h-3.5 w-3.5" />New Policy
+        <Button
+          size="sm"
+          variant="outline"
+          className="text-xs gap-1.5"
+          disabled={!newPolicyCooldown.canFire}
+          onClick={() => {
+            if (!newPolicyCooldown.canFire) return
+            const now = new Date()
+            openTimeline('New Policy', [
+              {
+                span_id: 'span-policy-1',
+                name: 'Initializing Rego template',
+                type: 'policy',
+                start_time: now.toISOString(),
+                end_time: new Date(now.getTime() + 150).toISOString(),
+                duration_ms: 150,
+                status: 'ok',
+                attributes: { step: 'init-rego' },
+                events: [],
+                data: {},
+              },
+              {
+                span_id: 'span-policy-2',
+                name: 'Validating policy namespace',
+                type: 'policy',
+                start_time: new Date(now.getTime() + 150).toISOString(),
+                end_time: new Date(now.getTime() + 350).toISOString(),
+                duration_ms: 200,
+                status: 'ok',
+                attributes: { step: 'validate-namespace' },
+                events: [],
+                data: {},
+              },
+              {
+                span_id: 'span-policy-3',
+                name: 'Registering in OPA engine',
+                type: 'policy',
+                start_time: new Date(now.getTime() + 350).toISOString(),
+                end_time: new Date(now.getTime() + 950).toISOString(),
+                duration_ms: 600,
+                status: 'ok',
+                attributes: { step: 'register-opa' },
+                events: [],
+                data: {},
+              },
+              {
+                span_id: 'span-policy-4',
+                name: 'Policy draft created',
+                type: 'policy',
+                start_time: new Date(now.getTime() + 950).toISOString(),
+                end_time: new Date(now.getTime() + 1050).toISOString(),
+                duration_ms: 100,
+                status: 'ok',
+                attributes: { step: 'draft-created' },
+                events: [],
+                data: {},
+              },
+            ])
+            newPolicyCooldown.fire()
+          }}
+        >
+          <FileCode className="h-3.5 w-3.5" />{!newPolicyCooldown.canFire ? 'Creating\u2026' : 'New Policy'}
         </Button>
       </div>
 

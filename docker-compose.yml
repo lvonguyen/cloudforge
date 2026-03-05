@@ -12,6 +12,7 @@ services:
       # [!] Production: set POSTGRES_PASSWORD via .env or secret manager
       - DATABASE_URL=postgres://cloudforge:${POSTGRES_PASSWORD:-changeme}@postgres:5432/cloudforge?sslmode=prefer
       - OPA_URL=http://opa:8181
+      - APP_ENV=production
     depends_on:
       postgres:
         condition: service_healthy

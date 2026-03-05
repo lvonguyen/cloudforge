@@ -7,6 +7,8 @@ import {
 } from '@/components/ui/table'
 import { UserPlus } from 'lucide-react'
 import { useUsers } from '@/hooks/useUsers'
+import { useTracePanel } from '@/lib/trace-panel-context'
+import { useActionCooldown } from '@/hooks/useActionCooldown'
 
 const ROLE_COLORS: Record<string, string> = {
   admin: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
@@ -19,6 +21,8 @@ export default function Users() {
   const { data: USERS = [] } = useUsers()
   const active = USERS.filter(u => u.status === 'active').length
   const filteredUsers = roleFilter === 'all' ? USERS : USERS.filter(u => u.role === roleFilter)
+  const { openTimeline } = useTracePanel()
+  const inviteCooldown = useActionCooldown({ key: 'invite-user', cooldownMs: 5_000 })
 
   return (
     <div className="space-y-6">
@@ -27,8 +31,68 @@ export default function Users() {
           <h1 className="text-xl font-semibold">User Management</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{active} active users · {USERS.length} total</p>
         </div>
-        <Button size="sm" variant="outline" className="text-xs gap-1.5">
-          <UserPlus className="h-3.5 w-3.5" />Invite User
+        <Button
+          size="sm"
+          variant="outline"
+          className="text-xs gap-1.5"
+          disabled={!inviteCooldown.canFire}
+          onClick={() => {
+            if (!inviteCooldown.canFire) return
+            const now = new Date()
+            openTimeline('Invite User', [
+              {
+                span_id: 'span-invite-1',
+                name: 'Validating email format',
+                type: 'tool',
+                start_time: now.toISOString(),
+                end_time: new Date(now.getTime() + 200).toISOString(),
+                duration_ms: 200,
+                status: 'ok',
+                attributes: { step: 'validate-email' },
+                events: [],
+                data: {},
+              },
+              {
+                span_id: 'span-invite-2',
+                name: 'Checking existing user',
+                type: 'tool',
+                start_time: new Date(now.getTime() + 200).toISOString(),
+                end_time: new Date(now.getTime() + 500).toISOString(),
+                duration_ms: 300,
+                status: 'ok',
+                attributes: { step: 'check-existing' },
+                events: [],
+                data: {},
+              },
+              {
+                span_id: 'span-invite-3',
+                name: 'Provisioning RBAC role',
+                type: 'tool',
+                start_time: new Date(now.getTime() + 500).toISOString(),
+                end_time: new Date(now.getTime() + 1000).toISOString(),
+                duration_ms: 500,
+                status: 'ok',
+                attributes: { step: 'provision-rbac' },
+                events: [],
+                data: {},
+              },
+              {
+                span_id: 'span-invite-4',
+                name: 'Sending invitation email',
+                type: 'tool',
+                start_time: new Date(now.getTime() + 1000).toISOString(),
+                end_time: new Date(now.getTime() + 1400).toISOString(),
+                duration_ms: 400,
+                status: 'ok',
+                attributes: { step: 'send-email' },
+                events: [],
+                data: {},
+              },
+            ])
+            inviteCooldown.fire()
+          }}
+        >
+          <UserPlus className="h-3.5 w-3.5" />{!inviteCooldown.canFire ? 'Inviting\u2026' : 'Invite User'}
         </Button>
       </div>
 

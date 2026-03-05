@@ -20,10 +20,18 @@ function calcMoM(daily: DailyProviderCost[], key: keyof Pick<DailyProviderCost, 
 
 export default function Costs() {
   const [period, setPeriod] = useState<Period>('90')
-  const { data: summary, isLoading } = useCostSummary()
+  const { data: summary, isLoading, isError } = useCostSummary()
 
-  if (isLoading || !summary) {
+  if (isLoading) {
     return <div className="text-sm text-muted-foreground p-4">Loading cost data...</div>
+  }
+
+  if (isError || !summary) {
+    return (
+      <div className="text-sm text-muted-foreground p-4">
+        Failed to load cost data. Check that the API server is running on port 8080.
+      </div>
+    )
   }
 
   const { daily, anomalies, chargeback, by_provider } = summary

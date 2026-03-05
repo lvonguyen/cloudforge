@@ -10,14 +10,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Shield, Search, LogOut, User } from 'lucide-react'
+import { Shield, Search, LogOut, User, Menu } from 'lucide-react'
 
-export function TopNav() {
+export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
   const { user, logout } = useAuth()
   const [searchOpen, setSearchOpen] = useState(false)
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-border bg-background px-6">
+      {/* Mobile hamburger */}
+      <button
+        type="button"
+        onClick={onMenuClick}
+        className="md:hidden flex items-center justify-center h-8 w-8 text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
       {/* Logo */}
       <div className="flex items-center gap-2 min-w-[160px]">
         <Shield className="h-6 w-6 text-primary" />

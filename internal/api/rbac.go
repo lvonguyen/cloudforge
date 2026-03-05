@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -58,9 +59,13 @@ func RequireRole(roles ...Role) func(http.Handler) http.Handler {
 
 			role := RoleFromClaims(claims)
 
-			// Dev override: allow X-CloudForge-Role header to set role for demo
-			if override := r.Header.Get("X-CloudForge-Role"); override != "" {
-				role = Role(strings.ToLower(override))
+			// Dev override: allow X-CloudForge-Role header to set role for demo.
+			// Gated to non-production environments to prevent privilege escalation.
+			env := os.Getenv("APP_ENV")
+			if env == "development" || env == "staging" {
+				if override := r.Header.Get("X-CloudForge-Role"); override != "" {
+					role = Role(strings.ToLower(override))
+				}
 			}
 
 			if !allowed[role] {

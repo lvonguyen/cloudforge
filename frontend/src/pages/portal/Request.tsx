@@ -563,10 +563,17 @@ export default function Request() {
 
   const handleNext = async () => {
     if (currentStep === 1) {
+      // Validate required fields before leaving Configuration step
+      const valid = await form.trigger()
+      if (!valid) return
       // Snapshot form values before leaving Configuration step
       setConfigSnapshot(form.getValues())
       // Entering policy check — run validation
       await runPolicyCheck()
+    }
+    // Keep snapshot fresh on forward navigation from any step after Configuration
+    if (currentStep > 1) {
+      setConfigSnapshot(prev => ({ ...prev, ...form.getValues() }))
     }
     setCurrentStep(s => s + 1)
   }
@@ -656,7 +663,7 @@ export default function Request() {
       content: (
         <StepReview
           step1={{ resourceId: selectedResource, cloudProvider, region }}
-          formValues={configSnapshot}
+          formValues={{ ...formValues, ...configSnapshot }}
           policyResult={policyResult}
           acceptedExceptions={acceptedExceptions}
           businessCase={businessCase}
