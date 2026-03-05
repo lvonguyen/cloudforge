@@ -10,6 +10,7 @@ import Landing from '@/pages/Landing'
 // Admin pages
 import AdminDashboard from '@/pages/admin/Dashboard'
 import Policies from '@/pages/admin/Policies'
+import PolicyDetail from '@/pages/admin/PolicyDetail'
 import AIAgents from '@/pages/admin/AIAgents'
 import AIAgentDetail from '@/pages/admin/AIAgentDetail'
 import Users from '@/pages/admin/Users'
@@ -44,6 +45,7 @@ export default function App() {
               {/* Admin routes */}
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/policies" element={<Policies />} />
+              <Route path="/admin/policies/:id" element={<PolicyDetail />} />
               <Route path="/admin/ai-agents" element={<AIAgents />} />
               <Route path="/admin/ai-agents/:id" element={<AIAgentDetail />} />
               <Route path="/admin/users" element={<Users />} />

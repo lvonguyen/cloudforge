@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -46,6 +47,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 export default function Policies() {
+  const navigate = useNavigate()
   const [filter, setFilter] = useState<string>('all')
 
   const filtered = filter === 'all' ? POLICIES : POLICIES.filter(p => p.status === filter || p.category === filter)
@@ -100,7 +102,7 @@ export default function Policies() {
               {filtered.map(pol => {
                 const { icon: Icon, className, label } = STATUS_CONFIG[pol.status] ?? STATUS_CONFIG.inactive
                 return (
-                  <TableRow key={pol.id} className="hover:bg-muted/30">
+                  <TableRow key={pol.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => navigate(`/admin/policies/${pol.id}`)}>
                     <TableCell className="pl-4">
                       <p className="text-xs font-mono font-medium">{pol.name}</p>
                       <p className="text-[10px] text-muted-foreground">{pol.id}</p>
