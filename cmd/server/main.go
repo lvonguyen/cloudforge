@@ -146,6 +146,9 @@ func main() {
 		zap.Int("agents", len(mockData.Agents)),
 		zap.Int("frameworks", len(mockData.Frameworks)),
 		zap.Int("remediations", len(mockData.Remediations)),
+		zap.Int("audit_events", len(mockData.AuditEvents)),
+		zap.Int("users", len(mockData.Users)),
+		zap.Int("policies", len(mockData.Policies)),
 	)
 
 	// Compute attack paths from findings
@@ -297,6 +300,26 @@ func (s *Server) setupRoutes() {
 		api.RequireRole(api.RoleAdmin)(http.HandlerFunc(s.executeRemediation)),
 	).Methods("POST")
 
+	// Agent traces
+	apiRouter.Handle("/agents/{id}/traces",
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAgentTraces)),
+	).Methods("GET")
+
+	// Audit log — admin only
+	apiRouter.Handle("/audit-log",
+		api.RequireRole(api.RoleAdmin)(http.HandlerFunc(s.listAuditLog)),
+	).Methods("GET")
+
+	// Users — admin only
+	apiRouter.Handle("/users",
+		api.RequireRole(api.RoleAdmin)(http.HandlerFunc(s.listUsers)),
+	).Methods("GET")
+
+	// Policies
+	apiRouter.Handle("/policies",
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listPolicies)),
+	).Methods("GET")
+
 	// Attack paths
 	apiRouter.Handle("/attack-paths",
 		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAttackPaths)),
@@ -315,13 +338,17 @@ func (s *Server) getTierFromRequest(r *http.Request) string {
 	// Check for tier in JWT claims (set by auth middleware)
 	if claims, ok := api.GetClaimsFromContext(r.Context()); ok {
 		// Look for tier in scope or custom claim
-		if strings.Contains(claims.Scope, "enterprise") {
+		scopes := make(map[string]bool)
+		for _, s := range strings.Fields(claims.Scope) {
+			scopes[s] = true
+		}
+		if scopes["enterprise"] {
 			return "enterprise"
 		}
-		if strings.Contains(claims.Scope, "professional") {
+		if scopes["professional"] {
 			return "professional"
 		}
-		if strings.Contains(claims.Scope, "basic") {
+		if scopes["basic"] {
 			return "basic"
 		}
 		if claims.Subject != "" {
@@ -390,6 +417,10 @@ func (s *Server) createException(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Server-authoritative workflow state — ignore client-supplied values.
+	req.Status = grc.StatusPending
+	req.ApproverChain = nil
+
 	created, err := s.grcProvider.CreateException(r.Context(), &req)
 	if err != nil {
 		s.writeInternalError(w, err, "create exception")
@@ -417,14 +448,15 @@ func (s *Server) getException(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Authorization: require admin scope or JWT subject matching the exception's app owner.
+	// Authorization: require admin/operator role or JWT subject matching the exception's app owner.
 	claims, ok := api.GetClaimsFromContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
 		return
 	}
-	if !strings.Contains(claims.Scope, "admin") && claims.Subject != exc.ApplicationID {
-		writeErrorResponse(w, "forbidden: requires admin scope or matching application identity", http.StatusForbidden)
+	role := api.RoleFromClaims(claims)
+	if role != api.RoleAdmin && role != api.RoleOperator && claims.Subject != exc.ApplicationID {
+		writeErrorResponse(w, "forbidden: requires admin/operator role or matching application identity", http.StatusForbidden)
 		return
 	}
 
@@ -464,6 +496,7 @@ func (s *Server) submitApproval(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "approval recorded"})
 }
@@ -503,12 +536,6 @@ func (s *Server) getExpiringExceptions(w http.ResponseWriter, r *http.Request) {
 	defer span.End()
 	r = r.WithContext(ctx)
 
-	claims, ok := api.GetClaimsFromContext(r.Context())
-	if !ok || !strings.Contains(claims.Scope, "compliance") {
-		writeErrorResponse(w, "forbidden: requires compliance scope", http.StatusForbidden)
-		return
-	}
-
 	expiring, err := s.grcProvider.GetExpiringExceptions(r.Context(), 30)
 	if err != nil {
 		s.writeInternalError(w, err, "get expiring exceptions")
@@ -527,17 +554,6 @@ func (s *Server) getExceptionsByApp(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	appID := vars["appId"]
 	span.SetAttributes(attribute.String("application.id", appID))
-
-	// Authorization: require admin scope or JWT subject matching appId
-	claims, ok := api.GetClaimsFromContext(r.Context())
-	if !ok {
-		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
-		return
-	}
-	if !strings.Contains(claims.Scope, "admin") && claims.Subject != appID {
-		writeErrorResponse(w, "forbidden: requires admin scope or matching application identity", http.StatusForbidden)
-		return
-	}
 
 	exceptions, err := s.grcProvider.GetExceptionsByApplication(r.Context(), appID)
 	if err != nil {

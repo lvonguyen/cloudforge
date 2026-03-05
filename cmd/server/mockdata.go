@@ -15,6 +15,9 @@ type MockData struct {
 	Frameworks   []ComplianceFramework
 	Costs        *CostSummary
 	Remediations []RemediationRecord
+	AuditEvents  []AuditEvent
+	Users        []UserRow
+	Policies     []Policy
 }
 
 // loadMockData loads all mock JSON files from the frontend mock directory.
@@ -41,6 +44,15 @@ func loadMockData(basePath string) (*MockData, error) {
 	}
 	if err := loadJSON(filepath.Join(mockDir, "remediations.json"), &data.Remediations); err != nil {
 		return nil, fmt.Errorf("loading remediations: %w", err)
+	}
+	if err := loadJSON(filepath.Join(mockDir, "audit-log.json"), &data.AuditEvents); err != nil {
+		return nil, fmt.Errorf("loading audit log: %w", err)
+	}
+	if err := loadJSON(filepath.Join(mockDir, "users.json"), &data.Users); err != nil {
+		return nil, fmt.Errorf("loading users: %w", err)
+	}
+	if err := loadJSON(filepath.Join(mockDir, "policies.json"), &data.Policies); err != nil {
+		return nil, fmt.Errorf("loading policies: %w", err)
 	}
 
 	return data, nil

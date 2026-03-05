@@ -141,8 +141,8 @@ export default function FindingDetail() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-muted-foreground line-clamp-2">{cve.description}</p>
                   <div className="flex gap-3 mt-1 flex-wrap">
-                    <span className="text-[10px]">CVSS <strong className={cve.cvss >= 9 ? 'text-red-600 dark:text-red-400' : cve.cvss >= 7 ? 'text-orange-600 dark:text-orange-400' : 'text-yellow-600 dark:text-yellow-400'}>{cve.cvss.toFixed(1)}</strong></span>
-                    <span className="text-[10px]">EPSS <strong>{(cve.epss * 100).toFixed(1)}%</strong></span>
+                    <span className="text-[10px]">CVSS <strong className={cve.cvss != null && cve.cvss >= 9 ? 'text-red-600 dark:text-red-400' : cve.cvss != null && cve.cvss >= 7 ? 'text-orange-600 dark:text-orange-400' : 'text-yellow-600 dark:text-yellow-400'}>{cve.cvss != null ? cve.cvss.toFixed(1) : 'N/A'}</strong></span>
+                    <span className="text-[10px]">EPSS <strong>{cve.epss != null ? (cve.epss * 100).toFixed(1) + '%' : 'N/A'}</strong></span>
                     {cve.cisa_known_exploited && (
                       <span className="text-[10px] font-medium text-red-600 dark:text-red-400">CISA KEV</span>
                     )}

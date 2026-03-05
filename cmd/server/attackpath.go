@@ -125,11 +125,12 @@ func computeAttackPaths(findings []Finding) ([]AttackPath, *AttackPathStats) {
 			if severityRank[f1.Severity] < 3 {
 				continue
 			}
-			for j, f2 := range accountFindings {
-				if i == j || severityRank[f2.Severity] < 3 {
+			for j := i + 1; j < len(accountFindings); j++ {
+				f2 := accountFindings[j]
+				if severityRank[f2.Severity] < 3 {
 					continue
 				}
-				if findingsInPaths[f1.ID] && findingsInPaths[f2.ID] {
+				if findingsInPaths[f1.ID] || findingsInPaths[f2.ID] {
 					continue
 				}
 				if canConnect(f1, f2) {
@@ -233,7 +234,8 @@ func buildChain(entry Finding, intermediates []Finding, target Finding) []Findin
 		if mid.ID == entry.ID || mid.ID == target.ID {
 			continue
 		}
-		if canConnect(entry, mid) && canConnect(mid, target) {
+		if canConnect(entry, mid) && canConnect(mid, target) &&
+			(mid.Region == entry.Region || mid.Region == target.Region) {
 			return []Finding{entry, mid, target}
 		}
 	}

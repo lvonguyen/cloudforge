@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import auditData from '@/lib/mock/audit-log.json'
+import { apiClient } from '@/lib/api'
 
 interface AuditEvent {
   id: string
@@ -12,20 +12,13 @@ interface AuditEvent {
   ip: string
 }
 
-const events = auditData as AuditEvent[]
-
 export function useAuditLog(filters?: { result?: string; actor?: string }) {
+  const params = new URLSearchParams()
+  if (filters?.result && filters.result !== 'all') params.set('result', filters.result)
+  if (filters?.actor && filters.actor !== 'all') params.set('actor', filters.actor)
+  const qs = params.toString()
   return useQuery({
     queryKey: ['audit-log', filters],
-    queryFn: async () => {
-      let result = events
-      if (filters?.result && filters.result !== 'all') {
-        result = result.filter(e => e.result === filters.result)
-      }
-      if (filters?.actor && filters.actor !== 'all') {
-        result = result.filter(e => e.actor === filters.actor)
-      }
-      return result
-    },
+    queryFn: () => apiClient.get<AuditEvent[]>(`/audit-log${qs ? `?${qs}` : ''}`),
   })
 }

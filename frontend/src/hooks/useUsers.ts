@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import usersData from '@/lib/mock/users.json'
+import { apiClient } from '@/lib/api'
 
 interface UserRow {
   id: string
@@ -11,14 +11,10 @@ interface UserRow {
   status: 'active' | 'inactive'
 }
 
-const users = usersData as UserRow[]
-
 export function useUsers(roleFilter?: string) {
+  const role = roleFilter && roleFilter !== 'all' ? roleFilter : undefined
   return useQuery({
     queryKey: ['users', roleFilter],
-    queryFn: async () => {
-      if (!roleFilter || roleFilter === 'all') return users
-      return users.filter(u => u.role === roleFilter)
-    },
+    queryFn: () => apiClient.get<UserRow[]>(`/users${role ? `?role=${role}` : ''}`),
   })
 }

@@ -35,6 +35,9 @@ import MyRequests from '@/pages/portal/MyRequests'
 import RequestDetail from '@/pages/portal/RequestDetail'
 import Catalog from '@/pages/portal/Catalog'
 
+// Fallback
+import NotFound from '@/pages/NotFound'
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -71,6 +74,9 @@ export default function App() {
                 <Route path="/portal/requests" element={<MyRequests />} />
                 <Route path="/portal/requests/:id" element={<RequestDetail />} />
                 <Route path="/portal/catalog" element={<Catalog />} />
+
+                {/* 404 catch-all */}
+                <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>
             <ExecutionTracePanel />

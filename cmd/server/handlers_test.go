@@ -101,11 +101,13 @@ func TestGetException_NotFound(t *testing.T) {
 	assertStatus(t, rr, http.StatusNotFound)
 }
 
-func TestSubmitApproval_Success(t *testing.T) {
+func TestSubmitApproval_NoChain(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)
 
-	// Create an exception with the admin in the approver chain.
+	// Create an exception. Server resets approver_chain to nil (SA-10 fix),
+	// so submitting an approval against it should fail because the approver
+	// is not in the (empty) chain.
 	createBody := `{"application_id":"app-001","policy_violated":"REGION-001","business_case":"testing","requestor_email":"admin@contoso.dev","approver_chain":[{"email":"admin@contoso.dev","role":"SECURITY_LEAD","decision":"PENDING"}]}`
 	createRR := doRequest(t, router, "POST", "/api/v1/exceptions", createBody, jwt)
 	assertStatus(t, createRR, http.StatusCreated)
@@ -113,10 +115,14 @@ func TestSubmitApproval_Success(t *testing.T) {
 	var created grc.ExceptionRequest
 	assertJSON(t, createRR, &created)
 
-	// Submit approval.
+	if len(created.ApproverChain) != 0 {
+		t.Errorf("expected empty approver_chain after server reset, got %d entries", len(created.ApproverChain))
+	}
+
+	// Submit approval — should fail because chain is empty.
 	approvalBody := `{"email":"admin@contoso.dev","role":"SECURITY_LEAD","decision":"APPROVED","comments":"approved for testing"}`
 	rr := doRequest(t, router, "POST", "/api/v1/exceptions/"+created.ID+"/approve", approvalBody, jwt)
-	assertStatus(t, rr, http.StatusOK)
+	assertStatus(t, rr, http.StatusInternalServerError)
 }
 
 func TestGetPendingApprovals(t *testing.T) {
@@ -135,9 +141,9 @@ func TestGetPendingApprovals(t *testing.T) {
 	assertJSON(t, rr, &result)
 }
 
-func TestGetExpiringExceptions_RequiresComplianceScope(t *testing.T) {
+func TestGetExpiringExceptions_RequesterForbidden(t *testing.T) {
 	_, router := testServer(t)
-	jwt := operatorJWT(t) // scope "operator" — no compliance
+	jwt := requesterJWT(t) // requester role — not operator or admin
 
 	rr := doRequest(t, router, "GET", "/api/v1/exceptions/expiring", "", jwt)
 	assertStatus(t, rr, http.StatusForbidden)

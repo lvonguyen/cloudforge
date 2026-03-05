@@ -79,22 +79,22 @@ type ComplianceMapping struct {
 
 // Agent represents an AI agent in the platform.
 type Agent struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	Description  string            `json:"description"`
-	Framework    string            `json:"framework"`
-	Version      string            `json:"version"`
-	Owner        string            `json:"owner"`
-	Team         string            `json:"team"`
-	Environment  string            `json:"environment"`
-	Capabilities json.RawMessage   `json:"capabilities"`
-	Tools        json.RawMessage   `json:"tools"`
-	Policies     []string          `json:"policies"`
-	RiskLevel    string            `json:"risk_level"`
-	Status       string            `json:"status"`
-	LastActiveAt string            `json:"last_active_at"`
-	CreatedAt    string            `json:"created_at"`
-	UpdatedAt    string            `json:"updated_at"`
+	ID           string          `json:"id"`
+	Name         string          `json:"name"`
+	Description  string          `json:"description"`
+	Framework    string          `json:"framework"`
+	Version      string          `json:"version"`
+	Owner        string          `json:"owner"`
+	Team         string          `json:"team"`
+	Environment  string          `json:"environment"`
+	Capabilities json.RawMessage `json:"capabilities"`
+	Tools        json.RawMessage `json:"tools"`
+	Policies     []string        `json:"policies"`
+	RiskLevel    string          `json:"risk_level"`
+	Status       string          `json:"status"`
+	LastActiveAt string          `json:"last_active_at"`
+	CreatedAt    string          `json:"created_at"`
+	UpdatedAt    string          `json:"updated_at"`
 }
 
 // AgentTrace represents an execution trace for an agent run.
@@ -112,17 +112,17 @@ type AgentTrace struct {
 
 // ComplianceFramework represents a compliance framework with scoring.
 type ComplianceFramework struct {
-	ID              string                `json:"id"`
-	Name            string                `json:"name"`
-	Description     string                `json:"description"`
-	Version         string                `json:"version"`
-	Category        string                `json:"category"`
-	TotalControls   int                   `json:"total_controls"`
-	ControlsPassing int                   `json:"controls_passing"`
-	ControlsFailing int                   `json:"controls_failing"`
-	Score           float64               `json:"score"`
-	RelevantFor     []string              `json:"relevant_for"`
-	Categories      []FrameworkCategory   `json:"categories"`
+	ID              string              `json:"id"`
+	Name            string              `json:"name"`
+	Description     string              `json:"description"`
+	Version         string              `json:"version"`
+	Category        string              `json:"category"`
+	TotalControls   int                 `json:"total_controls"`
+	ControlsPassing int                 `json:"controls_passing"`
+	ControlsFailing int                 `json:"controls_failing"`
+	Score           float64             `json:"score"`
+	RelevantFor     []string            `json:"relevant_for"`
+	Categories      []FrameworkCategory `json:"categories"`
 }
 
 // FrameworkCategory is a control category within a compliance framework.
@@ -136,15 +136,15 @@ type FrameworkCategory struct {
 
 // CostSummary matches the top-level costs.json structure.
 type CostSummary struct {
-	Period                  string                    `json:"period"`
-	Total                   float64                   `json:"total"`
-	ByProvider              map[string]float64        `json:"by_provider"`
-	ByService               map[string]float64        `json:"by_service"`
-	MonthOverMonth          []CostPeriod              `json:"month_over_month"`
-	Daily                   []CostDaily               `json:"daily"`
-	Anomalies               []CostAnomaly             `json:"anomalies"`
+	Period                    string                    `json:"period"`
+	Total                     float64                   `json:"total"`
+	ByProvider                map[string]float64        `json:"by_provider"`
+	ByService                 map[string]float64        `json:"by_service"`
+	MonthOverMonth            []CostPeriod              `json:"month_over_month"`
+	Daily                     []CostDaily               `json:"daily"`
+	Anomalies                 []CostAnomaly             `json:"anomalies"`
 	OptimizationOpportunities []OptimizationOpportunity `json:"optimization_opportunities"`
-	Chargeback              *Chargeback               `json:"chargeback,omitempty"`
+	Chargeback                *Chargeback               `json:"chargeback,omitempty"`
 }
 
 // CostPeriod is a monthly cost breakdown by provider.
@@ -197,9 +197,9 @@ type OptimizationOpportunity struct {
 
 // Chargeback is the cost allocation report.
 type Chargeback struct {
-	Period      string               `json:"period"`
-	GeneratedAt string              `json:"generated_at"`
-	TotalCost   float64             `json:"total_cost"`
+	Period      string                 `json:"period"`
+	GeneratedAt string                 `json:"generated_at"`
+	TotalCost   float64                `json:"total_cost"`
 	Allocations []ChargebackAllocation `json:"allocations"`
 }
 
@@ -211,6 +211,41 @@ type ChargebackAllocation struct {
 	ByProvider map[string]float64 `json:"by_provider"`
 	ByService  map[string]float64 `json:"by_service"`
 	Percentage float64            `json:"percentage"`
+}
+
+// AuditEvent represents a single audit log entry.
+type AuditEvent struct {
+	ID        string `json:"id"`
+	Timestamp string `json:"timestamp"`
+	Actor     string `json:"actor"`
+	ActorRole string `json:"actor_role"`
+	Action    string `json:"action"`
+	Resource  string `json:"resource"`
+	Result    string `json:"result"`
+	IP        string `json:"ip"`
+}
+
+// UserRow represents a platform user.
+type UserRow struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	Role      string `json:"role"`
+	Team      string `json:"team"`
+	LastLogin string `json:"last_login"`
+	Status    string `json:"status"`
+}
+
+// Policy represents an OPA policy with evaluation stats.
+type Policy struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Namespace   string `json:"namespace"`
+	Status      string `json:"status"`
+	Category    string `json:"category"`
+	Evaluations int    `json:"evaluations"`
+	Denials     int    `json:"denials"`
+	LastUpdated string `json:"last_updated"`
 }
 
 // RemediationRecord represents a remediation execution with result and validation.

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import policiesData from '@/lib/mock/policies.json'
+import { apiClient } from '@/lib/api'
 
 interface Policy {
   id: string
@@ -12,14 +12,10 @@ interface Policy {
   last_updated: string
 }
 
-const policies = policiesData as Policy[]
-
 export function usePolicies(filter?: string) {
+  const status = filter && filter !== 'all' ? filter : undefined
   return useQuery({
     queryKey: ['policies', filter],
-    queryFn: async () => {
-      if (!filter || filter === 'all') return policies
-      return policies.filter(p => p.status === filter || p.category === filter)
-    },
+    queryFn: () => apiClient.get<Policy[]>(`/policies${status ? `?status=${status}` : ''}`),
   })
 }

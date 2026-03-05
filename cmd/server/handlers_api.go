@@ -164,3 +164,95 @@ func (s *Server) executeRemediation(w http.ResponseWriter, r *http.Request) {
 
 	writeErrorResponse(w, "remediation not found", http.StatusNotFound)
 }
+
+func (s *Server) listAgentTraces(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAgentTraces")
+	defer span.End()
+	r = r.WithContext(ctx)
+
+	agentID := mux.Vars(r)["id"]
+	span.SetAttributes(attribute.String("agent.id", agentID))
+
+	results := make([]AgentTrace, 0)
+	for _, tr := range s.mockData.Traces {
+		if tr.AgentID == agentID {
+			results = append(results, tr)
+		}
+	}
+
+	span.SetAttributes(attribute.Int("traces.count", len(results)))
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(results)
+}
+
+func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAuditLog")
+	defer span.End()
+	r = r.WithContext(ctx)
+
+	resultFilter := strings.ToLower(r.URL.Query().Get("result"))
+	actorFilter := r.URL.Query().Get("actor")
+
+	results := make([]AuditEvent, 0, len(s.mockData.AuditEvents))
+	for _, evt := range s.mockData.AuditEvents {
+		if resultFilter != "" && !strings.EqualFold(evt.Result, resultFilter) {
+			continue
+		}
+		if actorFilter != "" && !strings.EqualFold(evt.Actor, actorFilter) {
+			continue
+		}
+		results = append(results, evt)
+	}
+
+	span.SetAttributes(attribute.Int("audit.count", len(results)))
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(results)
+}
+
+func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listUsers")
+	defer span.End()
+	r = r.WithContext(ctx)
+
+	roleFilter := strings.ToLower(r.URL.Query().Get("role"))
+
+	results := make([]UserRow, 0, len(s.mockData.Users))
+	for _, u := range s.mockData.Users {
+		if roleFilter != "" && !strings.EqualFold(u.Role, roleFilter) {
+			continue
+		}
+		results = append(results, u)
+	}
+
+	span.SetAttributes(attribute.Int("users.count", len(results)))
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(results)
+}
+
+func (s *Server) listPolicies(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listPolicies")
+	defer span.End()
+	r = r.WithContext(ctx)
+
+	statusFilter := strings.ToLower(r.URL.Query().Get("status"))
+	categoryFilter := strings.ToLower(r.URL.Query().Get("category"))
+
+	results := make([]Policy, 0, len(s.mockData.Policies))
+	for _, p := range s.mockData.Policies {
+		if statusFilter != "" && !strings.EqualFold(p.Status, statusFilter) {
+			continue
+		}
+		if categoryFilter != "" && !strings.EqualFold(p.Category, categoryFilter) {
+			continue
+		}
+		results = append(results, p)
+	}
+
+	span.SetAttributes(attribute.Int("policies.count", len(results)))
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(results)
+}

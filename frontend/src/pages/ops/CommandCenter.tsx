@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useExceptions, useApproveException } from '@/hooks/useExceptions'
 import { useFindings } from '@/hooks/useFindings'
 import { useCostAnomalies } from '@/hooks/useCosts'
+import { useActionCooldown } from '@/hooks/useActionCooldown'
 import { ExceptionCard } from '@/components/grc/ExceptionCard'
 import { FindingCard } from '@/components/findings/FindingCard'
 import { AnomalyAlertCard } from '@/components/finops/AnomalyAlertCard'
@@ -90,6 +91,8 @@ export default function CommandCenter() {
 
   const exceptions = useExceptions()
   const approveException = useApproveException()
+  const approveCooldown = useActionCooldown({ key: 'approve-exception', cooldownMs: 3000 })
+  const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set())
 
   const findingFilters = {
     severity: severityFilter !== 'ALL' ? severityFilter : undefined,
@@ -106,12 +109,16 @@ export default function CommandCenter() {
   }, {})
 
   function handleApprove(id: string) {
+    if (!approveCooldown.canFire) return
     const approver: Approver = {
       email: 'operator1@contoso.dev',
       role: 'ops',
       decision: 'APPROVED',
     }
-    approveException.mutate({ id, approver })
+    approveCooldown.fire()
+    approveException.mutate({ id, approver }, {
+      onSuccess: () => setApprovedIds(prev => new Set(prev).add(id)),
+    })
   }
 
   return (
@@ -146,15 +153,23 @@ export default function CommandCenter() {
                 <ExceptionCard exception={exc} />
                 {exc.status === 'PENDING' && (
                   <div className="px-4 pb-3">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full text-xs"
-                      disabled={approveException.isPending}
-                      onClick={(e) => { e.stopPropagation(); handleApprove(exc.id) }}
-                    >
-                      Approve
-                    </Button>
+                    {approvedIds.has(exc.id) ? (
+                      <Badge variant="outline" className="w-full justify-center text-xs py-1 bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700">
+                        Approved
+                      </Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full text-xs"
+                        disabled={approveException.isPending || !approveCooldown.canFire}
+                        onClick={(e) => { e.stopPropagation(); handleApprove(exc.id) }}
+                      >
+                        {!approveCooldown.canFire
+                          ? `Wait ${Math.ceil(approveCooldown.remainingMs / 1000)}s`
+                          : 'Approve'}
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>

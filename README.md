@@ -3,7 +3,7 @@
 ![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Development Status](https://img.shields.io/badge/status-active%20development-blue)
-![Implementation](https://img.shields.io/badge/implementation-92%25-green)
+![Implementation](https://img.shields.io/badge/implementation-96%25-green)
 
 ## Enterprise Cloud Governance Platform with Self-Service Provisioning
 
@@ -13,7 +13,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 ## [/] Implementation Status
 
-> **Current State:** Active development (~92% complete). Core API functional, GRC integration working, remediation dispatcher operational, CI/CD pipeline hardened, IaC deploy layer with multi-cloud Terraform modules and policy-as-code, self-service portal built and deployed.
+> **Current State:** Active development (~96% complete). Core API functional, GRC integration working, remediation dispatcher operational, CI/CD pipeline hardened, IaC deploy layer with multi-cloud Terraform modules and policy-as-code, self-service portal built and deployed.
 
 | Component | Status | Notes |
 | --------- | ------ | ----- |
@@ -63,7 +63,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | Rate limiting | Done | Redis-backed, tier-based, wired into `/api/v1` routes |
 | JWT authentication | Done | HS256/RS256 validation, JWKS caching, wired into router |
 | OIDC provider integration | Interface Only | Okta/Entra ID providers exist, not wired into auth flow |
-| Authorization (RBAC) | Not Started | No role-based access control middleware |
+| Authorization (RBAC) | Done | CF Access groups, dev header override, RequireRole/RequireScope middleware |
 | **IaC / Deploy** | | |
 | Terraform modules (compute) | Done | Cloud Run + ECS Fargate + Azure Container Apps |
 | Terraform modules (database) | Done | Cloud SQL + RDS + Azure PostgreSQL |
@@ -74,19 +74,19 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | Environment configs | Done | Dev environment with GCS remote state |
 | **Portal** | | |
 | React SPA (frontend/) | Done | React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui |
-| 18 route pages | Done | Admin, Operator, Requester role views |
+| 21 route pages | Done | Admin, Operator, Requester role views + attack paths |
 | Dark mode | Done | CSS variable overrides, anti-flash script |
 | Cloudflare Pages deploy | Done | cloudforge-demo.lvonguyen.com |
 | **Risk Intelligence** | | |
 | Contextual risk schema | Done | AttackPathContext, ToxicComboDetails, MITRE fields |
 | LLM severity re-scoring | Done | Claude-powered with blast radius + EPSS + KEV inputs |
 | Severity normalization | Done | Per-CSP normalization (AWS ASFF, Azure, GCP) |
-| Attack path computation | Planned | Graph-based traversal (see roadmap) |
+| Attack path computation | Done | In-memory BFS graph engine + ReactFlow DAG visualization (ADR-008) |
 | EPSS scoring | Done | HTTP client with 12h cache, batch fetching from FIRST API |
 | CISA KEV catalog | Done | In-memory catalog with auto-refresh from CISA feed |
-| GreyNoise integration | Planned | Schema field defined, no API client |
+| GreyNoise integration | Done | HTTP client with 12h cache, classification enrichment |
 | **Testing** | | |
-| Unit tests | Partial | 24 test files, 369 test functions (ai, compliance, cspm, grc, remediation) |
+| Unit tests | Partial | 24+ test files, 400+ test functions incl. 36 handler tests (httptest) |
 | Integration tests | 0% | |
 
 ---
@@ -95,17 +95,16 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 This is a **portfolio reference implementation**, not production software:
 
-1. **Test Coverage Gap** - 24 test files (369 functions) cover cspm, grc, remediation, ai, compliance; handler-level and integration tests pending
+1. **Test Coverage Gap** - 24+ test files (400+ functions including handler tests) cover cspm, grc, remediation, ai, compliance; integration tests pending
 2. **OIDC Provider Stub** - JWT auth middleware is production-ready (HS256/RS256, JWKS), but Okta/Entra ID providers not wired into auth flow
-3. **No RBAC** - All authenticated users have full access; no role-based authorization middleware
-4. **Temporal Workflows** - Workflow definitions exist, orchestration not fully tested
-5. **FinOps Module** - Cost aggregation interfaces only, no cloud API integration
+3. **Temporal Workflows** - Workflow definitions exist, orchestration not fully tested
+4. **FinOps Module** - Cost aggregation interfaces only, no cloud API integration
 
 **Production Requirements:**
 
 - Expand test suites (handler-level unit tests + integration tests)
 - Wire Okta/Entra ID providers into JWT auth flow
-- Implement RBAC authorization middleware
+- Expand RBAC with fine-grained permissions
 - Test and validate Temporal workflows
 
 ---
