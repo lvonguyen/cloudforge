@@ -1,8 +1,8 @@
 # CloudForge Web UI Frontend — Planning Document
 
-**Author:** Session 14 (cf-frontend-planning agent)
+**Author:** Liem Vo-Nguyen
 **Date:** 2026-02-27
-**Status:** Planning — research complete, implementation pending
+**Status:** Superseded — portal implemented with React 19 / Vite 7 / Tailwind CSS v4 (see `frontend/`)
 
 ---
 

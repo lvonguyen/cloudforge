@@ -136,5 +136,5 @@ Beyond roles, support ABAC for:
 ## Related Decisions
 
 - ADR-005: Rate Limiting (per-client enforcement)
-- ADR-007: Audit Logging
+- ADR-007: GRC Integration Pattern
 

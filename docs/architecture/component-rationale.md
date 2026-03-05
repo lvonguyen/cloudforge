@@ -211,9 +211,9 @@
 
 ## 6. AI Provider: Anthropic Claude vs OpenAI GPT-4
 
-### Decision: Anthropic Claude Opus 4.5 (Primary), OpenAI GPT-4 (Fallback)
+### Decision: Anthropic Claude Opus 4.6 (Primary), OpenAI GPT-4 (Fallback)
 
-| Criteria | Claude Opus 4.5 | GPT-4 Turbo |
+| Criteria | Claude Opus 4.6 | GPT-4 Turbo |
 | --- | --- | --- |
 | Context Window | 200K tokens | 128K tokens |
 | Speed | Moderate | Fast |
@@ -223,7 +223,7 @@
 | Cost (Output) | $75/1M tokens | $30/1M tokens |
 | Rate Limits | Lower | Higher |
 
-### Why Claude Opus 4.5 (Primary)
+### Why Claude Opus 4.6 (Primary)
 
 1. **Context Window**: 200K tokens for large finding batches
 2. **Reasoning**: Better at nuanced security analysis
@@ -238,7 +238,7 @@
 
 ### Cost Analysis (100K findings/month, ~500 tokens/finding)
 
-| Metric | Claude Opus 4.5 | GPT-4 Turbo |
+| Metric | Claude Opus 4.6 | GPT-4 Turbo |
 | --- | --- | --- |
 | Input Tokens | 50M @ $15/M = $750 | 50M @ $10/M = $500 |
 | Output Tokens | 25M @ $75/M = $1,875 | 25M @ $30/M = $750 |

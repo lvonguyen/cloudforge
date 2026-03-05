@@ -48,7 +48,7 @@ Wiz extended the graph model for AI workloads — mapping AI models, training in
 ## 2. csmp-aggregator Enhancements
 
 ### Current State (from CLAUDE.md)
-Go-based CSPM aggregator with Claude Opus 4.5 AI scoring. Aggregates findings across 3,500+ environments (multiple AWS Organizations, 350+ GCP projects, 750+ Azure subscriptions).
+Go-based CSPM aggregator with Claude Opus 4.6 AI scoring. Aggregates findings across 3,500+ environments (multiple AWS Organizations, 350+ GCP projects, 750+ Azure subscriptions).
 
 ### Enhancement Roadmap
 
@@ -99,7 +99,7 @@ Go-based CSPM aggregator with Claude Opus 4.5 AI scoring. Aggregates findings ac
 - Score paths by: hop count (shorter = more exploitable), finding severities along the path, target asset criticality, exposure type
 
 #### E3: Contextual Risk Scoring Enhancement (Medium Priority)
-**What:** Extend the existing Claude Opus 4.5 AI scoring with graph-derived context.
+**What:** Extend the existing Claude Opus 4.6 AI scoring with graph-derived context.
 
 **Why:** The AI scoring already differentiates csmp-aggregator. Adding graph context (relationship data, blast radius, crown jewel proximity) to the AI prompt gives the model richer signal for prioritization — moving from "how severe is this finding?" to "how dangerous is this finding given what it can reach?"
 
