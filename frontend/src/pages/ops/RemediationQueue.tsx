@@ -57,6 +57,7 @@ function QueueItemCard({ item }: { item: QueueItem }) {
   const { openStreaming, openDryRun } = useTracePanel()
   const executeCooldown = useActionCooldown({ key: `execute-${item.id}`, cooldownMs: 30_000 })
   const dryRunCooldown = useActionCooldown({ key: `dryrun-${item.id}`, cooldownMs: 15_000 })
+  const retryCooldown = useActionCooldown({ key: `retry-${item.id}`, cooldownMs: 30_000 })
 
   function handleExecute() {
     if (!executeCooldown.canFire) return
@@ -122,8 +123,18 @@ function QueueItemCard({ item }: { item: QueueItem }) {
               </Button>
             )}
             {item.status === 'failed' && (
-              <Button size="sm" variant="outline" className="text-xs h-7 gap-1">
-                <RotateCcw className="h-3 w-3" />Retry
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs h-7 gap-1"
+                disabled={!retryCooldown.canFire}
+                onClick={() => {
+                  if (!retryCooldown.canFire) return
+                  openStreaming('Retrying: ' + item.handler)
+                  retryCooldown.fire()
+                }}
+              >
+                <RotateCcw className="h-3 w-3" />{!retryCooldown.canFire ? 'Retrying\u2026' : 'Retry'}
               </Button>
             )}
           </div>

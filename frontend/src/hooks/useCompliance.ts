@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import frameworksData from '@/lib/mock/frameworks.json'
+import { apiClient } from '@/lib/api'
 
 export function useCompliance() {
   return useQuery({
     queryKey: ['compliance', 'frameworks'],
-    queryFn: async () => frameworksData,
+    queryFn: () => apiClient.get('/compliance/frameworks'),
   })
 }

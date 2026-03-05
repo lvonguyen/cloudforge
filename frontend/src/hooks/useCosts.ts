@@ -1,19 +1,20 @@
 import { useQuery } from '@tanstack/react-query'
-import costsData from '@/lib/mock/costs.json'
+import { apiClient } from '@/lib/api'
 import type { CostSummary } from '@/types/finops'
-
-const costSummary = costsData as unknown as CostSummary
 
 export function useCostSummary() {
   return useQuery({
     queryKey: ['costs', 'summary'],
-    queryFn: async () => costSummary,
+    queryFn: () => apiClient.get<CostSummary>('/costs/summary'),
   })
 }
 
 export function useCostAnomalies() {
   return useQuery({
     queryKey: ['costs', 'anomalies'],
-    queryFn: async () => costSummary.anomalies,
+    queryFn: async () => {
+      const summary = await apiClient.get<CostSummary>('/costs/summary')
+      return summary.anomalies
+    },
   })
 }
