@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm, Controller, type UseFormReturn, type FieldValues } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -483,16 +483,30 @@ function StepReview({
 
 export default function Request() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
   const createException = useCreateException()
 
   const [currentStep, setCurrentStep] = useState(0)
   const [submitted, setSubmitted] = useState(false)
 
+  // Pre-fill from Catalog navigation
+  const preselect = (location.state as { preselect?: string } | null)?.preselect
+  const preselectItem = preselect ? CATALOG.find(c => c.id === preselect) : undefined
+
   // Step 1 state
-  const [selectedResource, setSelectedResource] = useState<string>('')
-  const [cloudProvider, setCloudProvider] = useState<string>('aws')
-  const [region, setRegion] = useState<string>('')
+  const [selectedResource, setSelectedResource] = useState<string>(preselectItem?.id ?? '')
+  const [cloudProvider, setCloudProvider] = useState<string>(preselectItem?.provider ?? 'aws')
+  const [region, setRegion] = useState<string>(() => {
+    if (preselectItem) {
+      const regions = REGIONS[preselectItem.provider] ?? []
+      return regions[0] ?? ''
+    }
+    return ''
+  })
+
+  // Step 2 snapshot — captured when leaving Configuration step
+  const [configSnapshot, setConfigSnapshot] = useState<Record<string, unknown>>({})
 
   // Step 3 state
   const [policyResult, setPolicyResult] = useState<PolicyResult | null>(null)
@@ -549,6 +563,8 @@ export default function Request() {
 
   const handleNext = async () => {
     if (currentStep === 1) {
+      // Snapshot form values before leaving Configuration step
+      setConfigSnapshot(form.getValues())
       // Entering policy check — run validation
       await runPolicyCheck()
     }
@@ -629,8 +645,8 @@ export default function Request() {
             resourceType: selectedResource,
             provider: cloudProvider,
             region,
-            appId: String(formValues.applicationId || 'demo'),
-            configuration: formValues as Record<string, unknown>,
+            appId: String(configSnapshot.applicationId || formValues.applicationId || 'demo'),
+            configuration: { ...configSnapshot, ...formValues } as Record<string, unknown>,
           }}
         />
       ),
@@ -640,7 +656,7 @@ export default function Request() {
       content: (
         <StepReview
           step1={{ resourceId: selectedResource, cloudProvider, region }}
-          formValues={formValues as Record<string, unknown>}
+          formValues={configSnapshot}
           policyResult={policyResult}
           acceptedExceptions={acceptedExceptions}
           businessCase={businessCase}

@@ -7,7 +7,7 @@ import type { Finding } from '@/types/compliance'
 export function FindingCard({ finding, onClick }: { finding: Finding; onClick?: () => void }) {
   return (
     <Card
-      className={`hover:shadow-sm transition-shadow ${onClick ? 'cursor-pointer' : ''}`}
+      className="cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
       onClick={onClick}
     >
       <CardHeader className="pb-2 space-y-1">
