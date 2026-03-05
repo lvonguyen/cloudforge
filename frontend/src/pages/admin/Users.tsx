@@ -6,24 +6,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { UserPlus } from 'lucide-react'
-
-interface UserRow {
-  id: string
-  name: string
-  email: string
-  role: 'admin' | 'operator' | 'requester'
-  team: string
-  last_login: string
-  status: 'active' | 'inactive'
-}
-
-const USERS: UserRow[] = [
-  { id: 'u-001', name: 'Admin One', email: 'admin1@contoso.dev', role: 'admin', team: 'Platform Security', last_login: '2026-02-26 09:14', status: 'active' },
-  { id: 'u-002', name: 'Operator One', email: 'operator1@contoso.dev', role: 'operator', team: 'Cloud Ops', last_login: '2026-02-26 08:52', status: 'active' },
-  { id: 'u-003', name: 'Operator Two', email: 'operator2@contoso.dev', role: 'operator', team: 'Cloud Ops', last_login: '2026-02-25 17:30', status: 'active' },
-  { id: 'u-004', name: 'User One', email: 'user1@contoso.dev', role: 'requester', team: 'Data Platform', last_login: '2026-02-24 14:05', status: 'active' },
-  { id: 'u-005', name: 'User Two', email: 'user2@contoso.dev', role: 'requester', team: 'Payments', last_login: '2026-02-20 11:42', status: 'inactive' },
-]
+import { useUsers } from '@/hooks/useUsers'
 
 const ROLE_COLORS: Record<string, string> = {
   admin: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
@@ -33,6 +16,7 @@ const ROLE_COLORS: Record<string, string> = {
 
 export default function Users() {
   const [roleFilter, setRoleFilter] = useState<string>('all')
+  const { data: USERS = [] } = useUsers()
   const active = USERS.filter(u => u.status === 'active').length
   const filteredUsers = roleFilter === 'all' ? USERS : USERS.filter(u => u.role === roleFilter)
 

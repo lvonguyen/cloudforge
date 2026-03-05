@@ -1,0 +1,302 @@
+[
+  {
+    "id": "pol-001",
+    "name": "approved-regions",
+    "namespace": "cloudforge.provisioning",
+    "status": "active",
+    "category": "provisioning",
+    "evaluations": 4821,
+    "denials": 38,
+    "last_updated": "2026-02-26T14:30:00Z"
+  },
+  {
+    "id": "pol-002",
+    "name": "instance-size-limits",
+    "namespace": "cloudforge.provisioning",
+    "status": "active",
+    "category": "provisioning",
+    "evaluations": 2103,
+    "denials": 12,
+    "last_updated": "2026-02-25T09:15:00Z"
+  },
+  {
+    "id": "pol-003",
+    "name": "required-tags",
+    "namespace": "cloudforge.tagging",
+    "status": "active",
+    "category": "tagging",
+    "evaluations": 9347,
+    "denials": 201,
+    "last_updated": "2026-02-27T11:00:00Z"
+  },
+  {
+    "id": "pol-004",
+    "name": "ai-agent-tool-allow",
+    "namespace": "cloudforge.ai.governance",
+    "status": "active",
+    "category": "ai-governance",
+    "evaluations": 1203,
+    "denials": 7,
+    "last_updated": "2026-02-24T16:45:00Z"
+  },
+  {
+    "id": "pol-005",
+    "name": "ai-agent-scope-limit",
+    "namespace": "cloudforge.ai.governance",
+    "status": "active",
+    "category": "ai-governance",
+    "evaluations": 892,
+    "denials": 2,
+    "last_updated": "2026-02-24T16:45:00Z"
+  },
+  {
+    "id": "pol-006",
+    "name": "public-s3-deny",
+    "namespace": "cloudforge.security",
+    "status": "active",
+    "category": "security",
+    "evaluations": 3441,
+    "denials": 19,
+    "last_updated": "2026-02-23T08:30:00Z"
+  },
+  {
+    "id": "pol-007",
+    "name": "mfa-enforcement",
+    "namespace": "cloudforge.identity",
+    "status": "draft",
+    "category": "identity",
+    "evaluations": 0,
+    "denials": 0,
+    "last_updated": "2026-02-20T13:00:00Z"
+  },
+  {
+    "id": "pol-008",
+    "name": "legacy-tls-deny",
+    "namespace": "cloudforge.network",
+    "status": "inactive",
+    "category": "network",
+    "evaluations": 0,
+    "denials": 0,
+    "last_updated": "2026-01-15T10:00:00Z"
+  },
+  {
+    "id": "pol-009",
+    "name": "encryption-at-rest-require",
+    "namespace": "cloudforge.encryption",
+    "status": "active",
+    "category": "encryption",
+    "evaluations": 7823,
+    "denials": 143,
+    "last_updated": "2026-02-27T09:20:00Z"
+  },
+  {
+    "id": "pol-010",
+    "name": "cost-budget-threshold",
+    "namespace": "cloudforge.cost",
+    "status": "active",
+    "category": "cost",
+    "evaluations": 3210,
+    "denials": 87,
+    "last_updated": "2026-02-26T17:45:00Z"
+  },
+  {
+    "id": "pol-011",
+    "name": "container-image-allowlist",
+    "namespace": "cloudforge.container",
+    "status": "active",
+    "category": "container",
+    "evaluations": 5641,
+    "denials": 312,
+    "last_updated": "2026-02-27T08:10:00Z"
+  },
+  {
+    "id": "pol-012",
+    "name": "network-egress-restrict",
+    "namespace": "cloudforge.network",
+    "status": "active",
+    "category": "network",
+    "evaluations": 4102,
+    "denials": 67,
+    "last_updated": "2026-02-25T14:30:00Z"
+  },
+  {
+    "id": "pol-013",
+    "name": "data-residency-enforce",
+    "namespace": "cloudforge.compliance",
+    "status": "active",
+    "category": "compliance",
+    "evaluations": 2987,
+    "denials": 45,
+    "last_updated": "2026-02-24T11:15:00Z"
+  },
+  {
+    "id": "pol-014",
+    "name": "iam-admin-mfa-require",
+    "namespace": "cloudforge.identity",
+    "status": "active",
+    "category": "identity",
+    "evaluations": 1456,
+    "denials": 23,
+    "last_updated": "2026-02-26T10:00:00Z"
+  },
+  {
+    "id": "pol-015",
+    "name": "backup-retention-minimum",
+    "namespace": "cloudforge.storage",
+    "status": "active",
+    "category": "storage",
+    "evaluations": 1890,
+    "denials": 56,
+    "last_updated": "2026-02-23T16:20:00Z"
+  },
+  {
+    "id": "pol-016",
+    "name": "secrets-rotation-enforce",
+    "namespace": "cloudforge.security",
+    "status": "active",
+    "category": "security",
+    "evaluations": 6234,
+    "denials": 189,
+    "last_updated": "2026-02-27T07:45:00Z"
+  },
+  {
+    "id": "pol-017",
+    "name": "waf-required",
+    "namespace": "cloudforge.network",
+    "status": "active",
+    "category": "network",
+    "evaluations": 2345,
+    "denials": 34,
+    "last_updated": "2026-02-22T15:30:00Z"
+  },
+  {
+    "id": "pol-018",
+    "name": "logging-mandatory",
+    "namespace": "cloudforge.compliance",
+    "status": "active",
+    "category": "compliance",
+    "evaluations": 8912,
+    "denials": 412,
+    "last_updated": "2026-02-27T10:05:00Z"
+  },
+  {
+    "id": "pol-019",
+    "name": "ai-model-version-pin",
+    "namespace": "cloudforge.ai.models",
+    "status": "active",
+    "category": "ai-governance",
+    "evaluations": 567,
+    "denials": 11,
+    "last_updated": "2026-02-25T13:40:00Z"
+  },
+  {
+    "id": "pol-020",
+    "name": "storage-lifecycle-require",
+    "namespace": "cloudforge.storage",
+    "status": "active",
+    "category": "storage",
+    "evaluations": 3678,
+    "denials": 98,
+    "last_updated": "2026-02-24T09:50:00Z"
+  },
+  {
+    "id": "pol-021",
+    "name": "kms-key-rotation",
+    "namespace": "cloudforge.encryption",
+    "status": "active",
+    "category": "encryption",
+    "evaluations": 4521,
+    "denials": 76,
+    "last_updated": "2026-02-26T12:15:00Z"
+  },
+  {
+    "id": "pol-022",
+    "name": "container-privileged-deny",
+    "namespace": "cloudforge.container",
+    "status": "active",
+    "category": "container",
+    "evaluations": 14203,
+    "denials": 487,
+    "last_updated": "2026-02-27T06:30:00Z"
+  },
+  {
+    "id": "pol-023",
+    "name": "cost-idle-resource-flag",
+    "namespace": "cloudforge.cost",
+    "status": "draft",
+    "category": "cost",
+    "evaluations": 0,
+    "denials": 0,
+    "last_updated": "2026-02-21T14:00:00Z"
+  },
+  {
+    "id": "pol-024",
+    "name": "cross-account-deny",
+    "namespace": "cloudforge.security",
+    "status": "active",
+    "category": "security",
+    "evaluations": 2156,
+    "denials": 31,
+    "last_updated": "2026-02-25T08:20:00Z"
+  },
+  {
+    "id": "pol-025",
+    "name": "tag-cost-center-require",
+    "namespace": "cloudforge.tagging",
+    "status": "active",
+    "category": "tagging",
+    "evaluations": 11045,
+    "denials": 367,
+    "last_updated": "2026-02-27T11:30:00Z"
+  },
+  {
+    "id": "pol-026",
+    "name": "vpc-flow-logs-enable",
+    "namespace": "cloudforge.network",
+    "status": "draft",
+    "category": "network",
+    "evaluations": 0,
+    "denials": 0,
+    "last_updated": "2026-02-18T09:00:00Z"
+  },
+  {
+    "id": "pol-027",
+    "name": "service-account-key-deny",
+    "namespace": "cloudforge.identity",
+    "status": "active",
+    "category": "identity",
+    "evaluations": 987,
+    "denials": 14,
+    "last_updated": "2026-02-23T11:45:00Z"
+  },
+  {
+    "id": "pol-028",
+    "name": "compliance-soc2-controls",
+    "namespace": "cloudforge.compliance",
+    "status": "inactive",
+    "category": "compliance",
+    "evaluations": 0,
+    "denials": 0,
+    "last_updated": "2026-01-28T16:00:00Z"
+  },
+  {
+    "id": "pol-029",
+    "name": "ai-prompt-injection-guard",
+    "namespace": "cloudforge.ai.security",
+    "status": "inactive",
+    "category": "ai-governance",
+    "evaluations": 0,
+    "denials": 0,
+    "last_updated": "2026-01-20T10:30:00Z"
+  },
+  {
+    "id": "pol-030",
+    "name": "disk-encryption-enforce",
+    "namespace": "cloudforge.encryption",
+    "status": "inactive",
+    "category": "encryption",
+    "evaluations": 0,
+    "denials": 0,
+    "last_updated": "2026-01-10T08:00:00Z"
+  }
+]

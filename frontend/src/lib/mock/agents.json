@@ -97,5 +97,218 @@
     "last_active_at": "2026-02-27T06:00:00Z",
     "created_at": "2026-02-10T13:00:00Z",
     "updated_at": "2026-02-26T09:00:00Z"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440005",
+    "name": "AnomalyDetector",
+    "description": "Detects behavioral anomalies in agent activity using statistical analysis. Monitors tool invocation patterns, token usage spikes, and permission escalation attempts across all agent sessions.",
+    "framework": "sklearn-pipeline",
+    "version": "1.0.3",
+    "owner": "security@contoso.dev",
+    "team": "security-platform",
+    "environment": "prod",
+    "capabilities": [
+      { "name": "trace-read", "description": "Read all agent execution traces and spans", "data_access": ["internal:traces:read:all", "internal:spans:read:all"], "risk_level": "low" },
+      { "name": "metrics-read", "description": "Access agent metrics and usage telemetry", "data_access": ["internal:metrics:read", "internal:telemetry:read"], "risk_level": "low" },
+      { "name": "alert-write", "description": "Create security alerts and anomaly signals", "data_access": ["internal:alerts:write", "internal:signals:write"], "risk_level": "medium" }
+    ],
+    "tools": [
+      { "tool_id": "trace-query", "name": "QueryTraces", "category": "observability", "permissions": ["internal:read"], "parameters": { "lookback_hours": 24 } },
+      { "tool_id": "anomaly-model", "name": "IsolationForestPredict", "category": "ml-inference", "permissions": ["internal:ml:invoke"], "parameters": { "model_version": "v3.1" } },
+      { "tool_id": "alert-dispatch", "name": "DispatchAlert", "category": "alerting", "permissions": ["internal:alerts:create"], "parameters": {} }
+    ],
+    "policies": ["pol-001", "pol-006"],
+    "risk_level": "medium",
+    "status": "active",
+    "last_active_at": "2026-02-27T10:05:00Z",
+    "created_at": "2026-01-28T14:00:00Z",
+    "updated_at": "2026-02-22T11:30:00Z"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440006",
+    "name": "PolicyEvaluator",
+    "description": "Real-time OPA/Rego policy evaluation for provisioning requests. Intercepts agent tool calls, evaluates against organizational policies, and returns allow/deny decisions with audit trails.",
+    "framework": "opa-agent",
+    "version": "3.0.1",
+    "owner": "platform@contoso.dev",
+    "team": "platform-eng",
+    "environment": "prod",
+    "capabilities": [
+      { "name": "policy-management", "description": "Read and compile Rego policy bundles", "data_access": ["internal:policies:read", "internal:rego-bundles:read"], "risk_level": "low" },
+      { "name": "decision-logging", "description": "Write policy decisions to audit log", "data_access": ["internal:audit-log:write"], "risk_level": "low" },
+      { "name": "agent-intercept", "description": "Intercept and evaluate agent tool invocations in real time", "data_access": ["internal:agent-bus:subscribe"], "risk_level": "high" },
+      { "name": "context-enrichment", "description": "Enrich policy input with resource metadata from CMDB", "data_access": ["internal:cmdb:read"], "risk_level": "low" }
+    ],
+    "tools": [
+      { "tool_id": "opa-compile", "name": "CompileRegoBundle", "category": "policy", "permissions": ["internal:opa:compile"], "parameters": {} },
+      { "tool_id": "opa-eval", "name": "EvaluateDecision", "category": "policy", "permissions": ["internal:opa:evaluate"], "parameters": { "timeout_ms": 500 } },
+      { "tool_id": "audit-log-write", "name": "WriteAuditEntry", "category": "logging", "permissions": ["internal:audit:write"], "parameters": {} },
+      { "tool_id": "cmdb-lookup", "name": "CMDBResourceLookup", "category": "inventory", "permissions": ["internal:cmdb:read"], "parameters": {} }
+    ],
+    "policies": ["pol-001", "pol-002", "pol-007"],
+    "risk_level": "high",
+    "status": "active",
+    "last_active_at": "2026-02-27T10:12:00Z",
+    "created_at": "2026-01-10T08:00:00Z",
+    "updated_at": "2026-02-26T17:00:00Z"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440007",
+    "name": "TriageRouter",
+    "description": "Intelligent finding triage and routing based on severity, SLA, and team ownership. Uses LangChain to classify findings, assign priority, and route to the correct remediation queue.",
+    "framework": "langchain",
+    "version": "1.2.0",
+    "owner": "ops-team@contoso.dev",
+    "team": "cloud-ops",
+    "environment": "prod",
+    "capabilities": [
+      { "name": "findings-read-write", "description": "Read findings and update triage metadata", "data_access": ["internal:findings:read:all", "internal:findings:write:metadata"], "risk_level": "medium" },
+      { "name": "team-routing", "description": "Query team ownership mappings and on-call schedules", "data_access": ["internal:teams:read", "internal:oncall:read"], "risk_level": "low" },
+      { "name": "notification-send", "description": "Send triage notifications via Slack and email", "data_access": ["slack:post:channels", "email:send"], "risk_level": "low" }
+    ],
+    "tools": [
+      { "tool_id": "findings-classify", "name": "ClassifyFinding", "category": "internal-api", "permissions": ["internal:read", "internal:write"], "parameters": {} },
+      { "tool_id": "slack-notify", "name": "SlackNotify", "category": "notification", "permissions": ["slack:post"], "parameters": { "default_channel": "#security-triage" } },
+      { "tool_id": "oncall-lookup", "name": "LookupOnCall", "category": "internal-api", "permissions": ["internal:read"], "parameters": {} }
+    ],
+    "policies": ["pol-001", "pol-008"],
+    "risk_level": "low",
+    "status": "active",
+    "last_active_at": "2026-02-27T09:45:00Z",
+    "created_at": "2026-02-05T10:00:00Z",
+    "updated_at": "2026-02-25T08:00:00Z"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440008",
+    "name": "ReportGenerator",
+    "description": "Generates compliance reports, executive summaries, and audit artifacts. Uses CrewAI to coordinate data gathering, analysis, and document formatting across multiple compliance frameworks.",
+    "framework": "crewai",
+    "version": "1.1.0",
+    "owner": "compliance@contoso.dev",
+    "team": "compliance",
+    "environment": "prod",
+    "capabilities": [
+      { "name": "findings-read", "description": "Read security findings for report generation", "data_access": ["internal:findings:read:all"], "risk_level": "low" },
+      { "name": "compliance-read", "description": "Read compliance framework mappings and scores", "data_access": ["internal:compliance:read", "internal:frameworks:read"], "risk_level": "low" },
+      { "name": "storage-write", "description": "Write generated reports to S3 and SharePoint", "data_access": ["s3:put:cf-reports/*", "sharepoint:write:compliance-docs"], "risk_level": "medium" },
+      { "name": "executive-summary", "description": "Generate AI-powered executive summaries from compliance data", "data_access": ["internal:metrics:read"], "risk_level": "low" }
+    ],
+    "tools": [
+      { "tool_id": "report-template", "name": "RenderTemplate", "category": "document", "permissions": ["internal:templates:read"], "parameters": { "formats": ["pdf", "docx", "html"] } },
+      { "tool_id": "s3-upload", "name": "UploadToS3", "category": "storage", "permissions": ["s3:PutObject"], "parameters": { "bucket": "cf-reports" } },
+      { "tool_id": "sharepoint-upload", "name": "UploadToSharePoint", "category": "storage", "permissions": ["sharepoint:write"], "parameters": {} }
+    ],
+    "policies": ["pol-001", "pol-002", "pol-009"],
+    "risk_level": "medium",
+    "status": "inactive",
+    "last_active_at": "2026-02-15T16:00:00Z",
+    "created_at": "2026-01-25T09:00:00Z",
+    "updated_at": "2026-02-15T16:30:00Z"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440009",
+    "name": "FindingDeduplicator",
+    "description": "Cross-source finding deduplication using fuzzy matching and resource correlation. Merges duplicate findings from AWS SecurityHub, Azure Defender, and GCP SCC into canonical records.",
+    "framework": "autogen",
+    "version": "0.9.4",
+    "owner": "admin1@contoso.dev",
+    "team": "security-platform",
+    "environment": "staging",
+    "capabilities": [
+      { "name": "findings-read-write", "description": "Read and merge security findings across sources", "data_access": ["internal:findings:read:all", "internal:findings:write:merge"], "risk_level": "medium" },
+      { "name": "resource-correlation", "description": "Correlate resources across cloud provider inventories", "data_access": ["internal:cmdb:read", "aws:describe:*", "azure:read:*"], "risk_level": "low" }
+    ],
+    "tools": [
+      { "tool_id": "fuzzy-match", "name": "FuzzyMatchFindings", "category": "ml-inference", "permissions": ["internal:ml:invoke"], "parameters": { "threshold": 0.85 } },
+      { "tool_id": "resource-graph", "name": "QueryResourceGraph", "category": "inventory", "permissions": ["internal:cmdb:read"], "parameters": {} },
+      { "tool_id": "merge-findings", "name": "MergeFindings", "category": "internal-api", "permissions": ["internal:findings:write"], "parameters": {} }
+    ],
+    "policies": ["pol-001", "pol-010"],
+    "risk_level": "medium",
+    "status": "suspended",
+    "last_active_at": "2026-02-23T14:20:00Z",
+    "created_at": "2026-02-08T11:00:00Z",
+    "updated_at": "2026-02-23T14:45:00Z"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440010",
+    "name": "BlastRadiusAnalyzer",
+    "description": "Maps blast radius of findings across dependency graphs and network topology. Uses LangGraph stateful workflow to traverse resource relationships, security groups, and IAM trust chains.",
+    "framework": "langgraph",
+    "version": "0.5.2",
+    "owner": "security@contoso.dev",
+    "team": "threat-intel",
+    "environment": "prod",
+    "capabilities": [
+      { "name": "graph-traversal", "description": "Traverse resource dependency and network topology graphs", "data_access": ["internal:resource-graph:read", "internal:network-map:read"], "risk_level": "low" },
+      { "name": "iam-analysis", "description": "Analyze IAM policies and trust relationships", "data_access": ["aws:iam:read", "azure:rbac:read", "gcp:iam:read"], "risk_level": "high" },
+      { "name": "blast-radius-write", "description": "Write blast radius scores and impact maps to findings", "data_access": ["internal:findings:write:blast-radius"], "risk_level": "medium" }
+    ],
+    "tools": [
+      { "tool_id": "graph-query", "name": "QueryDependencyGraph", "category": "graph", "permissions": ["internal:graph:read"], "parameters": { "max_depth": 5 } },
+      { "tool_id": "iam-analyzer", "name": "AnalyzeIAMPolicies", "category": "security", "permissions": ["iam:GetPolicy", "iam:SimulateCustomPolicy"], "parameters": {} },
+      { "tool_id": "network-mapper", "name": "MapNetworkTopology", "category": "network", "permissions": ["ec2:DescribeSecurityGroups", "ec2:DescribeVpcs"], "parameters": {} },
+      { "tool_id": "blast-scorer", "name": "ScoreBlastRadius", "category": "internal-api", "permissions": ["internal:write"], "parameters": {} }
+    ],
+    "policies": ["pol-001", "pol-005", "pol-011"],
+    "risk_level": "high",
+    "status": "active",
+    "last_active_at": "2026-02-27T07:30:00Z",
+    "created_at": "2026-02-12T15:00:00Z",
+    "updated_at": "2026-02-26T20:00:00Z"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440011",
+    "name": "SLAEnforcer",
+    "description": "Monitors SLA deadlines and escalates breaches to appropriate teams. Uses Temporal workflows to track finding age, remediation progress, and auto-escalate when SLA thresholds are exceeded.",
+    "framework": "temporal-agent",
+    "version": "1.0.0",
+    "owner": "platform@contoso.dev",
+    "team": "platform-eng",
+    "environment": "prod",
+    "capabilities": [
+      { "name": "sla-tracking", "description": "Monitor finding SLA deadlines and remediation timelines", "data_access": ["internal:findings:read:all", "internal:sla-config:read"], "risk_level": "low" },
+      { "name": "escalation-write", "description": "Create escalation tickets and notifications", "data_access": ["asana:tasks:create", "slack:post:channels", "email:send"], "risk_level": "medium" },
+      { "name": "metrics-publish", "description": "Publish SLA compliance metrics to dashboard", "data_access": ["internal:metrics:write"], "risk_level": "low" }
+    ],
+    "tools": [
+      { "tool_id": "sla-check", "name": "CheckSLADeadlines", "category": "internal-api", "permissions": ["internal:read"], "parameters": { "check_interval_minutes": 15 } },
+      { "tool_id": "escalation-create", "name": "CreateEscalation", "category": "ticketing", "permissions": ["asana:write", "slack:post"], "parameters": {} },
+      { "tool_id": "sla-metrics", "name": "PublishSLAMetrics", "category": "observability", "permissions": ["internal:metrics:write"], "parameters": {} }
+    ],
+    "policies": ["pol-001", "pol-008", "pol-012"],
+    "risk_level": "critical",
+    "status": "deprecated",
+    "last_active_at": "2026-02-20T18:00:00Z",
+    "created_at": "2026-01-18T12:00:00Z",
+    "updated_at": "2026-02-20T18:30:00Z"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440012",
+    "name": "DriftDetector",
+    "description": "Detects infrastructure drift by comparing live state with IaC definitions. Uses LangChain to orchestrate Terraform state comparison, CloudFormation drift detection, and Pulumi preview across multi-cloud environments.",
+    "framework": "langchain",
+    "version": "0.7.3",
+    "owner": "ops-team@contoso.dev",
+    "team": "cloud-ops",
+    "environment": "staging",
+    "capabilities": [
+      { "name": "iac-read", "description": "Read Terraform state, CloudFormation templates, and Pulumi stacks", "data_access": ["s3:get:terraform-state/*", "cloudformation:describe:*", "internal:pulumi:read"], "risk_level": "low" },
+      { "name": "live-state-read", "description": "Read live resource configurations from cloud providers", "data_access": ["aws:describe:*", "azure:read:*", "gcp:list:*"], "risk_level": "low" },
+      { "name": "drift-findings-write", "description": "Create drift findings with remediation recommendations", "data_access": ["internal:findings:write:drift"], "risk_level": "medium" },
+      { "name": "notification-send", "description": "Notify teams of drift detection results", "data_access": ["slack:post:channels"], "risk_level": "low" }
+    ],
+    "tools": [
+      { "tool_id": "tf-state-read", "name": "ReadTerraformState", "category": "iac", "permissions": ["s3:GetObject"], "parameters": { "state_bucket": "cf-terraform-state" } },
+      { "tool_id": "drift-compare", "name": "CompareLiveVsDesired", "category": "iac", "permissions": ["internal:read"], "parameters": {} },
+      { "tool_id": "drift-finding-create", "name": "CreateDriftFinding", "category": "internal-api", "permissions": ["internal:findings:write"], "parameters": {} },
+      { "tool_id": "slack-drift-notify", "name": "NotifyDriftChannel", "category": "notification", "permissions": ["slack:post"], "parameters": { "default_channel": "#infra-drift" } }
+    ],
+    "policies": ["pol-001", "pol-002", "pol-013"],
+    "risk_level": "high",
+    "status": "active",
+    "last_active_at": "2026-02-27T04:00:00Z",
+    "created_at": "2026-02-14T09:00:00Z",
+    "updated_at": "2026-02-27T04:30:00Z"
   }
 ]

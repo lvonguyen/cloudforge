@@ -1,0 +1,164 @@
+[
+  {
+    "id": "u-001",
+    "name": "Sarah Chen",
+    "email": "admin1@contoso.dev",
+    "role": "admin",
+    "team": "Platform Security",
+    "last_login": "2026-02-27T16:42:00Z",
+    "status": "active"
+  },
+  {
+    "id": "u-002",
+    "name": "Marcus Rivera",
+    "email": "operator1@contoso.dev",
+    "role": "operator",
+    "team": "Cloud Ops",
+    "last_login": "2026-02-27T14:18:00Z",
+    "status": "active"
+  },
+  {
+    "id": "u-003",
+    "name": "Aiko Tanaka",
+    "email": "operator2@contoso.dev",
+    "role": "operator",
+    "team": "Cloud Ops",
+    "last_login": "2026-02-27T11:05:00Z",
+    "status": "active"
+  },
+  {
+    "id": "u-004",
+    "name": "James Okafor",
+    "email": "user1@contoso.dev",
+    "role": "requester",
+    "team": "Data Platform",
+    "last_login": "2026-02-26T09:30:00Z",
+    "status": "active"
+  },
+  {
+    "id": "u-005",
+    "name": "Elena Volkov",
+    "email": "user2@contoso.dev",
+    "role": "requester",
+    "team": "Payments",
+    "last_login": "2026-01-14T08:22:00Z",
+    "status": "inactive"
+  },
+  {
+    "id": "u-006",
+    "name": "Priya Patel",
+    "email": "priya.patel@contoso.dev",
+    "role": "admin",
+    "team": "Compliance",
+    "last_login": "2026-02-27T15:33:00Z",
+    "status": "active"
+  },
+  {
+    "id": "u-007",
+    "name": "David Kim",
+    "email": "david.kim@contoso.dev",
+    "role": "admin",
+    "team": "Platform Security",
+    "last_login": "2026-02-27T17:01:00Z",
+    "status": "active"
+  },
+  {
+    "id": "u-008",
+    "name": "Fatima Al-Hassan",
+    "email": "fatima.alhassan@contoso.dev",
+    "role": "admin",
+    "team": "Auth",
+    "last_login": "2026-02-27T10:45:00Z",
+    "status": "active"
+  },
+  {
+    "id": "u-009",
+    "name": "Carlos Mendez",
+    "email": "carlos.mendez@contoso.dev",
+    "role": "admin",
+    "team": "Cloud Ops",
+    "last_login": "2026-02-26T13:20:00Z",
+    "status": "active"
+  },
+  {
+    "id": "u-010",
+    "name": "Lena Johansson",
+    "email": "lena.johansson@contoso.dev",
+    "role": "admin",
+    "team": "FinOps",
+    "last_login": "2026-02-15T09:10:00Z",
+    "status": "inactive"
+  },
+  {
+    "id": "u-011",
+    "name": "Raj Krishnamurthy",
+    "email": "raj.krishnamurthy@contoso.dev",
+    "role": "operator",
+    "team": "Data Platform",
+    "last_login": "2026-02-27T12:55:00Z",
+    "status": "active"
+  },
+  {
+    "id": "u-012",
+    "name": "Michelle Torres",
+    "email": "michelle.torres@contoso.dev",
+    "role": "operator",
+    "team": "Catalog",
+    "last_login": "2026-02-27T08:40:00Z",
+    "status": "active"
+  },
+  {
+    "id": "u-013",
+    "name": "Oleg Petrov",
+    "email": "oleg.petrov@contoso.dev",
+    "role": "operator",
+    "team": "ML Platform",
+    "last_login": "2026-02-26T16:15:00Z",
+    "status": "active"
+  },
+  {
+    "id": "u-014",
+    "name": "Nia Williams",
+    "email": "nia.williams@contoso.dev",
+    "role": "operator",
+    "team": "Platform Security",
+    "last_login": "2026-02-27T09:22:00Z",
+    "status": "active"
+  },
+  {
+    "id": "u-015",
+    "name": "Tomas Eriksson",
+    "email": "tomas.eriksson@contoso.dev",
+    "role": "requester",
+    "team": "Payments",
+    "last_login": "2026-02-26T11:50:00Z",
+    "status": "active"
+  },
+  {
+    "id": "u-016",
+    "name": "Ananya Sharma",
+    "email": "ananya.sharma@contoso.dev",
+    "role": "requester",
+    "team": "FinOps",
+    "last_login": "2026-02-27T13:08:00Z",
+    "status": "active"
+  },
+  {
+    "id": "u-017",
+    "name": "Kofi Asante",
+    "email": "kofi.asante@contoso.dev",
+    "role": "requester",
+    "team": "ML Platform",
+    "last_login": "2026-02-25T10:30:00Z",
+    "status": "active"
+  },
+  {
+    "id": "u-018",
+    "name": "Hannah Mueller",
+    "email": "hannah.mueller@contoso.dev",
+    "role": "requester",
+    "team": "Compliance",
+    "last_login": "2026-02-10T07:45:00Z",
+    "status": "inactive"
+  }
+]

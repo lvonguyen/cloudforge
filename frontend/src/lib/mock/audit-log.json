@@ -1,0 +1,602 @@
+[
+  {
+    "id": "evt-001",
+    "timestamp": "2026-02-27T16:42:00Z",
+    "actor": "admin1@contoso.dev",
+    "actor_role": "admin",
+    "action": "exception.approve",
+    "resource": "EXC-2024-0042",
+    "result": "success",
+    "ip": "10.0.1.44"
+  },
+  {
+    "id": "evt-002",
+    "timestamp": "2026-02-27T16:38:00Z",
+    "actor": "operator1@contoso.dev",
+    "actor_role": "operator",
+    "action": "finding.remediate",
+    "resource": "f-001",
+    "result": "success",
+    "ip": "10.0.2.12"
+  },
+  {
+    "id": "evt-003",
+    "timestamp": "2026-02-27T16:30:00Z",
+    "actor": "user1@contoso.dev",
+    "actor_role": "requester",
+    "action": "exception.create",
+    "resource": "EXC-2024-0043",
+    "result": "success",
+    "ip": "10.0.3.8"
+  },
+  {
+    "id": "evt-004",
+    "timestamp": "2026-02-27T16:22:00Z",
+    "actor": "system@contoso.dev",
+    "actor_role": "system",
+    "action": "policy.evaluate",
+    "resource": "pol-003",
+    "result": "success",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "evt-005",
+    "timestamp": "2026-02-27T16:15:00Z",
+    "actor": "operator2@contoso.dev",
+    "actor_role": "operator",
+    "action": "agent.start",
+    "resource": "cost-optimizer",
+    "result": "success",
+    "ip": "10.0.2.15"
+  },
+  {
+    "id": "evt-006",
+    "timestamp": "2026-02-27T16:10:00Z",
+    "actor": "user2@contoso.dev",
+    "actor_role": "requester",
+    "action": "exception.create",
+    "resource": "EXC-2024-0044",
+    "result": "denied",
+    "ip": "10.0.3.22"
+  },
+  {
+    "id": "evt-007",
+    "timestamp": "2026-02-27T16:05:00Z",
+    "actor": "admin1@contoso.dev",
+    "actor_role": "admin",
+    "action": "user.role_changed",
+    "resource": "u-004",
+    "result": "success",
+    "ip": "10.0.1.44"
+  },
+  {
+    "id": "evt-008",
+    "timestamp": "2026-02-27T15:58:00Z",
+    "actor": "system@contoso.dev",
+    "actor_role": "system",
+    "action": "scan.complete",
+    "resource": "aws-account-prod-001",
+    "result": "success",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "evt-009",
+    "timestamp": "2026-02-27T15:45:00Z",
+    "actor": "priya.patel@contoso.dev",
+    "actor_role": "admin",
+    "action": "policy.create",
+    "resource": "pol-026",
+    "result": "success",
+    "ip": "10.0.1.51"
+  },
+  {
+    "id": "evt-010",
+    "timestamp": "2026-02-27T15:33:00Z",
+    "actor": "david.kim@contoso.dev",
+    "actor_role": "admin",
+    "action": "exception.approve",
+    "resource": "EXC-2024-0041",
+    "result": "success",
+    "ip": "10.0.1.47"
+  },
+  {
+    "id": "evt-011",
+    "timestamp": "2026-02-27T15:20:00Z",
+    "actor": "carlos.mendez@contoso.dev",
+    "actor_role": "admin",
+    "action": "remediation.execute",
+    "resource": "f-003",
+    "result": "success",
+    "ip": "10.0.1.53"
+  },
+  {
+    "id": "evt-012",
+    "timestamp": "2026-02-27T15:12:00Z",
+    "actor": "operator1@contoso.dev",
+    "actor_role": "operator",
+    "action": "agent.invoke",
+    "resource": "drift-detector",
+    "result": "success",
+    "ip": "10.0.2.12"
+  },
+  {
+    "id": "evt-013",
+    "timestamp": "2026-02-27T15:01:00Z",
+    "actor": "system@contoso.dev",
+    "actor_role": "system",
+    "action": "policy.evaluate",
+    "resource": "pol-006",
+    "result": "success",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "evt-014",
+    "timestamp": "2026-02-27T14:48:00Z",
+    "actor": "raj.krishnamurthy@contoso.dev",
+    "actor_role": "operator",
+    "action": "finding.remediate",
+    "resource": "f-007",
+    "result": "error",
+    "ip": "10.0.2.19"
+  },
+  {
+    "id": "evt-015",
+    "timestamp": "2026-02-27T14:35:00Z",
+    "actor": "ananya.sharma@contoso.dev",
+    "actor_role": "requester",
+    "action": "exception.create",
+    "resource": "EXC-2024-0045",
+    "result": "success",
+    "ip": "10.0.3.31"
+  },
+  {
+    "id": "evt-016",
+    "timestamp": "2026-02-27T14:22:00Z",
+    "actor": "fatima.alhassan@contoso.dev",
+    "actor_role": "admin",
+    "action": "user.invite",
+    "resource": "u-018",
+    "result": "success",
+    "ip": "10.0.1.49"
+  },
+  {
+    "id": "evt-017",
+    "timestamp": "2026-02-27T14:10:00Z",
+    "actor": "michelle.torres@contoso.dev",
+    "actor_role": "operator",
+    "action": "scan.start",
+    "resource": "azure-sub-prod-002",
+    "result": "success",
+    "ip": "10.0.2.21"
+  },
+  {
+    "id": "evt-018",
+    "timestamp": "2026-02-27T13:55:00Z",
+    "actor": "system@contoso.dev",
+    "actor_role": "system",
+    "action": "policy.evaluate",
+    "resource": "pol-022",
+    "result": "success",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "evt-019",
+    "timestamp": "2026-02-27T13:40:00Z",
+    "actor": "kofi.asante@contoso.dev",
+    "actor_role": "requester",
+    "action": "finding.suppress",
+    "resource": "f-012",
+    "result": "denied",
+    "ip": "10.0.3.34"
+  },
+  {
+    "id": "evt-020",
+    "timestamp": "2026-02-27T13:28:00Z",
+    "actor": "operator2@contoso.dev",
+    "actor_role": "operator",
+    "action": "remediation.execute",
+    "resource": "f-005",
+    "result": "success",
+    "ip": "10.0.2.15"
+  },
+  {
+    "id": "evt-021",
+    "timestamp": "2026-02-27T13:15:00Z",
+    "actor": "admin1@contoso.dev",
+    "actor_role": "admin",
+    "action": "policy.update",
+    "resource": "pol-009",
+    "result": "success",
+    "ip": "10.0.1.44"
+  },
+  {
+    "id": "evt-022",
+    "timestamp": "2026-02-27T13:02:00Z",
+    "actor": "oleg.petrov@contoso.dev",
+    "actor_role": "operator",
+    "action": "agent.start",
+    "resource": "compliance-scanner",
+    "result": "error",
+    "ip": "10.0.2.23"
+  },
+  {
+    "id": "evt-023",
+    "timestamp": "2026-02-27T12:48:00Z",
+    "actor": "system@contoso.dev",
+    "actor_role": "system",
+    "action": "scan.complete",
+    "resource": "gcp-project-dev-001",
+    "result": "success",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "evt-024",
+    "timestamp": "2026-02-27T12:35:00Z",
+    "actor": "tomas.eriksson@contoso.dev",
+    "actor_role": "requester",
+    "action": "exception.create",
+    "resource": "EXC-2024-0046",
+    "result": "success",
+    "ip": "10.0.3.27"
+  },
+  {
+    "id": "evt-025",
+    "timestamp": "2026-02-27T12:20:00Z",
+    "actor": "nia.williams@contoso.dev",
+    "actor_role": "operator",
+    "action": "finding.remediate",
+    "resource": "f-015",
+    "result": "success",
+    "ip": "10.0.2.25"
+  },
+  {
+    "id": "evt-026",
+    "timestamp": "2026-02-27T12:05:00Z",
+    "actor": "david.kim@contoso.dev",
+    "actor_role": "admin",
+    "action": "config.update",
+    "resource": "otel-collector-config",
+    "result": "success",
+    "ip": "10.0.1.47"
+  },
+  {
+    "id": "evt-027",
+    "timestamp": "2026-02-27T11:50:00Z",
+    "actor": "user1@contoso.dev",
+    "actor_role": "requester",
+    "action": "report.generate",
+    "resource": "compliance-report-feb-2026",
+    "result": "success",
+    "ip": "10.0.3.8"
+  },
+  {
+    "id": "evt-028",
+    "timestamp": "2026-02-27T11:35:00Z",
+    "actor": "system@contoso.dev",
+    "actor_role": "system",
+    "action": "agent.invoke",
+    "resource": "posture-analyzer",
+    "result": "success",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "evt-029",
+    "timestamp": "2026-02-27T11:20:00Z",
+    "actor": "lena.johansson@contoso.dev",
+    "actor_role": "admin",
+    "action": "user.login",
+    "resource": "cloudforge-portal",
+    "result": "denied",
+    "ip": "10.0.1.55"
+  },
+  {
+    "id": "evt-030",
+    "timestamp": "2026-02-27T11:05:00Z",
+    "actor": "operator1@contoso.dev",
+    "actor_role": "operator",
+    "action": "remediation.rollback",
+    "resource": "f-002",
+    "result": "success",
+    "ip": "10.0.2.12"
+  },
+  {
+    "id": "evt-031",
+    "timestamp": "2026-02-27T10:50:00Z",
+    "actor": "priya.patel@contoso.dev",
+    "actor_role": "admin",
+    "action": "exception.reject",
+    "resource": "EXC-2024-0040",
+    "result": "success",
+    "ip": "10.0.1.51"
+  },
+  {
+    "id": "evt-032",
+    "timestamp": "2026-02-27T10:35:00Z",
+    "actor": "carlos.mendez@contoso.dev",
+    "actor_role": "admin",
+    "action": "secret.rotate",
+    "resource": "aws-access-key-prod",
+    "result": "success",
+    "ip": "10.0.1.53"
+  },
+  {
+    "id": "evt-033",
+    "timestamp": "2026-02-27T10:20:00Z",
+    "actor": "michelle.torres@contoso.dev",
+    "actor_role": "operator",
+    "action": "agent.stop",
+    "resource": "cost-optimizer",
+    "result": "success",
+    "ip": "10.0.2.21"
+  },
+  {
+    "id": "evt-034",
+    "timestamp": "2026-02-27T10:05:00Z",
+    "actor": "system@contoso.dev",
+    "actor_role": "system",
+    "action": "scan.start",
+    "resource": "aws-account-staging-001",
+    "result": "success",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "evt-035",
+    "timestamp": "2026-02-27T09:50:00Z",
+    "actor": "ananya.sharma@contoso.dev",
+    "actor_role": "requester",
+    "action": "finding.reopen",
+    "resource": "f-021",
+    "result": "denied",
+    "ip": "10.0.3.31"
+  },
+  {
+    "id": "evt-036",
+    "timestamp": "2026-02-27T09:35:00Z",
+    "actor": "raj.krishnamurthy@contoso.dev",
+    "actor_role": "operator",
+    "action": "finding.remediate",
+    "resource": "f-018",
+    "result": "success",
+    "ip": "10.0.2.19"
+  },
+  {
+    "id": "evt-037",
+    "timestamp": "2026-02-27T09:20:00Z",
+    "actor": "fatima.alhassan@contoso.dev",
+    "actor_role": "admin",
+    "action": "policy.update",
+    "resource": "pol-014",
+    "result": "success",
+    "ip": "10.0.1.49"
+  },
+  {
+    "id": "evt-038",
+    "timestamp": "2026-02-27T09:05:00Z",
+    "actor": "kofi.asante@contoso.dev",
+    "actor_role": "requester",
+    "action": "user.login",
+    "resource": "cloudforge-portal",
+    "result": "success",
+    "ip": "10.0.3.34"
+  },
+  {
+    "id": "evt-039",
+    "timestamp": "2026-02-26T17:45:00Z",
+    "actor": "system@contoso.dev",
+    "actor_role": "system",
+    "action": "policy.evaluate",
+    "resource": "pol-010",
+    "result": "success",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "evt-040",
+    "timestamp": "2026-02-26T17:30:00Z",
+    "actor": "operator2@contoso.dev",
+    "actor_role": "operator",
+    "action": "agent.invoke",
+    "resource": "drift-detector",
+    "result": "error",
+    "ip": "10.0.2.15"
+  },
+  {
+    "id": "evt-041",
+    "timestamp": "2026-02-26T17:15:00Z",
+    "actor": "admin1@contoso.dev",
+    "actor_role": "admin",
+    "action": "remediation.execute",
+    "resource": "f-009",
+    "result": "success",
+    "ip": "10.0.1.44"
+  },
+  {
+    "id": "evt-042",
+    "timestamp": "2026-02-26T17:00:00Z",
+    "actor": "tomas.eriksson@contoso.dev",
+    "actor_role": "requester",
+    "action": "exception.create",
+    "resource": "EXC-2024-0047",
+    "result": "denied",
+    "ip": "10.0.3.27"
+  },
+  {
+    "id": "evt-043",
+    "timestamp": "2026-02-26T16:45:00Z",
+    "actor": "david.kim@contoso.dev",
+    "actor_role": "admin",
+    "action": "user.role_changed",
+    "resource": "u-013",
+    "result": "success",
+    "ip": "10.0.1.47"
+  },
+  {
+    "id": "evt-044",
+    "timestamp": "2026-02-26T16:30:00Z",
+    "actor": "system@contoso.dev",
+    "actor_role": "system",
+    "action": "scan.complete",
+    "resource": "azure-sub-dev-001",
+    "result": "error",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "evt-045",
+    "timestamp": "2026-02-26T16:15:00Z",
+    "actor": "nia.williams@contoso.dev",
+    "actor_role": "operator",
+    "action": "finding.suppress",
+    "resource": "f-030",
+    "result": "success",
+    "ip": "10.0.2.25"
+  },
+  {
+    "id": "evt-046",
+    "timestamp": "2026-02-26T16:00:00Z",
+    "actor": "priya.patel@contoso.dev",
+    "actor_role": "admin",
+    "action": "policy.create",
+    "resource": "pol-023",
+    "result": "success",
+    "ip": "10.0.1.51"
+  },
+  {
+    "id": "evt-047",
+    "timestamp": "2026-02-26T15:45:00Z",
+    "actor": "user1@contoso.dev",
+    "actor_role": "requester",
+    "action": "finding.reopen",
+    "resource": "f-004",
+    "result": "success",
+    "ip": "10.0.3.8"
+  },
+  {
+    "id": "evt-048",
+    "timestamp": "2026-02-26T15:30:00Z",
+    "actor": "oleg.petrov@contoso.dev",
+    "actor_role": "operator",
+    "action": "remediation.execute",
+    "resource": "f-011",
+    "result": "error",
+    "ip": "10.0.2.23"
+  },
+  {
+    "id": "evt-049",
+    "timestamp": "2026-02-26T15:15:00Z",
+    "actor": "carlos.mendez@contoso.dev",
+    "actor_role": "admin",
+    "action": "config.update",
+    "resource": "rbac-policy-config",
+    "result": "success",
+    "ip": "10.0.1.53"
+  },
+  {
+    "id": "evt-050",
+    "timestamp": "2026-02-26T15:00:00Z",
+    "actor": "system@contoso.dev",
+    "actor_role": "system",
+    "action": "agent.invoke",
+    "resource": "compliance-scanner",
+    "result": "success",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "evt-051",
+    "timestamp": "2026-02-25T18:30:00Z",
+    "actor": "hannah.mueller@contoso.dev",
+    "actor_role": "requester",
+    "action": "exception.create",
+    "resource": "EXC-2024-0048",
+    "result": "denied",
+    "ip": "10.0.3.36"
+  },
+  {
+    "id": "evt-052",
+    "timestamp": "2026-02-25T17:45:00Z",
+    "actor": "operator1@contoso.dev",
+    "actor_role": "operator",
+    "action": "finding.remediate",
+    "resource": "f-025",
+    "result": "success",
+    "ip": "10.0.2.12"
+  },
+  {
+    "id": "evt-053",
+    "timestamp": "2026-02-25T16:50:00Z",
+    "actor": "fatima.alhassan@contoso.dev",
+    "actor_role": "admin",
+    "action": "exception.approve",
+    "resource": "EXC-2024-0039",
+    "result": "success",
+    "ip": "10.0.1.49"
+  },
+  {
+    "id": "evt-054",
+    "timestamp": "2026-02-25T15:30:00Z",
+    "actor": "system@contoso.dev",
+    "actor_role": "system",
+    "action": "policy.evaluate",
+    "resource": "pol-016",
+    "result": "success",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "evt-055",
+    "timestamp": "2026-02-25T14:15:00Z",
+    "actor": "michelle.torres@contoso.dev",
+    "actor_role": "operator",
+    "action": "scan.start",
+    "resource": "aws-account-prod-002",
+    "result": "success",
+    "ip": "10.0.2.21"
+  },
+  {
+    "id": "evt-056",
+    "timestamp": "2026-02-25T13:00:00Z",
+    "actor": "user2@contoso.dev",
+    "actor_role": "requester",
+    "action": "user.login",
+    "resource": "cloudforge-portal",
+    "result": "denied",
+    "ip": "10.0.3.22"
+  },
+  {
+    "id": "evt-057",
+    "timestamp": "2026-02-25T11:45:00Z",
+    "actor": "raj.krishnamurthy@contoso.dev",
+    "actor_role": "operator",
+    "action": "remediation.rollback",
+    "resource": "f-008",
+    "result": "error",
+    "ip": "10.0.2.19"
+  },
+  {
+    "id": "evt-058",
+    "timestamp": "2026-02-24T16:20:00Z",
+    "actor": "admin1@contoso.dev",
+    "actor_role": "admin",
+    "action": "secret.rotate",
+    "resource": "gcp-service-account-key",
+    "result": "error",
+    "ip": "10.0.1.44"
+  },
+  {
+    "id": "evt-059",
+    "timestamp": "2026-02-24T14:30:00Z",
+    "actor": "system@contoso.dev",
+    "actor_role": "system",
+    "action": "scan.complete",
+    "resource": "aws-account-prod-001",
+    "result": "success",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "evt-060",
+    "timestamp": "2026-02-24T12:00:00Z",
+    "actor": "david.kim@contoso.dev",
+    "actor_role": "admin",
+    "action": "report.generate",
+    "resource": "executive-summary-q1-2026",
+    "result": "error",
+    "ip": "10.0.1.47"
+  }
+]
