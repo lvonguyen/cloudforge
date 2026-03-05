@@ -16,7 +16,62 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import type { Approver } from '@/types/grc'
+import type { Approver, ExceptionRequest } from '@/types/grc'
+
+const MOCK_EXCEPTIONS: ExceptionRequest[] = [
+  {
+    id: 'EXC-001',
+    application_id: 'payments-api',
+    requestor_email: 'dev1@contoso.dev',
+    request_type: 'UNAPPROVED_REGION',
+    policy_violated: 'REGION-001',
+    resource_requested: 'RDS in ap-southeast-3',
+    business_case: 'APAC latency requirements for payment processing',
+    status: 'PENDING',
+    approver_chain: [],
+    created_at: '2026-02-25T10:00:00Z',
+    updated_at: '2026-02-25T10:00:00Z',
+  },
+  {
+    id: 'EXC-002',
+    application_id: 'data-pipeline',
+    requestor_email: 'dev2@contoso.dev',
+    request_type: 'OVERSIZED_INSTANCE',
+    policy_violated: 'COST-002',
+    resource_requested: 'EC2 m5.24xlarge in us-east-1',
+    business_case: 'Large-scale ETL batch processing',
+    status: 'PENDING',
+    approver_chain: [],
+    created_at: '2026-02-24T14:30:00Z',
+    updated_at: '2026-02-24T14:30:00Z',
+  },
+  {
+    id: 'EXC-003',
+    application_id: 'ml-training',
+    requestor_email: 'ml-team@contoso.dev',
+    request_type: 'RESTRICTED_SERVICE',
+    policy_violated: 'SVC-003',
+    resource_requested: 'Bedrock us-gov-west-1',
+    business_case: 'FedRAMP-compliant model inference',
+    status: 'APPROVED',
+    approver_chain: [{ email: 'admin1@contoso.dev', role: 'admin', decision: 'APPROVED', decided_at: '2026-02-23T16:00:00Z' }],
+    created_at: '2026-02-23T09:00:00Z',
+    updated_at: '2026-02-23T16:00:00Z',
+  },
+  {
+    id: 'EXC-004',
+    application_id: 'auth-service',
+    requestor_email: 'secops@contoso.dev',
+    request_type: 'NETWORK_EXPOSURE',
+    policy_violated: 'NET-001',
+    resource_requested: 'SG sg-0abc1234 port 22',
+    business_case: 'Temporary SSH access for incident response',
+    status: 'PENDING',
+    approver_chain: [],
+    created_at: '2026-02-22T11:00:00Z',
+    updated_at: '2026-02-22T11:00:00Z',
+  },
+]
 
 const SEVERITY_TABS = ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const
 type SeverityTab = (typeof SEVERITY_TABS)[number]
@@ -61,6 +116,12 @@ export default function CommandCenter() {
 
   return (
     <div className="space-y-8 p-6">
+      {/* Page heading */}
+      <div>
+        <h1 className="text-xl font-semibold">Command Center</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Operations overview — Feb 2026</p>
+      </div>
+
       {/* Section 1: Exception Queue */}
       <section>
         <div className="flex items-center justify-between mb-4">
@@ -75,17 +136,12 @@ export default function CommandCenter() {
         {exceptions.isLoading && (
           <p className="text-sm text-muted-foreground">Loading exceptions…</p>
         )}
-        {exceptions.isError && (
-          <p className="text-sm text-muted-foreground italic">
-            Backend unavailable — exception queue will appear when API is running.
-          </p>
-        )}
-        {exceptions.data && exceptions.data.length === 0 && (
+        {exceptions.data && exceptions.data.length === 0 && !exceptions.isError && (
           <p className="text-sm text-muted-foreground">No pending exceptions.</p>
         )}
-        {exceptions.data && exceptions.data.length > 0 && (
+        {((exceptions.data && exceptions.data.length > 0) || exceptions.isError) && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {exceptions.data.map(exc => (
+            {(exceptions.data ?? MOCK_EXCEPTIONS).map(exc => (
               <div key={exc.id} className="relative cursor-pointer" onClick={() => navigate(`/portal/requests/${exc.id}`)}>
                 <ExceptionCard exception={exc} />
                 {exc.status === 'PENDING' && (

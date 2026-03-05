@@ -56,7 +56,7 @@ export function MultiStepForm({
                   </div>
                   <span
                     className={cn(
-                      'text-[10px] font-medium text-center leading-tight px-1 truncate max-w-[72px]',
+                      'text-[10px] font-medium text-center leading-tight px-1 whitespace-nowrap',
                       isActive ? 'text-primary' : 'text-muted-foreground',
                     )}
                   >

@@ -1,7 +1,7 @@
+import { useState } from 'react'
 import { RoleSwitcher } from './RoleSwitcher'
 import { ThemeToggle } from './ThemeToggle'
 import { useAuth } from '@/lib/auth'
-import { Input } from '@/components/ui/input'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,25 +14,35 @@ import { Shield, Search, LogOut, User } from 'lucide-react'
 
 export function TopNav() {
   const { user, logout } = useAuth()
+  const [searchOpen, setSearchOpen] = useState(false)
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-border bg-background px-6">
       {/* Logo */}
       <div className="flex items-center gap-2 min-w-[160px]">
         <Shield className="h-6 w-6 text-primary" />
-        <span className="font-semibold text-sm tracking-tight">CloudForge</span>
+        <span className="font-semibold text-sm tracking-tight text-foreground">CloudForge</span>
       </div>
 
-      {/* Search */}
-      <div className="flex-1 max-w-sm">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search findings, policies, agents..."
-            className="pl-8 h-8 text-sm bg-muted/50"
-          />
-        </div>
+      {/* Search — command palette placeholder */}
+      <div className="relative flex-1 max-w-sm">
+        <button
+          type="button"
+          onClick={() => setSearchOpen(true)}
+          onBlur={() => setSearchOpen(false)}
+          className="flex w-full items-center gap-2 rounded-md border border-border bg-muted/50 px-3 h-8 text-sm text-muted-foreground hover:bg-muted/70 transition-colors"
+        >
+          <Search className="h-4 w-4 shrink-0" />
+          <span className="flex-1 text-left">Search...</span>
+          <kbd className="pointer-events-none hidden sm:inline-flex h-5 items-center gap-0.5 rounded border border-border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+            ⌘K
+          </kbd>
+        </button>
+        {searchOpen && (
+          <div className="absolute top-full left-0 mt-1 w-full rounded-md border border-border bg-background p-3 shadow-md z-50">
+            <p className="text-xs text-muted-foreground text-center">Search — coming soon</p>
+          </div>
+        )}
       </div>
 
       {/* Right side */}

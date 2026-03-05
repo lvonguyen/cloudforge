@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { useAuth, type Role } from '@/lib/auth'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -16,13 +17,20 @@ const ROLES: { value: Role; label: string; icon: React.ReactNode; color: string 
   { value: 'requester', label: 'Requester', icon: <UserCircle className="h-4 w-4" />, color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
 ]
 
+const ROLE_HOME: Record<Role, string> = {
+  admin: '/admin',
+  operator: '/ops',
+  requester: '/portal',
+}
+
 export function RoleSwitcher() {
+  const navigate = useNavigate()
   const { role, setRole } = useAuth()
   const current = ROLES.find(r => r.value === role) ?? ROLES[0]
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-none border border-border px-2 py-1 text-xs hover:bg-accent">
+      <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-none border border-border px-2 py-1 text-xs text-foreground hover:bg-accent">
         {current.icon}
         <span className="font-medium">{current.label}</span>
         <ChevronDown className="h-3 w-3 opacity-60" />
@@ -33,7 +41,7 @@ export function RoleSwitcher() {
         {ROLES.map(r => (
           <DropdownMenuItem
             key={r.value}
-            onClick={() => setRole(r.value)}
+            onClick={() => { setRole(r.value); navigate(ROLE_HOME[r.value]) }}
             className="flex items-center gap-2 text-sm"
           >
             {r.icon}

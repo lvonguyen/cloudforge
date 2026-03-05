@@ -34,6 +34,14 @@ const CATEGORY_COLORS: Record<string, string> = {
   NETWORK: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
 }
 
+const CATEGORY_SHORT: Record<string, string> = {
+  VULNERABILITY: 'VULN',
+  MISCONFIGURATION: 'MISCONFIG',
+  COMPLIANCE: 'COMPLY',
+  IDENTITY: 'IDENTITY',
+  NETWORK: 'NETWORK',
+}
+
 const WORKFLOW_COLORS: Record<string, string> = {
   new: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
   triaged: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
@@ -414,7 +422,7 @@ export default function Findings() {
                 {paginated.map(f => (
                   <TableRow
                     key={f.id}
-                    className="cursor-pointer"
+                    className="cursor-pointer hover:bg-muted/30 transition-colors"
                     onClick={() => navigate(`/ops/findings/${f.id}`)}
                   >
                     <TableCell>
@@ -433,8 +441,8 @@ export default function Findings() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${CATEGORY_COLORS[f.category] ?? ''}`}>
-                        {f.category}
+                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${CATEGORY_COLORS[f.category] ?? ''}`} title={f.category}>
+                        {CATEGORY_SHORT[f.category] ?? f.category}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs font-mono uppercase text-muted-foreground">

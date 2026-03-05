@@ -250,13 +250,18 @@ function ProjectTile({ project }: { project: ProjectCard }) {
           </div>
 
           {/* Stats */}
-          <div className="flex gap-4 pt-1 border-t">
+          <div className={`flex gap-4 pt-1 border-t ${project.link === '#' ? 'opacity-50' : ''}`}>
             {project.stats.map(({ label, value }) => (
               <div key={label}>
                 <p className="text-xs font-semibold">{value}</p>
                 <p className="text-[10px] text-muted-foreground">{label}</p>
               </div>
             ))}
+            {project.link === '#' && (
+              <div className="flex items-center ml-auto">
+                <span className="text-[10px] italic text-muted-foreground">projected</span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

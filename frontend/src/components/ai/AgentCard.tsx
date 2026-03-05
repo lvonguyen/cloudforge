@@ -13,7 +13,7 @@ const RISK_CONFIG: Record<string, string> = {
 export function AgentCard({ agent, onClick }: { agent: Agent; onClick?: () => void }) {
   return (
     <Card
-      className={`hover:shadow-sm transition-shadow ${onClick ? 'cursor-pointer' : ''}`}
+      className="cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
       onClick={onClick}
     >
       <CardHeader className="pb-2">

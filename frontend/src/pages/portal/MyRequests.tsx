@@ -122,7 +122,9 @@ export default function MyRequests() {
                       </div>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{req.created}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{req.approver ?? '—'}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[140px] truncate" title={req.approver ?? '—'}>
+                      {req.approver ? req.approver.split('@')[0] : '—'}
+                    </TableCell>
                     <TableCell className={`text-xs ${req.expiry ? 'text-foreground' : 'text-muted-foreground'}`}>{req.expiry ?? '—'}</TableCell>
                   </TableRow>
                 )

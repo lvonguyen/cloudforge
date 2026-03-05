@@ -19,7 +19,7 @@ export function ResourceCatalogCard({ item, onSelect }: { item: CatalogItem; onS
   }
 
   return (
-    <Card className="hover:shadow-sm transition-shadow">
+    <Card className="cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm">{item.name}</CardTitle>

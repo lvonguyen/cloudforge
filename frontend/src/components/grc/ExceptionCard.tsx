@@ -8,7 +8,7 @@ export function ExceptionCard({ exception }: { exception: ExceptionRequest }) {
   )
 
   return (
-    <Card className="hover:shadow-sm transition-shadow">
+    <Card className="cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-sm font-mono">{exception.id}</CardTitle>
