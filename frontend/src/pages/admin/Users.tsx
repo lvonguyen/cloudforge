@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,7 +32,9 @@ const ROLE_COLORS: Record<string, string> = {
 }
 
 export default function Users() {
+  const [roleFilter, setRoleFilter] = useState<string>('all')
   const active = USERS.filter(u => u.status === 'active').length
+  const filteredUsers = roleFilter === 'all' ? USERS : USERS.filter(u => u.role === roleFilter)
 
   return (
     <div className="space-y-6">
@@ -45,12 +48,25 @@ export default function Users() {
         </Button>
       </div>
 
-      {/* Role summary */}
       <div className="flex gap-3">
+        <button
+          onClick={() => setRoleFilter('all')}
+          className={`px-3 py-1.5 rounded-none text-xs font-medium transition-colors ${
+            roleFilter === 'all' ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          }`}
+        >
+          All ({USERS.length})
+        </button>
         {(['admin', 'operator', 'requester'] as const).map(role => (
-          <div key={role} className={`px-3 py-1.5 rounded-none text-xs font-medium ${ROLE_COLORS[role]}`}>
+          <button
+            key={role}
+            onClick={() => setRoleFilter(prev => prev === role ? 'all' : role)}
+            className={`px-3 py-1.5 rounded-none text-xs font-medium transition-colors ${
+              roleFilter === role ? 'bg-foreground text-background' : ROLE_COLORS[role] + ' hover:opacity-80'
+            }`}
+          >
             {role.charAt(0).toUpperCase() + role.slice(1)}: {USERS.filter(u => u.role === role).length}
-          </div>
+          </button>
         ))}
       </div>
 
@@ -58,7 +74,7 @@ export default function Users() {
         <CardHeader className="pb-2">
           <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">All Users</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -66,13 +82,13 @@ export default function Users() {
                 <TableHead className="text-xs">Email</TableHead>
                 <TableHead className="text-xs">Role</TableHead>
                 <TableHead className="text-xs">Team</TableHead>
-                <TableHead className="text-xs">Last Login</TableHead>
+                <TableHead className="text-xs hidden lg:table-cell">Last Login</TableHead>
                 <TableHead className="text-xs">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {USERS.map(user => (
-                <TableRow key={user.id} className="hover:bg-muted/30">
+              {filteredUsers.map(user => (
+                <TableRow key={user.id} className="hover:bg-muted/30 cursor-pointer">
                   <TableCell className="pl-4">
                     <div className="flex items-center gap-2">
                       <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">
@@ -88,7 +104,7 @@ export default function Users() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs">{user.team}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{user.last_login}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">{user.last_login}</TableCell>
                   <TableCell>
                     <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${user.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-900/30 dark:text-gray-400'}`}>
                       {user.status}
