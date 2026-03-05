@@ -26,6 +26,7 @@ import FindingDetail from '@/pages/ops/FindingDetail'
 import RemediationQueue from '@/pages/ops/RemediationQueue'
 import Costs from '@/pages/ops/Costs'
 import Compliance from '@/pages/ops/Compliance'
+import AttackPaths from '@/pages/ops/AttackPaths'
 
 // Portal pages
 import PortalDashboard from '@/pages/portal/Dashboard'
@@ -62,6 +63,7 @@ export default function App() {
                 <Route path="/ops/remediation" element={<RemediationQueue />} />
                 <Route path="/ops/costs" element={<Costs />} />
                 <Route path="/ops/compliance" element={<Compliance />} />
+                <Route path="/ops/attack-paths" element={<AttackPaths />} />
 
                 {/* Requester / portal routes */}
                 <Route path="/portal" element={<PortalDashboard />} />

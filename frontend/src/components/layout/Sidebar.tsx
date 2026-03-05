@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
   LayoutDashboard, FileText, Bot, Users, ClipboardList, Settings,
-  Activity, AlertTriangle, Wrench, DollarSign, Shield,
+  Activity, AlertTriangle, Wrench, DollarSign, Shield, GitBranch,
   Home, PlusCircle, List, Package,
   ChevronLeft, ChevronRight, type LucideIcon,
 } from 'lucide-react'
@@ -50,6 +50,7 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
       items: [
         { to: '/ops/costs', label: 'Costs', icon: DollarSign },
         { to: '/ops/compliance', label: 'Compliance', icon: Shield },
+        { to: '/ops/attack-paths', label: 'Attack Paths', icon: GitBranch },
       ],
     },
   ],
