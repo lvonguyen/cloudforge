@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, CheckCircle2, XCircle, Clock, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, XCircle, Clock } from 'lucide-react'
 
 interface ExceptionLifecycle {
   id: string

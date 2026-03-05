@@ -1,4 +1,5 @@
 import { RoleSwitcher } from './RoleSwitcher'
+import { ThemeToggle } from './ThemeToggle'
 import { useAuth } from '@/lib/auth'
 import { Input } from '@/components/ui/input'
 import {
@@ -36,6 +37,7 @@ export function TopNav() {
 
       {/* Right side */}
       <div className="ml-auto flex items-center gap-3">
+        <ThemeToggle />
         <RoleSwitcher />
 
         <DropdownMenu>
