@@ -279,5 +279,1082 @@
       "security_signals": 0
     },
     "metadata": { "trigger": "cron:0 8 * * *", "scan_type": "full" }
+  },
+  {
+    "trace_id": "tr-20260227-003",
+    "agent_id": "550e8400-e29b-41d4-a716-446655440005",
+    "session_id": "sess-ghi789",
+    "user_id": "ops-automated",
+    "start_time": "2026-02-27T10:00:00Z",
+    "end_time": "2026-02-27T10:00:32Z",
+    "duration_ms": 32450,
+    "status": "completed",
+    "spans": [
+      {
+        "span_id": "sp-201",
+        "name": "agent:AnomalyDetector:scan",
+        "type": "agent",
+        "start_time": "2026-02-27T10:00:00Z",
+        "end_time": "2026-02-27T10:00:32Z",
+        "duration_ms": 32450,
+        "status": "completed",
+        "attributes": { "sessions_analyzed": 148, "anomalies_detected": 2 },
+        "events": [],
+        "data": {}
+      },
+      {
+        "span_id": "sp-202",
+        "parent_span_id": "sp-201",
+        "name": "tool:QueryTraces:24h-lookback",
+        "type": "tool",
+        "start_time": "2026-02-27T10:00:01Z",
+        "end_time": "2026-02-27T10:00:08Z",
+        "duration_ms": 7200,
+        "status": "completed",
+        "attributes": { "traces_returned": 148, "lookback_hours": 24 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "QueryTraces",
+            "tool_category": "observability",
+            "input_hash": "sha256:qtrc001",
+            "output_hash": "sha256:qtrc002",
+            "parameter_count": 2,
+            "external_call": false
+          }
+        }
+      },
+      {
+        "span_id": "sp-203",
+        "parent_span_id": "sp-201",
+        "name": "tool:IsolationForestPredict:batch",
+        "type": "tool",
+        "start_time": "2026-02-27T10:00:10Z",
+        "end_time": "2026-02-27T10:00:22Z",
+        "duration_ms": 12300,
+        "status": "completed",
+        "attributes": { "samples": 148, "outliers": 2, "model_version": "v3.1" },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "IsolationForestPredict",
+            "tool_category": "ml-inference",
+            "input_hash": "sha256:mlb001",
+            "output_hash": "sha256:mlb002",
+            "parameter_count": 3,
+            "external_call": false
+          }
+        }
+      },
+      {
+        "span_id": "sp-204",
+        "parent_span_id": "sp-201",
+        "name": "tool:DispatchAlert:anomaly-report",
+        "type": "tool",
+        "start_time": "2026-02-27T10:00:24Z",
+        "end_time": "2026-02-27T10:00:30Z",
+        "duration_ms": 6100,
+        "status": "completed",
+        "attributes": { "alerts_created": 2, "channel": "#security-anomalies" },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "DispatchAlert",
+            "tool_category": "alerting",
+            "input_hash": "sha256:alrt001",
+            "output_hash": "sha256:alrt002",
+            "parameter_count": 3,
+            "external_call": true
+          }
+        }
+      }
+    ],
+    "security_signals": [],
+    "metrics": {
+      "total_spans": 4,
+      "llm_calls": 0,
+      "tool_invocations": 3,
+      "total_tokens": 0,
+      "estimated_cost_usd": 0.0,
+      "policy_evaluations": 0,
+      "security_signals": 0
+    },
+    "metadata": { "trigger": "cron:*/15 * * * *", "scan_type": "anomaly-detection" }
+  },
+  {
+    "trace_id": "tr-20260227-004",
+    "agent_id": "550e8400-e29b-41d4-a716-446655440006",
+    "session_id": "sess-jkl012",
+    "user_id": "ops-automated",
+    "start_time": "2026-02-27T10:12:00Z",
+    "end_time": "2026-02-27T10:12:08Z",
+    "duration_ms": 8340,
+    "status": "completed",
+    "spans": [
+      {
+        "span_id": "sp-210",
+        "name": "agent:PolicyEvaluator:evaluate",
+        "type": "agent",
+        "start_time": "2026-02-27T10:12:00Z",
+        "end_time": "2026-02-27T10:12:08Z",
+        "duration_ms": 8340,
+        "status": "completed",
+        "attributes": { "request_type": "tool_invocation", "requesting_agent": "RemediationBot" },
+        "events": [],
+        "data": {}
+      },
+      {
+        "span_id": "sp-211",
+        "parent_span_id": "sp-210",
+        "name": "tool:CMDBResourceLookup:enrich",
+        "type": "tool",
+        "start_time": "2026-02-27T10:12:01Z",
+        "end_time": "2026-02-27T10:12:03Z",
+        "duration_ms": 2100,
+        "status": "completed",
+        "attributes": { "resource_arn": "arn:aws:ec2:us-east-1:123456789:instance/i-0abc123" },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "CMDBResourceLookup",
+            "tool_category": "inventory",
+            "input_hash": "sha256:cmdb001",
+            "output_hash": "sha256:cmdb002",
+            "parameter_count": 1,
+            "external_call": false
+          }
+        }
+      },
+      {
+        "span_id": "sp-212",
+        "parent_span_id": "sp-210",
+        "name": "policy:EvaluateDecision:pol-003",
+        "type": "policy",
+        "start_time": "2026-02-27T10:12:04Z",
+        "end_time": "2026-02-27T10:12:04Z",
+        "duration_ms": 480,
+        "status": "completed",
+        "attributes": { "policy_id": "pol-003", "decision": "allow", "environment": "staging" },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "EvaluateDecision",
+            "tool_category": "policy",
+            "input_hash": "sha256:eval001",
+            "output_hash": "sha256:eval002",
+            "parameter_count": 4,
+            "external_call": false,
+            "policy_decision": {
+              "policy_id": "pol-003",
+              "decision": "allow",
+              "reason": "Staging environment modification permitted without change window",
+              "eval_time_us": 480,
+              "timestamp": "2026-02-27T10:12:04Z"
+            }
+          }
+        }
+      },
+      {
+        "span_id": "sp-213",
+        "parent_span_id": "sp-210",
+        "name": "tool:WriteAuditEntry:decision-log",
+        "type": "tool",
+        "start_time": "2026-02-27T10:12:05Z",
+        "end_time": "2026-02-27T10:12:07Z",
+        "duration_ms": 1800,
+        "status": "completed",
+        "attributes": { "audit_entry_id": "aud-20260227-0412" },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "WriteAuditEntry",
+            "tool_category": "logging",
+            "input_hash": "sha256:aud001",
+            "output_hash": "sha256:aud002",
+            "parameter_count": 5,
+            "external_call": false
+          }
+        }
+      }
+    ],
+    "security_signals": [],
+    "metrics": {
+      "total_spans": 4,
+      "llm_calls": 0,
+      "tool_invocations": 3,
+      "total_tokens": 0,
+      "estimated_cost_usd": 0.0,
+      "policy_evaluations": 1,
+      "security_signals": 0
+    },
+    "metadata": { "trigger": "agent-intercept", "requesting_agent_id": "550e8400-e29b-41d4-a716-446655440002" }
+  },
+  {
+    "trace_id": "tr-20260227-005",
+    "agent_id": "550e8400-e29b-41d4-a716-446655440007",
+    "session_id": "sess-mno345",
+    "user_id": "ops-automated",
+    "start_time": "2026-02-27T09:45:00Z",
+    "end_time": "2026-02-27T09:46:52Z",
+    "duration_ms": 112400,
+    "status": "completed",
+    "spans": [
+      {
+        "span_id": "sp-220",
+        "name": "agent:TriageRouter:triage",
+        "type": "agent",
+        "start_time": "2026-02-27T09:45:00Z",
+        "end_time": "2026-02-27T09:46:52Z",
+        "duration_ms": 112400,
+        "status": "completed",
+        "attributes": { "findings_triaged": 14, "routed_to_teams": 3 },
+        "events": [],
+        "data": {}
+      },
+      {
+        "span_id": "sp-221",
+        "parent_span_id": "sp-220",
+        "name": "retrieval:findings-queue:pending",
+        "type": "retrieval",
+        "start_time": "2026-02-27T09:45:01Z",
+        "end_time": "2026-02-27T09:45:04Z",
+        "duration_ms": 3200,
+        "status": "completed",
+        "attributes": { "findings_fetched": 14, "source": "findings-queue" },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "ClassifyFinding",
+            "tool_category": "internal-api",
+            "input_hash": "sha256:fq001",
+            "output_hash": "sha256:fq002",
+            "parameter_count": 1,
+            "external_call": false
+          }
+        }
+      },
+      {
+        "span_id": "sp-222",
+        "parent_span_id": "sp-220",
+        "name": "llm:gpt-4o:finding-classification",
+        "type": "llm",
+        "start_time": "2026-02-27T09:45:06Z",
+        "end_time": "2026-02-27T09:45:38Z",
+        "duration_ms": 32100,
+        "status": "completed",
+        "attributes": { "purpose": "finding-classification", "batch_size": 14 },
+        "events": [],
+        "data": {
+          "llm": {
+            "model": "gpt-4o",
+            "provider": "openai",
+            "prompt_tokens": 12800,
+            "completion_tokens": 2400,
+            "total_tokens": 15200,
+            "temperature": 0.0,
+            "max_tokens": 4096,
+            "prompt_hash": "sha256:triage001",
+            "finish_reason": "stop"
+          }
+        }
+      },
+      {
+        "span_id": "sp-223",
+        "parent_span_id": "sp-220",
+        "name": "tool:LookupOnCall:team-routing",
+        "type": "tool",
+        "start_time": "2026-02-27T09:45:40Z",
+        "end_time": "2026-02-27T09:45:43Z",
+        "duration_ms": 2800,
+        "status": "completed",
+        "attributes": { "teams_queried": 3 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "LookupOnCall",
+            "tool_category": "internal-api",
+            "input_hash": "sha256:oc001",
+            "output_hash": "sha256:oc002",
+            "parameter_count": 1,
+            "external_call": false
+          }
+        }
+      },
+      {
+        "span_id": "sp-224",
+        "parent_span_id": "sp-220",
+        "name": "tool:SlackNotify:triage-results",
+        "type": "tool",
+        "start_time": "2026-02-27T09:45:45Z",
+        "end_time": "2026-02-27T09:45:50Z",
+        "duration_ms": 4800,
+        "status": "completed",
+        "attributes": { "messages_sent": 3, "channel": "#security-triage" },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "SlackNotify",
+            "tool_category": "notification",
+            "input_hash": "sha256:slk001",
+            "output_hash": "sha256:slk002",
+            "parameter_count": 3,
+            "external_call": true
+          }
+        }
+      },
+      {
+        "span_id": "sp-225",
+        "parent_span_id": "sp-220",
+        "name": "tool:ClassifyFinding:update-metadata",
+        "type": "tool",
+        "start_time": "2026-02-27T09:45:52Z",
+        "end_time": "2026-02-27T09:46:50Z",
+        "duration_ms": 58200,
+        "status": "completed",
+        "attributes": { "findings_updated": 14 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "ClassifyFinding",
+            "tool_category": "internal-api",
+            "input_hash": "sha256:clf001",
+            "output_hash": "sha256:clf002",
+            "parameter_count": 2,
+            "external_call": false
+          }
+        }
+      }
+    ],
+    "security_signals": [],
+    "metrics": {
+      "total_spans": 6,
+      "llm_calls": 1,
+      "tool_invocations": 4,
+      "total_tokens": 15200,
+      "estimated_cost_usd": 0.0440,
+      "policy_evaluations": 0,
+      "security_signals": 0
+    },
+    "metadata": { "trigger": "event:new-findings-batch", "batch_size": 14 }
+  },
+  {
+    "trace_id": "tr-20260227-006",
+    "agent_id": "550e8400-e29b-41d4-a716-446655440010",
+    "session_id": "sess-pqr678",
+    "user_id": "security@contoso.dev",
+    "start_time": "2026-02-27T07:30:00Z",
+    "end_time": "2026-02-27T07:34:42Z",
+    "duration_ms": 282100,
+    "status": "failed",
+    "spans": [
+      {
+        "span_id": "sp-230",
+        "name": "agent:BlastRadiusAnalyzer:analyze",
+        "type": "agent",
+        "start_time": "2026-02-27T07:30:00Z",
+        "end_time": "2026-02-27T07:34:42Z",
+        "duration_ms": 282100,
+        "status": "failed",
+        "attributes": { "finding_id": "f-003", "resource_arn": "arn:aws:iam::123456789:role/admin-role" },
+        "events": [
+          { "timestamp": "2026-02-27T07:34:40Z", "name": "error", "attributes": { "message": "Graph traversal exceeded max depth (5). Cyclic trust chain detected in IAM roles.", "error_code": "GRAPH_CYCLE_DETECTED" } }
+        ],
+        "data": {}
+      },
+      {
+        "span_id": "sp-231",
+        "parent_span_id": "sp-230",
+        "name": "tool:QueryDependencyGraph:resource-tree",
+        "type": "tool",
+        "start_time": "2026-02-27T07:30:02Z",
+        "end_time": "2026-02-27T07:30:45Z",
+        "duration_ms": 43200,
+        "status": "completed",
+        "attributes": { "nodes_returned": 89, "edges_returned": 214 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "QueryDependencyGraph",
+            "tool_category": "graph",
+            "input_hash": "sha256:grph001",
+            "output_hash": "sha256:grph002",
+            "parameter_count": 2,
+            "external_call": false
+          }
+        }
+      },
+      {
+        "span_id": "sp-232",
+        "parent_span_id": "sp-230",
+        "name": "tool:AnalyzeIAMPolicies:trust-chains",
+        "type": "tool",
+        "start_time": "2026-02-27T07:30:48Z",
+        "end_time": "2026-02-27T07:32:20Z",
+        "duration_ms": 92400,
+        "status": "completed",
+        "attributes": { "policies_analyzed": 34, "trust_chains": 12 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "AnalyzeIAMPolicies",
+            "tool_category": "security",
+            "input_hash": "sha256:iam001",
+            "output_hash": "sha256:iam002",
+            "parameter_count": 3,
+            "external_call": true
+          }
+        }
+      },
+      {
+        "span_id": "sp-233",
+        "parent_span_id": "sp-230",
+        "name": "llm:claude-sonnet-4-6:blast-radius-scoring",
+        "type": "llm",
+        "start_time": "2026-02-27T07:32:22Z",
+        "end_time": "2026-02-27T07:33:10Z",
+        "duration_ms": 48200,
+        "status": "completed",
+        "attributes": { "purpose": "blast-radius-scoring", "graph_nodes": 89 },
+        "events": [],
+        "data": {
+          "llm": {
+            "model": "claude-sonnet-4-6",
+            "provider": "anthropic",
+            "prompt_tokens": 18400,
+            "completion_tokens": 3200,
+            "total_tokens": 21600,
+            "temperature": 0.0,
+            "max_tokens": 8192,
+            "prompt_hash": "sha256:blast001",
+            "finish_reason": "stop"
+          }
+        }
+      },
+      {
+        "span_id": "sp-234",
+        "parent_span_id": "sp-230",
+        "name": "tool:MapNetworkTopology:vpc-scan",
+        "type": "tool",
+        "start_time": "2026-02-27T07:33:12Z",
+        "end_time": "2026-02-27T07:34:38Z",
+        "duration_ms": 86100,
+        "status": "failed",
+        "attributes": { "vpc_id": "vpc-0abc123def456", "error": "GRAPH_CYCLE_DETECTED" },
+        "events": [
+          { "timestamp": "2026-02-27T07:34:38Z", "name": "error", "attributes": { "message": "Cyclic security group reference: sg-0abc -> sg-0def -> sg-0abc", "code": "GRAPH_CYCLE_DETECTED" } }
+        ],
+        "data": {
+          "tool": {
+            "tool_name": "MapNetworkTopology",
+            "tool_category": "network",
+            "input_hash": "sha256:net001",
+            "output_hash": "sha256:error",
+            "parameter_count": 2,
+            "external_call": true
+          }
+        }
+      }
+    ],
+    "security_signals": [
+      {
+        "id": "sig-002",
+        "trace_id": "tr-20260227-006",
+        "span_id": "sp-232",
+        "type": "anomalous_behavior",
+        "severity": "high",
+        "title": "Cyclic IAM trust chain detected",
+        "description": "BlastRadiusAnalyzer identified a cyclic trust chain across 3 IAM roles enabling privilege escalation. The cycle allows any principal in the chain to assume the admin-role without additional authorization.",
+        "evidence": { "roles": ["admin-role", "deploy-role", "ci-runner-role"], "cycle_length": 3, "risk": "privilege_escalation" },
+        "timestamp": "2026-02-27T07:34:40Z",
+        "mitigated": false
+      }
+    ],
+    "metrics": {
+      "total_spans": 5,
+      "llm_calls": 1,
+      "tool_invocations": 3,
+      "total_tokens": 21600,
+      "estimated_cost_usd": 0.0648,
+      "policy_evaluations": 0,
+      "security_signals": 1
+    },
+    "metadata": { "trigger": "manual:security@contoso.dev", "finding_severity": "CRITICAL" }
+  },
+  {
+    "trace_id": "tr-20260227-007",
+    "agent_id": "550e8400-e29b-41d4-a716-446655440004",
+    "session_id": "sess-stu901",
+    "user_id": "finops-cron",
+    "start_time": "2026-02-27T06:00:00Z",
+    "end_time": "2026-02-27T06:02:18Z",
+    "duration_ms": 138200,
+    "status": "completed",
+    "spans": [
+      {
+        "span_id": "sp-240",
+        "name": "agent:CostOptimizer:daily-analysis",
+        "type": "agent",
+        "start_time": "2026-02-27T06:00:00Z",
+        "end_time": "2026-02-27T06:02:18Z",
+        "duration_ms": 138200,
+        "status": "completed",
+        "attributes": { "accounts_analyzed": 8, "recommendations_generated": 6 },
+        "events": [],
+        "data": {}
+      },
+      {
+        "span_id": "sp-241",
+        "parent_span_id": "sp-240",
+        "name": "tool:AWSCostExplorer:fetch-costs",
+        "type": "tool",
+        "start_time": "2026-02-27T06:00:02Z",
+        "end_time": "2026-02-27T06:00:34Z",
+        "duration_ms": 32400,
+        "status": "completed",
+        "attributes": { "accounts": 5, "days_fetched": 30 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "AWSCostExplorer",
+            "tool_category": "billing",
+            "input_hash": "sha256:cost001",
+            "output_hash": "sha256:cost002",
+            "parameter_count": 3,
+            "external_call": true
+          }
+        }
+      },
+      {
+        "span_id": "sp-242",
+        "parent_span_id": "sp-240",
+        "name": "tool:AzureCostManagement:fetch-costs",
+        "type": "tool",
+        "start_time": "2026-02-27T06:00:36Z",
+        "end_time": "2026-02-27T06:01:02Z",
+        "duration_ms": 26100,
+        "status": "completed",
+        "attributes": { "subscriptions": 3, "days_fetched": 30 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "AzureCostManagement",
+            "tool_category": "billing",
+            "input_hash": "sha256:azcost001",
+            "output_hash": "sha256:azcost002",
+            "parameter_count": 3,
+            "external_call": true
+          }
+        }
+      },
+      {
+        "span_id": "sp-243",
+        "parent_span_id": "sp-240",
+        "name": "llm:gpt-4o-mini:anomaly-detection",
+        "type": "llm",
+        "start_time": "2026-02-27T06:01:04Z",
+        "end_time": "2026-02-27T06:01:22Z",
+        "duration_ms": 18600,
+        "status": "completed",
+        "attributes": { "purpose": "cost-anomaly-detection", "data_points": 240 },
+        "events": [],
+        "data": {
+          "llm": {
+            "model": "gpt-4o-mini",
+            "provider": "openai",
+            "prompt_tokens": 6200,
+            "completion_tokens": 1100,
+            "total_tokens": 7300,
+            "temperature": 0.0,
+            "max_tokens": 2048,
+            "prompt_hash": "sha256:finops001",
+            "finish_reason": "stop"
+          }
+        }
+      },
+      {
+        "span_id": "sp-244",
+        "parent_span_id": "sp-240",
+        "name": "llm:claude-sonnet-4-6:recommendation-gen",
+        "type": "llm",
+        "start_time": "2026-02-27T06:01:24Z",
+        "end_time": "2026-02-27T06:02:00Z",
+        "duration_ms": 36200,
+        "status": "completed",
+        "attributes": { "purpose": "recommendation-generation", "anomalies_found": 3 },
+        "events": [],
+        "data": {
+          "llm": {
+            "model": "claude-sonnet-4-6",
+            "provider": "anthropic",
+            "prompt_tokens": 4800,
+            "completion_tokens": 2200,
+            "total_tokens": 7000,
+            "temperature": 0.2,
+            "max_tokens": 4096,
+            "prompt_hash": "sha256:recgen001",
+            "finish_reason": "stop"
+          }
+        }
+      }
+    ],
+    "security_signals": [],
+    "metrics": {
+      "total_spans": 5,
+      "llm_calls": 2,
+      "tool_invocations": 2,
+      "total_tokens": 14300,
+      "estimated_cost_usd": 0.0321,
+      "policy_evaluations": 0,
+      "security_signals": 0
+    },
+    "metadata": { "trigger": "cron:0 6 * * *", "scan_type": "cost-analysis" }
+  },
+  {
+    "trace_id": "tr-20260227-008",
+    "agent_id": "550e8400-e29b-41d4-a716-446655440009",
+    "session_id": "sess-vwx234",
+    "user_id": "ops-automated",
+    "start_time": "2026-02-27T11:00:00Z",
+    "end_time": "2026-02-27T11:03:24Z",
+    "duration_ms": 204600,
+    "status": "failed",
+    "spans": [
+      {
+        "span_id": "sp-250",
+        "name": "agent:FindingDeduplicator:deduplicate",
+        "type": "agent",
+        "start_time": "2026-02-27T11:00:00Z",
+        "end_time": "2026-02-27T11:03:24Z",
+        "duration_ms": 204600,
+        "status": "failed",
+        "attributes": { "findings_input": 312, "duplicates_found": 47, "error": "MERGE_CONFLICT" },
+        "events": [
+          { "timestamp": "2026-02-27T11:03:22Z", "name": "error", "attributes": { "message": "Merge conflict: finding f-042 has concurrent updates from SecurityHub and Azure Defender. Manual resolution required.", "error_code": "MERGE_CONFLICT" } }
+        ],
+        "data": {}
+      },
+      {
+        "span_id": "sp-251",
+        "parent_span_id": "sp-250",
+        "name": "retrieval:findings-store:all-sources",
+        "type": "retrieval",
+        "start_time": "2026-02-27T11:00:01Z",
+        "end_time": "2026-02-27T11:00:18Z",
+        "duration_ms": 17200,
+        "status": "completed",
+        "attributes": { "sources": ["aws-securityhub", "azure-defender", "gcp-scc"], "findings_total": 312 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "FuzzyMatchFindings",
+            "tool_category": "ml-inference",
+            "input_hash": "sha256:dedup001",
+            "output_hash": "sha256:dedup002",
+            "parameter_count": 1,
+            "external_call": false
+          }
+        }
+      },
+      {
+        "span_id": "sp-252",
+        "parent_span_id": "sp-250",
+        "name": "tool:FuzzyMatchFindings:correlation",
+        "type": "tool",
+        "start_time": "2026-02-27T11:00:20Z",
+        "end_time": "2026-02-27T11:01:52Z",
+        "duration_ms": 92400,
+        "status": "completed",
+        "attributes": { "comparisons": 48672, "matches_above_threshold": 47, "threshold": 0.85 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "FuzzyMatchFindings",
+            "tool_category": "ml-inference",
+            "input_hash": "sha256:fuzzy001",
+            "output_hash": "sha256:fuzzy002",
+            "parameter_count": 2,
+            "external_call": false
+          }
+        }
+      },
+      {
+        "span_id": "sp-253",
+        "parent_span_id": "sp-250",
+        "name": "tool:QueryResourceGraph:resource-correlation",
+        "type": "tool",
+        "start_time": "2026-02-27T11:01:54Z",
+        "end_time": "2026-02-27T11:02:30Z",
+        "duration_ms": 36200,
+        "status": "completed",
+        "attributes": { "resources_correlated": 47 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "QueryResourceGraph",
+            "tool_category": "inventory",
+            "input_hash": "sha256:rg001",
+            "output_hash": "sha256:rg002",
+            "parameter_count": 2,
+            "external_call": false
+          }
+        }
+      },
+      {
+        "span_id": "sp-254",
+        "parent_span_id": "sp-250",
+        "name": "llm:claude-sonnet-4-6:merge-decision",
+        "type": "llm",
+        "start_time": "2026-02-27T11:02:32Z",
+        "end_time": "2026-02-27T11:03:04Z",
+        "duration_ms": 32800,
+        "status": "completed",
+        "attributes": { "purpose": "merge-decision", "candidate_pairs": 47 },
+        "events": [],
+        "data": {
+          "llm": {
+            "model": "claude-sonnet-4-6",
+            "provider": "anthropic",
+            "prompt_tokens": 22400,
+            "completion_tokens": 4100,
+            "total_tokens": 26500,
+            "temperature": 0.0,
+            "max_tokens": 8192,
+            "prompt_hash": "sha256:merge001",
+            "finish_reason": "stop"
+          }
+        }
+      },
+      {
+        "span_id": "sp-255",
+        "parent_span_id": "sp-250",
+        "name": "tool:MergeFindings:batch-merge",
+        "type": "tool",
+        "start_time": "2026-02-27T11:03:06Z",
+        "end_time": "2026-02-27T11:03:22Z",
+        "duration_ms": 16400,
+        "status": "failed",
+        "attributes": { "merged": 46, "failed": 1, "error": "MERGE_CONFLICT" },
+        "events": [
+          { "timestamp": "2026-02-27T11:03:22Z", "name": "error", "attributes": { "finding_id": "f-042", "message": "Concurrent update conflict" } }
+        ],
+        "data": {
+          "tool": {
+            "tool_name": "MergeFindings",
+            "tool_category": "internal-api",
+            "input_hash": "sha256:mrg001",
+            "output_hash": "sha256:error",
+            "parameter_count": 2,
+            "external_call": false
+          }
+        }
+      }
+    ],
+    "security_signals": [],
+    "metrics": {
+      "total_spans": 6,
+      "llm_calls": 1,
+      "tool_invocations": 4,
+      "total_tokens": 26500,
+      "estimated_cost_usd": 0.0795,
+      "policy_evaluations": 0,
+      "security_signals": 0
+    },
+    "metadata": { "trigger": "cron:0 11 * * *", "scan_type": "deduplication" }
+  },
+  {
+    "trace_id": "tr-20260227-009",
+    "agent_id": "550e8400-e29b-41d4-a716-446655440012",
+    "session_id": "sess-yza567",
+    "user_id": "ops-automated",
+    "start_time": "2026-02-27T04:00:00Z",
+    "end_time": "2026-02-27T04:04:48Z",
+    "duration_ms": 288400,
+    "status": "blocked",
+    "spans": [
+      {
+        "span_id": "sp-260",
+        "name": "agent:DriftDetector:scan",
+        "type": "agent",
+        "start_time": "2026-02-27T04:00:00Z",
+        "end_time": "2026-02-27T04:04:48Z",
+        "duration_ms": 288400,
+        "status": "blocked",
+        "attributes": { "stacks_scanned": 18, "drift_detected": 5, "blocked_by": "pol-013" },
+        "events": [],
+        "data": {}
+      },
+      {
+        "span_id": "sp-261",
+        "parent_span_id": "sp-260",
+        "name": "tool:ReadTerraformState:all-stacks",
+        "type": "tool",
+        "start_time": "2026-02-27T04:00:02Z",
+        "end_time": "2026-02-27T04:00:48Z",
+        "duration_ms": 46200,
+        "status": "completed",
+        "attributes": { "stacks": 18, "resources_in_state": 1247 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "ReadTerraformState",
+            "tool_category": "iac",
+            "input_hash": "sha256:tfst001",
+            "output_hash": "sha256:tfst002",
+            "parameter_count": 2,
+            "external_call": true
+          }
+        }
+      },
+      {
+        "span_id": "sp-262",
+        "parent_span_id": "sp-260",
+        "name": "tool:CompareLiveVsDesired:diff",
+        "type": "tool",
+        "start_time": "2026-02-27T04:00:50Z",
+        "end_time": "2026-02-27T04:02:42Z",
+        "duration_ms": 112800,
+        "status": "completed",
+        "attributes": { "resources_compared": 1247, "drifted": 5 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "CompareLiveVsDesired",
+            "tool_category": "iac",
+            "input_hash": "sha256:diff001",
+            "output_hash": "sha256:diff002",
+            "parameter_count": 3,
+            "external_call": true
+          }
+        }
+      },
+      {
+        "span_id": "sp-263",
+        "parent_span_id": "sp-260",
+        "name": "llm:claude-sonnet-4-6:drift-analysis",
+        "type": "llm",
+        "start_time": "2026-02-27T04:02:44Z",
+        "end_time": "2026-02-27T04:03:28Z",
+        "duration_ms": 44200,
+        "status": "completed",
+        "attributes": { "purpose": "drift-analysis", "drifted_resources": 5 },
+        "events": [],
+        "data": {
+          "llm": {
+            "model": "claude-sonnet-4-6",
+            "provider": "anthropic",
+            "prompt_tokens": 9800,
+            "completion_tokens": 2600,
+            "total_tokens": 12400,
+            "temperature": 0.0,
+            "max_tokens": 4096,
+            "prompt_hash": "sha256:drift001",
+            "finish_reason": "stop"
+          }
+        }
+      },
+      {
+        "span_id": "sp-264",
+        "parent_span_id": "sp-260",
+        "name": "tool:CreateDriftFinding:batch",
+        "type": "tool",
+        "start_time": "2026-02-27T04:03:30Z",
+        "end_time": "2026-02-27T04:03:42Z",
+        "duration_ms": 12600,
+        "status": "completed",
+        "attributes": { "findings_created": 5 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "CreateDriftFinding",
+            "tool_category": "internal-api",
+            "input_hash": "sha256:drf001",
+            "output_hash": "sha256:drf002",
+            "parameter_count": 3,
+            "external_call": false
+          }
+        }
+      },
+      {
+        "span_id": "sp-265",
+        "parent_span_id": "sp-260",
+        "name": "tool:NotifyDriftChannel:alert",
+        "type": "tool",
+        "start_time": "2026-02-27T04:03:44Z",
+        "end_time": "2026-02-27T04:03:52Z",
+        "duration_ms": 8400,
+        "status": "completed",
+        "attributes": { "channel": "#infra-drift", "findings_count": 5 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "NotifyDriftChannel",
+            "tool_category": "notification",
+            "input_hash": "sha256:ntfy001",
+            "output_hash": "sha256:ntfy002",
+            "parameter_count": 2,
+            "external_call": true
+          }
+        }
+      },
+      {
+        "span_id": "sp-266",
+        "parent_span_id": "sp-260",
+        "name": "policy:auto-remediate-drift:evaluation",
+        "type": "policy",
+        "start_time": "2026-02-27T04:03:54Z",
+        "end_time": "2026-02-27T04:03:55Z",
+        "duration_ms": 620,
+        "status": "blocked",
+        "attributes": { "policy_id": "pol-013", "decision": "deny" },
+        "events": [
+          { "timestamp": "2026-02-27T04:03:55Z", "name": "policy.deny", "attributes": { "policy_id": "pol-013", "reason": "Auto-remediation of drift in staging requires team lead approval" } }
+        ],
+        "data": {
+          "tool": {
+            "tool_name": "EvaluateDecision",
+            "tool_category": "policy",
+            "input_hash": "sha256:poldr001",
+            "output_hash": "sha256:poldr002",
+            "parameter_count": 3,
+            "external_call": false,
+            "policy_decision": {
+              "policy_id": "pol-013",
+              "decision": "deny",
+              "reason": "Auto-remediation of drift in staging environment requires team lead approval. 5 findings queued for manual review.",
+              "eval_time_us": 620,
+              "timestamp": "2026-02-27T04:03:55Z"
+            }
+          }
+        }
+      }
+    ],
+    "security_signals": [
+      {
+        "id": "sig-003",
+        "trace_id": "tr-20260227-009",
+        "span_id": "sp-262",
+        "type": "policy_violation",
+        "severity": "medium",
+        "title": "Unauthorized infrastructure drift detected in staging",
+        "description": "DriftDetector found 5 resources drifted from IaC definitions in staging environment. 2 security group modifications and 3 IAM policy changes were made outside of Terraform. Changes may indicate unauthorized access or manual hotfixes not back-ported to IaC.",
+        "evidence": { "drifted_resources": 5, "security_group_changes": 2, "iam_changes": 3, "environment": "staging" },
+        "timestamp": "2026-02-27T04:02:42Z",
+        "mitigated": false
+      }
+    ],
+    "metrics": {
+      "total_spans": 7,
+      "llm_calls": 1,
+      "tool_invocations": 4,
+      "total_tokens": 12400,
+      "estimated_cost_usd": 0.0372,
+      "policy_evaluations": 1,
+      "security_signals": 1
+    },
+    "metadata": { "trigger": "cron:0 4 * * *", "scan_type": "drift-detection" }
+  },
+  {
+    "trace_id": "tr-20260227-010",
+    "agent_id": "550e8400-e29b-41d4-a716-446655440008",
+    "session_id": "sess-bcd890",
+    "user_id": "compliance@contoso.dev",
+    "start_time": "2026-02-27T14:00:00Z",
+    "end_time": null,
+    "duration_ms": null,
+    "status": "running",
+    "spans": [
+      {
+        "span_id": "sp-270",
+        "name": "agent:ReportGenerator:monthly-report",
+        "type": "agent",
+        "start_time": "2026-02-27T14:00:00Z",
+        "end_time": null,
+        "duration_ms": null,
+        "status": "running",
+        "attributes": { "report_type": "monthly-compliance", "frameworks": ["SOC2", "CIS-AWS", "NIST-800-53"] },
+        "events": [],
+        "data": {}
+      },
+      {
+        "span_id": "sp-271",
+        "parent_span_id": "sp-270",
+        "name": "retrieval:compliance-data:multi-framework",
+        "type": "retrieval",
+        "start_time": "2026-02-27T14:00:02Z",
+        "end_time": "2026-02-27T14:00:28Z",
+        "duration_ms": 26400,
+        "status": "completed",
+        "attributes": { "frameworks": 3, "controls_fetched": 412 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "RenderTemplate",
+            "tool_category": "document",
+            "input_hash": "sha256:comp001",
+            "output_hash": "sha256:comp002",
+            "parameter_count": 2,
+            "external_call": false
+          }
+        }
+      },
+      {
+        "span_id": "sp-272",
+        "parent_span_id": "sp-270",
+        "name": "llm:claude-sonnet-4-6:executive-summary",
+        "type": "llm",
+        "start_time": "2026-02-27T14:00:30Z",
+        "end_time": "2026-02-27T14:01:18Z",
+        "duration_ms": 48200,
+        "status": "completed",
+        "attributes": { "purpose": "executive-summary-generation", "input_controls": 412 },
+        "events": [],
+        "data": {
+          "llm": {
+            "model": "claude-sonnet-4-6",
+            "provider": "anthropic",
+            "prompt_tokens": 32800,
+            "completion_tokens": 4800,
+            "total_tokens": 37600,
+            "temperature": 0.3,
+            "max_tokens": 8192,
+            "prompt_hash": "sha256:exec001",
+            "finish_reason": "stop"
+          }
+        }
+      },
+      {
+        "span_id": "sp-273",
+        "parent_span_id": "sp-270",
+        "name": "tool:RenderTemplate:pdf-generation",
+        "type": "tool",
+        "start_time": "2026-02-27T14:01:20Z",
+        "end_time": null,
+        "duration_ms": null,
+        "status": "running",
+        "attributes": { "format": "pdf", "pages_estimated": 48 },
+        "events": [],
+        "data": {
+          "tool": {
+            "tool_name": "RenderTemplate",
+            "tool_category": "document",
+            "input_hash": "sha256:rpt001",
+            "output_hash": null,
+            "parameter_count": 4,
+            "external_call": false
+          }
+        }
+      }
+    ],
+    "security_signals": [],
+    "metrics": {
+      "total_spans": 4,
+      "llm_calls": 1,
+      "tool_invocations": 1,
+      "total_tokens": 37600,
+      "estimated_cost_usd": 0.1128,
+      "policy_evaluations": 0,
+      "security_signals": 0
+    },
+    "metadata": { "trigger": "manual:compliance@contoso.dev", "report_type": "monthly-compliance-summary" }
   }
 ]

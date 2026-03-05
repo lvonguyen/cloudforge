@@ -6,27 +6,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-
-interface AuditEvent {
-  id: string
-  timestamp: string
-  actor: string
-  actor_role: string
-  action: string
-  resource: string
-  result: 'success' | 'denied' | 'error'
-  ip: string
-}
-
-const EVENTS: AuditEvent[] = [
-  { id: 'evt-001', timestamp: '2026-02-26 09:14:32', actor: 'admin1@contoso.dev', actor_role: 'admin', action: 'exception.approve', resource: 'EXC-003', result: 'success', ip: '10.0.1.5' },
-  { id: 'evt-002', timestamp: '2026-02-26 09:01:10', actor: 'operator1@contoso.dev', actor_role: 'operator', action: 'finding.remediate', resource: 'FIND-0421', result: 'success', ip: '10.0.2.12' },
-  { id: 'evt-003', timestamp: '2026-02-26 08:55:44', actor: 'operator2@contoso.dev', actor_role: 'operator', action: 'policy.evaluate', resource: 'payments-api EC2', result: 'denied', ip: '10.0.2.8' },
-  { id: 'evt-004', timestamp: '2026-02-26 08:44:20', actor: 'user1@contoso.dev', actor_role: 'requester', action: 'exception.create', resource: 'EXC-004', result: 'success', ip: '10.0.3.44' },
-  { id: 'evt-005', timestamp: '2026-02-26 08:30:01', actor: 'system@contoso.dev', actor_role: 'admin', action: 'agent.start', resource: 'agent-cloud-remediator', result: 'success', ip: '127.0.0.1' },
-  { id: 'evt-006', timestamp: '2026-02-25 22:10:05', actor: 'system@contoso.dev', actor_role: 'admin', action: 'scan.complete', resource: 'aws-prod-account', result: 'success', ip: '127.0.0.1' },
-  { id: 'evt-007', timestamp: '2026-02-25 17:30:15', actor: 'operator2@contoso.dev', actor_role: 'operator', action: 'finding.suppress', resource: 'FIND-0312', result: 'error', ip: '10.0.2.8' },
-]
+import { useAuditLog } from '@/hooks/useAuditLog'
 
 const RESULT_CONFIG: Record<string, string> = {
   success: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
@@ -53,6 +33,7 @@ export default function AuditLog() {
   const [resultFilter, setResultFilter] = useState('all')
   const [actorFilter, setActorFilter] = useState('all')
 
+  const { data: EVENTS = [] } = useAuditLog()
   const actors = ['all', ...Array.from(new Set(EVENTS.map(e => e.actor)))]
   const filtered = EVENTS
     .filter(e => resultFilter === 'all' || e.result === resultFilter)

@@ -7,28 +7,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { FileCode, CheckCircle2, AlertTriangle, Clock } from 'lucide-react'
-
-interface Policy {
-  id: string
-  name: string
-  namespace: string
-  status: 'active' | 'inactive' | 'draft'
-  category: string
-  evaluations: number
-  denials: number
-  last_updated: string
-}
-
-const POLICIES: Policy[] = [
-  { id: 'pol-001', name: 'approved-regions', namespace: 'cloudforge.provisioning', status: 'active', category: 'provisioning', evaluations: 4821, denials: 38, last_updated: '2026-02-20' },
-  { id: 'pol-002', name: 'instance-size-limits', namespace: 'cloudforge.provisioning', status: 'active', category: 'provisioning', evaluations: 2103, denials: 12, last_updated: '2026-02-18' },
-  { id: 'pol-003', name: 'required-tags', namespace: 'cloudforge.tagging', status: 'active', category: 'tagging', evaluations: 9347, denials: 201, last_updated: '2026-02-15' },
-  { id: 'pol-004', name: 'ai-agent-tool-allow', namespace: 'cloudforge.ai.tools', status: 'active', category: 'ai-governance', evaluations: 1203, denials: 7, last_updated: '2026-02-22' },
-  { id: 'pol-005', name: 'ai-agent-scope-limit', namespace: 'cloudforge.ai.agents', status: 'active', category: 'ai-governance', evaluations: 892, denials: 2, last_updated: '2026-02-22' },
-  { id: 'pol-006', name: 'public-s3-deny', namespace: 'cloudforge.storage', status: 'active', category: 'security', evaluations: 3441, denials: 19, last_updated: '2026-01-30' },
-  { id: 'pol-007', name: 'mfa-enforcement', namespace: 'cloudforge.identity', status: 'draft', category: 'identity', evaluations: 0, denials: 0, last_updated: '2026-02-24' },
-  { id: 'pol-008', name: 'legacy-tls-deny', namespace: 'cloudforge.network', status: 'inactive', category: 'network', evaluations: 0, denials: 0, last_updated: '2026-01-10' },
-]
+import { usePolicies } from '@/hooks/usePolicies'
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; className: string; label: string }> = {
   active: { icon: CheckCircle2, className: 'text-green-600 dark:text-green-400', label: 'Active' },
@@ -50,7 +29,8 @@ export default function Policies() {
   const navigate = useNavigate()
   const [filter, setFilter] = useState<string>('all')
 
-  const filtered = filter === 'all' ? POLICIES : POLICIES.filter(p => p.status === filter || p.category === filter)
+  const { data: allPolicies = [] } = usePolicies()
+  const filtered = filter === 'all' ? allPolicies : allPolicies.filter(p => p.status === filter || p.category === filter)
 
   return (
     <div className="space-y-6">
@@ -74,7 +54,7 @@ export default function Policies() {
               filter === f ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
-            {f} {f === 'all' ? `(${POLICIES.length})` : `(${POLICIES.filter(p => p.status === f).length})`}
+            {f} {f === 'all' ? `(${allPolicies.length})` : `(${allPolicies.filter(p => p.status === f).length})`}
           </button>
         ))}
       </div>

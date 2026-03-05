@@ -1,0 +1,934 @@
+[
+  {
+    "id": "rem-001",
+    "finding_id": "f-001",
+    "domain": "compute",
+    "handler": "sg-rule-remediator",
+    "tier": 1,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-001",
+      "success": true,
+      "message": "Patched kernel to KB-2024-9999",
+      "resource_id": "i-abc123def456",
+      "actions": ["stop_instance", "apply_patch", "start_instance"],
+      "started_at": "2026-02-27T10:00:00Z",
+      "completed_at": "2026-02-27T10:05:32Z",
+      "duration": "5m32s"
+    },
+    "validation": {
+      "finding_id": "f-001",
+      "is_compliant": true,
+      "message": "Patch verified, CVE-2024-9999 resolved",
+      "evidence": ["kernel_version_check", "vuln_scan_clear"],
+      "validated_at": "2026-02-27T10:10:00Z"
+    },
+    "created_at": "2026-02-27T09:55:00Z",
+    "updated_at": "2026-02-27T10:10:00Z"
+  },
+  {
+    "id": "rem-002",
+    "finding_id": "f-002",
+    "domain": "storage",
+    "handler": "s3-acl-remediator",
+    "tier": 1,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-002",
+      "success": true,
+      "message": "Removed public ACL from S3 bucket",
+      "resource_id": "s3://acme-data-lake-prod",
+      "actions": ["put_bucket_acl_private", "enable_block_public_access"],
+      "started_at": "2026-02-26T14:00:00Z",
+      "completed_at": "2026-02-26T14:00:48Z",
+      "duration": "48s"
+    },
+    "validation": {
+      "finding_id": "f-002",
+      "is_compliant": true,
+      "message": "Bucket ACL is private, BlockPublicAccess enabled",
+      "evidence": ["acl_check_private", "block_public_access_all_true"],
+      "validated_at": "2026-02-26T14:02:00Z"
+    },
+    "created_at": "2026-02-26T13:58:00Z",
+    "updated_at": "2026-02-26T14:02:00Z"
+  },
+  {
+    "id": "rem-003",
+    "finding_id": "f-003",
+    "domain": "identity",
+    "handler": "iam-policy-scoper",
+    "tier": 2,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-003",
+      "success": true,
+      "message": "Scoped IAM policy from * to least-privilege actions",
+      "resource_id": "arn:aws:iam::123456789012:role/catalog-lambda-role",
+      "actions": ["generate_access_advisor", "build_scoped_policy", "apply_policy", "verify_access"],
+      "started_at": "2026-02-25T11:00:00Z",
+      "completed_at": "2026-02-25T11:08:14Z",
+      "duration": "8m14s"
+    },
+    "validation": {
+      "finding_id": "f-003",
+      "is_compliant": true,
+      "message": "IAM policy scoped to 12 specific actions, no wildcard resources",
+      "evidence": ["policy_simulator_pass", "access_advisor_unused_removed"],
+      "validated_at": "2026-02-25T11:12:00Z"
+    },
+    "created_at": "2026-02-25T10:55:00Z",
+    "updated_at": "2026-02-25T11:12:00Z"
+  },
+  {
+    "id": "rem-004",
+    "finding_id": "f-004",
+    "domain": "network",
+    "handler": "sg-rule-remediator",
+    "tier": 1,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-004",
+      "success": true,
+      "message": "Removed 0.0.0.0/0 ingress rule from security group",
+      "resource_id": "sg-0abc123def456",
+      "actions": ["revoke_ingress_rule", "add_scoped_cidr_rule"],
+      "started_at": "2026-02-24T09:00:00Z",
+      "completed_at": "2026-02-24T09:01:12Z",
+      "duration": "1m12s"
+    },
+    "validation": {
+      "finding_id": "f-004",
+      "is_compliant": true,
+      "message": "Security group no longer allows unrestricted ingress on port 22",
+      "evidence": ["sg_rule_audit", "nmap_scan_filtered"],
+      "validated_at": "2026-02-24T09:05:00Z"
+    },
+    "created_at": "2026-02-24T08:55:00Z",
+    "updated_at": "2026-02-24T09:05:00Z"
+  },
+  {
+    "id": "rem-005",
+    "finding_id": "f-005",
+    "domain": "database",
+    "handler": "rds-access-remediator",
+    "tier": 2,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-005",
+      "success": true,
+      "message": "Disabled public accessibility on RDS instance",
+      "resource_id": "db-payments-prod",
+      "actions": ["modify_db_instance_public_access", "reboot_instance"],
+      "started_at": "2026-02-23T16:00:00Z",
+      "completed_at": "2026-02-23T16:12:45Z",
+      "duration": "12m45s"
+    },
+    "validation": {
+      "finding_id": "f-005",
+      "is_compliant": true,
+      "message": "RDS instance no longer publicly accessible",
+      "evidence": ["describe_db_public_false", "external_connect_refused"],
+      "validated_at": "2026-02-23T16:18:00Z"
+    },
+    "created_at": "2026-02-23T15:55:00Z",
+    "updated_at": "2026-02-23T16:18:00Z"
+  },
+  {
+    "id": "rem-006",
+    "finding_id": "f-006",
+    "domain": "encryption",
+    "handler": "encryption-enabler",
+    "tier": 1,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-006",
+      "success": true,
+      "message": "Enabled AES-256 server-side encryption on S3 bucket",
+      "resource_id": "s3://acme-logs-unencrypted",
+      "actions": ["put_bucket_encryption_aes256", "verify_encryption_status"],
+      "started_at": "2026-02-22T08:00:00Z",
+      "completed_at": "2026-02-22T08:00:32Z",
+      "duration": "32s"
+    },
+    "validation": {
+      "finding_id": "f-006",
+      "is_compliant": true,
+      "message": "SSE-S3 encryption active on all objects",
+      "evidence": ["get_bucket_encryption_sse_s3", "sample_object_encrypted"],
+      "validated_at": "2026-02-22T08:03:00Z"
+    },
+    "created_at": "2026-02-22T07:55:00Z",
+    "updated_at": "2026-02-22T08:03:00Z"
+  },
+  {
+    "id": "rem-007",
+    "finding_id": "f-007",
+    "domain": "container",
+    "handler": "eks-config-remediator",
+    "tier": 2,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-007",
+      "success": true,
+      "message": "Enabled audit logging on EKS cluster",
+      "resource_id": "eks-payments-prod",
+      "actions": ["update_cluster_logging", "verify_cloudwatch_logs"],
+      "started_at": "2026-02-21T13:00:00Z",
+      "completed_at": "2026-02-21T13:04:18Z",
+      "duration": "4m18s"
+    },
+    "validation": {
+      "finding_id": "f-007",
+      "is_compliant": true,
+      "message": "EKS audit logs streaming to CloudWatch",
+      "evidence": ["cluster_logging_enabled", "cloudwatch_log_group_active"],
+      "validated_at": "2026-02-21T13:08:00Z"
+    },
+    "created_at": "2026-02-21T12:55:00Z",
+    "updated_at": "2026-02-21T13:08:00Z"
+  },
+  {
+    "id": "rem-008",
+    "finding_id": "f-008",
+    "domain": "compute",
+    "handler": "tag-enforcer",
+    "tier": 1,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-008",
+      "success": true,
+      "message": "Applied required tags to 14 untagged EC2 instances",
+      "resource_id": "tag-batch-2026-02-20",
+      "actions": ["enumerate_untagged", "apply_tags_batch", "verify_tags"],
+      "started_at": "2026-02-20T10:00:00Z",
+      "completed_at": "2026-02-20T10:02:44Z",
+      "duration": "2m44s"
+    },
+    "validation": {
+      "finding_id": "f-008",
+      "is_compliant": true,
+      "message": "All 14 instances now have required tags: Environment, Owner, CostCenter",
+      "evidence": ["tag_audit_pass_14_of_14", "config_rule_compliant"],
+      "validated_at": "2026-02-20T10:06:00Z"
+    },
+    "created_at": "2026-02-20T09:55:00Z",
+    "updated_at": "2026-02-20T10:06:00Z"
+  },
+  {
+    "id": "rem-009",
+    "finding_id": "f-012",
+    "domain": "storage",
+    "handler": "manual-escalation",
+    "tier": 3,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-012",
+      "success": true,
+      "message": "Enabled versioning and MFA delete on S3 bucket",
+      "resource_id": "s3://acme-compliance-docs",
+      "actions": ["put_bucket_versioning", "enable_mfa_delete"],
+      "started_at": "2026-02-19T14:30:00Z",
+      "completed_at": "2026-02-19T14:31:08Z",
+      "duration": "1m08s"
+    },
+    "validation": {
+      "finding_id": "f-012",
+      "is_compliant": true,
+      "message": "Versioning enabled, MFA delete active",
+      "evidence": ["versioning_enabled", "mfa_delete_enabled"],
+      "validated_at": "2026-02-19T14:34:00Z"
+    },
+    "asana_task_url": "https://app.asana.com/0/project/1234567890/task/1006",
+    "created_at": "2026-02-19T14:25:00Z",
+    "updated_at": "2026-02-19T14:34:00Z"
+  },
+  {
+    "id": "rem-010",
+    "finding_id": "f-015",
+    "domain": "network",
+    "handler": "manual-escalation",
+    "tier": 3,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-015",
+      "success": true,
+      "message": "Restricted Azure NSG rule from Any to specific CIDR ranges",
+      "resource_id": "nsg-catalog-api-prod",
+      "actions": ["remove_any_source_rule", "add_cidr_scoped_rules", "verify_connectivity"],
+      "started_at": "2026-02-18T11:00:00Z",
+      "completed_at": "2026-02-18T11:06:22Z",
+      "duration": "6m22s"
+    },
+    "validation": {
+      "finding_id": "f-015",
+      "is_compliant": true,
+      "message": "NSG allows only 10.0.0.0/8 and 172.16.0.0/12 source CIDRs",
+      "evidence": ["nsg_rule_audit", "connectivity_test_pass"],
+      "validated_at": "2026-02-18T11:10:00Z"
+    },
+    "asana_task_url": "https://app.asana.com/0/project/1234567890/task/1007",
+    "created_at": "2026-02-18T10:55:00Z",
+    "updated_at": "2026-02-18T11:10:00Z"
+  },
+  {
+    "id": "rem-011",
+    "finding_id": "f-018",
+    "domain": "identity",
+    "handler": "iam-policy-scoper",
+    "tier": 2,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-018",
+      "success": true,
+      "message": "Revoked unused IAM access keys older than 90 days",
+      "resource_id": "arn:aws:iam::123456789012:user/svc-legacy-deployer",
+      "actions": ["list_access_keys", "check_last_used", "deactivate_keys", "notify_owner"],
+      "started_at": "2026-02-17T09:00:00Z",
+      "completed_at": "2026-02-17T09:03:16Z",
+      "duration": "3m16s"
+    },
+    "validation": {
+      "finding_id": "f-018",
+      "is_compliant": true,
+      "message": "2 stale access keys deactivated, owner notified via Slack",
+      "evidence": ["access_key_inactive", "slack_notification_sent"],
+      "validated_at": "2026-02-17T09:08:00Z"
+    },
+    "created_at": "2026-02-17T08:55:00Z",
+    "updated_at": "2026-02-17T09:08:00Z"
+  },
+  {
+    "id": "rem-012",
+    "finding_id": "f-022",
+    "domain": "encryption",
+    "handler": "manual-escalation",
+    "tier": 3,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-022",
+      "success": true,
+      "message": "Enabled encryption at rest on Azure Storage account",
+      "resource_id": "stacmecatalogprod",
+      "actions": ["enable_storage_encryption", "rotate_encryption_key"],
+      "started_at": "2026-02-16T15:00:00Z",
+      "completed_at": "2026-02-16T15:01:54Z",
+      "duration": "1m54s"
+    },
+    "validation": {
+      "finding_id": "f-022",
+      "is_compliant": true,
+      "message": "Azure Storage encryption enabled with Microsoft-managed keys",
+      "evidence": ["encryption_status_enabled", "key_vault_integration_active"],
+      "validated_at": "2026-02-16T15:05:00Z"
+    },
+    "asana_task_url": "https://app.asana.com/0/project/1234567890/task/1008",
+    "created_at": "2026-02-16T14:55:00Z",
+    "updated_at": "2026-02-16T15:05:00Z"
+  },
+  {
+    "id": "rem-013",
+    "finding_id": "f-025",
+    "domain": "container",
+    "handler": "manual-escalation",
+    "tier": 3,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-025",
+      "success": true,
+      "message": "Enabled workload identity and disabled legacy metadata API on GKE cluster",
+      "resource_id": "gke-analytics-prod",
+      "actions": ["enable_workload_identity", "disable_legacy_metadata", "restart_node_pools"],
+      "started_at": "2026-02-15T10:00:00Z",
+      "completed_at": "2026-02-15T10:18:42Z",
+      "duration": "18m42s"
+    },
+    "validation": {
+      "finding_id": "f-025",
+      "is_compliant": true,
+      "message": "Workload Identity enabled, legacy metadata endpoint blocked",
+      "evidence": ["workload_identity_active", "metadata_concealment_enabled"],
+      "validated_at": "2026-02-15T10:22:00Z"
+    },
+    "asana_task_url": "https://app.asana.com/0/project/1234567890/task/1009",
+    "created_at": "2026-02-15T09:55:00Z",
+    "updated_at": "2026-02-15T10:22:00Z"
+  },
+  {
+    "id": "rem-014",
+    "finding_id": "f-028",
+    "domain": "serverless",
+    "handler": "iam-policy-scoper",
+    "tier": 2,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-028",
+      "success": true,
+      "message": "Scoped Lambda execution role to required DynamoDB tables only",
+      "resource_id": "arn:aws:lambda:us-east-1:123456789012:function:order-processor",
+      "actions": ["analyze_cloudtrail_calls", "generate_least_privilege_policy", "apply_inline_policy"],
+      "started_at": "2026-02-14T13:00:00Z",
+      "completed_at": "2026-02-14T13:06:08Z",
+      "duration": "6m08s"
+    },
+    "validation": {
+      "finding_id": "f-028",
+      "is_compliant": true,
+      "message": "Lambda role scoped to 3 DynamoDB tables, no wildcard resources",
+      "evidence": ["policy_simulator_pass", "function_invocation_success"],
+      "validated_at": "2026-02-14T13:10:00Z"
+    },
+    "created_at": "2026-02-14T12:55:00Z",
+    "updated_at": "2026-02-14T13:10:00Z"
+  },
+  {
+    "id": "rem-015",
+    "finding_id": "f-031",
+    "domain": "compute",
+    "handler": "manual-escalation",
+    "tier": 3,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-031",
+      "success": true,
+      "message": "Applied compliance tags to 8 Azure VMs missing cost center labels",
+      "resource_id": "tag-batch-azure-2026-02-13",
+      "actions": ["enumerate_untagged_vms", "apply_tags_batch", "verify_policy_compliance"],
+      "started_at": "2026-02-13T10:00:00Z",
+      "completed_at": "2026-02-13T10:01:38Z",
+      "duration": "1m38s"
+    },
+    "validation": {
+      "finding_id": "f-031",
+      "is_compliant": true,
+      "message": "All 8 VMs now tagged with Environment, Owner, CostCenter",
+      "evidence": ["azure_policy_compliant", "tag_audit_pass"],
+      "validated_at": "2026-02-13T10:05:00Z"
+    },
+    "asana_task_url": "https://app.asana.com/0/project/1234567890/task/1010",
+    "created_at": "2026-02-13T09:55:00Z",
+    "updated_at": "2026-02-13T10:05:00Z"
+  },
+  {
+    "id": "rem-016",
+    "finding_id": "f-034",
+    "domain": "network",
+    "handler": "sg-rule-remediator",
+    "tier": 1,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-034",
+      "success": true,
+      "message": "Closed unrestricted RDP port 3389 on security group",
+      "resource_id": "sg-0def789abc012",
+      "actions": ["revoke_ingress_3389", "add_bastion_only_rule"],
+      "started_at": "2026-02-12T16:00:00Z",
+      "completed_at": "2026-02-12T16:01:04Z",
+      "duration": "1m04s"
+    },
+    "validation": {
+      "finding_id": "f-034",
+      "is_compliant": true,
+      "message": "Port 3389 restricted to bastion host CIDR only",
+      "evidence": ["sg_rule_audit", "port_scan_filtered"],
+      "validated_at": "2026-02-12T16:04:00Z"
+    },
+    "created_at": "2026-02-12T15:55:00Z",
+    "updated_at": "2026-02-12T16:04:00Z"
+  },
+  {
+    "id": "rem-017",
+    "finding_id": "f-037",
+    "domain": "database",
+    "handler": "rds-access-remediator",
+    "tier": 2,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-037",
+      "success": true,
+      "message": "Enabled automated backups and encryption on RDS instance",
+      "resource_id": "db-auth-service-prod",
+      "actions": ["modify_backup_retention", "enable_storage_encryption", "apply_immediately"],
+      "started_at": "2026-02-11T14:00:00Z",
+      "completed_at": "2026-02-11T14:22:36Z",
+      "duration": "22m36s"
+    },
+    "validation": {
+      "finding_id": "f-037",
+      "is_compliant": true,
+      "message": "Backup retention 7 days, storage encrypted with KMS key",
+      "evidence": ["backup_retention_7d", "storage_encrypted_true", "kms_key_active"],
+      "validated_at": "2026-02-11T14:28:00Z"
+    },
+    "created_at": "2026-02-11T13:55:00Z",
+    "updated_at": "2026-02-11T14:28:00Z"
+  },
+  {
+    "id": "rem-018",
+    "finding_id": "f-040",
+    "domain": "storage",
+    "handler": "s3-acl-remediator",
+    "tier": 1,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-040",
+      "success": true,
+      "message": "Enabled S3 access logging on production bucket",
+      "resource_id": "s3://acme-payments-artifacts",
+      "actions": ["create_log_bucket", "put_bucket_logging"],
+      "started_at": "2026-02-10T09:00:00Z",
+      "completed_at": "2026-02-10T09:01:22Z",
+      "duration": "1m22s"
+    },
+    "validation": {
+      "finding_id": "f-040",
+      "is_compliant": true,
+      "message": "Access logging enabled, logs flowing to s3://acme-access-logs/payments/",
+      "evidence": ["bucket_logging_enabled", "log_delivery_confirmed"],
+      "validated_at": "2026-02-10T09:05:00Z"
+    },
+    "created_at": "2026-02-10T08:55:00Z",
+    "updated_at": "2026-02-10T09:05:00Z"
+  },
+  {
+    "id": "rem-019",
+    "finding_id": "f-043",
+    "domain": "identity",
+    "handler": "iam-policy-scoper",
+    "tier": 2,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-043",
+      "success": true,
+      "message": "Removed admin privileges from service account, applied least-privilege role",
+      "resource_id": "sa-gcp-deploy-agent@acme-analytics.iam.gserviceaccount.com",
+      "actions": ["audit_iam_bindings", "remove_owner_role", "grant_scoped_roles"],
+      "started_at": "2026-02-09T11:00:00Z",
+      "completed_at": "2026-02-09T11:04:52Z",
+      "duration": "4m52s"
+    },
+    "validation": {
+      "finding_id": "f-043",
+      "is_compliant": true,
+      "message": "Service account has roles/container.developer and roles/storage.objectViewer only",
+      "evidence": ["iam_policy_audit", "deployment_test_pass"],
+      "validated_at": "2026-02-09T11:08:00Z"
+    },
+    "created_at": "2026-02-09T10:55:00Z",
+    "updated_at": "2026-02-09T11:08:00Z"
+  },
+  {
+    "id": "rem-020",
+    "finding_id": "f-046",
+    "domain": "encryption",
+    "handler": "encryption-enabler",
+    "tier": 1,
+    "status": "completed",
+    "result": {
+      "finding_id": "f-046",
+      "success": true,
+      "message": "Enabled TLS 1.2 minimum on CloudFront distribution",
+      "resource_id": "dist-E2XYZABC123",
+      "actions": ["update_viewer_certificate", "set_minimum_protocol_tls12"],
+      "started_at": "2026-02-08T15:00:00Z",
+      "completed_at": "2026-02-08T15:03:16Z",
+      "duration": "3m16s"
+    },
+    "validation": {
+      "finding_id": "f-046",
+      "is_compliant": true,
+      "message": "CloudFront enforces TLS 1.2 minimum, SSLv3/TLS1.0/TLS1.1 rejected",
+      "evidence": ["ssl_labs_scan_A_plus", "tls10_connection_refused"],
+      "validated_at": "2026-02-08T15:08:00Z"
+    },
+    "created_at": "2026-02-08T14:55:00Z",
+    "updated_at": "2026-02-08T15:08:00Z"
+  },
+  {
+    "id": "rem-021",
+    "finding_id": "f-009",
+    "domain": "compute",
+    "handler": "sg-rule-remediator",
+    "tier": 1,
+    "status": "failed",
+    "result": {
+      "finding_id": "f-009",
+      "success": false,
+      "message": "Failed to modify security group — instance in autoscaling group",
+      "resource_id": "sg-0prod-asg-web",
+      "actions": ["revoke_ingress_rule"],
+      "error": "DependencyViolation: Security group sg-0prod-asg-web is referenced by launch template lt-0abc123. Modify launch template first.",
+      "started_at": "2026-02-26T16:00:00Z",
+      "completed_at": "2026-02-26T16:00:18Z",
+      "duration": "18s"
+    },
+    "created_at": "2026-02-26T15:55:00Z",
+    "updated_at": "2026-02-26T16:00:18Z"
+  },
+  {
+    "id": "rem-022",
+    "finding_id": "f-014",
+    "domain": "database",
+    "handler": "rds-access-remediator",
+    "tier": 2,
+    "status": "failed",
+    "result": {
+      "finding_id": "f-014",
+      "success": false,
+      "message": "Failed to enable encryption — RDS instance requires migration",
+      "resource_id": "db-legacy-catalog-v2",
+      "actions": ["modify_db_instance_encryption"],
+      "error": "InvalidParameterCombination: Cannot enable encryption on existing unencrypted instance. Create encrypted snapshot and restore to new instance.",
+      "started_at": "2026-02-24T14:00:00Z",
+      "completed_at": "2026-02-24T14:00:08Z",
+      "duration": "8s"
+    },
+    "created_at": "2026-02-24T13:55:00Z",
+    "updated_at": "2026-02-24T14:00:08Z"
+  },
+  {
+    "id": "rem-023",
+    "finding_id": "f-020",
+    "domain": "container",
+    "handler": "eks-config-remediator",
+    "tier": 2,
+    "status": "failed",
+    "result": {
+      "finding_id": "f-020",
+      "success": false,
+      "message": "Failed to update EKS cluster — Kubernetes version upgrade required first",
+      "resource_id": "eks-legacy-batch-v1",
+      "actions": ["update_cluster_config"],
+      "error": "UnsupportedAvailabilityZoneException: Cluster version 1.24 does not support requested feature. Upgrade to 1.27+ required.",
+      "started_at": "2026-02-22T10:00:00Z",
+      "completed_at": "2026-02-22T10:00:12Z",
+      "duration": "12s"
+    },
+    "created_at": "2026-02-22T09:55:00Z",
+    "updated_at": "2026-02-22T10:00:12Z"
+  },
+  {
+    "id": "rem-024",
+    "finding_id": "f-036",
+    "domain": "network",
+    "handler": "nsg-rule-remediator",
+    "tier": 2,
+    "status": "failed",
+    "result": {
+      "finding_id": "f-036",
+      "success": false,
+      "message": "Failed to modify NSG — rule locked by Azure Policy",
+      "resource_id": "nsg-shared-services-prod",
+      "actions": ["remove_any_source_rule"],
+      "error": "RequestDisallowedByPolicy: Resource 'nsg-shared-services-prod' is locked by Azure Policy 'corp-network-baseline'. Contact platform team to modify policy exemption.",
+      "started_at": "2026-02-20T11:00:00Z",
+      "completed_at": "2026-02-20T11:00:06Z",
+      "duration": "6s"
+    },
+    "created_at": "2026-02-20T10:55:00Z",
+    "updated_at": "2026-02-20T11:00:06Z"
+  },
+  {
+    "id": "rem-025",
+    "finding_id": "f-048",
+    "domain": "serverless",
+    "handler": "iam-policy-scoper",
+    "tier": 2,
+    "status": "failed",
+    "result": {
+      "finding_id": "f-048",
+      "success": false,
+      "message": "Failed to scope Lambda role — function uses dynamic resource ARNs",
+      "resource_id": "arn:aws:lambda:us-west-2:234567890123:function:event-router",
+      "actions": ["analyze_cloudtrail_calls", "generate_least_privilege_policy"],
+      "error": "InsufficientData: CloudTrail shows 847 unique resource ARNs in 30 days. Cannot generate static least-privilege policy for dynamic event routing function.",
+      "started_at": "2026-02-18T14:00:00Z",
+      "completed_at": "2026-02-18T14:02:44Z",
+      "duration": "2m44s"
+    },
+    "created_at": "2026-02-18T13:55:00Z",
+    "updated_at": "2026-02-18T14:02:44Z"
+  },
+  {
+    "id": "rem-026",
+    "finding_id": "f-052",
+    "domain": "identity",
+    "handler": "iam-policy-scoper",
+    "tier": 2,
+    "status": "failed",
+    "result": {
+      "finding_id": "f-052",
+      "success": false,
+      "message": "Failed to rotate service account key — dependent CI/CD pipelines",
+      "resource_id": "sa-gcp-cicd@acme-platform.iam.gserviceaccount.com",
+      "actions": ["create_new_key", "update_secret_manager", "disable_old_key"],
+      "error": "PreconditionFailed: 3 active CI/CD pipelines reference this key directly. Update pipeline configs in GitLab before key rotation.",
+      "started_at": "2026-02-16T09:00:00Z",
+      "completed_at": "2026-02-16T09:01:22Z",
+      "duration": "1m22s"
+    },
+    "created_at": "2026-02-16T08:55:00Z",
+    "updated_at": "2026-02-16T09:01:22Z"
+  },
+  {
+    "id": "rem-027",
+    "finding_id": "f-055",
+    "domain": "storage",
+    "handler": "encryption-enabler",
+    "tier": 2,
+    "status": "failed",
+    "result": {
+      "finding_id": "f-055",
+      "success": false,
+      "message": "Failed to enable CMEK on GCS bucket — organization policy restriction",
+      "resource_id": "gs://acme-ml-training-data",
+      "actions": ["set_bucket_encryption_cmek"],
+      "error": "ConstraintViolation: Organization policy constraints/gcp.restrictCmekCryptoKeyProjects blocks key from project acme-analytics. Use key from acme-security-keys project.",
+      "started_at": "2026-02-14T16:00:00Z",
+      "completed_at": "2026-02-14T16:00:14Z",
+      "duration": "14s"
+    },
+    "created_at": "2026-02-14T15:55:00Z",
+    "updated_at": "2026-02-14T16:00:14Z"
+  },
+  {
+    "id": "rem-028",
+    "finding_id": "f-010",
+    "domain": "compute",
+    "handler": "manual-escalation",
+    "tier": 3,
+    "status": "in_progress",
+    "asana_task_url": "https://app.asana.com/0/project/1234567890/task/1011",
+    "created_at": "2026-02-27T14:00:00Z",
+    "updated_at": "2026-02-27T14:02:00Z"
+  },
+  {
+    "id": "rem-029",
+    "finding_id": "f-016",
+    "domain": "network",
+    "handler": "sg-rule-remediator",
+    "tier": 1,
+    "status": "in_progress",
+    "created_at": "2026-02-27T14:05:00Z",
+    "updated_at": "2026-02-27T14:06:00Z"
+  },
+  {
+    "id": "rem-030",
+    "finding_id": "f-019",
+    "domain": "identity",
+    "handler": "manual-escalation",
+    "tier": 3,
+    "status": "in_progress",
+    "asana_task_url": "https://app.asana.com/0/project/1234567890/task/1012",
+    "created_at": "2026-02-27T13:30:00Z",
+    "updated_at": "2026-02-27T13:45:00Z"
+  },
+  {
+    "id": "rem-031",
+    "finding_id": "f-023",
+    "domain": "encryption",
+    "handler": "manual-escalation",
+    "tier": 3,
+    "status": "in_progress",
+    "asana_task_url": "https://app.asana.com/0/project/1234567890/task/1013",
+    "created_at": "2026-02-27T12:00:00Z",
+    "updated_at": "2026-02-27T12:01:00Z"
+  },
+  {
+    "id": "rem-032",
+    "finding_id": "f-029",
+    "domain": "database",
+    "handler": "rds-access-remediator",
+    "tier": 2,
+    "status": "in_progress",
+    "created_at": "2026-02-27T11:00:00Z",
+    "updated_at": "2026-02-27T11:15:00Z"
+  },
+  {
+    "id": "rem-033",
+    "finding_id": "f-033",
+    "domain": "container",
+    "handler": "manual-escalation",
+    "tier": 3,
+    "status": "in_progress",
+    "asana_task_url": "https://app.asana.com/0/project/1234567890/task/1014",
+    "created_at": "2026-02-27T10:30:00Z",
+    "updated_at": "2026-02-27T10:45:00Z"
+  },
+  {
+    "id": "rem-034",
+    "finding_id": "f-041",
+    "domain": "serverless",
+    "handler": "iam-policy-scoper",
+    "tier": 2,
+    "status": "in_progress",
+    "created_at": "2026-02-27T09:00:00Z",
+    "updated_at": "2026-02-27T09:20:00Z"
+  },
+  {
+    "id": "rem-035",
+    "finding_id": "f-058",
+    "domain": "storage",
+    "handler": "manual-escalation",
+    "tier": 3,
+    "status": "in_progress",
+    "asana_task_url": "https://app.asana.com/0/project/1234567890/task/1015",
+    "created_at": "2026-02-27T08:30:00Z",
+    "updated_at": "2026-02-27T08:31:00Z"
+  },
+  {
+    "id": "rem-036",
+    "finding_id": "f-011",
+    "domain": "compute",
+    "handler": "sg-rule-remediator",
+    "tier": 1,
+    "status": "pending",
+    "created_at": "2026-02-27T15:00:00Z",
+    "updated_at": "2026-02-27T15:00:00Z"
+  },
+  {
+    "id": "rem-037",
+    "finding_id": "f-017",
+    "domain": "network",
+    "handler": "nsg-rule-remediator",
+    "tier": 2,
+    "status": "pending",
+    "created_at": "2026-02-27T15:00:00Z",
+    "updated_at": "2026-02-27T15:00:00Z"
+  },
+  {
+    "id": "rem-038",
+    "finding_id": "f-024",
+    "domain": "identity",
+    "handler": "iam-policy-scoper",
+    "tier": 2,
+    "status": "pending",
+    "created_at": "2026-02-27T15:00:00Z",
+    "updated_at": "2026-02-27T15:00:00Z"
+  },
+  {
+    "id": "rem-039",
+    "finding_id": "f-030",
+    "domain": "encryption",
+    "handler": "encryption-enabler",
+    "tier": 1,
+    "status": "pending",
+    "created_at": "2026-02-27T15:00:00Z",
+    "updated_at": "2026-02-27T15:00:00Z"
+  },
+  {
+    "id": "rem-040",
+    "finding_id": "f-035",
+    "domain": "database",
+    "handler": "rds-access-remediator",
+    "tier": 2,
+    "status": "pending",
+    "created_at": "2026-02-27T15:00:00Z",
+    "updated_at": "2026-02-27T15:00:00Z"
+  },
+  {
+    "id": "rem-041",
+    "finding_id": "f-039",
+    "domain": "container",
+    "handler": "eks-config-remediator",
+    "tier": 2,
+    "status": "pending",
+    "created_at": "2026-02-27T15:00:00Z",
+    "updated_at": "2026-02-27T15:00:00Z"
+  },
+  {
+    "id": "rem-042",
+    "finding_id": "f-044",
+    "domain": "serverless",
+    "handler": "iam-policy-scoper",
+    "tier": 1,
+    "status": "pending",
+    "created_at": "2026-02-27T15:00:00Z",
+    "updated_at": "2026-02-27T15:00:00Z"
+  },
+  {
+    "id": "rem-043",
+    "finding_id": "f-050",
+    "domain": "storage",
+    "handler": "s3-acl-remediator",
+    "tier": 1,
+    "status": "pending",
+    "created_at": "2026-02-27T15:00:00Z",
+    "updated_at": "2026-02-27T15:00:00Z"
+  },
+  {
+    "id": "rem-044",
+    "finding_id": "f-056",
+    "domain": "compute",
+    "handler": "tag-enforcer",
+    "tier": 1,
+    "status": "pending",
+    "created_at": "2026-02-27T15:00:00Z",
+    "updated_at": "2026-02-27T15:00:00Z"
+  },
+  {
+    "id": "rem-045",
+    "finding_id": "f-062",
+    "domain": "network",
+    "handler": "sg-rule-remediator",
+    "tier": 2,
+    "status": "pending",
+    "created_at": "2026-02-27T15:00:00Z",
+    "updated_at": "2026-02-27T15:00:00Z"
+  },
+  {
+    "id": "rem-046",
+    "finding_id": "f-013",
+    "domain": "compute",
+    "handler": "manual-escalation",
+    "tier": 3,
+    "status": "skipped",
+    "asana_task_url": "https://app.asana.com/0/project/1234567890/task/1001",
+    "created_at": "2026-02-25T09:00:00Z",
+    "updated_at": "2026-02-25T09:05:00Z"
+  },
+  {
+    "id": "rem-047",
+    "finding_id": "f-026",
+    "domain": "network",
+    "handler": "manual-escalation",
+    "tier": 3,
+    "status": "skipped",
+    "asana_task_url": "https://app.asana.com/0/project/1234567890/task/1002",
+    "created_at": "2026-02-23T08:00:00Z",
+    "updated_at": "2026-02-23T08:10:00Z"
+  },
+  {
+    "id": "rem-048",
+    "finding_id": "f-042",
+    "domain": "identity",
+    "handler": "manual-escalation",
+    "tier": 3,
+    "status": "skipped",
+    "asana_task_url": "https://app.asana.com/0/project/1234567890/task/1003",
+    "created_at": "2026-02-21T14:00:00Z",
+    "updated_at": "2026-02-21T14:05:00Z"
+  },
+  {
+    "id": "rem-049",
+    "finding_id": "f-057",
+    "domain": "database",
+    "handler": "manual-escalation",
+    "tier": 3,
+    "status": "skipped",
+    "asana_task_url": "https://app.asana.com/0/project/1234567890/task/1004",
+    "created_at": "2026-02-19T16:00:00Z",
+    "updated_at": "2026-02-19T16:05:00Z"
+  },
+  {
+    "id": "rem-050",
+    "finding_id": "f-071",
+    "domain": "container",
+    "handler": "manual-escalation",
+    "tier": 3,
+    "status": "skipped",
+    "asana_task_url": "https://app.asana.com/0/project/1234567890/task/1005",
+    "created_at": "2026-02-17T11:00:00Z",
+    "updated_at": "2026-02-17T11:05:00Z"
+  }
+]
