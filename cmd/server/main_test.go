@@ -50,15 +50,19 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		t.Fatalf("loading mock data: %v", err)
 	}
 
+	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings)
+
 	srv := &Server{
 		config: Config{
 			Port: "0",
 		},
-		grcProvider:    grcProvider,
-		router:         mux.NewRouter(),
-		authMiddleware: authMiddleware,
-		logger:         logger,
-		mockData:       mockData,
+		grcProvider:     grcProvider,
+		router:          mux.NewRouter(),
+		authMiddleware:  authMiddleware,
+		logger:          logger,
+		mockData:        mockData,
+		attackPaths:     attackPaths,
+		attackPathStats: attackPathStats,
 	}
 
 	srv.setupRoutes()

@@ -45,13 +45,15 @@ type Config struct {
 
 // Server holds the application state
 type Server struct {
-	config         Config
-	grcProvider    grc.GRCProvider
-	router         *mux.Router
-	authMiddleware *api.AuthMiddleware
-	rateLimiter    *gateway.RateLimiter
-	logger         *zap.Logger
-	mockData       *MockData
+	config          Config
+	grcProvider     grc.GRCProvider
+	router          *mux.Router
+	authMiddleware  *api.AuthMiddleware
+	rateLimiter     *gateway.RateLimiter
+	logger          *zap.Logger
+	mockData        *MockData
+	attackPaths     []AttackPath
+	attackPathStats *AttackPathStats
 }
 
 func main() {
@@ -144,6 +146,16 @@ func main() {
 		zap.Int("agents", len(mockData.Agents)),
 		zap.Int("frameworks", len(mockData.Frameworks)),
 		zap.Int("remediations", len(mockData.Remediations)),
+	)
+
+	// Compute attack paths from findings
+	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings)
+	srv.attackPaths = attackPaths
+	srv.attackPathStats = attackPathStats
+	logger.Info("Attack paths computed",
+		zap.Int("paths", len(attackPaths)),
+		zap.Int("findings_in_paths", attackPathStats.FindingsInPaths),
+		zap.Int("isolated", attackPathStats.IsolatedFindings),
 	)
 
 	// Setup routes
@@ -284,6 +296,17 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/remediations/{id}/execute",
 		api.RequireRole(api.RoleAdmin)(http.HandlerFunc(s.executeRemediation)),
 	).Methods("POST")
+
+	// Attack paths
+	apiRouter.Handle("/attack-paths",
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAttackPaths)),
+	).Methods("GET")
+	apiRouter.Handle("/attack-paths/stats",
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAttackPathStats)),
+	).Methods("GET")
+	apiRouter.Handle("/attack-paths/{id}",
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAttackPath)),
+	).Methods("GET")
 }
 
 // getTierFromRequest extracts the API tier from the request.
