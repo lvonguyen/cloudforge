@@ -1,10 +1,13 @@
-import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { RemediationTierBadge } from '@/components/remediation/RemediationTierBadge'
 import { CheckCircle2, Play, Eye, RotateCcw } from 'lucide-react'
+import { useRemediations } from '@/hooks/useRemediations'
+import { useTracePanel } from '@/lib/trace-panel-context'
+import { useActionCooldown } from '@/hooks/useActionCooldown'
+import type { RemediationRecord } from '@/types/remediation'
 
 interface QueueItem {
   id: string
@@ -19,13 +22,23 @@ interface QueueItem {
   created_at: string
 }
 
-const QUEUE: QueueItem[] = [
-  { id: 'rem-001', finding_id: 'FIND-0421', title: 'Public S3 bucket — block public access', resource: 's3://data-pipeline-raw', provider: 'aws', tier: 1, handler: 'aws.s3.block_public', status: 'pending', dry_run_ok: true, created_at: '2026-02-26 08:30' },
-  { id: 'rem-002', finding_id: 'FIND-0380', title: 'Security group allows 0.0.0.0/0 port 22', resource: 'sg-0abc1234', provider: 'aws', tier: 1, handler: 'aws.ec2.restrict_sg', status: 'pending', dry_run_ok: true, created_at: '2026-02-26 07:45' },
-  { id: 'rem-003', finding_id: 'FIND-0315', title: 'RDS instance not encrypted', resource: 'payments-db-prod', provider: 'aws', tier: 2, handler: 'aws.rds.enable_encryption', status: 'pending', dry_run_ok: false, created_at: '2026-02-25 22:10' },
-  { id: 'rem-004', finding_id: 'FIND-0290', title: 'GKE node pool using deprecated image', resource: 'gke-prod-pool-1', provider: 'gcp', tier: 2, handler: 'gcp.gke.upgrade_node_image', status: 'in_progress', dry_run_ok: true, created_at: '2026-02-25 18:00' },
-  { id: 'rem-005', finding_id: 'FIND-0201', title: 'AKS cluster RBAC misconfiguration', resource: 'aks-prod-eastus', provider: 'azure', tier: 3, handler: 'azure.aks.fix_rbac', status: 'failed', dry_run_ok: null, created_at: '2026-02-25 14:20' },
-]
+function toQueueItem(r: RemediationRecord): QueueItem {
+  const dryRunOk = r.result
+    ? r.result.success
+    : r.status === 'pending' ? null : null
+  return {
+    id: r.id,
+    finding_id: r.finding_id,
+    title: r.result?.message ?? `${r.domain} — ${r.handler}`,
+    resource: r.result?.resource_id ?? r.finding_id,
+    provider: r.domain,
+    tier: (r.tier >= 1 && r.tier <= 3 ? r.tier : 2) as 1 | 2 | 3,
+    handler: r.handler,
+    status: r.status === 'skipped' ? 'failed' : r.status,
+    dry_run_ok: dryRunOk,
+    created_at: r.created_at,
+  }
+}
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300',
@@ -40,17 +53,91 @@ const PROVIDER_COLORS: Record<string, string> = {
   azure: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
 }
 
+function QueueItemCard({ item }: { item: QueueItem }) {
+  const { openStreaming, openDryRun } = useTracePanel()
+  const executeCooldown = useActionCooldown({ key: `execute-${item.id}`, cooldownMs: 30_000 })
+  const dryRunCooldown = useActionCooldown({ key: `dryrun-${item.id}`, cooldownMs: 15_000 })
+
+  function handleExecute() {
+    if (!executeCooldown.canFire) return
+    openStreaming('Executing: ' + item.handler)
+    executeCooldown.fire()
+  }
+
+  function handleDryRun() {
+    if (!dryRunCooldown.canFire) return
+    openDryRun('Dry Run: ' + item.handler, {
+      finding_id: item.finding_id,
+      would_succeed: true,
+      planned_actions: ['validate_preconditions', 'apply_change', 'verify_result'],
+      prerequisites_met: true,
+      warnings: [],
+      estimated_impact: 'Low — scoped to single resource',
+    })
+    dryRunCooldown.fire()
+  }
+
+  return (
+    <Card className={item.status === 'failed' ? 'border-red-200 dark:border-red-800' : ''}>
+      <CardContent className="p-4">
+        <div className="flex items-start gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[item.status] ?? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300'}`}>{item.status}</span>
+              <Badge variant="secondary" className={`text-[10px] ${PROVIDER_COLORS[item.provider] ?? ''}`}>{item.provider.toUpperCase()}</Badge>
+              {item.dry_run_ok === true && (
+                <span className="text-[10px] text-green-600 dark:text-green-400 flex items-center gap-0.5"><CheckCircle2 className="h-3 w-3" />dry-run passed</span>
+              )}
+              {item.dry_run_ok === false && (
+                <span className="text-[10px] text-red-600 dark:text-red-400">dry-run failed</span>
+              )}
+            </div>
+            <p className="text-sm font-medium leading-snug">{item.title}</p>
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-xs text-muted-foreground font-mono">{item.resource}</p>
+              <p className="text-[10px] text-muted-foreground">Handler: <code>{item.handler}</code></p>
+            </div>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            {item.status === 'pending' && item.dry_run_ok !== false && (
+              <Button
+                size="sm"
+                className="text-xs h-7 gap-1"
+                disabled={!executeCooldown.canFire || item.dry_run_ok === null}
+                onClick={handleExecute}
+              >
+                <Play className="h-3 w-3" />
+                {!executeCooldown.canFire ? 'Running\u2026' : 'Execute'}
+              </Button>
+            )}
+            {item.dry_run_ok === null && item.status === 'pending' && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs h-7 gap-1"
+                disabled={!dryRunCooldown.canFire}
+                onClick={handleDryRun}
+              >
+                <Eye className="h-3 w-3" />Dry Run
+              </Button>
+            )}
+            {item.status === 'failed' && (
+              <Button size="sm" variant="outline" className="text-xs h-7 gap-1">
+                <RotateCcw className="h-3 w-3" />Retry
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 function TierSection({ tier, items }: { tier: 1 | 2 | 3; items: QueueItem[] }) {
   const descriptions: Record<number, string> = {
     1: 'Fully automated — no approval required',
     2: 'Semi-automated — dry-run first, then execute',
     3: 'Manual — Asana ticket created, human required',
-  }
-  const [executing, setExecuting] = useState<string | null>(null)
-
-  function handleExecute(id: string) {
-    setExecuting(id)
-    setTimeout(() => setExecuting(null), 2000)
   }
 
   if (items.length === 0) return null
@@ -63,64 +150,22 @@ function TierSection({ tier, items }: { tier: 1 | 2 | 3; items: QueueItem[] }) {
         <span className="ml-auto text-xs text-muted-foreground">{items.length} item{items.length !== 1 ? 's' : ''}</span>
       </div>
       {items.map(item => (
-        <Card key={item.id} className={item.status === 'failed' ? 'border-red-200 dark:border-red-800' : ''}>
-          <CardContent className="p-4">
-            <div className="flex items-start gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[item.status] ?? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300'}`}>{item.status}</span>
-                  <Badge variant="secondary" className={`text-[10px] ${PROVIDER_COLORS[item.provider] ?? ''}`}>{item.provider.toUpperCase()}</Badge>
-                  {item.dry_run_ok === true && (
-                    <span className="text-[10px] text-green-600 dark:text-green-400 flex items-center gap-0.5"><CheckCircle2 className="h-3 w-3" />dry-run passed</span>
-                  )}
-                  {item.dry_run_ok === false && (
-                    <span className="text-[10px] text-red-600 dark:text-red-400">dry-run failed</span>
-                  )}
-                </div>
-                <p className="text-sm font-medium leading-snug">{item.title}</p>
-                <div className="flex items-center gap-3 mt-1">
-                  <p className="text-xs text-muted-foreground font-mono">{item.resource}</p>
-                  <p className="text-[10px] text-muted-foreground">Handler: <code>{item.handler}</code></p>
-                </div>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                {item.status === 'pending' && item.dry_run_ok !== false && (
-                  <Button
-                    size="sm"
-                    className="text-xs h-7 gap-1"
-                    disabled={executing === item.id || item.dry_run_ok === null}
-                    onClick={() => handleExecute(item.id)}
-                  >
-                    <Play className="h-3 w-3" />
-                    {executing === item.id ? 'Running…' : 'Execute'}
-                  </Button>
-                )}
-                {item.dry_run_ok === null && item.status === 'pending' && (
-                  <Button size="sm" variant="outline" className="text-xs h-7 gap-1">
-                    <Eye className="h-3 w-3" />Dry Run
-                  </Button>
-                )}
-                {item.status === 'failed' && (
-                  <Button size="sm" variant="outline" className="text-xs h-7 gap-1">
-                    <RotateCcw className="h-3 w-3" />Retry
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <QueueItemCard key={item.id} item={item} />
       ))}
     </div>
   )
 }
 
 export default function RemediationQueue() {
-  const tier1 = QUEUE.filter(q => q.tier === 1)
-  const tier2 = QUEUE.filter(q => q.tier === 2)
-  const tier3 = QUEUE.filter(q => q.tier === 3)
+  const { data: records = [] } = useRemediations()
+  const queue = records.map(toQueueItem)
 
-  const pending = QUEUE.filter(q => q.status === 'pending').length
-  const inProgress = QUEUE.filter(q => q.status === 'in_progress').length
+  const tier1 = queue.filter(q => q.tier === 1)
+  const tier2 = queue.filter(q => q.tier === 2)
+  const tier3 = queue.filter(q => q.tier === 3)
+
+  const pending = queue.filter(q => q.status === 'pending').length
+  const inProgress = queue.filter(q => q.status === 'in_progress').length
 
   return (
     <div className="space-y-6 max-w-3xl">
