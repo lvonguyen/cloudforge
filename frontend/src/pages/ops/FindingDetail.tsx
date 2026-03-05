@@ -6,11 +6,15 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, ExternalLink, CheckCircle2, Shield, AlertTriangle } from 'lucide-react'
 import { SeverityBadge } from '@/components/findings/SeverityBadge'
+import { useTracePanel } from '@/lib/trace-panel-context'
+import { useActionCooldown } from '@/hooks/useActionCooldown'
 
 export default function FindingDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: finding, isLoading } = useFinding(id ?? '')
+  const { openTimeline } = useTracePanel()
+  const remediateCooldown = useActionCooldown({ key: `remediate-${id ?? ''}`, cooldownMs: 10_000 })
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground p-6">Loading finding…</div>
@@ -47,8 +51,30 @@ export default function FindingDetail() {
           <p className="text-sm text-muted-foreground mt-1">{finding.description}</p>
         </div>
         <div className="shrink-0 flex flex-col gap-2">
-          <Button size="sm" className="text-xs gap-1.5" disabled={!finding.auto_remediatable}>
-            <CheckCircle2 className="h-3.5 w-3.5" />Remediate
+          <Button
+            size="sm"
+            className="text-xs gap-1.5"
+            disabled={!finding.auto_remediatable || !remediateCooldown.canFire}
+            onClick={() => {
+              if (!remediateCooldown.canFire) return
+              openTimeline('Remediating: ' + finding.title, [
+                {
+                  span_id: 'span-rem-1',
+                  name: 'remediate:' + finding.resource_name,
+                  type: 'tool',
+                  start_time: new Date().toISOString(),
+                  end_time: new Date(Date.now() + 3200).toISOString(),
+                  duration_ms: 3200,
+                  status: 'ok',
+                  attributes: { 'finding.id': finding.id },
+                  events: [],
+                  data: {},
+                },
+              ])
+              remediateCooldown.fire()
+            }}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />{!remediateCooldown.canFire ? 'Running\u2026' : 'Remediate'}
           </Button>
           <Button size="sm" variant="outline" className="text-xs">Suppress</Button>
         </div>
