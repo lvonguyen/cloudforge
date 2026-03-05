@@ -14,10 +14,10 @@ interface Framework {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  security: 'bg-blue-100 text-blue-700',
-  compliance: 'bg-purple-100 text-purple-700',
-  'ai-governance': 'bg-indigo-100 text-indigo-700',
-  automotive: 'bg-orange-100 text-orange-700',
+  security: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  compliance: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+  'ai-governance': 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
+  automotive: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
 }
 
 export function FrameworkGrid({ frameworks }: { frameworks: Framework[] }) {
@@ -37,7 +37,7 @@ export function FrameworkGrid({ frameworks }: { frameworks: Framework[] }) {
             <ComplianceScore score={fw.score} />
             <div className="w-full bg-muted rounded-full h-1.5">
               <div
-                className={`h-1.5 rounded-full ${fw.score >= 90 ? 'bg-green-500' : fw.score >= 75 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                className={`h-1.5 rounded-full ${fw.score >= 90 ? 'bg-green-500 dark:bg-green-400' : fw.score >= 75 ? 'bg-yellow-500 dark:bg-yellow-400' : 'bg-red-500 dark:bg-red-400'}`}
                 style={{ width: `${fw.score}%` }}
               />
             </div>

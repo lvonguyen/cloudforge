@@ -28,32 +28,32 @@ interface ExceptionLifecycle {
 const MOCK_DETAILS: Record<string, ExceptionLifecycle> = {
   'EXC-002': {
     id: 'EXC-002', resource: 'EC2 m5.24xlarge in us-east-1', type: 'OVERSIZED_INSTANCE', provider: 'aws', region: 'us-east-1',
-    app_id: 'data-pipeline', requestor: 'falhassan@cloudforge.dev', team: 'Data Platform',
+    app_id: 'data-pipeline', requestor: 'user1@contoso.dev', team: 'Data Platform',
     business_case: 'ML training job requires high-memory instance for quarterly model refresh. Estimated 72h runtime. Cannot be split across smaller instances due to memory requirements.',
     status: 'PENDING', created: '2026-02-24 10:30', updated: '2026-02-24 10:30', expiry: undefined,
     approver_chain: [
-      { role: 'operator', email: 'priya@cloudforge.dev', decision: 'PENDING' },
-      { role: 'admin', email: 'liem@cloudforge.dev', decision: 'PENDING' },
+      { role: 'operator', email: 'operator1@contoso.dev', decision: 'PENDING' },
+      { role: 'admin', email: 'admin1@contoso.dev', decision: 'PENDING' },
     ],
     timeline: [
-      { event: 'Request created', actor: 'falhassan@cloudforge.dev', timestamp: '2026-02-24 10:30', note: 'Policy check: OVERSIZED_INSTANCE' },
+      { event: 'Request created', actor: 'user1@contoso.dev', timestamp: '2026-02-24 10:30', note: 'Policy check: OVERSIZED_INSTANCE' },
       { event: 'Notified approvers', actor: 'system', timestamp: '2026-02-24 10:31', note: 'Email sent to operator queue' },
     ],
     compensating_controls: ['Instance auto-terminates after 72h via Lambda', 'No PHI/PCI data processed', 'CloudTrail logging enabled'],
   },
   'EXC-006': {
     id: 'EXC-006', resource: 'S3 bucket in ap-southeast-1', type: 'UNAPPROVED_REGION', provider: 'aws', region: 'ap-southeast-1',
-    app_id: 'customer-backups', requestor: 'falhassan@cloudforge.dev', team: 'Data Platform',
+    app_id: 'customer-backups', requestor: 'user1@contoso.dev', team: 'Data Platform',
     business_case: 'Singapore customer data residency requirement — data must reside in ap-southeast-1 per DPA agreement signed 2025-12-15.',
     status: 'APPROVED', created: '2026-02-18 09:00', updated: '2026-02-19 11:42', expiry: '2026-05-19',
     approver_chain: [
-      { role: 'operator', email: 'priya@cloudforge.dev', decision: 'APPROVED', decided_at: '2026-02-18 14:00', comments: 'Confirmed DPA on file.' },
-      { role: 'admin', email: 'liem@cloudforge.dev', decision: 'APPROVED', decided_at: '2026-02-19 11:42', comments: 'Approved. Review at expiry.' },
+      { role: 'operator', email: 'operator1@contoso.dev', decision: 'APPROVED', decided_at: '2026-02-18 14:00', comments: 'Confirmed DPA on file.' },
+      { role: 'admin', email: 'admin1@contoso.dev', decision: 'APPROVED', decided_at: '2026-02-19 11:42', comments: 'Approved. Review at expiry.' },
     ],
     timeline: [
-      { event: 'Request created', actor: 'falhassan@cloudforge.dev', timestamp: '2026-02-18 09:00' },
-      { event: 'Approved by operator', actor: 'priya@cloudforge.dev', timestamp: '2026-02-18 14:00', note: 'Confirmed DPA on file.' },
-      { event: 'Approved by admin', actor: 'liem@cloudforge.dev', timestamp: '2026-02-19 11:42', note: 'Approved. Review at expiry.' },
+      { event: 'Request created', actor: 'user1@contoso.dev', timestamp: '2026-02-18 09:00' },
+      { event: 'Approved by operator', actor: 'operator1@contoso.dev', timestamp: '2026-02-18 14:00', note: 'Confirmed DPA on file.' },
+      { event: 'Approved by admin', actor: 'admin1@contoso.dev', timestamp: '2026-02-19 11:42', note: 'Approved. Review at expiry.' },
     ],
     compensating_controls: ['Encryption at rest with KMS', 'Bucket policy restricts to VPC endpoint', 'Versioning enabled', '90-day access review'],
   },
@@ -65,15 +65,15 @@ const DECISION_ICON: Record<string, typeof CheckCircle2> = {
   PENDING: Clock,
 }
 const DECISION_COLOR: Record<string, string> = {
-  APPROVED: 'text-green-600',
-  REJECTED: 'text-red-600',
-  PENDING: 'text-yellow-600',
+  APPROVED: 'text-green-600 dark:text-green-400',
+  REJECTED: 'text-red-600 dark:text-red-400',
+  PENDING: 'text-yellow-600 dark:text-yellow-400',
 }
 const STATUS_BADGE: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-800',
-  APPROVED: 'bg-green-100 text-green-800',
-  REJECTED: 'bg-red-100 text-red-800',
-  EXPIRED: 'bg-gray-100 text-gray-600',
+  PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+  APPROVED: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  REJECTED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+  EXPIRED: 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400',
 }
 
 export default function RequestDetail() {
@@ -104,7 +104,7 @@ export default function RequestDetail() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-xl font-semibold">{exc.id}</h1>
-            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_BADGE[exc.status] ?? 'bg-gray-100 text-gray-600'}`}>{exc.status}</span>
+            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_BADGE[exc.status] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400'}`}>{exc.status}</span>
             <Badge variant="outline" className="text-[10px]">{exc.type}</Badge>
           </div>
           <p className="text-sm text-muted-foreground">{exc.resource}</p>
@@ -146,7 +146,7 @@ export default function RequestDetail() {
             <ul className="space-y-1.5">
               {exc.compensating_controls.map((ctrl, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 mt-0.5 shrink-0" />
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
                   <span>{ctrl}</span>
                 </li>
               ))}

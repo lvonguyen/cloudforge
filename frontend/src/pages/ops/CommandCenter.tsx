@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useExceptions, useApproveException } from '@/hooks/useExceptions'
 import { useFindings } from '@/hooks/useFindings'
 import { useCostAnomalies } from '@/hooks/useCosts'
@@ -22,13 +22,14 @@ const SEVERITY_TABS = ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const
 type SeverityTab = (typeof SEVERITY_TABS)[number]
 
 const SEVERITY_COLORS: Record<string, string> = {
-  CRITICAL: 'bg-red-100 text-red-800',
-  HIGH: 'bg-orange-100 text-orange-800',
-  MEDIUM: 'bg-yellow-100 text-yellow-800',
-  LOW: 'bg-blue-100 text-blue-800',
+  CRITICAL: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+  HIGH: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+  MEDIUM: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+  LOW: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
 }
 
 export default function CommandCenter() {
+  const navigate = useNavigate()
   const [severityFilter, setSeverityFilter] = useState<SeverityTab>('ALL')
   const [providerFilter, setProviderFilter] = useState<string>('ALL')
 
@@ -51,7 +52,7 @@ export default function CommandCenter() {
 
   function handleApprove(id: string) {
     const approver: Approver = {
-      email: 'operator@cloudforge.io',
+      email: 'operator1@contoso.dev',
       role: 'ops',
       decision: 'APPROVED',
     }
@@ -85,7 +86,7 @@ export default function CommandCenter() {
         {exceptions.data && exceptions.data.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {exceptions.data.map(exc => (
-              <div key={exc.id} className="relative">
+              <div key={exc.id} className="relative cursor-pointer" onClick={() => navigate(`/portal/requests/${exc.id}`)}>
                 <ExceptionCard exception={exc} />
                 {exc.status === 'PENDING' && (
                   <div className="px-4 pb-3">
@@ -94,7 +95,7 @@ export default function CommandCenter() {
                       variant="outline"
                       className="w-full text-xs"
                       disabled={approveException.isPending}
-                      onClick={() => handleApprove(exc.id)}
+                      onClick={(e) => { e.stopPropagation(); handleApprove(exc.id) }}
                     >
                       Approve
                     </Button>
@@ -145,7 +146,7 @@ export default function CommandCenter() {
             <button
               key={tab}
               onClick={() => setSeverityFilter(tab)}
-              className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+              className={`px-3 py-1 text-xs rounded-none font-medium transition-colors ${
                 severityFilter === tab
                   ? 'bg-foreground text-background'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -165,7 +166,7 @@ export default function CommandCenter() {
         {findings.data && findings.data.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {findings.data.map(finding => (
-              <FindingCard key={finding.id} finding={finding} />
+              <FindingCard key={finding.id} finding={finding} onClick={() => navigate(`/ops/findings/${finding.id}`)} />
             ))}
           </div>
         )}
@@ -180,7 +181,7 @@ export default function CommandCenter() {
             Anomaly Alerts
           </h2>
           {anomalies.data && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-orange-100 text-orange-800 border-orange-300">
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700">
               {anomalies.data.length} active
             </Badge>
           )}

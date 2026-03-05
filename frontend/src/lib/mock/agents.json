@@ -5,7 +5,7 @@
     "description": "Autonomous agent for continuous cloud configuration auditing. Uses LangChain to orchestrate multi-step compliance checks across AWS, Azure, and GCP.",
     "framework": "langchain",
     "version": "2.1.0",
-    "owner": "liem@cloudforge.dev",
+    "owner": "admin1@contoso.dev",
     "team": "security-platform",
     "environment": "prod",
     "capabilities": [
@@ -31,7 +31,7 @@
     "description": "Automated remediation agent using AutoGen multi-agent framework. Executes Tier 1/2 remediations with pre-flight dry-run validation and rollback capability.",
     "framework": "autogen",
     "version": "1.4.2",
-    "owner": "ops-team@cloudforge.dev",
+    "owner": "ops-team@contoso.dev",
     "team": "cloud-ops",
     "environment": "prod",
     "capabilities": [
@@ -56,7 +56,7 @@
     "description": "Threat intelligence correlation agent using CrewAI. Cross-references CISA KEV, MITRE ATT&CK, and internal findings to prioritize response.",
     "framework": "crewai",
     "version": "0.8.1",
-    "owner": "security@cloudforge.dev",
+    "owner": "security@contoso.dev",
     "team": "threat-intel",
     "environment": "staging",
     "capabilities": [
@@ -80,7 +80,7 @@
     "description": "FinOps optimization agent using LangGraph stateful workflow. Analyzes cost anomalies, identifies rightsizing opportunities, and generates chargeback allocations.",
     "framework": "langgraph",
     "version": "0.2.5",
-    "owner": "finops@cloudforge.dev",
+    "owner": "finops@contoso.dev",
     "team": "finops",
     "environment": "prod",
     "capabilities": [

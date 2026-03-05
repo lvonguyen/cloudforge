@@ -38,7 +38,7 @@ export default function FindingDetail() {
           <div className="flex items-center gap-2 flex-wrap mb-2">
             <SeverityBadge severity={finding.severity} />
             {finding.auto_remediatable && (
-              <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700">AUTO-REMEDIABLE</Badge>
+              <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">AUTO-REMEDIABLE</Badge>
             )}
             <Badge variant="outline" className="text-[10px]">{finding.category}</Badge>
             <Badge variant="outline" className="text-[10px]">{finding.cloud_provider.toUpperCase()}</Badge>
@@ -81,7 +81,7 @@ export default function FindingDetail() {
             {finding.cves.map(cve => (
               <div key={cve.id} className="flex items-start gap-4 text-sm">
                 <div className="flex items-center gap-2 shrink-0">
-                  <code className="text-xs font-mono text-red-600">{cve.id}</code>
+                  <code className="text-xs font-mono text-red-600 dark:text-red-400">{cve.id}</code>
                   <a href={cve.nvd_url} target="_blank" rel="noreferrer">
                     <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                   </a>
@@ -89,10 +89,10 @@ export default function FindingDetail() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-muted-foreground line-clamp-2">{cve.description}</p>
                   <div className="flex gap-3 mt-1 flex-wrap">
-                    <span className="text-[10px]">CVSS <strong className={cve.cvss >= 9 ? 'text-red-600' : cve.cvss >= 7 ? 'text-orange-600' : 'text-yellow-600'}>{cve.cvss.toFixed(1)}</strong></span>
+                    <span className="text-[10px]">CVSS <strong className={cve.cvss >= 9 ? 'text-red-600 dark:text-red-400' : cve.cvss >= 7 ? 'text-orange-600 dark:text-orange-400' : 'text-yellow-600 dark:text-yellow-400'}>{cve.cvss.toFixed(1)}</strong></span>
                     <span className="text-[10px]">EPSS <strong>{(cve.epss * 100).toFixed(1)}%</strong></span>
                     {cve.cisa_known_exploited && (
-                      <span className="text-[10px] font-medium text-red-600">CISA KEV</span>
+                      <span className="text-[10px] font-medium text-red-600 dark:text-red-400">CISA KEV</span>
                     )}
                   </div>
                 </div>
@@ -143,7 +143,7 @@ export default function FindingDetail() {
                     <code className="block mt-1.5 text-[10px] font-mono bg-muted rounded px-2 py-1.5">{step.command}</code>
                   )}
                   <div className="flex items-center gap-2 mt-1">
-                    {step.automated && <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700">Automated</Badge>}
+                    {step.automated && <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">Automated</Badge>}
                     {step.platform && <span className="text-[10px] text-muted-foreground">{step.platform}</span>}
                   </div>
                 </div>

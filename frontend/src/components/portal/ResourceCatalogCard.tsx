@@ -13,9 +13,9 @@ interface CatalogItem {
 
 export function ResourceCatalogCard({ item, onSelect }: { item: CatalogItem; onSelect?: () => void }) {
   const PROVIDER_COLORS: Record<string, string> = {
-    aws: 'bg-orange-100 text-orange-700',
-    azure: 'bg-blue-100 text-blue-700',
-    gcp: 'bg-green-100 text-green-700',
+    aws: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+    azure: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+    gcp: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
   }
 
   return (

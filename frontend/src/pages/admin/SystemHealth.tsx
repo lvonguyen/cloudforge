@@ -22,9 +22,9 @@ const SERVICES: ServiceStatus[] = [
 ]
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; badge: string; dot: string }> = {
-  healthy: { icon: CheckCircle2, color: 'text-green-600', badge: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
-  degraded: { icon: AlertTriangle, color: 'text-yellow-600', badge: 'bg-yellow-100 text-yellow-700', dot: 'bg-yellow-500' },
-  down: { icon: XCircle, color: 'text-red-600', badge: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
+  healthy: { icon: CheckCircle2, color: 'text-green-600 dark:text-green-400', badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300', dot: 'bg-green-500' },
+  degraded: { icon: AlertTriangle, color: 'text-yellow-600 dark:text-yellow-400', badge: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300', dot: 'bg-yellow-500' },
+  down: { icon: XCircle, color: 'text-red-600 dark:text-red-400', badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', dot: 'bg-red-500' },
 }
 
 const summary = {
@@ -49,13 +49,13 @@ export default function SystemHealth() {
 
       {/* Summary bar */}
       <div className="flex gap-3">
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-50 text-green-700 text-xs font-medium">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-300 text-xs font-medium">
           <CheckCircle2 className="h-3.5 w-3.5" />{summary.healthy} healthy
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-yellow-50 text-yellow-700 text-xs font-medium">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-yellow-50 dark:bg-yellow-950/20 text-yellow-700 dark:text-yellow-300 text-xs font-medium">
           <AlertTriangle className="h-3.5 w-3.5" />{summary.degraded} degraded
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-50 text-red-700 text-xs font-medium">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 text-xs font-medium">
           <XCircle className="h-3.5 w-3.5" />{summary.down} down
         </div>
       </div>
@@ -66,7 +66,7 @@ export default function SystemHealth() {
           const cfg = STATUS_CONFIG[svc.status] ?? STATUS_CONFIG.healthy
           const { icon: Icon, color, badge, dot } = cfg
           return (
-            <Card key={svc.name} className={svc.status === 'down' ? 'border-red-200' : svc.status === 'degraded' ? 'border-yellow-200' : ''}>
+            <Card key={svc.name} className={svc.status === 'down' ? 'border-red-200 dark:border-red-800' : svc.status === 'degraded' ? 'border-yellow-200 dark:border-yellow-800' : ''}>
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -80,7 +80,7 @@ export default function SystemHealth() {
                 <p className="text-xs text-muted-foreground">{svc.description}</p>
                 <div className="grid grid-cols-3 gap-2 pt-1">
                   <div>
-                    <p className={`text-sm font-bold ${svc.latency_ms !== undefined ? (svc.latency_ms > 100 ? 'text-yellow-600' : 'text-green-600') : 'text-red-600'}`}>
+                    <p className={`text-sm font-bold ${svc.latency_ms !== undefined ? (svc.latency_ms > 100 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400') : 'text-red-600 dark:text-red-400'}`}>
                       {svc.latency_ms !== undefined ? `${svc.latency_ms}ms` : '—'}
                     </p>
                     <p className="text-[10px] text-muted-foreground">Latency</p>
@@ -105,7 +105,7 @@ export default function SystemHealth() {
 
       {/* Degraded / down callout */}
       {(summary.degraded > 0 || summary.down > 0) && (
-        <div className="rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+        <div className="rounded-none border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20 px-4 py-3 text-sm text-yellow-800 dark:text-yellow-300">
           <p className="font-medium">Action required</p>
           <ul className="mt-1 list-disc pl-4 text-xs space-y-0.5">
             {SERVICES.filter(s => s.status !== 'healthy').map(s => (

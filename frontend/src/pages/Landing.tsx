@@ -30,8 +30,8 @@ const PROJECTS: ProjectCard[] = [
       'Enterprise cloud security platform — policy-as-code provisioning, AI-powered risk scoring, automated remediation, and multi-cloud compliance across AWS, Azure, and GCP.',
     icon: Shield,
     iconSvg: '/icons/cloudforge-logo.svg',
-    color: 'text-blue-600',
-    bg: 'bg-blue-50',
+    color: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-blue-50 dark:bg-blue-900/30',
     tags: ['Go', 'OPA/Rego', 'React', 'Terraform', 'Multi-Cloud'],
     stats: [
       { label: 'Policies', value: '42' },
@@ -39,7 +39,7 @@ const PROJECTS: ProjectCard[] = [
       { label: 'Test Coverage', value: '85%' },
     ],
     link: '/admin',
-    repo: 'github.com/lvonguyen/cloudforge',
+    repo: 'github.com/contoso/cloudforge',
   },
   {
     name: 'ThreatForge',
@@ -49,8 +49,8 @@ const PROJECTS: ProjectCard[] = [
       'Threat intelligence platform — MITRE ATT&CK mapping, real-time feed aggregation (OTX, MISP, VirusTotal), IoC correlation, and STIX/TAXII distribution.',
     icon: Search,
     iconSvg: '/icons/threatforge-logo.svg',
-    color: 'text-red-600',
-    bg: 'bg-red-50',
+    color: 'text-red-600 dark:text-red-400',
+    bg: 'bg-red-50 dark:bg-red-900/30',
     tags: ['Go', 'MITRE ATT&CK', 'STIX/TAXII', 'gRPC'],
     stats: [
       { label: 'TI Feeds', value: '4' },
@@ -58,7 +58,7 @@ const PROJECTS: ProjectCard[] = [
       { label: 'IoC Types', value: '12' },
     ],
     link: '#',
-    repo: 'github.com/lvonguyen/threatforge',
+    repo: 'github.com/contoso/threatforge',
   },
   {
     name: 'CSPM Aggregator',
@@ -68,8 +68,8 @@ const PROJECTS: ProjectCard[] = [
       'Cloud Security Posture Management — normalizes findings from AWS SecurityHub, Azure Defender, and GCP SCC into a unified schema with LLM-powered contextual risk scoring.',
     icon: Cloud,
     iconSvg: '/icons/cspm-logo.svg',
-    color: 'text-green-600',
-    bg: 'bg-green-50',
+    color: 'text-green-600 dark:text-green-400',
+    bg: 'bg-green-50 dark:bg-green-900/30',
     tags: ['Go', 'EPSS', 'CISA KEV', 'Risk Scoring', 'Multi-Cloud'],
     stats: [
       { label: 'Finding Classes', value: '21' },
@@ -77,7 +77,7 @@ const PROJECTS: ProjectCard[] = [
       { label: 'Edge Cases', value: '52' },
     ],
     link: '/ops/findings',
-    repo: 'github.com/lvonguyen/cspm-aggregator',
+    repo: 'github.com/contoso/cspm-aggregator',
   },
   {
     name: 'Multicloud Observability',
@@ -87,8 +87,8 @@ const PROJECTS: ProjectCard[] = [
       'Unified observability pipeline — collects metrics, logs, and alerts from AWS CloudWatch, Azure Monitor, and GCP Cloud Monitoring with cross-cloud alert correlation.',
     icon: Activity,
     iconSvg: '/icons/mco-logo.svg',
-    color: 'text-purple-600',
-    bg: 'bg-purple-50',
+    color: 'text-purple-600 dark:text-purple-400',
+    bg: 'bg-purple-50 dark:bg-purple-900/30',
     tags: ['Go', 'Prometheus', 'OpsGenie', 'CloudWatch', 'Stackdriver'],
     stats: [
       { label: 'Providers', value: '3' },
@@ -96,7 +96,7 @@ const PROJECTS: ProjectCard[] = [
       { label: 'Correlation', value: 'ML' },
     ],
     link: '/ops',
-    repo: 'github.com/lvonguyen/multicloud-observability',
+    repo: 'github.com/contoso/multicloud-observability',
   },
   {
     name: 'AI Governance',
@@ -106,8 +106,8 @@ const PROJECTS: ProjectCard[] = [
       'AI agent governance framework — STRIDE+ATLAS threat modeling, embedded OPA policy engine, agent registry, maturity assessment, and observability hooks.',
     icon: Bot,
     iconSvg: '/icons/ai-governance-logo.svg',
-    color: 'text-indigo-600',
-    bg: 'bg-indigo-50',
+    color: 'text-indigo-600 dark:text-indigo-400',
+    bg: 'bg-indigo-50 dark:bg-indigo-900/30',
     tags: ['Go', 'OPA', 'STRIDE', 'ATLAS', 'LLM Security'],
     stats: [
       { label: 'Threat Models', value: '2' },
@@ -115,7 +115,7 @@ const PROJECTS: ProjectCard[] = [
       { label: 'Status', value: 'Merged to CF' },
     ],
     link: '/admin/ai-agents',
-    repo: 'github.com/lvonguyen/cloudforge',
+    repo: 'github.com/contoso/cloudforge',
   },
   {
     name: 'FinOps Platform',
@@ -125,8 +125,8 @@ const PROJECTS: ProjectCard[] = [
       'Multi-cloud cost optimization — chargeback allocation, anomaly detection, spend forecasting, and budget alerts across AWS, Azure, and GCP billing APIs.',
     icon: BarChart3,
     iconSvg: '/icons/finops-logo.svg',
-    color: 'text-amber-600',
-    bg: 'bg-amber-50',
+    color: 'text-amber-600 dark:text-amber-400',
+    bg: 'bg-amber-50 dark:bg-amber-900/30',
     tags: ['Go', 'Cost Explorer', 'Billing API', 'Forecasting'],
     stats: [
       { label: 'Cloud Accounts', value: '12' },
@@ -134,13 +134,13 @@ const PROJECTS: ProjectCard[] = [
       { label: 'Savings Found', value: '$47K/yr' },
     ],
     link: '/ops/costs',
-    repo: 'github.com/lvonguyen/cloudforge',
+    repo: 'github.com/contoso/cloudforge',
   },
 ]
 
 const TIER_BADGE: Record<string, string> = {
-  flagship: 'bg-blue-100 text-blue-800 border-blue-200',
-  supporting: 'bg-gray-100 text-gray-700 border-gray-200',
+  flagship: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',
+  supporting: 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700',
 }
 
 export default function Landing() {
@@ -152,7 +152,7 @@ export default function Landing() {
       {/* Header */}
       <div className="space-y-1">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg overflow-hidden">
+          <div className="h-10 w-10 rounded-none overflow-hidden">
             <img src="/icons/cloudforge-logo.svg" alt="CloudForge" className="h-10 w-10" />
           </div>
           <div>
@@ -216,7 +216,7 @@ function ProjectTile({ project }: { project: ProjectCard }) {
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2.5">
-              <div className={`h-9 w-9 rounded-lg ${project.bg} flex items-center justify-center overflow-hidden`}>
+              <div className={`h-9 w-9 rounded-none ${project.bg} flex items-center justify-center overflow-hidden`}>
                 {project.iconSvg ? (
                   <img src={project.iconSvg} alt={project.name} className="h-9 w-9" />
                 ) : (
@@ -230,7 +230,11 @@ function ProjectTile({ project }: { project: ProjectCard }) {
                 </span>
               </div>
             </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            {project.link === '#' ? (
+              <span className="text-[10px] text-muted-foreground font-medium">Coming Soon</span>
+            ) : (
+              <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-3">

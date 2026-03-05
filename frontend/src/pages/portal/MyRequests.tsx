@@ -22,23 +22,23 @@ interface RequestRow {
 
 const REQUESTS: RequestRow[] = [
   { id: 'EXC-002', resource: 'EC2 m5.24xlarge in us-east-1', type: 'OVERSIZED_INSTANCE', provider: 'aws', status: 'PENDING', created: '2026-02-24', updated: '2026-02-24', approver: '—' },
-  { id: 'EXC-006', resource: 'S3 bucket in ap-southeast-1', type: 'UNAPPROVED_REGION', provider: 'aws', status: 'APPROVED', created: '2026-02-18', updated: '2026-02-19', approver: 'liem@cloudforge.dev', expiry: '2026-05-19' },
-  { id: 'EXC-007', resource: 'RDS db.r5.2xlarge prod', type: 'OVERSIZED_INSTANCE', provider: 'aws', status: 'REJECTED', created: '2026-02-10', updated: '2026-02-11', approver: 'liem@cloudforge.dev' },
-  { id: 'EXC-009', resource: 'AKS private cluster eastus', type: 'RESTRICTED_SERVICE', provider: 'azure', status: 'APPROVED', created: '2026-01-15', updated: '2026-01-16', approver: 'priya@cloudforge.dev', expiry: '2026-04-15' },
-  { id: 'EXC-011', resource: 'GKE node pool us-central1-a', type: 'OVERSIZED_INSTANCE', provider: 'gcp', status: 'EXPIRED', created: '2025-11-01', updated: '2026-02-01', approver: 'priya@cloudforge.dev' },
+  { id: 'EXC-006', resource: 'S3 bucket in ap-southeast-1', type: 'UNAPPROVED_REGION', provider: 'aws', status: 'APPROVED', created: '2026-02-18', updated: '2026-02-19', approver: 'admin1@contoso.dev', expiry: '2026-05-19' },
+  { id: 'EXC-007', resource: 'RDS db.r5.2xlarge prod', type: 'OVERSIZED_INSTANCE', provider: 'aws', status: 'REJECTED', created: '2026-02-10', updated: '2026-02-11', approver: 'admin1@contoso.dev' },
+  { id: 'EXC-009', resource: 'AKS private cluster eastus', type: 'RESTRICTED_SERVICE', provider: 'azure', status: 'APPROVED', created: '2026-01-15', updated: '2026-01-16', approver: 'operator1@contoso.dev', expiry: '2026-04-15' },
+  { id: 'EXC-011', resource: 'GKE node pool us-central1-a', type: 'OVERSIZED_INSTANCE', provider: 'gcp', status: 'EXPIRED', created: '2025-11-01', updated: '2026-02-01', approver: 'operator1@contoso.dev' },
 ]
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; className: string; badge: string }> = {
-  PENDING: { icon: Clock, className: 'text-yellow-600', badge: 'bg-yellow-100 text-yellow-800' },
-  APPROVED: { icon: CheckCircle2, className: 'text-green-600', badge: 'bg-green-100 text-green-800' },
-  REJECTED: { icon: XCircle, className: 'text-red-600', badge: 'bg-red-100 text-red-800' },
-  EXPIRED: { icon: AlertTriangle, className: 'text-gray-500', badge: 'bg-gray-100 text-gray-600' },
+  PENDING: { icon: Clock, className: 'text-yellow-600 dark:text-yellow-400', badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
+  APPROVED: { icon: CheckCircle2, className: 'text-green-600 dark:text-green-400', badge: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+  REJECTED: { icon: XCircle, className: 'text-red-600 dark:text-red-400', badge: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+  EXPIRED: { icon: AlertTriangle, className: 'text-gray-500 dark:text-gray-400', badge: 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400' },
 }
 
 const PROVIDER_COLORS: Record<string, string> = {
-  aws: 'bg-orange-100 text-orange-700',
-  azure: 'bg-blue-100 text-blue-700',
-  gcp: 'bg-green-100 text-green-700',
+  aws: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+  azure: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  gcp: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
 }
 
 export default function MyRequests() {
@@ -71,7 +71,7 @@ export default function MyRequests() {
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+            className={`px-3 py-1 text-xs rounded-none font-medium transition-colors ${
               statusFilter === s ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >

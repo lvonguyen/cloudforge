@@ -14,7 +14,7 @@ export function FindingCard({ finding, onClick }: { finding: Finding; onClick?: 
         <div className="flex items-start gap-2">
           <SeverityBadge severity={finding.severity} />
           {finding.auto_remediatable && (
-            <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-green-100 text-green-700">AUTO</Badge>
+            <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">AUTO</Badge>
           )}
         </div>
         <p className="text-sm font-medium leading-tight line-clamp-2">{finding.title}</p>
