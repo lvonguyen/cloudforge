@@ -135,96 +135,52 @@ CloudForge bridges these needs with a unified platform that provides:
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia'}}}%%
-flowchart TB
-    subgraph Portal["[Portal] React 19 / Vite 7"]
+flowchart LR
+    subgraph Portal["[Portal] React 19/Vite 7"]
         style Portal fill:#3b82f6,stroke:#1e3a8a,color:#fff
         A1["App Registration"]
         A2["Infra Catalog"]
         A3["Exception Request"]
-        A4["Dashboard and Reports"]
+        A4["Dashboard"]
     end
 
-    subgraph Orchestration["[Orchestration] Temporal"]
-        style Orchestration fill:#f59e0b,stroke:#b45309,color:#fff
-        B1["Registration Workflow"]
-        B2["Approval Workflow"]
-        B3["Provisioning Workflow"]
-        B4["Compliance Scan Workflow"]
+    subgraph Orch["[Orchestration] Temporal"]
+        style Orch fill:#f59e0b,stroke:#b45309,color:#fff
+        B1["Registration"]
+        B2["Approval"]
+        B3["Provisioning"]
+        B4["Compliance Scan"]
     end
 
-    subgraph AIGovernance["[AI Governance] Embedded OPA"]
-        style AIGovernance fill:#7c3aed,stroke:#4c1d95,color:#fff
+    subgraph AI["[AI Governance] Embedded OPA"]
+        style AI fill:#7c3aed,stroke:#4c1d95,color:#fff
         E1["Agent Registry"]
-        E2["Embedded OPA Engine"]
-        E3["STRIDE + ATLAS Models"]
-        E4["Maturity Assessment"]
+        E2["OPA Engine"]
+        E3["STRIDE+ATLAS"]
+        E4["Maturity"]
     end
 
-    subgraph Policy["[Policy Engine] OPA / Rego"]
+    subgraph Policy["[Policy] OPA/Rego"]
         style Policy fill:#1e40af,stroke:#1e3a8a,color:#fff
-        C1["Region Policies"]
-        C2["Cost Policies"]
-        C3["Network Policies"]
-        C4["Exception Validator"]
+        C1["Region"]
+        C2["Cost"]
+        C3["Network"]
+        C4["Exception"]
     end
 
-    subgraph Integration["[Integration Layer]"]
-        style Integration fill:#22c55e,stroke:#166534,color:#fff
-        D1["CMDB - ServiceNow"]
-        D2["GRC - Archer"]
-        D3["Terraform - Atlantis"]
+    subgraph Integrate["[Integration] External"]
+        style Integrate fill:#22c55e,stroke:#166534,color:#fff
+        D1["ServiceNow"]
+        D2["Archer"]
+        D3["Terraform"]
         D4["Cloud APIs"]
     end
 
-    Portal --> Orchestration
-    Orchestration --> AIGovernance
-    AIGovernance --> Policy
-    Policy --> Integration
+    Portal --> Orch
+    Orch --> Policy
+    AI -.->|governs| Policy
+    Policy --> Integrate
 ```
-
-<!-- markdownlint-disable MD033 -->
-<details>
-<summary><strong>ASCII Diagram (Fallback)</strong></summary>
-<!-- markdownlint-enable MD033 -->
-
-```text
-+-----------------------------------------------------------------------------+
-|                              PORTAL LAYER                                    |
-|         (Self-Service UI - React 19 / Vite 7)                               |
-|  +-------------+  +-------------+  +-------------+  +-------------+         |
-|  |    App      |  |   Infra     |  |  Exception  |  |  Dashboard  |         |
-|  | Registration|  |  Catalog    |  |   Request   |  |  & Reports  |         |
-|  +------+------+  +------+------+  +------+------+  +-------------+         |
-+---------|--------------|--------------|---------------------------------+
-          |              |              |
-+---------v--------------v--------------v---------------------------------+
-|                         ORCHESTRATION LAYER                              |
-|                    (Temporal Workflows)                                  |
-|  +--------------------------------------------------------------------+  |
-|  |  Registration    |  Approval     |  Provisioning  |  Compliance    |  |
-|  |  Workflow        |  Workflow     |  Workflow      |  Scan Workflow |  |
-|  +--------------------------------------------------------------------+  |
-+-------------------------------------------------------------------------+
-          |              |              |
-+---------v--------------v--------------v---------------------------------+
-|                          POLICY ENGINE                                   |
-|                         (OPA / Rego)                                     |
-|  +-------------+  +-------------+  +-------------+  +-------------+      |
-|  |   Region    |  |    Cost     |  |  Network    |  |  Exception  |      |
-|  |  Policies   |  |  Policies   |  |  Policies   |  |  Validator  |      |
-|  +-------------+  +-------------+  +-------------+  +-------------+      |
-+-------------------------------------------------------------------------+
-          |              |              |
-+---------v--------------v--------------v---------------------------------+
-|                        INTEGRATION LAYER                                 |
-|  +-------------+  +-------------+  +-------------+  +-------------+      |
-|  |    CMDB     |  |     GRC     |  |  Terraform  |  |   Cloud     |      |
-|  | (ServiceNow)|  |  (Archer)   |  |  (Atlantis) |  |   APIs      |      |
-|  +-------------+  +-------------+  +-------------+  +-------------+      |
-+-------------------------------------------------------------------------+
-```
-
-</details>
 
 ---
 

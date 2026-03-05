@@ -19,6 +19,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
@@ -207,18 +209,33 @@ func (s *Server) setupRoutes() {
 		apiRouter.Use(s.rateLimiter.Middleware(s.getTierFromRequest, s.getClientIDFromRequest))
 	}
 
-	// Exception management
-	// Literal paths must be registered before parameterized paths in gorilla/mux
-	// to prevent /{id} from shadowing /pending and /expiring.
-	apiRouter.HandleFunc("/exceptions", s.createException).Methods("POST")
-	apiRouter.HandleFunc("/exceptions/pending", s.getPendingApprovals).Methods("GET")
-	apiRouter.HandleFunc("/exceptions/expiring", s.getExpiringExceptions).Methods("GET")
-	apiRouter.HandleFunc("/exceptions/{id}", s.getException).Methods("GET")
-	apiRouter.HandleFunc("/exceptions/{id}/approve", s.submitApproval).Methods("POST")
-	apiRouter.HandleFunc("/applications/{appId}/exceptions", s.getExceptionsByApp).Methods("GET")
+	// Exception read endpoints — require operator or admin
+	// Literal paths registered before parameterized to prevent /{id} shadowing.
+	apiRouter.Handle("/exceptions/pending", // operator, admin
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getPendingApprovals)),
+	).Methods("GET")
+	apiRouter.Handle("/exceptions/expiring", // operator, admin
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getExpiringExceptions)),
+	).Methods("GET")
+	apiRouter.Handle("/exceptions/{id}", // operator, admin
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getException)),
+	).Methods("GET")
+	apiRouter.Handle("/applications/{appId}/exceptions", // operator, admin
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getExceptionsByApp)),
+	).Methods("GET")
 
-	// Policy validation (called by Terraform/provisioning)
-	apiRouter.HandleFunc("/validate/exception", s.validateException).Methods("POST")
+	// Exception write endpoints — require admin
+	apiRouter.Handle("/exceptions", // admin only
+		api.RequireRole(api.RoleAdmin)(http.HandlerFunc(s.createException)),
+	).Methods("POST")
+	apiRouter.Handle("/exceptions/{id}/approve", // admin only
+		api.RequireRole(api.RoleAdmin)(http.HandlerFunc(s.submitApproval)),
+	).Methods("POST")
+
+	// Policy validation — require operator or admin
+	apiRouter.Handle("/validate/exception", // operator, admin
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.validateException)),
+	).Methods("POST")
 }
 
 // getTierFromRequest extracts the API tier from the request.
@@ -270,6 +287,10 @@ func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) createException(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.createException")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	var req grc.ExceptionRequest
 	if !s.decodeJSONBody(w, r, &req) {
 		return
@@ -310,8 +331,13 @@ func (s *Server) createException(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getException(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getException")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	vars := mux.Vars(r)
 	id := vars["id"]
+	span.SetAttributes(attribute.String("exception.id", id))
 
 	exc, err := s.grcProvider.GetException(r.Context(), id)
 	if err != nil {
@@ -336,8 +362,13 @@ func (s *Server) getException(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) submitApproval(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.submitApproval")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	vars := mux.Vars(r)
 	id := vars["id"]
+	span.SetAttributes(attribute.String("exception.id", id))
 
 	var approver grc.Approver
 	if !s.decodeJSONBody(w, r, &approver) {
@@ -367,6 +398,10 @@ func (s *Server) submitApproval(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getPendingApprovals(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getPendingApprovals")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	// Enforce that the query matches the authenticated JWT identity
 	claims, ok := api.GetClaimsFromContext(r.Context())
 	if !ok {
@@ -393,6 +428,10 @@ func (s *Server) getPendingApprovals(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getExpiringExceptions(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getExpiringExceptions")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	claims, ok := api.GetClaimsFromContext(r.Context())
 	if !ok || !strings.Contains(claims.Scope, "compliance") {
 		writeErrorResponse(w, "forbidden: requires compliance scope", http.StatusForbidden)
@@ -410,8 +449,13 @@ func (s *Server) getExpiringExceptions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getExceptionsByApp(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getExceptionsByApp")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	vars := mux.Vars(r)
 	appID := vars["appId"]
+	span.SetAttributes(attribute.String("application.id", appID))
 
 	// Authorization: require admin scope or JWT subject matching appId
 	claims, ok := api.GetClaimsFromContext(r.Context())
@@ -441,6 +485,10 @@ type ValidateExceptionRequest struct {
 }
 
 func (s *Server) validateException(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.validateException")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	var req ValidateExceptionRequest
 	if !s.decodeJSONBody(w, r, &req) {
 		return

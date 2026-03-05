@@ -9,6 +9,9 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Provider defines the interface for LLM providers
@@ -66,6 +69,13 @@ func (p *AnthropicProvider) Complete(ctx context.Context, prompt string) (string
 
 // CompleteWithSystem sends a prompt with system context to Claude
 func (p *AnthropicProvider) CompleteWithSystem(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+	ctx, span := otel.Tracer("cloudforge.ai").Start(ctx, "ai.analyze")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("ai.model", p.model),
+		attribute.Int("ai.input_length", len(userPrompt)),
+	)
+
 	reqBody := anthropicRequest{
 		Model:     p.model,
 		MaxTokens: 4096,
