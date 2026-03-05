@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, CheckCircle2 } from 'lucide-react'
 import { MultiStepForm } from '@/components/portal/MultiStepForm'
+import { DeployPreview } from '@/components/portal/DeployPreview'
 import { PolicyCheckResult } from '@/components/portal/PolicyCheckResult'
 import { ResourceCatalogCard } from '@/components/portal/ResourceCatalogCard'
 import { Input } from '@/components/ui/input'
@@ -547,9 +548,6 @@ export default function Request() {
   }
 
   const handleNext = async () => {
-    if (currentStep === 2) {
-      // Entering review — no action needed
-    }
     if (currentStep === 1) {
       // Entering policy check — run validation
       await runPolicyCheck()
@@ -624,6 +622,20 @@ export default function Request() {
       ),
     },
     {
+      label: 'Deploy Preview',
+      content: (
+        <DeployPreview
+          config={{
+            resourceType: selectedResource,
+            provider: cloudProvider,
+            region,
+            appId: String(formValues.applicationId || 'demo'),
+            configuration: formValues as Record<string, unknown>,
+          }}
+        />
+      ),
+    },
+    {
       label: 'Review',
       content: (
         <StepReview
@@ -652,7 +664,8 @@ export default function Request() {
     0: step1Complete,
     1: true,
     2: true,
-    3: step4CanSubmit,
+    3: true,
+    4: step4CanSubmit,
   }
 
   return (
