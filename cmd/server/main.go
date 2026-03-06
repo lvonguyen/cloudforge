@@ -114,6 +114,8 @@ func main() {
 				zap.Error(err),
 				zap.String("redis_addr", cfg.RedisAddr),
 			)
+			_ = redisClient.Close()
+			redisClient = nil
 		} else {
 			logger.Info("Redis connected for rate limiting",
 				zap.String("redis_addr", cfg.RedisAddr),

@@ -123,7 +123,7 @@ export default function Policies() {
         ))}
       </div>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="pb-2">
           <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {filtered.length} policies

@@ -1,6 +1,7 @@
 import { QueryClient } from '@tanstack/react-query'
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api/v1'
+const DEV_TOKEN = import.meta.env.DEV ? import.meta.env.VITE_DEV_TOKEN : undefined
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,9 +21,15 @@ class ApiError extends Error {
   }
 }
 
+function authHeaders(): Record<string, string> {
+  const cfToken = document.cookie.match(/(?:^|;\s*)CF_Authorization=([^;]+)/)?.[1]
+  const token = cfToken ?? DEV_TOKEN
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options?.headers },
     ...options,
   })
   if (!res.ok) {

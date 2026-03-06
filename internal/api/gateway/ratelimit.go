@@ -184,6 +184,12 @@ func NewRateLimiter(redisClient *redis.Client, cfg RateLimitConfig, logger *zap.
 
 // Check performs a rate limit check for a request
 func (rl *RateLimiter) Check(ctx context.Context, key RateLimitKey) (*RateLimitResult, error) {
+	// Skip Redis-based checks when client is unavailable (e.g., local dev without Redis).
+	// The middleware's local fallback handles rate limiting in this case.
+	if rl.redis == nil {
+		return nil, fmt.Errorf("redis client not available")
+	}
+
 	// Get tier limits
 	tierLimits := rl.getTierLimits(key.Tier)
 
@@ -417,7 +423,7 @@ func (rl *RateLimiter) Middleware(getTier func(r *http.Request) string, getClien
 			// Check rate limit
 			result, err := rl.Check(ctx, key)
 			if err != nil {
-				rl.logger.Error("Rate limit check failed", zap.Error(err))
+				rl.logger.Warn("Rate limit check failed, using local fallback", zap.Error(err))
 
 				// Use local fallback or fail closed based on config
 				if rl.config.FailClosed {

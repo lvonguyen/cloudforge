@@ -1,4 +1,4 @@
-.PHONY: build run test clean docker-build docker-up docker-down migrate lint fmt help build-cspm run-cspm test-cspm
+.PHONY: build run dev test clean docker-build docker-up docker-down migrate lint fmt help build-cspm run-cspm test-cspm
 
 # Variables
 BINARY_NAME=cloudforge
@@ -21,6 +21,7 @@ help:
 	@echo "  make migrate      Run database migrations"
 	@echo "  make clean        Clean build artifacts"
 	@echo "  make opa-test     Test OPA policies"
+	@echo "  make dev          Run backend + frontend dev servers"
 	@echo "  make build-cspm   Build cspm-aggregator binary"
 	@echo "  make run-cspm     Run cspm-aggregator locally"
 	@echo "  make test-cspm    Run cspm-aggregator tests"
@@ -32,6 +33,13 @@ build:
 # Run locally with in-memory provider
 run:
 	GRC_PROVIDER=memory $(GO) run ./cmd/server
+
+# Run backend + frontend dev servers (Ctrl-C kills both)
+dev:
+	@trap 'kill 0' EXIT; \
+	CLOUDFORGE_JWT_SECRET=dev-secret-do-not-use GRC_PROVIDER=memory $(GO) run ./cmd/server & \
+	cd frontend && npm run dev & \
+	wait
 
 # Run with Postgres (requires local postgres)
 run-postgres:
