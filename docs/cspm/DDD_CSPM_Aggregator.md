@@ -274,7 +274,7 @@ egress:
 
 ### Scoring Pipeline
 
-![Scoring Pipeline](diagrams/dfd_scoring_pipeline.png)
+![Scoring Pipeline](diagrams/dfd_scoring_pipeline.svg)
 
 *Shows: Cloud providers -> Normalizer -> Delta Detection -> AI Scoring -> Priority Matrix -> Outputs*
 
@@ -282,7 +282,7 @@ egress:
 
 ### Priority Matrix Flow
 
-![Priority Matrix](diagrams/dfd_priority_matrix.png)
+![Priority Matrix](diagrams/dfd_priority_matrix.svg)
 
 *Shows: Risk severity + Complexity tier -> Base priority -> Escalation rules -> Final priority + SLA*
 
@@ -630,7 +630,7 @@ type PrioritizedFinding struct {
 
 ### Authentication Flow
 
-![System Architecture](diagrams/hld_architecture.png)
+![System Architecture](diagrams/hld_architecture.svg)
 
 *Shows: OIDC/MSI/WIF authentication to cloud providers, Key Vault for secrets*
 
