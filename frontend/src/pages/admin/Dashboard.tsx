@@ -11,7 +11,7 @@ const KPI_CARDS = [
   { label: 'Active Policies', value: 42, sub: '3 pending review', icon: FileText, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/20', link: '/admin/policies' },
   { label: 'AI Agents', value: 7, sub: '5 active, 2 idle', icon: Bot, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/20', link: '/admin/ai-agents' },
   { label: 'Compliance Score', value: '84%', sub: '+2% this week', icon: ShieldCheck, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/20', link: '/ops/compliance' },
-  { label: 'Open Exceptions', value: 12, sub: '3 critical SLA', icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/20', link: '/ops' },
+  { label: 'Open Exceptions', value: 12, sub: '3 critical SLA', icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/20', link: '/ops/remediation' },
 ]
 
 const EXCEPTION_QUEUE = [
@@ -51,7 +51,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {KPI_CARDS.map(({ label, value, sub, icon: Icon, color, bg, link }) => (
           <Link key={label} to={link} className="group">
-            <Card className="hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+            <Card className="hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div>
@@ -90,7 +90,7 @@ export default function AdminDashboard() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Exception Queue</CardTitle>
-            <Link to="/ops" className="text-xs text-primary hover:underline">View All →</Link>
+            <Link to="/ops/remediation" className="text-xs text-primary hover:underline">View All →</Link>
           </div>
         </CardHeader>
         <CardContent className="p-0">

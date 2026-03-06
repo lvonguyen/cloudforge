@@ -47,6 +47,17 @@ export default function SystemHealth() {
         </div>
       </div>
 
+      {(summary.degraded > 0 || summary.down > 0) && (
+        <div className="rounded-none border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20 px-4 py-3 text-sm text-yellow-800 dark:text-yellow-300">
+          <p className="font-medium">Action required</p>
+          <ul className="mt-1 list-disc pl-4 text-xs space-y-0.5">
+            {SERVICES.filter(s => s.status !== 'healthy').map(s => (
+              <li key={s.name}><strong>{s.name}</strong> — {s.status}. Last seen {s.last_check}.</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Summary bar */}
       <div className="flex gap-3">
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-300 text-xs font-medium">
@@ -59,17 +70,6 @@ export default function SystemHealth() {
           <XCircle className="h-3.5 w-3.5" />{summary.down} down
         </div>
       </div>
-
-      {(summary.degraded > 0 || summary.down > 0) && (
-        <div className="rounded-none border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20 px-4 py-3 text-sm text-yellow-800 dark:text-yellow-300">
-          <p className="font-medium">Action required</p>
-          <ul className="mt-1 list-disc pl-4 text-xs space-y-0.5">
-            {SERVICES.filter(s => s.status !== 'healthy').map(s => (
-              <li key={s.name}><strong>{s.name}</strong> — {s.status}. Last seen {s.last_check}.</li>
-            ))}
-          </ul>
-        </div>
-      )}
 
       {/* Service grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
