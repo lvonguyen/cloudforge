@@ -81,5 +81,9 @@ temp/
 CLAUDE.md
 docs/STANDARDS.md
 
+# Raw findings exports (large, scrubbed but not for VCS)
+testdata/export-scripts/output/
+export-outputs/
+
 # Stale backups
 *.bck.yml

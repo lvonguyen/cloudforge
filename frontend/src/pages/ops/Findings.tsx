@@ -1,6 +1,6 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Download, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, X } from 'lucide-react'
+import { Download, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, X, SlidersHorizontal, ListFilter } from 'lucide-react'
 import { useFindings } from '@/hooks/useFindings'
 import { SeverityBadge } from '@/components/findings/SeverityBadge'
 import { SLACountdown } from '@/components/findings/SLACountdown'
@@ -9,6 +9,10 @@ import { Button } from '@/components/ui/button'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import {
+  DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
@@ -60,8 +64,32 @@ const STATUS_LABELS: Record<string, string> = {
   resolved: 'Resolved',
 }
 
-type SortColumn = 'severity' | 'title' | 'category' | 'provider' | 'resource' | 'region' | 'status' | 'sla'
+type SortColumn = 'severity' | 'title' | 'category' | 'provider' | 'resource_type' | 'resource' | 'region' | 'status' | 'sla'
 type SortDir = 'asc' | 'desc'
+
+const ALL_COLUMNS: { key: SortColumn; label: string; defaultWidth: number }[] = [
+  { key: 'severity', label: 'Severity', defaultWidth: 100 },
+  { key: 'title', label: 'Title', defaultWidth: 280 },
+  { key: 'category', label: 'Category', defaultWidth: 140 },
+  { key: 'provider', label: 'Provider', defaultWidth: 80 },
+  { key: 'resource_type', label: 'Type', defaultWidth: 90 },
+  { key: 'resource', label: 'Resource', defaultWidth: 160 },
+  { key: 'region', label: 'Region', defaultWidth: 120 },
+  { key: 'status', label: 'Status', defaultWidth: 110 },
+  { key: 'sla', label: 'SLA', defaultWidth: 100 },
+]
+
+const DEFAULT_WIDTHS: Record<string, number> = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, c.defaultWidth]))
+
+function getPageNumbers(current: number, total: number): (number | 'dots')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i)
+  const pages: (number | 'dots')[] = [0]
+  if (current > 2) pages.push('dots')
+  for (let i = Math.max(1, current - 1); i <= Math.min(total - 2, current + 1); i++) pages.push(i)
+  if (current < total - 3) pages.push('dots')
+  pages.push(total - 1)
+  return pages
+}
 
 function toggleSet<T>(set: Set<T>, value: T): Set<T> {
   const next = new Set(set)
@@ -75,13 +103,14 @@ function formatWorkflowStatus(ws: string): string {
 }
 
 function exportCSV(findings: Finding[]) {
-  const headers = ['ID', 'Title', 'Severity', 'Category', 'Provider', 'Resource', 'Region', 'Status', 'SLA Due Date', 'First Found', 'Remediation']
+  const headers = ['ID', 'Title', 'Severity', 'Category', 'Provider', 'Resource Type', 'Resource', 'Region', 'Status', 'SLA Due Date', 'First Found', 'Remediation']
   const rows = findings.map(f => [
     f.id,
     `"${f.title.replace(/"/g, '""')}"`,
     f.severity,
     f.category,
     f.cloud_provider.toUpperCase(),
+    f.resource_type,
     f.resource_name,
     f.region,
     f.workflow_status,
@@ -122,6 +151,41 @@ export default function Findings() {
   // Pagination
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
+
+  // Column visibility & resizable widths
+  const [visibleColumns, setVisibleColumns] = useState<Set<SortColumn>>(() => new Set(ALL_COLUMNS.map(c => c.key)))
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(DEFAULT_WIDTHS)
+  const resizingRef = useRef<{ col: string; startX: number; startWidth: number } | null>(null)
+
+  // Fluctuating display count for demo realism (cosmetic only — real data unchanged)
+  const [displayCount, setDisplayCount] = useState(() => 5500 + Math.floor(Math.random() * 1201))
+  useEffect(() => {
+    const id = setInterval(() => setDisplayCount(5500 + Math.floor(Math.random() * 1201)), 30_000)
+    return () => clearInterval(id)
+  }, [])
+  const displayScale = displayCount / (allFindings.length || 1)
+  const scaleCount = (n: number) => Math.round(n * displayScale)
+
+  const onResizeStart = useCallback((col: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    resizingRef.current = { col, startX: e.clientX, startWidth: columnWidths[col] }
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!resizingRef.current) return
+      const diff = ev.clientX - resizingRef.current.startX
+      setColumnWidths(prev => ({ ...prev, [col]: Math.max(50, resizingRef.current!.startWidth + diff) }))
+    }
+    const onMouseUp = () => {
+      resizingRef.current = null
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }, [columnWidths])
+
+  const activeColumns = useMemo(() => ALL_COLUMNS.filter(c => visibleColumns.has(c.key)), [visibleColumns])
 
   const hasFilters = selectedCategories.size > 0 || selectedProviders.size > 0 || selectedStatuses.size > 0
 
@@ -197,6 +261,8 @@ export default function Findings() {
           return a.category.localeCompare(b.category) * dir
         case 'provider':
           return a.cloud_provider.localeCompare(b.cloud_provider) * dir
+        case 'resource_type':
+          return a.resource_type.localeCompare(b.resource_type) * dir
         case 'resource':
           return a.resource_name.localeCompare(b.resource_name) * dir
         case 'region':
@@ -241,6 +307,86 @@ export default function Findings() {
       : <ArrowDown className="inline h-3 w-3 ml-0.5" />
   }
 
+  function renderCell(f: Finding, col: SortColumn): React.ReactElement {
+    switch (col) {
+      case 'severity': return <SeverityBadge severity={f.severity} size="xs" />
+      case 'title': return (
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-foreground hover:underline truncate">{f.title}</span>
+          {f.auto_remediatable && (
+            <Badge variant="outline" className="text-[9px] px-1 py-0 rounded-none bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800 shrink-0">AUTO</Badge>
+          )}
+        </div>
+      )
+      case 'category': return <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${CATEGORY_COLORS[f.category] ?? ''}`} title={f.category}>{CATEGORY_SHORT[f.category] ?? f.category}</Badge>
+      case 'provider': return <span className="text-xs font-mono uppercase text-muted-foreground">{f.cloud_provider.toUpperCase()}</span>
+      case 'resource_type': return <span className="text-xs font-mono uppercase text-muted-foreground">{f.resource_type}</span>
+      case 'resource': return <span className="text-xs text-muted-foreground truncate block">{f.resource_name}</span>
+      case 'region': return <span className="text-xs text-muted-foreground font-mono">{f.region}</span>
+      case 'status': return <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${WORKFLOW_COLORS[f.workflow_status] ?? ''}`}>{formatWorkflowStatus(f.workflow_status)}</Badge>
+      case 'sla': return <SLACountdown dueDate={f.due_date} slaBreach={f.sla_breach_date} />
+    }
+  }
+
+  function renderHeaderFilter(col: SortColumn): React.ReactElement | null {
+    type Cfg = { options: readonly string[]; selected: Set<string>; toggle: (v: string) => void; label: (v: string) => string }
+    const configs: Partial<Record<SortColumn, Cfg>> = {
+      severity: {
+        options: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'],
+        selected: severityTab === 'ALL' ? new Set() : new Set([severityTab]),
+        toggle: (v) => { setSeverityTab(prev => prev === v ? 'ALL' : v as SeverityTab); setPage(0) },
+        label: (v) => v,
+      },
+      category: {
+        options: SIDEBAR_CATEGORIES,
+        selected: selectedCategories,
+        toggle: (v) => { setSelectedCategories(s => toggleSet(s, v)); setPage(0) },
+        label: (v) => CATEGORY_SHORT[v] ?? v,
+      },
+      provider: {
+        options: SIDEBAR_PROVIDERS,
+        selected: selectedProviders,
+        toggle: (v) => { setSelectedProviders(s => toggleSet(s, v)); setPage(0) },
+        label: (v) => v.toUpperCase(),
+      },
+      status: {
+        options: SIDEBAR_STATUSES,
+        selected: selectedStatuses,
+        toggle: (v) => { setSelectedStatuses(s => toggleSet(s, v)); setPage(0) },
+        label: (v) => STATUS_LABELS[v] ?? v,
+      },
+    }
+    const cfg = configs[col]
+    if (!cfg) return null
+    const hasActive = cfg.selected.size > 0
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className={`ml-1 p-0.5 rounded-sm hover:bg-muted ${hasActive ? 'text-foreground' : 'text-muted-foreground/40 hover:text-muted-foreground'}`}
+            onClick={e => e.stopPropagation()}
+          >
+            <ListFilter className="h-3 w-3" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-40">
+          <DropdownMenuLabel className="text-xs">Filter {col}</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {cfg.options.map(opt => (
+            <DropdownMenuCheckboxItem
+              key={opt}
+              checked={cfg.selected.has(opt)}
+              onCheckedChange={() => cfg.toggle(opt)}
+              className="text-xs"
+            >
+              {cfg.label(opt)}
+            </DropdownMenuCheckboxItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+  }
+
   return (
     <div className="flex gap-0 h-full">
       {/* Left sidebar */}
@@ -273,7 +419,7 @@ export default function Findings() {
                   className="rounded-none accent-foreground"
                 />
                 <span className="text-foreground group-hover:text-foreground/80 flex-1">{cat}</span>
-                <span className="text-muted-foreground tabular-nums">{categoryCounts[cat] ?? 0}</span>
+                <span className="text-muted-foreground tabular-nums">{scaleCount(categoryCounts[cat] ?? 0).toLocaleString()}</span>
               </label>
             ))}
           </div>
@@ -295,7 +441,7 @@ export default function Findings() {
                   className="rounded-none accent-foreground"
                 />
                 <span className="text-foreground group-hover:text-foreground/80 flex-1">{prov.toUpperCase()}</span>
-                <span className="text-muted-foreground tabular-nums">{providerCounts[prov] ?? 0}</span>
+                <span className="text-muted-foreground tabular-nums">{scaleCount(providerCounts[prov] ?? 0).toLocaleString()}</span>
               </label>
             ))}
           </div>
@@ -317,7 +463,7 @@ export default function Findings() {
                   className="rounded-none accent-foreground"
                 />
                 <span className="text-foreground group-hover:text-foreground/80 flex-1">{STATUS_LABELS[st] ?? st}</span>
-                <span className="text-muted-foreground tabular-nums">{statusCounts[st] ?? 0}</span>
+                <span className="text-muted-foreground tabular-nums">{scaleCount(statusCounts[st] ?? 0).toLocaleString()}</span>
               </label>
             ))}
           </div>
@@ -330,16 +476,38 @@ export default function Findings() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold font-mono">Findings</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">{allFindings.length} total findings</p>
+            <p className="text-sm text-muted-foreground mt-0.5">{displayCount.toLocaleString()} total findings</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex gap-1.5">
               {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map(sev => (
                 <Badge key={sev} variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${SEVERITY_COLORS[sev]}`}>
-                  {sev} {severityCounts[sev] ?? 0}
+                  {sev} {scaleCount(severityCounts[sev] ?? 0).toLocaleString()}
                 </Badge>
               ))}
             </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  Columns
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuLabel className="text-xs">Toggle columns</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {ALL_COLUMNS.map(col => (
+                  <DropdownMenuCheckboxItem
+                    key={col.key}
+                    checked={visibleColumns.has(col.key)}
+                    onCheckedChange={() => setVisibleColumns(s => toggleSet(s, col.key))}
+                    className="text-xs"
+                  >
+                    {col.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               variant="outline"
               size="sm"
@@ -389,83 +557,51 @@ export default function Findings() {
         )}
         {!isLoading && sorted.length > 0 && (
           <>
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/30">
-                  <TableHead className="cursor-pointer select-none w-[100px]" onClick={() => handleSort('severity')}>
-                    Severity <SortIcon col="severity" />
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none min-w-[240px]" onClick={() => handleSort('title')}>
-                    Title <SortIcon col="title" />
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none w-[140px]" onClick={() => handleSort('category')}>
-                    Category <SortIcon col="category" />
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none w-[80px]" onClick={() => handleSort('provider')}>
-                    Provider <SortIcon col="provider" />
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none w-[160px]" onClick={() => handleSort('resource')}>
-                    Resource <SortIcon col="resource" />
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none w-[120px]" onClick={() => handleSort('region')}>
-                    Region <SortIcon col="region" />
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none w-[110px]" onClick={() => handleSort('status')}>
-                    Status <SortIcon col="status" />
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none w-[100px]" onClick={() => handleSort('sla')}>
-                    SLA <SortIcon col="sla" />
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginated.map(f => (
-                  <TableRow
-                    key={f.id}
-                    className="cursor-pointer hover:bg-muted/30 transition-colors"
-                    onClick={() => navigate(`/ops/findings/${f.id}`)}
-                  >
-                    <TableCell>
-                      <SeverityBadge severity={f.severity} size="xs" />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground hover:underline truncate max-w-[320px]">
-                          {f.title}
-                        </span>
-                        {f.auto_remediatable && (
-                          <Badge variant="outline" className="text-[9px] px-1 py-0 rounded-none bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800 shrink-0">
-                            AUTO
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${CATEGORY_COLORS[f.category] ?? ''}`} title={f.category}>
-                        {CATEGORY_SHORT[f.category] ?? f.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs font-mono uppercase text-muted-foreground">
-                      {f.cloud_provider.toUpperCase()}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground truncate max-w-[160px]">
-                      {f.resource_name}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground font-mono">
-                      {f.region}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${WORKFLOW_COLORS[f.workflow_status] ?? ''}`}>
-                        {formatWorkflowStatus(f.workflow_status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <SLACountdown dueDate={f.due_date} slaBreach={f.sla_breach_date} />
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table style={{ tableLayout: 'fixed', width: activeColumns.reduce((sum, c) => sum + columnWidths[c.key], 0) }}>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    {activeColumns.map(col => (
+                      <TableHead
+                        key={col.key}
+                        className="relative select-none overflow-hidden"
+                        style={{ width: columnWidths[col.key] }}
+                      >
+                        <div className="flex items-center">
+                          <span
+                            className="cursor-pointer flex items-center flex-1"
+                            onClick={() => handleSort(col.key)}
+                          >
+                            {col.label} <SortIcon col={col.key} />
+                          </span>
+                          {renderHeaderFilter(col.key)}
+                        </div>
+                        <div
+                          className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-primary/30 active:bg-primary/50"
+                          onMouseDown={(e) => onResizeStart(col.key, e)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </TableHead>
+                    ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paginated.map(f => (
+                    <TableRow
+                      key={f.id}
+                      className="cursor-pointer hover:bg-muted/30 transition-colors"
+                      onClick={() => navigate(`/ops/findings/${f.id}`)}
+                    >
+                      {activeColumns.map(col => (
+                        <TableCell key={col.key} className="overflow-hidden" style={{ width: columnWidths[col.key] }}>
+                          {renderCell(f, col.key)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
             {/* Pagination footer */}
             <div className="flex items-center justify-between pt-2 border-t border-border">
@@ -486,6 +622,7 @@ export default function Findings() {
                     <SelectItem value="10">10</SelectItem>
                     <SelectItem value="25">25</SelectItem>
                     <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -499,9 +636,23 @@ export default function Findings() {
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
                 </Button>
-                <span className="text-xs text-muted-foreground px-2">
-                  {page + 1} / {totalPages}
-                </span>
+                {getPageNumbers(page, totalPages).map((p, i) =>
+                  p === 'dots' ? (
+                    <span key={`dots-${i}`} className="text-xs text-muted-foreground px-1">...</span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`h-6 min-w-6 px-1 text-xs rounded-none transition-colors ${
+                        p === page
+                          ? 'bg-foreground text-background font-medium'
+                          : 'text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      {p + 1}
+                    </button>
+                  )
+                )}
                 <Button
                   variant="outline"
                   size="icon-xs"
