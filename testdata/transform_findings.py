@@ -481,11 +481,14 @@ def parse_aws_csv(path: Path, sample_n: int, rng: random.Random) -> list[dict[st
         region = row.get("Region", "us-east-1")
         control_id = row.get("Compliance.SecurityControlId", "")
         category = "MISCONFIGURATION"
-        types_str = row.get("Types", "")
-        for pattern, cat in AWS_CATEGORY_MAP.items():
-            if pattern in types_str:
-                category = cat
-                break
+        if title.startswith("CVE-"):
+            category = "VULNERABILITY"
+        else:
+            types_str = row.get("Types", "")
+            for pattern, cat in AWS_CATEGORY_MAP.items():
+                if pattern in types_str:
+                    category = cat
+                    break
 
         first_found = row.get("FirstObservedAt", row.get("CreatedAt", ""))
         last_seen = row.get("LastObservedAt", row.get("UpdatedAt", ""))
