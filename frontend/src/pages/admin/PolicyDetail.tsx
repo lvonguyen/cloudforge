@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -445,8 +445,10 @@ export default function PolicyDetail() {
   const { icon: StatusIcon, className: statusIconClass } = STATUS_CONFIG[policy.status] ?? STATUS_CONFIG.inactive
   const lines = policy.rego.split('\n')
 
+  const rego = policy.rego
+
   function handleCopy() {
-    navigator.clipboard.writeText(policy.rego).then(() => {
+    navigator.clipboard.writeText(rego).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
@@ -659,13 +661,8 @@ function formatTimestamp(iso: string): string {
   })
 }
 
-function highlightRego(line: string): JSX.Element {
-  // Simple keyword-based highlighting for Rego
-  const keywords = /\b(package|import|default|deny|allow|not|in|as|with|some|every|if|contains|else)\b/g
-  const strings = /("(?:[^"\\]|\\.)*")/g
+function highlightRego(line: string): React.ReactElement {
   const comments = /(#.*)$/
-  const numbers = /\b(\d+)\b/g
-  const operators = /(:=|==|!=|>=|<=|&&|\|\|)/g
 
   // Check for comment first
   const commentMatch = line.match(comments)
@@ -674,7 +671,6 @@ function highlightRego(line: string): JSX.Element {
   }
 
   const parts: Array<{ text: string; className: string }> = []
-  let remaining = line
   let lastIndex = 0
 
   // Build a combined regex for tokenization
