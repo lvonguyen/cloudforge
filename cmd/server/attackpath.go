@@ -280,7 +280,7 @@ func buildAttackPath(id, accountID string, chain []Finding) AttackPath {
 		}
 
 		if i > 0 {
-			edgeType := inferEdgeType(chain[i-1], f)
+			edgeType := inferEdgeType(chain[i-1], f) //nolint:gosec // bounds checked by i > 0
 			edges = append(edges, AttackPathEdge{
 				ID:       fmt.Sprintf("%s-edge-%d", id, i-1),
 				Source:   fmt.Sprintf("%s-node-%d", id, i-1),

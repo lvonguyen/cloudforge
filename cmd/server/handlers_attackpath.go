@@ -10,9 +10,8 @@ import (
 )
 
 func (s *Server) listAttackPaths(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAttackPaths")
+	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAttackPaths")
 	defer span.End()
-	r = r.WithContext(ctx)
 
 	span.SetAttributes(attribute.Int("attack_paths.count", len(s.attackPaths)))
 
@@ -40,9 +39,8 @@ func (s *Server) getAttackPath(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getAttackPathStats(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getAttackPathStats")
+	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getAttackPathStats")
 	defer span.End()
-	r = r.WithContext(ctx)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(s.attackPathStats)
