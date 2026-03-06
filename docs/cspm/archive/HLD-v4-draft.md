@@ -445,7 +445,7 @@ COMPLEXITY_USE_AI_FALLBACK=true
 # Integrations
 ASANA_PAT=xxx
 ASANA_PROJECT_GID=xxx
-MAIL_SENDER_ADDRESS=cspm-reports@company.com
+MAIL_SENDER_ADDRESS=cspm-reports@contoso.dev
 
 # Storage
 STATE_STORAGE_ACCOUNT=xxx

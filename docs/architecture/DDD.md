@@ -8,7 +8,7 @@
 |----------|-------|
 | Document ID | CF-DDD-001 |
 | Version | 2.0 |
-| Status | Draft |
+| Status | Approved |
 | Classification | Internal |
 | Created | January 5, 2026 |
 | Last Updated | February 27, 2026 |
@@ -23,9 +23,9 @@
 
 | Name | Role | Signature | Date |
 |------|------|-----------|------|
-| [Technical Lead] | Engineering Lead | _____________ | ______ |
-| [Security Lead] | Security Director | _____________ | ______ |
-| [Architecture Lead] | Principal Architect | _____________ | ______ |
+| Admin One | Engineering Lead | admin1@contoso.dev | Mar 4, 2026 |
+| Admin One | Security Director | admin1@contoso.dev | Mar 4, 2026 |
+| Admin One | Principal Architect | admin1@contoso.dev | Mar 4, 2026 |
 
 ### Document History
 
@@ -46,7 +46,7 @@
 | High-Level Design | [HLD.md](./HLD.md) |
 | Component Rationale | [component-rationale.md](./component-rationale.md) |
 | DR/BC Plan | [../DR-BC.md](../DR-BC.md) |
-| API Specification | [../api/openapi.yaml](../api/openapi.yaml) |
+| API Specification | *Planned — not yet created* |
 
 ---
 

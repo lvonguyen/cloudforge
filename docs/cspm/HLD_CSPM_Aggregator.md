@@ -51,7 +51,7 @@ CSPM Aggregator is a **multi-cloud security posture management platform** that a
 
 ### High-Level System Diagram
 
-![System Architecture](diagrams/hld_architecture.png)
+![System Architecture](diagrams/hld_architecture.svg)
 
 ### Architecture Principles
 
@@ -106,7 +106,7 @@ CSPM Aggregator is a **multi-cloud security posture management platform** that a
 
 ### Finding Ingestion Flow
 
-![Scoring Pipeline](diagrams/dfd_scoring_pipeline.png)
+![Scoring Pipeline](diagrams/dfd_scoring_pipeline.svg)
 
 ### Data Transformation Stages
 
@@ -122,7 +122,7 @@ CSPM Aggregator is a **multi-cloud security posture management platform** that a
 
 ### Priority Matrix
 
-![Priority Matrix](diagrams/dfd_priority_matrix.png)
+![Priority Matrix](diagrams/dfd_priority_matrix.svg)
 
 |             | Tier 1 (Auto) | Tier 2 (Partial) | Tier 3 (Manual) |
 |-------------|---------------|------------------|-----------------|

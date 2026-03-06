@@ -19,6 +19,7 @@
 | [ADR-005](adr/ADR-005-rate-limiting.md) | Rate Limiting Strategy |
 | [ADR-006](adr/ADR-006-authentication.md) | Authentication (OIDC) |
 | [ADR-007](adr/ADR-007-grc-integration.md) | GRC Integration Pattern |
+| [ADR-008](adr/ADR-008-attack-path-computation.md) | Attack Path Computation |
 
 ## Operational Runbooks
 
@@ -36,6 +37,7 @@ See [diagrams/README.md](diagrams/README.md) — 8 architecture diagrams (SVG + 
 | [pitch-deck.md](pitch-deck.md) | Executive presentation (12 slides) |
 | [frontend-planning.md](frontend-planning.md) | Frontend design (superseded by implementation) |
 | [iac-planning.md](iac-planning.md) | IaC planning session notes |
+| [figma-session-prep.md](figma-session-prep.md) | Figma MCP session preparation notes |
 
 ## Research
 
