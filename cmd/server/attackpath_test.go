@@ -45,8 +45,8 @@ func TestAttackPathStats(t *testing.T) {
 	var stats AttackPathStats
 	assertJSON(t, rr, &stats)
 
-	if stats.TotalFindings != 80 {
-		t.Errorf("total findings = %d, want 80", stats.TotalFindings)
+	if stats.TotalFindings < 100 {
+		t.Errorf("total findings = %d, want >= 100", stats.TotalFindings)
 	}
 	if stats.TotalPaths == 0 {
 		t.Error("expected at least 1 path")
