@@ -17,6 +17,8 @@ interface NavItem {
   icon: LucideIcon
 }
 
+const PORTFOLIO_ITEM: NavItem = { to: '/', label: 'Portfolio', icon: Home }
+
 const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
   admin: [
     {
@@ -72,8 +74,29 @@ function NavContent({ collapsed }: { collapsed: boolean }) {
   const location = useLocation()
   const sections = NAV_BY_ROLE[role]
 
+  const portfolioActive = location.pathname === '/'
+
   return (
     <>
+      <ul className="mb-3">
+        <li>
+          <NavLink
+            to="/"
+            end
+            className={cn(
+              'flex items-center gap-2.5 rounded-none px-2 py-1.5 text-sm transition-colors',
+              portfolioActive
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+            )}
+            title={collapsed ? PORTFOLIO_ITEM.label : undefined}
+          >
+            <Home className="h-4 w-4 shrink-0" />
+            {!collapsed && <span>{PORTFOLIO_ITEM.label}</span>}
+          </NavLink>
+        </li>
+      </ul>
+      <Separator className="mb-3" />
       {sections.map((section, si) => (
         <div key={section.section} className={cn(si > 0 && 'mt-4')}>
           {!collapsed && (
