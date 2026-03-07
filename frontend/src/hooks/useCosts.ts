@@ -11,7 +11,7 @@ export function useCostSummary() {
 
 export function useCostAnomalies() {
   return useQuery({
-    queryKey: ['costs', 'summary'],
+    queryKey: ['costs', 'anomalies'],
     queryFn: () => apiClient.get<CostSummary>('/costs/summary'),
     select: (data) => data.anomalies,
   })

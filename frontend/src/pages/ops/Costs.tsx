@@ -29,7 +29,7 @@ export default function Costs() {
   if (isError || !summary) {
     return (
       <div className="text-sm text-muted-foreground p-4">
-        Failed to load cost data. Check that the API server is running on port 8080.
+        Failed to load cost data. Please try again later.
       </div>
     )
   }

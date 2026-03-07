@@ -16,6 +16,7 @@ import (
 	"cloudforge/internal/api"
 	"cloudforge/internal/api/gateway"
 	"cloudforge/internal/grc"
+	"cloudforge/internal/observability"
 
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
@@ -50,6 +51,7 @@ type Server struct {
 	router          *mux.Router
 	authMiddleware  *api.AuthMiddleware
 	rateLimiter     *gateway.RateLimiter
+	healthChecker   *observability.HealthChecker
 	logger          *zap.Logger
 	mockData        *MockData
 	attackPaths     []AttackPath
@@ -91,11 +93,14 @@ func main() {
 		JWTSecretEnv: cfg.JWTSecretEnv,
 		Issuer:       cfg.JWTIssuer,
 		Audience:     cfg.JWTAudience,
-		SkipPaths:    []string{"/health"},
+		SkipPaths:    []string{"/health", "/healthz", "/ready"},
 	}, logger)
 	if err != nil {
 		log.Fatalf("Failed to initialize auth middleware: %v", err)
 	}
+
+	// Initialize health checker
+	healthChecker := observability.NewHealthChecker(logger, nil)
 
 	// Initialize rate limiter (optional, depends on Redis availability)
 	var rateLimiter *gateway.RateLimiter
@@ -121,6 +126,9 @@ func main() {
 				zap.String("redis_addr", cfg.RedisAddr),
 			)
 		}
+		if redisClient != nil {
+			healthChecker.RegisterRedisCheck("redis", redisClient)
+		}
 		cancel()
 
 		rateLimiter = gateway.NewRateLimiter(redisClient, gateway.DefaultConfig(), logger)
@@ -134,6 +142,7 @@ func main() {
 		router:         mux.NewRouter(),
 		authMiddleware: authMiddleware,
 		rateLimiter:    rateLimiter,
+		healthChecker:  healthChecker,
 		logger:         logger,
 	}
 
@@ -162,6 +171,11 @@ func main() {
 		zap.Int("findings_in_paths", attackPathStats.FindingsInPaths),
 		zap.Int("isolated", attackPathStats.IsolatedFindings),
 	)
+
+	// Start periodic health checks
+	healthCtx, healthCancel := context.WithCancel(context.Background())
+	defer healthCancel()
+	srv.healthChecker.StartPeriodicCheck(healthCtx, 30*time.Second)
 
 	// Setup routes
 	srv.setupRoutes()
@@ -223,8 +237,10 @@ func main() {
 }
 
 func (s *Server) setupRoutes() {
-	// Health check (unauthenticated - skipped by middleware)
-	s.router.HandleFunc("/health", s.healthCheck).Methods("GET")
+	// Health check endpoints (unauthenticated - skipped by middleware)
+	s.router.HandleFunc("/health", s.healthChecker.HealthHandler()).Methods("GET")
+	s.router.HandleFunc("/healthz", s.healthChecker.LivenessHandler()).Methods("GET")
+	s.router.HandleFunc("/ready", s.healthChecker.ReadinessHandler()).Methods("GET")
 
 	// API v1 routes with authentication and rate limiting middleware.
 	// Auth runs first so that:
@@ -376,14 +392,6 @@ func (s *Server) getClientIDFromRequest(r *http.Request) string {
 
 	// Empty string will cause rate limiter to fall back to IP address
 	return ""
-}
-
-func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"status":  "healthy",
-		"version": "0.1.0",
-	})
 }
 
 func (s *Server) createException(w http.ResponseWriter, r *http.Request) {
