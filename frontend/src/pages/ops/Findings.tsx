@@ -64,7 +64,7 @@ const STATUS_LABELS: Record<string, string> = {
   resolved: 'Resolved',
 }
 
-type SortColumn = 'severity' | 'title' | 'category' | 'provider' | 'resource_type' | 'resource' | 'region' | 'status' | 'sla'
+type SortColumn = 'severity' | 'title' | 'category' | 'provider' | 'resource_type' | 'resource' | 'region' | 'ai_risk' | 'status' | 'sla'
 type SortDir = 'asc' | 'desc'
 
 const ALL_COLUMNS: { key: SortColumn; label: string; defaultWidth: number }[] = [
@@ -75,6 +75,7 @@ const ALL_COLUMNS: { key: SortColumn; label: string; defaultWidth: number }[] = 
   { key: 'resource_type', label: 'Type', defaultWidth: 90 },
   { key: 'resource', label: 'Resource', defaultWidth: 160 },
   { key: 'region', label: 'Region', defaultWidth: 120 },
+  { key: 'ai_risk', label: 'AI Risk', defaultWidth: 80 },
   { key: 'status', label: 'Status', defaultWidth: 110 },
   { key: 'sla', label: 'SLA', defaultWidth: 100 },
 ]
@@ -267,6 +268,8 @@ export default function Findings() {
           return a.resource_name.localeCompare(b.resource_name) * dir
         case 'region':
           return a.region.localeCompare(b.region) * dir
+        case 'ai_risk':
+          return (a.ai_risk_score - b.ai_risk_score) * dir
         case 'status':
           return a.workflow_status.localeCompare(b.workflow_status) * dir
         case 'sla': {
@@ -323,6 +326,14 @@ export default function Findings() {
       case 'resource_type': return <span className="text-xs font-mono uppercase text-muted-foreground">{f.resource_type}</span>
       case 'resource': return <span className="text-xs text-muted-foreground truncate block">{f.resource_name}</span>
       case 'region': return <span className="text-xs text-muted-foreground font-mono">{f.region}</span>
+      case 'ai_risk': return (
+        <span className={`text-xs font-mono font-bold tabular-nums ${
+          f.ai_risk_score >= 8 ? 'text-red-600 dark:text-red-400' :
+          f.ai_risk_score >= 6 ? 'text-orange-600 dark:text-orange-400' :
+          f.ai_risk_score >= 4 ? 'text-yellow-600 dark:text-yellow-400' :
+          'text-blue-600 dark:text-blue-400'
+        }`}>{f.ai_risk_score.toFixed(1)}</span>
+      )
       case 'status': return <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${WORKFLOW_COLORS[f.workflow_status] ?? ''}`}>{formatWorkflowStatus(f.workflow_status)}</Badge>
       case 'sla': return <SLACountdown dueDate={f.due_date} slaBreach={f.sla_breach_date} />
     }

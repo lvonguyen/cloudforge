@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, ExternalLink, CheckCircle2, Shield, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, ExternalLink, CheckCircle2, Shield, AlertTriangle, Brain, Crosshair, Building2 } from 'lucide-react'
 import { SeverityBadge } from '@/components/findings/SeverityBadge'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
@@ -123,6 +123,78 @@ export default function FindingDetail() {
         ))}
       </div>
 
+      {/* Operational metadata */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" />Operational Context</div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'Service', value: finding.service_name },
+              { label: 'Line of Business', value: finding.line_of_business },
+              { label: 'Workflow Status', value: finding.workflow_status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) },
+              { label: 'Due Date', value: finding.due_date ? new Date(finding.due_date).toLocaleDateString() : 'N/A' },
+            ].map(({ label, value }) => (
+              <div key={label}>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>
+                <p className="text-sm font-medium mt-0.5">{value}</p>
+              </div>
+            ))}
+          </div>
+          {finding.deduplication_key && (
+            <div className="mt-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Dedup Key</p>
+              <code className="text-[10px] font-mono text-muted-foreground mt-0.5 block truncate">{finding.deduplication_key}</code>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* AI Risk Score */}
+      {finding.ai_risk_score != null && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="flex items-center gap-1.5"><Brain className="h-3.5 w-3.5" />AI Risk Assessment</div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-start gap-6">
+              <div className="flex flex-col items-center gap-1">
+                <div className={`relative h-16 w-16 rounded-full border-4 flex items-center justify-center ${
+                  finding.ai_risk_score >= 8 ? 'border-red-500' :
+                  finding.ai_risk_score >= 6 ? 'border-orange-500' :
+                  finding.ai_risk_score >= 4 ? 'border-yellow-500' : 'border-blue-500'
+                }`}>
+                  <span className="text-lg font-bold tabular-nums">{finding.ai_risk_score.toFixed(1)}</span>
+                </div>
+                <Badge variant="outline" className={`text-[10px] ${
+                  finding.ai_risk_level === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                  finding.ai_risk_level === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
+                  finding.ai_risk_level === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                  'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                }`}>
+                  {finding.ai_risk_level.toUpperCase()}
+                </Badge>
+              </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <p className="text-sm text-muted-foreground">{finding.ai_risk_rationale}</p>
+                {finding.ai_contextual_factors && finding.ai_contextual_factors.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {finding.ai_contextual_factors.map(factor => (
+                      <Badge key={factor} variant="secondary" className="text-[10px]">{factor}</Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* CVEs */}
       {finding.cves && finding.cves.length > 0 && (
         <Card>
@@ -170,6 +242,39 @@ export default function FindingDetail() {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* MITRE ATT&CK */}
+      {((finding.mitre_tactics && finding.mitre_tactics.length > 0) || (finding.mitre_techniques && finding.mitre_techniques.length > 0)) && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="flex items-center gap-1.5"><Crosshair className="h-3.5 w-3.5" />MITRE ATT&CK</div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {finding.mitre_tactics && finding.mitre_tactics.length > 0 && (
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Tactics</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {finding.mitre_tactics.map(t => (
+                    <Badge key={t} variant="outline" className="text-[10px] font-mono bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800">{t}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {finding.mitre_techniques && finding.mitre_techniques.length > 0 && (
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Techniques</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {finding.mitre_techniques.map(t => (
+                    <Badge key={t} variant="outline" className="text-[10px] font-mono">{t}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
