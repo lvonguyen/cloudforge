@@ -7,7 +7,14 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: 1,
+      retry: (failureCount, error) => {
+        if (failureCount >= 3) return false
+        if (error instanceof ApiError) {
+          return [408, 429, 500, 502, 503, 504].includes(error.status)
+        }
+        return true
+      },
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30_000),
     },
   },
 })
@@ -28,15 +35,29 @@ function authHeaders(): Record<string, string> {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options?.headers },
-    ...options,
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText)
-    throw new ApiError(res.status, text)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 30_000)
+
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options?.headers },
+      ...options,
+      signal: controller.signal,
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText)
+      throw new ApiError(res.status, text)
+    }
+    return res.json() as Promise<T>
+  } catch (err) {
+    if (err instanceof ApiError) throw err
+    if (controller.signal.aborted) {
+      throw new ApiError(408, 'Request timed out')
+    }
+    throw err
+  } finally {
+    clearTimeout(timeout)
   }
-  return res.json() as Promise<T>
 }
 
 export const apiClient = {

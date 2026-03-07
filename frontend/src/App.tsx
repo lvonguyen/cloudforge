@@ -1,10 +1,11 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '@/lib/api'
 import { AuthProvider } from '@/lib/auth'
 import { TracePanelProvider } from '@/lib/trace-panel-context'
 import { AppShell } from '@/components/layout/AppShell'
 import { ExecutionTracePanel } from '@/components/layout/ExecutionTracePanel'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
 // Landing
 import Landing from '@/pages/Landing'
@@ -50,30 +51,36 @@ export default function App() {
                 <Route index element={<Landing />} />
 
                 {/* Admin routes */}
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/admin/policies" element={<Policies />} />
-                <Route path="/admin/policies/:id" element={<PolicyDetail />} />
-                <Route path="/admin/ai-agents" element={<AIAgents />} />
-                <Route path="/admin/ai-agents/:id" element={<AIAgentDetail />} />
-                <Route path="/admin/users" element={<Users />} />
-                <Route path="/admin/audit-log" element={<AuditLog />} />
-                <Route path="/admin/system" element={<SystemHealth />} />
+                <Route element={<ProtectedRoute roles={['admin']}><Outlet /></ProtectedRoute>}>
+                  <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/admin/policies" element={<Policies />} />
+                  <Route path="/admin/policies/:id" element={<PolicyDetail />} />
+                  <Route path="/admin/ai-agents" element={<AIAgents />} />
+                  <Route path="/admin/ai-agents/:id" element={<AIAgentDetail />} />
+                  <Route path="/admin/users" element={<Users />} />
+                  <Route path="/admin/audit-log" element={<AuditLog />} />
+                  <Route path="/admin/system" element={<SystemHealth />} />
+                </Route>
 
                 {/* Operator routes */}
-                <Route path="/ops" element={<CommandCenter />} />
-                <Route path="/ops/findings" element={<Findings />} />
-                <Route path="/ops/findings/:id" element={<FindingDetail />} />
-                <Route path="/ops/remediation" element={<RemediationQueue />} />
-                <Route path="/ops/costs" element={<Costs />} />
-                <Route path="/ops/compliance" element={<Compliance />} />
-                <Route path="/ops/attack-paths" element={<AttackPaths />} />
+                <Route element={<ProtectedRoute roles={['admin', 'operator']}><Outlet /></ProtectedRoute>}>
+                  <Route path="/ops" element={<CommandCenter />} />
+                  <Route path="/ops/findings" element={<Findings />} />
+                  <Route path="/ops/findings/:id" element={<FindingDetail />} />
+                  <Route path="/ops/remediation" element={<RemediationQueue />} />
+                  <Route path="/ops/costs" element={<Costs />} />
+                  <Route path="/ops/compliance" element={<Compliance />} />
+                  <Route path="/ops/attack-paths" element={<AttackPaths />} />
+                </Route>
 
                 {/* Requester / portal routes */}
-                <Route path="/portal" element={<PortalDashboard />} />
-                <Route path="/portal/request" element={<Request />} />
-                <Route path="/portal/requests" element={<MyRequests />} />
-                <Route path="/portal/requests/:id" element={<RequestDetail />} />
-                <Route path="/portal/catalog" element={<Catalog />} />
+                <Route element={<ProtectedRoute roles={['admin', 'operator', 'requester']}><Outlet /></ProtectedRoute>}>
+                  <Route path="/portal" element={<PortalDashboard />} />
+                  <Route path="/portal/request" element={<Request />} />
+                  <Route path="/portal/requests" element={<MyRequests />} />
+                  <Route path="/portal/requests/:id" element={<RequestDetail />} />
+                  <Route path="/portal/catalog" element={<Catalog />} />
+                </Route>
 
                 {/* 404 catch-all */}
                 <Route path="*" element={<NotFound />} />
