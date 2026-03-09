@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '@/lib/api'
@@ -6,38 +7,45 @@ import { TracePanelProvider } from '@/lib/trace-panel-context'
 import { AppShell } from '@/components/layout/AppShell'
 import { ExecutionTracePanel } from '@/components/layout/ExecutionTracePanel'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
-// Landing
+// Eager (always needed)
 import Landing from '@/pages/Landing'
-
-// Admin pages
-import AdminDashboard from '@/pages/admin/Dashboard'
-import Policies from '@/pages/admin/Policies'
-import PolicyDetail from '@/pages/admin/PolicyDetail'
-import AIAgents from '@/pages/admin/AIAgents'
-import AIAgentDetail from '@/pages/admin/AIAgentDetail'
-import Users from '@/pages/admin/Users'
-import AuditLog from '@/pages/admin/AuditLog'
-import SystemHealth from '@/pages/admin/SystemHealth'
-
-// Operator pages
-import CommandCenter from '@/pages/ops/CommandCenter'
-import Findings from '@/pages/ops/Findings'
-import FindingDetail from '@/pages/ops/FindingDetail'
-import RemediationQueue from '@/pages/ops/RemediationQueue'
-import Costs from '@/pages/ops/Costs'
-import Compliance from '@/pages/ops/Compliance'
-import AttackPaths from '@/pages/ops/AttackPaths'
-
-// Portal pages
-import PortalDashboard from '@/pages/portal/Dashboard'
-import Request from '@/pages/portal/Request'
-import MyRequests from '@/pages/portal/MyRequests'
-import RequestDetail from '@/pages/portal/RequestDetail'
-import Catalog from '@/pages/portal/Catalog'
-
-// Fallback
 import NotFound from '@/pages/NotFound'
+
+// Admin pages (lazy)
+const AdminDashboard = lazy(() => import('@/pages/admin/Dashboard'))
+const Policies = lazy(() => import('@/pages/admin/Policies'))
+const PolicyDetail = lazy(() => import('@/pages/admin/PolicyDetail'))
+const AIAgents = lazy(() => import('@/pages/admin/AIAgents'))
+const AIAgentDetail = lazy(() => import('@/pages/admin/AIAgentDetail'))
+const Users = lazy(() => import('@/pages/admin/Users'))
+const AuditLog = lazy(() => import('@/pages/admin/AuditLog'))
+const SystemHealth = lazy(() => import('@/pages/admin/SystemHealth'))
+
+// Operator pages (lazy)
+const CommandCenter = lazy(() => import('@/pages/ops/CommandCenter'))
+const Findings = lazy(() => import('@/pages/ops/Findings'))
+const FindingDetail = lazy(() => import('@/pages/ops/FindingDetail'))
+const RemediationQueue = lazy(() => import('@/pages/ops/RemediationQueue'))
+const Costs = lazy(() => import('@/pages/ops/Costs'))
+const Compliance = lazy(() => import('@/pages/ops/Compliance'))
+const AttackPaths = lazy(() => import('@/pages/ops/AttackPaths'))
+
+// Portal pages (lazy)
+const PortalDashboard = lazy(() => import('@/pages/portal/Dashboard'))
+const Request = lazy(() => import('@/pages/portal/Request'))
+const MyRequests = lazy(() => import('@/pages/portal/MyRequests'))
+const RequestDetail = lazy(() => import('@/pages/portal/RequestDetail'))
+const Catalog = lazy(() => import('@/pages/portal/Catalog'))
+
+function PageFallback() {
+  return (
+    <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">
+      Loading...
+    </div>
+  )
+}
 
 export default function App() {
   return (
@@ -52,34 +60,40 @@ export default function App() {
 
                 {/* Admin routes */}
                 <Route element={<ProtectedRoute roles={['admin']}><Outlet /></ProtectedRoute>}>
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/admin/policies" element={<Policies />} />
-                  <Route path="/admin/policies/:id" element={<PolicyDetail />} />
-                  <Route path="/admin/ai-agents" element={<AIAgents />} />
-                  <Route path="/admin/ai-agents/:id" element={<AIAgentDetail />} />
-                  <Route path="/admin/users" element={<Users />} />
-                  <Route path="/admin/audit-log" element={<AuditLog />} />
-                  <Route path="/admin/system" element={<SystemHealth />} />
+                  <Route element={<ErrorBoundary fallbackLabel="Admin"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></ErrorBoundary>}>
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/admin/policies" element={<Policies />} />
+                    <Route path="/admin/policies/:id" element={<PolicyDetail />} />
+                    <Route path="/admin/ai-agents" element={<AIAgents />} />
+                    <Route path="/admin/ai-agents/:id" element={<AIAgentDetail />} />
+                    <Route path="/admin/users" element={<Users />} />
+                    <Route path="/admin/audit-log" element={<AuditLog />} />
+                    <Route path="/admin/system" element={<SystemHealth />} />
+                  </Route>
                 </Route>
 
                 {/* Operator routes */}
                 <Route element={<ProtectedRoute roles={['admin', 'operator']}><Outlet /></ProtectedRoute>}>
-                  <Route path="/ops" element={<CommandCenter />} />
-                  <Route path="/ops/findings" element={<Findings />} />
-                  <Route path="/ops/findings/:id" element={<FindingDetail />} />
-                  <Route path="/ops/remediation" element={<RemediationQueue />} />
-                  <Route path="/ops/costs" element={<Costs />} />
-                  <Route path="/ops/compliance" element={<Compliance />} />
-                  <Route path="/ops/attack-paths" element={<AttackPaths />} />
+                  <Route element={<ErrorBoundary fallbackLabel="Ops"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></ErrorBoundary>}>
+                    <Route path="/ops" element={<CommandCenter />} />
+                    <Route path="/ops/findings" element={<Findings />} />
+                    <Route path="/ops/findings/:id" element={<FindingDetail />} />
+                    <Route path="/ops/remediation" element={<RemediationQueue />} />
+                    <Route path="/ops/costs" element={<Costs />} />
+                    <Route path="/ops/compliance" element={<Compliance />} />
+                    <Route path="/ops/attack-paths" element={<AttackPaths />} />
+                  </Route>
                 </Route>
 
                 {/* Requester / portal routes */}
                 <Route element={<ProtectedRoute roles={['admin', 'operator', 'requester']}><Outlet /></ProtectedRoute>}>
-                  <Route path="/portal" element={<PortalDashboard />} />
-                  <Route path="/portal/request" element={<Request />} />
-                  <Route path="/portal/requests" element={<MyRequests />} />
-                  <Route path="/portal/requests/:id" element={<RequestDetail />} />
-                  <Route path="/portal/catalog" element={<Catalog />} />
+                  <Route element={<ErrorBoundary fallbackLabel="Portal"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></ErrorBoundary>}>
+                    <Route path="/portal" element={<PortalDashboard />} />
+                    <Route path="/portal/request" element={<Request />} />
+                    <Route path="/portal/requests" element={<MyRequests />} />
+                    <Route path="/portal/requests/:id" element={<RequestDetail />} />
+                    <Route path="/portal/catalog" element={<Catalog />} />
+                  </Route>
                 </Route>
 
                 {/* 404 catch-all */}
