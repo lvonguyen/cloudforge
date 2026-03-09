@@ -160,6 +160,7 @@ func main() {
 		zap.Int("audit_events", len(mockData.AuditEvents)),
 		zap.Int("users", len(mockData.Users)),
 		zap.Int("policies", len(mockData.Policies)),
+		zap.Int("catalog_modules", len(mockData.CatalogModules)),
 	)
 
 	// Compute attack paths from findings
@@ -331,6 +332,11 @@ func (s *Server) setupRoutes() {
 	// Users — admin only
 	apiRouter.Handle("/users",
 		api.RequireRole(api.RoleAdmin)(http.HandlerFunc(s.listUsers)),
+	).Methods("GET")
+
+	// Catalog
+	apiRouter.Handle("/catalog/modules",
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listCatalogModules)),
 	).Methods("GET")
 
 	// Policies

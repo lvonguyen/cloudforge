@@ -8,6 +8,7 @@ import { MultiStepForm } from '@/components/portal/MultiStepForm'
 import { DeployPreview } from '@/components/portal/DeployPreview'
 import { PolicyCheckResult } from '@/components/portal/PolicyCheckResult'
 import { ResourceCatalogCard } from '@/components/portal/ResourceCatalogCard'
+import { useCatalog } from '@/hooks/useCatalog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -24,17 +25,7 @@ import { apiClient } from '@/lib/api'
 import type { PolicyInput, PolicyResult } from '@/types/policy'
 import type { ExceptionType } from '@/types/grc'
 
-// ── Catalog ─────────────────────────────────────────────────────────────────
-
-const CATALOG = [
-  { id: 's3', name: 'S3', description: 'Object Storage', provider: 'aws', resourceType: 's3', estimatedMonthlyCost: '$2–$50' },
-  { id: 'ec2', name: 'EC2', description: 'Compute', provider: 'aws', resourceType: 'ec2', estimatedMonthlyCost: '$10–$500' },
-  { id: 'rds', name: 'RDS', description: 'Database', provider: 'aws', resourceType: 'rds', estimatedMonthlyCost: '$25–$300' },
-  { id: 'aks', name: 'AKS', description: 'K8s Azure', provider: 'azure', resourceType: 'aks', estimatedMonthlyCost: '$50–$800' },
-  { id: 'gke', name: 'GKE', description: 'K8s GCP', provider: 'gcp', resourceType: 'gke', estimatedMonthlyCost: '$50–$800' },
-] as const
-
-type ResourceId = (typeof CATALOG)[number]['id']
+// ── Catalog (dynamic) ────────────────────────────────────────────────────────
 
 const REGIONS: Record<string, string[]> = {
   aws: ['us-east-1', 'us-west-2', 'eu-west-1', 'ap-southeast-1', 'ap-northeast-1'],
@@ -91,13 +82,15 @@ function StepResourceSelection({
   onProviderChange,
   region,
   onRegionChange,
+  catalog,
 }: {
   selectedId: string
-  onSelect: (id: ResourceId) => void
+  onSelect: (id: string) => void
   provider: string
   onProviderChange: (p: string) => void
   region: string
   onRegionChange: (r: string) => void
+  catalog: { id: string; name: string; description: string; provider: string; resourceType: string; estimatedMonthlyCost: string }[]
 }) {
   const regions = REGIONS[provider] ?? []
 
@@ -106,7 +99,7 @@ function StepResourceSelection({
       <div>
         <h2 className="text-sm font-semibold mb-3">Select Resource Type</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {CATALOG.map(item => (
+          {catalog.map(item => (
             <div
               key={item.id}
               className={`cursor-pointer rounded-none ring-2 transition-all ${
@@ -114,7 +107,6 @@ function StepResourceSelection({
               }`}
               onClick={() => {
                 onSelect(item.id)
-                // Auto-set provider to match catalog item
                 onProviderChange(item.provider)
               }}
             >
@@ -411,6 +403,7 @@ function StepReview({
   acceptedExceptions,
   businessCase,
   onBusinessCaseChange,
+  catalog,
 }: {
   step1: Step1Values
   formValues: Record<string, unknown>
@@ -418,8 +411,9 @@ function StepReview({
   acceptedExceptions: string[]
   businessCase: string
   onBusinessCaseChange: (v: string) => void
+  catalog: { id: string; name: string; description: string }[]
 }) {
-  const resource = CATALOG.find(c => c.id === step1.resourceId)
+  const resource = catalog.find(c => c.id === step1.resourceId)
   const needsBusinessCase = acceptedExceptions.length > 0
 
   return (
@@ -486,13 +480,24 @@ export default function Request() {
   const location = useLocation()
   const { user } = useAuth()
   const createException = useCreateException()
+  const { data: catalogModules = [] } = useCatalog()
+
+  // Map CatalogModule[] to the shape used by ResourceCatalogCard and step components
+  const catalog = catalogModules.map(m => ({
+    id: m.id,
+    name: m.name,
+    description: m.description,
+    provider: m.provider,
+    resourceType: m.resource_type,
+    estimatedMonthlyCost: m.cost_estimate,
+  }))
 
   const [currentStep, setCurrentStep] = useState(0)
   const [submitted, setSubmitted] = useState(false)
 
   // Pre-fill from Catalog navigation
   const preselect = (location.state as { preselect?: string } | null)?.preselect
-  const preselectItem = preselect ? CATALOG.find(c => c.id === preselect) : undefined
+  const preselectItem = preselect ? catalog.find(c => c.id === preselect) : undefined
 
   // Step 1 state
   const [selectedResource, setSelectedResource] = useState<string>(preselectItem?.id ?? '')
@@ -587,7 +592,7 @@ export default function Request() {
   }
 
   const handleSubmit = async () => {
-    const resource = CATALOG.find(c => c.id === selectedResource)
+    const resource = catalog.find(c => c.id === selectedResource)
     const exceptionType: ExceptionType = acceptedExceptions.length > 0 ? 'OTHER' : 'OTHER'
 
     await createException.mutateAsync({
@@ -619,13 +624,14 @@ export default function Request() {
           selectedId={selectedResource}
           onSelect={id => {
             setSelectedResource(id)
-            const item = CATALOG.find(c => c.id === id)
+            const item = catalog.find(c => c.id === id)
             if (item) setCloudProvider(item.provider)
           }}
           provider={cloudProvider}
           onProviderChange={setCloudProvider}
           region={region}
           onRegionChange={setRegion}
+          catalog={catalog}
         />
       ),
     },
@@ -668,6 +674,7 @@ export default function Request() {
           acceptedExceptions={acceptedExceptions}
           businessCase={businessCase}
           onBusinessCaseChange={setBusinessCase}
+          catalog={catalog}
         />
       ),
     },

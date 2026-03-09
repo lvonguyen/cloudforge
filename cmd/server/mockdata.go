@@ -7,17 +7,35 @@ import (
 	"path/filepath"
 )
 
+// CatalogModule represents a Terraform golden module in the service catalogue.
+type CatalogModule struct {
+	ID               string   `json:"id"`
+	Name             string   `json:"name"`
+	Description      string   `json:"description"`
+	Provider         string   `json:"provider"`
+	ResourceType     string   `json:"resource_type"`
+	Version          string   `json:"version"`
+	CostEstimate     string   `json:"cost_estimate"`
+	Tags             []string `json:"tags"`
+	Icon             string   `json:"icon"`
+	Category         string   `json:"category"`
+	ComplianceTags   []string `json:"compliance_tags"`
+	AutoApproved     bool     `json:"auto_approved"`
+	ProvisioningTime string   `json:"provisioning_time"`
+}
+
 // MockData holds all loaded mock data for the API.
 type MockData struct {
-	Findings     []Finding
-	Agents       []Agent
-	Traces       []AgentTrace
-	Frameworks   []ComplianceFramework
-	Costs        *CostSummary
-	Remediations []RemediationRecord
-	AuditEvents  []AuditEvent
-	Users        []UserRow
-	Policies     []Policy
+	Findings       []Finding
+	Agents         []Agent
+	Traces         []AgentTrace
+	Frameworks     []ComplianceFramework
+	Costs          *CostSummary
+	Remediations   []RemediationRecord
+	AuditEvents    []AuditEvent
+	Users          []UserRow
+	Policies       []Policy
+	CatalogModules []CatalogModule
 }
 
 // loadMockData loads all mock JSON files from the frontend mock directory.
@@ -53,6 +71,9 @@ func loadMockData(basePath string) (*MockData, error) {
 	}
 	if err := loadJSON(filepath.Join(mockDir, "policies.json"), &data.Policies); err != nil {
 		return nil, fmt.Errorf("loading policies: %w", err)
+	}
+	if err := loadJSON(filepath.Join(mockDir, "catalog.json"), &data.CatalogModules); err != nil {
+		return nil, fmt.Errorf("loading catalog: %w", err)
 	}
 
 	return data, nil

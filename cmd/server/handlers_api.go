@@ -229,6 +229,47 @@ func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(results)
 }
 
+func (s *Server) listCatalogModules(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listCatalogModules")
+	defer span.End()
+	r = r.WithContext(ctx)
+
+	providerFilter := strings.ToLower(r.URL.Query().Get("provider"))
+	categoryFilter := strings.ToLower(r.URL.Query().Get("category"))
+	searchFilter := strings.ToLower(r.URL.Query().Get("search"))
+
+	results := make([]CatalogModule, 0, len(s.mockData.CatalogModules))
+	for _, m := range s.mockData.CatalogModules {
+		if providerFilter != "" && !strings.EqualFold(m.Provider, providerFilter) {
+			continue
+		}
+		if categoryFilter != "" && !strings.EqualFold(m.Category, categoryFilter) {
+			continue
+		}
+		if searchFilter != "" {
+			matched := strings.Contains(strings.ToLower(m.Name), searchFilter) ||
+				strings.Contains(strings.ToLower(m.Description), searchFilter)
+			if !matched {
+				for _, tag := range m.Tags {
+					if strings.Contains(strings.ToLower(tag), searchFilter) {
+						matched = true
+						break
+					}
+				}
+			}
+			if !matched {
+				continue
+			}
+		}
+		results = append(results, m)
+	}
+
+	span.SetAttributes(attribute.Int("catalog.count", len(results)))
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(results)
+}
+
 func (s *Server) listPolicies(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listPolicies")
 	defer span.End()

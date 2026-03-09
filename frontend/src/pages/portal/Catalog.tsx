@@ -1,49 +1,31 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useDebounce } from '@/hooks/useDebounce'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Server, Database, Box, Cloud, HardDrive } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import {
+  Server, Database, Box, HardDrive, Zap, Network, Globe, Layers,
+  Mail, Container, BarChart3, Search, CheckCircle2, Clock,
+  type LucideIcon,
+} from 'lucide-react'
+import { useCatalog } from '@/hooks/useCatalog'
+import type { CatalogModule } from '@/types/catalog'
 
-interface CatalogModule {
-  id: string
-  name: string
-  description: string
-  provider: string
-  resource_type: string
-  version: string
-  cost_estimate: string
-  tags: string[]
-  icon: typeof Server
+const ICON_MAP: Record<string, LucideIcon> = {
+  'server': Server,
+  'database': Database,
+  'box': Box,
+  'hard-drive': HardDrive,
+  'zap': Zap,
+  'network': Network,
+  'globe': Globe,
+  'layers': Layers,
+  'mail': Mail,
+  'container': Container,
+  'bar-chart-3': BarChart3,
 }
-
-const MODULES: CatalogModule[] = [
-  {
-    id: 's3', name: 'S3 Object Storage', description: 'Encrypted S3 bucket with versioning, lifecycle rules, and access logging. KMS key management included.',
-    provider: 'aws', resource_type: 's3', version: 'v2.4.1', cost_estimate: '$2–$50/mo',
-    tags: ['storage', 'encryption', 'versioning'], icon: HardDrive,
-  },
-  {
-    id: 'ec2', name: 'EC2 Compute Instance', description: 'Hardened EC2 instance with approved AMI, enforced instance types, security group guardrails, and SSM access.',
-    provider: 'aws', resource_type: 'ec2', version: 'v3.1.0', cost_estimate: '$10–$500/mo',
-    tags: ['compute', 'hardened', 'ssm'], icon: Server,
-  },
-  {
-    id: 'rds', name: 'RDS Managed Database', description: 'PostgreSQL or MySQL RDS instance with encryption at rest, automated backups, and Multi-AZ support.',
-    provider: 'aws', resource_type: 'rds', version: 'v2.2.0', cost_estimate: '$25–$300/mo',
-    tags: ['database', 'encryption', 'multi-az'], icon: Database,
-  },
-  {
-    id: 'aks', name: 'AKS Kubernetes Cluster', description: 'Azure Kubernetes Service cluster with RBAC, Azure AD integration, private API server, and policy enforcement.',
-    provider: 'azure', resource_type: 'aks', version: 'v1.8.2', cost_estimate: '$50–$800/mo',
-    tags: ['kubernetes', 'rbac', 'private'], icon: Box,
-  },
-  {
-    id: 'gke', name: 'GKE Kubernetes Cluster', description: 'GKE Autopilot cluster with Workload Identity, Binary Authorization, and VPC-native networking.',
-    provider: 'gcp', resource_type: 'gke', version: 'v1.6.0', cost_estimate: '$50–$800/mo',
-    tags: ['kubernetes', 'autopilot', 'workload-identity'], icon: Cloud,
-  },
-]
 
 const PROVIDER_COLORS: Record<string, string> = {
   aws: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
@@ -51,16 +33,53 @@ const PROVIDER_COLORS: Record<string, string> = {
   gcp: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
 }
 
+const COMPLIANCE_COLORS: Record<string, string> = {
+  SOC2: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
+  HIPAA: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+  PCI: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  FedRAMP: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300',
+}
+
 const PROVIDER_FILTER = ['ALL', 'aws', 'azure', 'gcp'] as const
+const CATEGORIES = ['All', 'compute', 'storage', 'database', 'network', 'serverless', 'container', 'messaging', 'analytics'] as const
 
 export default function Catalog() {
   const navigate = useNavigate()
   const [providerFilter, setProviderFilter] = useState<string>('ALL')
+  const [categoryFilter, setCategoryFilter] = useState<string>('All')
+  const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearch = useDebounce(searchTerm, 300)
 
-  const filtered = providerFilter === 'ALL' ? MODULES : MODULES.filter(m => m.provider === providerFilter)
+  const { data: modules = [], isLoading } = useCatalog(
+    providerFilter !== 'ALL' ? { provider: providerFilter } : undefined
+  )
 
-  function handleRequest(moduleId: string) {
-    navigate('/portal/request', { state: { preselect: moduleId } })
+  const filtered = useMemo(() => {
+    let result = modules
+    if (categoryFilter !== 'All') {
+      result = result.filter(m => m.category === categoryFilter)
+    }
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase()
+      result = result.filter(m =>
+        m.name.toLowerCase().includes(q) ||
+        m.description.toLowerCase().includes(q) ||
+        m.tags.some(t => t.toLowerCase().includes(q))
+      )
+    }
+    return result
+  }, [modules, categoryFilter, debouncedSearch])
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { All: modules.length }
+    for (const m of modules) {
+      counts[m.category] = (counts[m.category] ?? 0) + 1
+    }
+    return counts
+  }, [modules])
+
+  function handleRequest(module: CatalogModule) {
+    navigate('/portal/request', { state: { preselect: module.id, preselectProvider: module.provider } })
   }
 
   return (
@@ -68,6 +87,17 @@ export default function Catalog() {
       <div>
         <h1 className="text-xl font-semibold">Resource Catalog</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Terraform golden modules — policy-compliant by default</p>
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search modules..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
       {/* Provider filter */}
@@ -80,51 +110,94 @@ export default function Catalog() {
               providerFilter === p ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
-            {p === 'ALL' ? 'All Providers' : p.toUpperCase()} {p !== 'ALL' ? `(${MODULES.filter(m => m.provider === p).length})` : `(${MODULES.length})`}
+            {p === 'ALL' ? 'All Providers' : p.toUpperCase()} ({p === 'ALL' ? modules.length : modules.filter(m => m.provider === p).length})
+          </button>
+        ))}
+      </div>
+
+      {/* Category tabs */}
+      <div className="flex gap-1 flex-wrap">
+        {CATEGORIES.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setCategoryFilter(cat)}
+            className={`px-3 py-1 text-xs rounded-none font-medium transition-colors capitalize ${
+              categoryFilter === cat ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            {cat} {categoryCounts[cat] != null ? `(${categoryCounts[cat]})` : '(0)'}
           </button>
         ))}
       </div>
 
       {/* Module cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map(module => {
-          const Icon = module.icon
-          return (
-            <Card key={module.id} className="hover:shadow-sm transition-shadow">
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-none bg-muted flex items-center justify-center shrink-0">
-                      <Icon className="h-4 w-4 text-muted-foreground" />
+      {isLoading ? (
+        <div className="text-sm text-muted-foreground py-8 text-center">Loading catalog...</div>
+      ) : filtered.length === 0 ? (
+        <div className="text-sm text-muted-foreground py-8 text-center">No modules match your filters.</div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map(module => {
+            const Icon = ICON_MAP[module.icon] ?? Server
+            return (
+              <Card key={module.id} className="hover:shadow-sm transition-shadow">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-none bg-muted flex items-center justify-center shrink-0">
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-sm leading-snug">{module.name}</CardTitle>
+                        <p className="text-[10px] text-muted-foreground font-mono">{module.version}</p>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-sm leading-snug">{module.name}</CardTitle>
-                      <p className="text-[10px] text-muted-foreground font-mono">{module.version}</p>
-                    </div>
+                    <Badge variant="secondary" className={`text-[10px] shrink-0 ${PROVIDER_COLORS[module.provider] ?? ''}`}>
+                      {module.provider.toUpperCase()}
+                    </Badge>
                   </div>
-                  <Badge variant="secondary" className={`text-[10px] shrink-0 ${PROVIDER_COLORS[module.provider] ?? ''}`}>
-                    {module.provider.toUpperCase()}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-xs text-muted-foreground leading-relaxed">{module.description}</p>
-                <div className="flex flex-wrap gap-1">
-                  {module.tags.map(tag => (
-                    <span key={tag} className="text-[10px] bg-muted rounded px-1.5 py-0.5 font-mono">{tag}</span>
-                  ))}
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">{module.cost_estimate}</span>
-                  <Button size="sm" className="text-xs h-7" onClick={() => handleRequest(module.id)}>
-                    Request
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-xs text-muted-foreground leading-relaxed">{module.description}</p>
+
+                  <div className="flex flex-wrap gap-1">
+                    {module.tags.map(tag => (
+                      <span key={tag} className="text-[10px] bg-muted rounded px-1.5 py-0.5 font-mono">{tag}</span>
+                    ))}
+                  </div>
+
+                  {/* Compliance badges */}
+                  <div className="flex flex-wrap gap-1">
+                    {module.compliance_tags.map(tag => (
+                      <Badge key={tag} variant="secondary" className={`text-[9px] px-1.5 py-0 ${COMPLIANCE_COLORS[tag] ?? ''}`}>
+                        {tag}
+                      </Badge>
+                    ))}
+                    {module.auto_approved && (
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                        <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+                        Auto-approved
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground">{module.cost_estimate}</span>
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                        <Clock className="h-3 w-3" />{module.provisioning_time}
+                      </span>
+                    </div>
+                    <Button size="sm" className="text-xs h-7" onClick={() => handleRequest(module)}>
+                      Request
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
