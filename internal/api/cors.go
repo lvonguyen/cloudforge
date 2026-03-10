@@ -19,7 +19,7 @@ func CORSMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 			if origin != "" && allowed[origin] {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
-				w.Header().Set("Vary", "Origin")
+				w.Header().Add("Vary", "Origin")
 			}
 
 			if r.Method == http.MethodOptions {
