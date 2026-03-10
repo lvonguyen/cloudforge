@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	// BedrockModelSonnet is the fast-tier Claude model on Bedrock.
-	BedrockModelSonnet = "us.anthropic.claude-sonnet-4-6-v1:0"
-	// BedrockModelOpus is the premium-tier Claude model on Bedrock.
-	BedrockModelOpus = "us.anthropic.claude-opus-4-6-v1:0"
+	// BedrockModelSonnet is the fast-tier Claude model on Bedrock (cross-region inference profile).
+	BedrockModelSonnet = "us.anthropic.claude-sonnet-4-6"
+	// BedrockModelOpus is the premium-tier Claude model on Bedrock (cross-region inference profile).
+	BedrockModelOpus = "us.anthropic.claude-opus-4-6-v1"
 )
 
 // BedrockProvider implements Provider using AWS Bedrock with Claude models.
@@ -45,6 +45,11 @@ func NewBedrockProvider(region, modelID string) (*BedrockProvider, error) {
 		modelID: modelID,
 		region:  region,
 	}, nil
+}
+
+// ModelID returns the Bedrock model identifier in use.
+func (p *BedrockProvider) ModelID() string {
+	return p.modelID
 }
 
 // Complete sends a single-turn prompt to Bedrock.
