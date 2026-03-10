@@ -15,6 +15,13 @@ interface Framework {
 export function useCompliance() {
   return useQuery({
     queryKey: ['compliance', 'frameworks'],
-    queryFn: () => apiClient.get<Framework[]>('/compliance/frameworks'),
+    queryFn: async () => {
+      try {
+        return await apiClient.get<Framework[]>('/compliance/frameworks')
+      } catch {
+        const mod = await import('@/lib/mock/frameworks.json')
+        return mod.default as Framework[]
+      }
+    },
   })
 }

@@ -19,6 +19,13 @@ export function useAuditLog(filters?: { result?: string; actor?: string }) {
   const qs = params.toString()
   return useQuery({
     queryKey: ['audit-log', filters],
-    queryFn: () => apiClient.get<AuditEvent[]>(`/audit-log${qs ? `?${qs}` : ''}`),
+    queryFn: async () => {
+      try {
+        return await apiClient.get<AuditEvent[]>(`/audit-log${qs ? `?${qs}` : ''}`)
+      } catch {
+        const mod = await import('@/lib/mock/audit-log.json')
+        return mod.default as AuditEvent[]
+      }
+    },
   })
 }

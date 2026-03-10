@@ -46,6 +46,7 @@ type Config struct {
 	AIEnabled        bool   // Enable Bedrock AI enrichment
 	AIRegion         string // AWS region for Bedrock (default: us-east-1)
 	AIModel          string // Bedrock model ID override
+	CORSOrigins      string // Comma-separated allowed CORS origins
 }
 
 // Server holds the application state
@@ -87,6 +88,7 @@ func main() {
 		AIEnabled:        getEnv("CLOUDFORGE_AI_ENABLED", "false") == "true",
 		AIRegion:         getEnv("CLOUDFORGE_AI_REGION", "us-east-1"),
 		AIModel:          getEnv("CLOUDFORGE_AI_MODEL", ""),
+		CORSOrigins:      getEnv("CORS_ALLOWED_ORIGINS", ""),
 	}
 
 	// Initialize GRC provider
@@ -100,6 +102,7 @@ func main() {
 	// Initialize authentication middleware
 	authMiddleware, err := api.NewAuthMiddleware(api.AuthConfig{
 		JWTSecretEnv: cfg.JWTSecretEnv,
+		JWKSURLEnv:   "CLOUDFORGE_JWKS_URL",
 		Issuer:       cfg.JWTIssuer,
 		Audience:     cfg.JWTAudience,
 		SkipPaths:    []string{"/health", "/healthz", "/ready"},
@@ -282,6 +285,12 @@ func main() {
 }
 
 func (s *Server) setupRoutes() {
+	// CORS middleware — applied to all routes (including health for browser fetch).
+	if s.config.CORSOrigins != "" {
+		origins := strings.Split(s.config.CORSOrigins, ",")
+		s.router.Use(api.CORSMiddleware(origins))
+	}
+
 	// Health check endpoints (unauthenticated - skipped by middleware)
 	s.router.HandleFunc("/health", s.healthChecker.HealthHandler()).Methods("GET")
 	s.router.HandleFunc("/healthz", s.healthChecker.LivenessHandler()).Methods("GET")

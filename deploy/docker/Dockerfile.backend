@@ -9,7 +9,7 @@
 #   docker build -t cloudforge-api .
 
 # Re-use root Dockerfile via build context
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 ARG VERSION=dev
 
@@ -37,6 +37,7 @@ RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 
 COPY --from=builder /cloudforge /app/cloudforge
+COPY --from=builder /app/frontend/src/lib/mock /app/frontend/src/lib/mock
 COPY configs/config.example.yaml /app/configs/config.yaml
 
 RUN chown -R cloudforge:cloudforge /app

@@ -10,6 +10,13 @@ export function useCatalog(filters?: { provider?: string; category?: string; sea
   const qs = params.toString()
   return useQuery({
     queryKey: ['catalog', 'modules', filters],
-    queryFn: () => apiClient.get<CatalogModule[]>(`/catalog/modules${qs ? `?${qs}` : ''}`),
+    queryFn: async () => {
+      try {
+        return await apiClient.get<CatalogModule[]>(`/catalog/modules${qs ? `?${qs}` : ''}`)
+      } catch {
+        const mod = await import('@/lib/mock/catalog.json')
+        return mod.default as CatalogModule[]
+      }
+    },
   })
 }
