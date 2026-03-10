@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { apiClient } from '@/lib/api'
+import { apiClient, ApiError } from '@/lib/api'
 import type { Agent, AgentTrace } from '@/types/ai-governance'
 
 export function useAgents() {
@@ -8,7 +8,9 @@ export function useAgents() {
     queryFn: async () => {
       try {
         return await apiClient.get<Agent[]>('/agents')
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useAgents] API unavailable, using mock data')
         const mod = await import('@/lib/mock/agents.json')
         return mod.default as unknown as Agent[]
       }
@@ -22,7 +24,9 @@ export function useAgent(id: string) {
     queryFn: async () => {
       try {
         return await apiClient.get<Agent>(`/agents/${id}`)
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useAgent] API unavailable, using mock data')
         const mod = await import('@/lib/mock/agents.json')
         return (mod.default as unknown as Agent[]).find((a) => a.id === id) ?? null
       }
@@ -37,7 +41,9 @@ export function useAgentTraces(agentId: string) {
     queryFn: async () => {
       try {
         return await apiClient.get<AgentTrace[]>(`/agents/${agentId}/traces`)
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useAgentTraces] API unavailable, using mock data')
         const mod = await import('@/lib/mock/traces.json')
         return mod.default as unknown as AgentTrace[]
       }

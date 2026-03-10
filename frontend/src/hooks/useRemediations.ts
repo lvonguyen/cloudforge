@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { apiClient } from '@/lib/api'
+import { apiClient, ApiError } from '@/lib/api'
 import type { RemediationRecord } from '@/types/remediation'
 
 export function useRemediations(filters?: { status?: string; tier?: number }) {
@@ -12,7 +12,9 @@ export function useRemediations(filters?: { status?: string; tier?: number }) {
     queryFn: async () => {
       try {
         return await apiClient.get<RemediationRecord[]>(`/remediations${qs ? `?${qs}` : ''}`)
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useRemediations] API unavailable, using mock data')
         const mod = await import('@/lib/mock/remediations.json')
         return mod.default as RemediationRecord[]
       }
@@ -26,7 +28,9 @@ export function useRemediation(id: string) {
     queryFn: async () => {
       try {
         return await apiClient.get<RemediationRecord>(`/remediations/${id}`)
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useRemediation] API unavailable, using mock data')
         const mod = await import('@/lib/mock/remediations.json')
         return (mod.default as RemediationRecord[]).find((r) => r.id === id) ?? null
       }

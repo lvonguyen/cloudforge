@@ -19,6 +19,7 @@ export const TOKEN_KEY = 'cloudforge_access_token'
 const ID_TOKEN_KEY = 'cloudforge_id_token'
 const VERIFIER_KEY = 'cloudforge_pkce_verifier'
 export const STATE_KEY = 'cloudforge_oauth_state'
+const NONCE_KEY = 'cloudforge_oauth_nonce'
 
 const OKTA_ISSUER = import.meta.env.VITE_OKTA_ISSUER as string | undefined
 const OKTA_CLIENT_ID = import.meta.env.VITE_OKTA_CLIENT_ID as string | undefined
@@ -129,6 +130,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const state = crypto.randomUUID()
     sessionStorage.setItem(STATE_KEY, state)
 
+    const nonce = generateRandomString(32)
+    sessionStorage.setItem(NONCE_KEY, nonce)
+
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: OKTA_CLIENT_ID,
@@ -137,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       code_challenge: challenge,
       code_challenge_method: 'S256',
       state,
+      nonce,
     })
     window.location.href = `${OKTA_ISSUER}/v1/authorize?${params}`
   }, [])
@@ -147,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(ID_TOKEN_KEY)
     sessionStorage.removeItem(VERIFIER_KEY)
     sessionStorage.removeItem(STATE_KEY)
+    sessionStorage.removeItem(NONCE_KEY)
     localStorage.removeItem(ROLE_KEY)
 
     if (!isDev && OKTA_ISSUER && OKTA_CLIENT_ID) {
@@ -193,10 +199,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!data.access_token || typeof data.access_token !== 'string') {
       throw new Error('Invalid token response from IdP')
     }
+    // Verify nonce in id_token to prevent replay attacks
+    const storedNonce = sessionStorage.getItem(NONCE_KEY)
+    if (data.id_token && storedNonce) {
+      const idPayload = parseJWTPayload(data.id_token)
+      if (!idPayload || idPayload.nonce !== storedNonce) {
+        throw new Error('OIDC nonce mismatch — possible token replay')
+      }
+    }
+
     sessionStorage.setItem(TOKEN_KEY, data.access_token)
     if (data.id_token) sessionStorage.setItem(ID_TOKEN_KEY, data.id_token)
     sessionStorage.removeItem(VERIFIER_KEY)
     sessionStorage.removeItem(STATE_KEY)
+    sessionStorage.removeItem(NONCE_KEY)
 
     const currentRole = localStorage.getItem(ROLE_KEY) as Role | null
     const u = userFromToken(data.access_token, currentRole)

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { apiClient } from '@/lib/api'
+import { apiClient, ApiError } from '@/lib/api'
 
 interface AuditEvent {
   id: string
@@ -22,7 +22,9 @@ export function useAuditLog(filters?: { result?: string; actor?: string }) {
     queryFn: async () => {
       try {
         return await apiClient.get<AuditEvent[]>(`/audit-log${qs ? `?${qs}` : ''}`)
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useAuditLog] API unavailable, using mock data')
         const mod = await import('@/lib/mock/audit-log.json')
         return mod.default as AuditEvent[]
       }

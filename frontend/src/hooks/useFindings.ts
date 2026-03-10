@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { apiClient } from '@/lib/api'
+import { apiClient, ApiError } from '@/lib/api'
 import type { Finding } from '@/types/compliance'
 
 async function fetchFindings(filters?: { severity?: string; provider?: string; status?: string }): Promise<Finding[]> {
@@ -10,7 +10,9 @@ async function fetchFindings(filters?: { severity?: string; provider?: string; s
   const qs = params.toString()
   try {
     return await apiClient.get<Finding[]>(`/findings${qs ? `?${qs}` : ''}`)
-  } catch {
+  } catch (err) {
+    if (err instanceof ApiError && err.status < 500) throw err
+    console.warn('[useFindings] API unavailable, using mock data')
     const mod = await import('@/lib/mock/findings.json')
     return mod.default as unknown as Finding[]
   }
@@ -29,7 +31,9 @@ export function useFinding(id: string) {
     queryFn: async () => {
       try {
         return await apiClient.get<Finding>(`/findings/${id}`)
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useFinding] API unavailable, using mock data')
         const mod = await import('@/lib/mock/findings.json')
         return (mod.default as unknown as Finding[]).find((f) => f.id === id) ?? null
       }

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { apiClient } from '@/lib/api'
+import { apiClient, ApiError } from '@/lib/api'
 import type { CatalogModule } from '@/types/catalog'
 
 export function useCatalog(filters?: { provider?: string; category?: string; search?: string }) {
@@ -13,7 +13,9 @@ export function useCatalog(filters?: { provider?: string; category?: string; sea
     queryFn: async () => {
       try {
         return await apiClient.get<CatalogModule[]>(`/catalog/modules${qs ? `?${qs}` : ''}`)
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useCatalog] API unavailable, using mock data')
         const mod = await import('@/lib/mock/catalog.json')
         return mod.default as CatalogModule[]
       }

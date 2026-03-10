@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { apiClient } from '@/lib/api'
+import { apiClient, ApiError } from '@/lib/api'
 
 interface Framework {
   id: string
@@ -18,7 +18,9 @@ export function useCompliance() {
     queryFn: async () => {
       try {
         return await apiClient.get<Framework[]>('/compliance/frameworks')
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useCompliance] API unavailable, using mock data')
         const mod = await import('@/lib/mock/frameworks.json')
         return mod.default as Framework[]
       }
