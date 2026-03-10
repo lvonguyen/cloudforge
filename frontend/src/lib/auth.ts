@@ -16,8 +16,9 @@ const DEFAULT_USER: User = {
 
 const ROLE_KEY = 'cloudforge_role'
 export const TOKEN_KEY = 'cloudforge_access_token'
+const ID_TOKEN_KEY = 'cloudforge_id_token'
 const VERIFIER_KEY = 'cloudforge_pkce_verifier'
-const STATE_KEY = 'cloudforge_oauth_state'
+export const STATE_KEY = 'cloudforge_oauth_state'
 
 const OKTA_ISSUER = import.meta.env.VITE_OKTA_ISSUER as string | undefined
 const OKTA_CLIENT_ID = import.meta.env.VITE_OKTA_CLIENT_ID as string | undefined
@@ -141,17 +142,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logout = useCallback(() => {
-    const idToken = getStoredToken()
+    const idToken = sessionStorage.getItem(ID_TOKEN_KEY)
     sessionStorage.removeItem(TOKEN_KEY)
+    sessionStorage.removeItem(ID_TOKEN_KEY)
     sessionStorage.removeItem(VERIFIER_KEY)
     sessionStorage.removeItem(STATE_KEY)
     localStorage.removeItem(ROLE_KEY)
 
     if (!isDev && OKTA_ISSUER && OKTA_CLIENT_ID) {
       const params = new URLSearchParams({
-        id_token_hint: idToken ?? '',
         post_logout_redirect_uri: window.location.origin,
       })
+      if (idToken) params.set('id_token_hint', idToken)
       window.location.href = `${OKTA_ISSUER}/v1/logout?${params}`
     } else {
       setUser(DEFAULT_USER)
@@ -192,13 +194,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Invalid token response from IdP')
     }
     sessionStorage.setItem(TOKEN_KEY, data.access_token)
+    if (data.id_token) sessionStorage.setItem(ID_TOKEN_KEY, data.id_token)
     sessionStorage.removeItem(VERIFIER_KEY)
     sessionStorage.removeItem(STATE_KEY)
 
-    const u = userFromToken(data.access_token, savedRole)
+    const currentRole = localStorage.getItem(ROLE_KEY) as Role | null
+    const u = userFromToken(data.access_token, currentRole)
     setUser(u)
     setIsAuthenticated(true)
-  }, [savedRole])
+  }, [])
 
   // Auto-login redirect in production when no valid token
   useEffect(() => {

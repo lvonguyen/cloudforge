@@ -66,6 +66,7 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		attackPaths:       attackPaths,
 		attackPathStats:   attackPathStats,
 		findingEnrichment: make(map[string]*FindingEnrichment),
+		roles:             &api.RoleEnforcer{DevMode: false},
 	}
 
 	srv.setupRoutes()

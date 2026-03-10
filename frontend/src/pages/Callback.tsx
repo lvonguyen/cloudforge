@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useAuth } from '@/lib/auth'
+import { useAuth, STATE_KEY } from '@/lib/auth'
 
 export default function Callback() {
   const [searchParams] = useSearchParams()
@@ -16,7 +16,7 @@ export default function Callback() {
     const code = searchParams.get('code')
     const errorParam = searchParams.get('error')
     const returnedState = searchParams.get('state')
-    const savedState = sessionStorage.getItem('cloudforge_oauth_state')
+    const savedState = sessionStorage.getItem(STATE_KEY)
 
     if (errorParam) {
       setError(searchParams.get('error_description') ?? errorParam)

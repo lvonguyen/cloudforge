@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -23,22 +22,39 @@ var groupRoleMap = map[string]Role{
 	"cloudforge-operator": RoleOperator,
 }
 
-// RoleFromClaims extracts the highest-privilege role from JWT group claims.
-// First group matching a known role wins; unmatched defaults to requester.
-func RoleFromClaims(c *Claims) Role {
-	for _, g := range c.Groups {
-		if role, ok := groupRoleMap[g]; ok {
-			return role
-		}
-	}
-	return RoleRequester
+// roleRank defines privilege ordering for highest-privilege-wins resolution.
+var roleRank = map[Role]int{
+	RoleRequester: 0,
+	RoleOperator:  1,
+	RoleAdmin:     2,
 }
 
-// RequireRole returns middleware that enforces the request's role is in the
-// allowed set. Must run after AuthMiddleware (claims in context).
-// In dev mode, the X-CloudForge-Role header overrides the JWT-derived role
+// RoleFromClaims extracts the highest-privilege role from JWT group claims.
+// Iterates all groups and returns the role with the highest rank.
+func RoleFromClaims(c *Claims) Role {
+	best := RoleRequester
+	for _, g := range c.Groups {
+		if role, ok := groupRoleMap[g]; ok {
+			if roleRank[role] > roleRank[best] {
+				best = role
+			}
+		}
+	}
+	return best
+}
+
+// RoleEnforcer builds role-checking middleware with a startup-captured devMode flag.
+// devMode should be computed once from APP_ENV at server init — never re-read at
+// request time to prevent runtime env changes from enabling privilege escalation.
+type RoleEnforcer struct {
+	DevMode bool
+}
+
+// Require returns middleware that enforces the request's role is in the allowed set.
+// Must run after AuthMiddleware (claims in context).
+// In dev mode only, the X-CloudForge-Role header overrides the JWT-derived role
 // to support the frontend demo role switcher.
-func RequireRole(roles ...Role) func(http.Handler) http.Handler {
+func (re *RoleEnforcer) Require(roles ...Role) func(http.Handler) http.Handler {
 	allowed := make(map[Role]bool, len(roles))
 	for _, r := range roles {
 		allowed[r] = true
@@ -60,9 +76,8 @@ func RequireRole(roles ...Role) func(http.Handler) http.Handler {
 			role := RoleFromClaims(claims)
 
 			// Dev override: allow X-CloudForge-Role header to set role for demo.
-			// Gated to non-production environments to prevent privilege escalation.
-			env := os.Getenv("APP_ENV")
-			if env == "development" || env == "staging" {
+			// Only enabled when APP_ENV=="development" was read at startup.
+			if re.DevMode {
 				if override := r.Header.Get("X-CloudForge-Role"); override != "" {
 					role = Role(strings.ToLower(override))
 				}
@@ -75,7 +90,7 @@ func RequireRole(roles ...Role) func(http.Handler) http.Handler {
 				}
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
-				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				_ = json.NewEncoder(w).Encode(map[string]any{
 					"error":          "forbidden",
 					"message":        fmt.Sprintf("role '%s' cannot access this resource", role),
 					"required_roles": roleList,
