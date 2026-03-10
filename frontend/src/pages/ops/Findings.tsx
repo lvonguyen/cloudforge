@@ -1,14 +1,13 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Download, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, X, SlidersHorizontal, ListFilter } from 'lucide-react'
+import { useVirtualizer } from '@tanstack/react-virtual'
+import { Download, ArrowUp, ArrowDown, X, SlidersHorizontal, ListFilter } from 'lucide-react'
 import { useFindings } from '@/hooks/useFindings'
+import { useDebounce } from '@/hooks/useDebounce'
 import { SeverityBadge } from '@/components/findings/SeverityBadge'
 import { SLACountdown } from '@/components/findings/SLACountdown'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select'
 import {
   DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -82,16 +81,6 @@ const ALL_COLUMNS: { key: SortColumn; label: string; defaultWidth: number }[] = 
 
 const DEFAULT_WIDTHS: Record<string, number> = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, c.defaultWidth]))
 
-function getPageNumbers(current: number, total: number): (number | 'dots')[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i)
-  const pages: (number | 'dots')[] = [0]
-  if (current > 2) pages.push('dots')
-  for (let i = Math.max(1, current - 1); i <= Math.min(total - 2, current + 1); i++) pages.push(i)
-  if (current < total - 3) pages.push('dots')
-  pages.push(total - 1)
-  return pages
-}
-
 function toggleSet<T>(set: Set<T>, value: T): Set<T> {
   const next = new Set(set)
   if (next.has(value)) next.delete(value)
@@ -145,13 +134,16 @@ export default function Findings() {
   // Severity tab
   const [severityTab, setSeverityTab] = useState<SeverityTab>('ALL')
 
+  // Search
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
+
   // Sort
   const [sortCol, setSortCol] = useState<SortColumn>('severity')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
 
-  // Pagination
-  const [page, setPage] = useState(0)
-  const [rowsPerPage, setRowsPerPage] = useState(10)
+  // Virtualizer scroll container
+  const parentRef = useRef<HTMLDivElement>(null)
 
   // Column visibility & resizable widths
   const [visibleColumns, setVisibleColumns] = useState<Set<SortColumn>>(() => new Set(ALL_COLUMNS.map(c => c.key)))
@@ -188,13 +180,13 @@ export default function Findings() {
 
   const activeColumns = useMemo(() => ALL_COLUMNS.filter(c => visibleColumns.has(c.key)), [visibleColumns])
 
-  const hasFilters = selectedCategories.size > 0 || selectedProviders.size > 0 || selectedStatuses.size > 0
+  const hasFilters = selectedCategories.size > 0 || selectedProviders.size > 0 || selectedStatuses.size > 0 || search.length > 0
 
   const clearFilters = useCallback(() => {
     setSelectedCategories(new Set())
     setSelectedProviders(new Set())
     setSelectedStatuses(new Set())
-    setPage(0)
+    setSearch('')
   }, [])
 
   // Counts for sidebar (computed from full dataset before any sidebar filter)
@@ -239,13 +231,22 @@ export default function Findings() {
     if (selectedStatuses.size > 0) {
       result = result.filter(f => selectedStatuses.has(f.status))
     }
+    // Text search
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase()
+      result = result.filter(f =>
+        f.title.toLowerCase().includes(q) ||
+        f.resource_name.toLowerCase().includes(q) ||
+        f.id.toLowerCase().includes(q)
+      )
+    }
     // Severity tab
     if (severityTab !== 'ALL') {
       result = result.filter(f => f.severity === severityTab)
     }
 
     return result
-  }, [allFindings, selectedCategories, selectedProviders, selectedStatuses, severityTab])
+  }, [allFindings, selectedCategories, selectedProviders, selectedStatuses, debouncedSearch, severityTab])
 
   // Sort
   const sorted = useMemo(() => {
@@ -284,11 +285,13 @@ export default function Findings() {
     return arr
   }, [filtered, sortCol, sortDir])
 
-  // Paginate
-  const totalPages = Math.max(1, Math.ceil(sorted.length / rowsPerPage))
-  const paginated = sorted.slice(page * rowsPerPage, (page + 1) * rowsPerPage)
-  const rangeStart = sorted.length === 0 ? 0 : page * rowsPerPage + 1
-  const rangeEnd = Math.min((page + 1) * rowsPerPage, sorted.length)
+  // Virtualizer
+  const virtualizer = useVirtualizer({
+    count: sorted.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 48,
+    overscan: 10,
+  })
 
   function handleSort(col: SortColumn) {
     if (sortCol === col) {
@@ -297,10 +300,6 @@ export default function Findings() {
       setSortCol(col)
       setSortDir('asc')
     }
-  }
-
-  function handleFilterChange() {
-    setPage(0)
   }
 
   function SortIcon({ col }: { col: SortColumn }) {
@@ -345,25 +344,25 @@ export default function Findings() {
       severity: {
         options: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'],
         selected: severityTab === 'ALL' ? new Set() : new Set([severityTab]),
-        toggle: (v) => { setSeverityTab(prev => prev === v ? 'ALL' : v as SeverityTab); setPage(0) },
+        toggle: (v) => { setSeverityTab(prev => prev === v ? 'ALL' : v as SeverityTab) },
         label: (v) => v,
       },
       category: {
         options: SIDEBAR_CATEGORIES,
         selected: selectedCategories,
-        toggle: (v) => { setSelectedCategories(s => toggleSet(s, v)); setPage(0) },
+        toggle: (v) => { setSelectedCategories(s => toggleSet(s, v)) },
         label: (v) => CATEGORY_SHORT[v] ?? v,
       },
       provider: {
         options: SIDEBAR_PROVIDERS,
         selected: selectedProviders,
-        toggle: (v) => { setSelectedProviders(s => toggleSet(s, v)); setPage(0) },
+        toggle: (v) => { setSelectedProviders(s => toggleSet(s, v)) },
         label: (v) => v.toUpperCase(),
       },
       status: {
         options: SIDEBAR_STATUSES,
         selected: selectedStatuses,
-        toggle: (v) => { setSelectedStatuses(s => toggleSet(s, v)); setPage(0) },
+        toggle: (v) => { setSelectedStatuses(s => toggleSet(s, v)) },
         label: (v) => STATUS_LABELS[v] ?? v,
       },
     }
@@ -423,10 +422,7 @@ export default function Findings() {
                 <input
                   type="checkbox"
                   checked={selectedCategories.has(cat)}
-                  onChange={() => {
-                    setSelectedCategories(s => toggleSet(s, cat))
-                    handleFilterChange()
-                  }}
+                  onChange={() => setSelectedCategories(s => toggleSet(s, cat))}
                   className="rounded-none accent-foreground"
                 />
                 <span className="text-foreground group-hover:text-foreground/80 flex-1">{cat}</span>
@@ -445,10 +441,7 @@ export default function Findings() {
                 <input
                   type="checkbox"
                   checked={selectedProviders.has(prov)}
-                  onChange={() => {
-                    setSelectedProviders(s => toggleSet(s, prov))
-                    handleFilterChange()
-                  }}
+                  onChange={() => setSelectedProviders(s => toggleSet(s, prov))}
                   className="rounded-none accent-foreground"
                 />
                 <span className="text-foreground group-hover:text-foreground/80 flex-1">{prov.toUpperCase()}</span>
@@ -467,10 +460,7 @@ export default function Findings() {
                 <input
                   type="checkbox"
                   checked={selectedStatuses.has(st)}
-                  onChange={() => {
-                    setSelectedStatuses(s => toggleSet(s, st))
-                    handleFilterChange()
-                  }}
+                  onChange={() => setSelectedStatuses(s => toggleSet(s, st))}
                   className="rounded-none accent-foreground"
                 />
                 <span className="text-foreground group-hover:text-foreground/80 flex-1">{STATUS_LABELS[st] ?? st}</span>
@@ -497,6 +487,13 @@ export default function Findings() {
                 </Badge>
               ))}
             </div>
+            <input
+              type="text"
+              placeholder="Search findings..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="h-8 w-48 px-2 text-xs border border-border bg-background rounded-none focus:outline-none focus:ring-1 focus:ring-ring"
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1.5">
@@ -536,7 +533,7 @@ export default function Findings() {
           {SEVERITY_TABS.map(tab => (
             <button
               key={tab}
-              onClick={() => { setSeverityTab(tab); setPage(0) }}
+              onClick={() => setSeverityTab(tab)}
               className={`px-3 py-1 text-xs rounded-none font-medium transition-colors ${
                 severityTab === tab
                   ? 'bg-foreground text-background'
@@ -568,7 +565,7 @@ export default function Findings() {
         )}
         {!isLoading && sorted.length > 0 && (
           <>
-            <div className="overflow-x-auto">
+            <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 280px)' }}>
               <Table style={{ tableLayout: 'fixed', width: activeColumns.reduce((sum, c) => sum + columnWidths[c.key], 0) }}>
                 <TableHeader>
                   <TableRow className="bg-muted/30">
@@ -597,82 +594,39 @@ export default function Findings() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginated.map(f => (
-                    <TableRow
-                      key={f.id}
-                      className="cursor-pointer hover:bg-muted/30 transition-colors"
-                      onClick={() => navigate(`/ops/findings/${f.id}`)}
-                    >
-                      {activeColumns.map(col => (
-                        <TableCell key={col.key} className="overflow-hidden" style={{ width: columnWidths[col.key] }}>
-                          {renderCell(f, col.key)}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
+                  <tr style={{ height: virtualizer.getTotalSize() }}>
+                    <td colSpan={activeColumns.length} style={{ padding: 0, position: 'relative' }}>
+                      {virtualizer.getVirtualItems().map(virtualRow => {
+                        const f = sorted[virtualRow.index]
+                        return (
+                          <TableRow
+                            key={f.id}
+                            className="cursor-pointer hover:bg-muted/30 transition-colors absolute w-full"
+                            style={{
+                              height: `${virtualRow.size}px`,
+                              transform: `translateY(${virtualRow.start}px)`,
+                            }}
+                            onClick={() => navigate(`/ops/findings/${f.id}`)}
+                          >
+                            {activeColumns.map(col => (
+                              <TableCell key={col.key} className="overflow-hidden" style={{ width: columnWidths[col.key] }}>
+                                {renderCell(f, col.key)}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        )
+                      })}
+                    </td>
+                  </tr>
                 </TableBody>
               </Table>
             </div>
 
-            {/* Pagination footer */}
-            <div className="flex items-center justify-between pt-2 border-t border-border">
+            {/* Footer */}
+            <div className="flex items-center pt-2 border-t border-border">
               <span className="text-xs text-muted-foreground">
-                {rangeStart}-{rangeEnd} of {sorted.length}
+                Showing {sorted.length} of {allFindings.length} findings
               </span>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Rows per page</span>
-                <Select
-                  value={String(rowsPerPage)}
-                  onValueChange={v => { setRowsPerPage(Number(v)); setPage(0) }}
-                >
-                  <SelectTrigger className="h-7 w-16 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="icon-xs"
-                  disabled={page === 0}
-                  onClick={() => setPage(p => p - 1)}
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </Button>
-                {getPageNumbers(page, totalPages).map((p, i) =>
-                  p === 'dots' ? (
-                    <span key={`dots-${i}`} className="text-xs text-muted-foreground px-1">...</span>
-                  ) : (
-                    <button
-                      key={p}
-                      onClick={() => setPage(p)}
-                      className={`h-6 min-w-6 px-1 text-xs rounded-none transition-colors ${
-                        p === page
-                          ? 'bg-foreground text-background font-medium'
-                          : 'text-muted-foreground hover:bg-muted'
-                      }`}
-                    >
-                      {p + 1}
-                    </button>
-                  )
-                )}
-                <Button
-                  variant="outline"
-                  size="icon-xs"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage(p => p + 1)}
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
-              </div>
             </div>
           </>
         )}
