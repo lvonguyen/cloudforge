@@ -19,7 +19,7 @@ export const queryClient = new QueryClient({
   },
 })
 
-class ApiError extends Error {
+export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
     super(message)

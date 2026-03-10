@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { apiClient } from '@/lib/api'
+import { apiClient, ApiError } from '@/lib/api'
 import type { CostSummary } from '@/types/finops'
 
 export function useCostSummary() {
@@ -8,7 +8,9 @@ export function useCostSummary() {
     queryFn: async () => {
       try {
         return await apiClient.get<CostSummary>('/costs/summary')
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useCostSummary] API unavailable, using mock data')
         const mod = await import('@/lib/mock/costs.json')
         return mod.default as unknown as CostSummary
       }
@@ -22,7 +24,9 @@ export function useCostAnomalies() {
     queryFn: async () => {
       try {
         return await apiClient.get<CostSummary>('/costs/summary')
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useCostAnomalies] API unavailable, using mock data')
         const mod = await import('@/lib/mock/costs.json')
         return mod.default as unknown as CostSummary
       }
