@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 
@@ -7,8 +7,12 @@ export default function Callback() {
   const navigate = useNavigate()
   const { exchangeCode } = useAuth()
   const [error, setError] = useState<string | null>(null)
+  const called = useRef(false)
 
   useEffect(() => {
+    if (called.current) return
+    called.current = true
+
     const code = searchParams.get('code')
     const errorParam = searchParams.get('error')
     const returnedState = searchParams.get('state')
