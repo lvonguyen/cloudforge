@@ -14,7 +14,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, Shield, AlertTriangle, Zap, Target } from 'lucide-react'
+import { ArrowLeft, Shield, AlertTriangle, Zap, Target, Sparkles } from 'lucide-react'
 import type { AttackPath } from '@/types/attack-path'
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -109,9 +109,21 @@ function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) 
                   {path.nodes[0].provider.toUpperCase()}
                 </Badge>
               )}
+              {path.ai_enriched && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 rounded-none bg-violet-100 text-violet-700 border-violet-300 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800 gap-0.5">
+                  <Sparkles className="h-2.5 w-2.5" />AI
+                </Badge>
+              )}
+              {path.ai_likelihood && (
+                <span className={`text-[10px] font-mono ${
+                  path.ai_likelihood === 'high' ? 'text-red-600 dark:text-red-400' :
+                  path.ai_likelihood === 'medium' ? 'text-orange-600 dark:text-orange-400' :
+                  'text-blue-600 dark:text-blue-400'
+                }`}>{path.ai_likelihood.toUpperCase()} likelihood</span>
+              )}
             </div>
             <p className="text-sm font-medium leading-snug">{path.title}</p>
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{path.description}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{path.ai_description ?? path.description}</p>
             <div className="flex items-center gap-1 mt-2">
               {path.finding_ids.map(fid => (
                 <span key={fid} className="text-[9px] font-mono bg-muted px-1 py-0 rounded">{fid}</span>
@@ -141,7 +153,24 @@ function PathGraphView({ path, onBack }: { path: AttackPath; onBack: () => void 
         </Badge>
         <span className="text-sm font-medium">{path.title}</span>
       </div>
-      <p className="text-xs text-muted-foreground">{path.description}</p>
+      <p className="text-xs text-muted-foreground">{path.ai_description ?? path.description}</p>
+
+      {path.ai_enriched && path.ai_remediation && (
+        <div className="border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 p-3 space-y-1">
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+            <span className="text-xs font-semibold text-violet-700 dark:text-violet-300 uppercase tracking-wide">AI Remediation</span>
+            {path.ai_likelihood && (
+              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ml-auto ${
+                path.ai_likelihood === 'high' ? 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300' :
+                path.ai_likelihood === 'medium' ? 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300' :
+                'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300'
+              }`}>{path.ai_likelihood} likelihood</Badge>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground whitespace-pre-line">{path.ai_remediation}</p>
+        </div>
+      )}
 
       <div className="h-[320px] border border-border rounded-none bg-background">
         <ReactFlow

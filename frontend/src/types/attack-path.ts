@@ -33,6 +33,12 @@ export interface AttackPath {
   edges: AttackPathEdge[]
   mitre_tactics: string[]
   finding_ids: string[]
+
+  // AI-enriched fields (present when Bedrock AI is enabled)
+  ai_description?: string
+  ai_remediation?: string
+  ai_likelihood?: string
+  ai_enriched: boolean
 }
 
 export interface AttackPathStats {

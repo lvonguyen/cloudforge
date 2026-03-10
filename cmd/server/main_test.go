@@ -13,6 +13,7 @@ import (
 
 	"cloudforge/internal/api"
 	"cloudforge/internal/grc"
+	"cloudforge/internal/observability"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -56,13 +57,15 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		config: Config{
 			Port: "0",
 		},
-		grcProvider:     grcProvider,
-		router:          mux.NewRouter(),
-		authMiddleware:  authMiddleware,
-		logger:          logger,
-		mockData:        mockData,
-		attackPaths:     attackPaths,
-		attackPathStats: attackPathStats,
+		grcProvider:       grcProvider,
+		router:            mux.NewRouter(),
+		authMiddleware:    authMiddleware,
+		healthChecker:     observability.NewHealthChecker(logger, nil),
+		logger:            logger,
+		mockData:          mockData,
+		attackPaths:       attackPaths,
+		attackPathStats:   attackPathStats,
+		findingEnrichment: make(map[string]*FindingEnrichment),
 	}
 
 	srv.setupRoutes()

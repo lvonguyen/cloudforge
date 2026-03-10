@@ -20,6 +20,12 @@ type AttackPath struct {
 	Edges        []AttackPathEdge `json:"edges"`
 	MITRETactics []string         `json:"mitre_tactics"`
 	FindingIDs   []string         `json:"finding_ids"`
+
+	// AI-enriched fields (populated when AI provider is available).
+	AIDescription string `json:"ai_description,omitempty"`
+	AIRemediation string `json:"ai_remediation,omitempty"`
+	AILikelihood  string `json:"ai_likelihood,omitempty"`
+	AIEnriched    bool   `json:"ai_enriched"`
 }
 
 // AttackPathNode is a node (resource) in an attack path.
