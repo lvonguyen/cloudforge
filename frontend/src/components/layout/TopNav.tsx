@@ -22,6 +22,7 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
       <button
         type="button"
         onClick={onMenuClick}
+        aria-label="Open menu"
         className="md:hidden flex items-center justify-center h-8 w-8 text-muted-foreground hover:text-foreground transition-colors"
       >
         <Menu className="h-5 w-5" />
@@ -39,6 +40,8 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
           type="button"
           onClick={() => setSearchOpen(true)}
           onBlur={() => setSearchOpen(false)}
+          aria-label="Search"
+          aria-haspopup="dialog"
           className="flex w-full items-center gap-2 rounded-md border border-border bg-muted/50 px-3 h-8 text-sm text-muted-foreground hover:bg-muted/70 transition-colors"
         >
           <Search className="h-4 w-4 shrink-0" />
@@ -60,7 +63,7 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
         <RoleSwitcher />
 
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center gap-2 rounded-full h-8 w-8 bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90">
+          <DropdownMenuTrigger aria-label="User menu" className="flex items-center gap-2 rounded-full h-8 w-8 bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90">
             <span className="w-full text-center">
               {user.name.split(' ').map(n => n[0]).join('')}
             </span>

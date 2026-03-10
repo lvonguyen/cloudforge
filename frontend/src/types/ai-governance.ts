@@ -144,9 +144,9 @@ export interface AgentTrace {
   duration_ms: number
   status: TraceStatus
   spans: Span[]
-  security_signals: SecuritySignal[]
-  metrics: TraceMetrics
-  metadata: Record<string, unknown>
+  security_signals?: SecuritySignal[]
+  metrics?: TraceMetrics
+  metadata?: Record<string, unknown>
 }
 
 export interface Threat {

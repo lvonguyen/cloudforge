@@ -99,15 +99,18 @@ type Agent struct {
 
 // AgentTrace represents an execution trace for an agent run.
 type AgentTrace struct {
-	TraceID    string          `json:"trace_id"`
-	AgentID    string          `json:"agent_id"`
-	SessionID  string          `json:"session_id"`
-	UserID     string          `json:"user_id"`
-	StartTime  string          `json:"start_time"`
-	EndTime    string          `json:"end_time"`
-	DurationMS int64           `json:"duration_ms"`
-	Status     string          `json:"status"`
-	Spans      json.RawMessage `json:"spans"`
+	TraceID         string          `json:"trace_id"`
+	AgentID         string          `json:"agent_id"`
+	SessionID       string          `json:"session_id"`
+	UserID          string          `json:"user_id"`
+	StartTime       string          `json:"start_time"`
+	EndTime         string          `json:"end_time"`
+	DurationMS      int64           `json:"duration_ms"`
+	Status          string          `json:"status"`
+	Spans           json.RawMessage `json:"spans"`
+	SecuritySignals json.RawMessage `json:"security_signals,omitempty"`
+	Metrics         json.RawMessage `json:"metrics,omitempty"`
+	Metadata        json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ComplianceFramework represents a compliance framework with scoring.

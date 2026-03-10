@@ -231,7 +231,7 @@ func main() {
 		Handler:           srv.securityHeadersMiddleware(srv.router),
 		ReadTimeout:       15 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
-		WriteTimeout:      15 * time.Second,
+		WriteTimeout:      35 * time.Second, // must exceed AI enrichment's 30s context
 		IdleTimeout:       60 * time.Second,
 	}
 
@@ -365,6 +365,9 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/remediations/{id}/execute",
 		api.RequireRole(api.RoleAdmin)(http.HandlerFunc(s.executeRemediation)),
 	).Methods("POST")
+	apiRouter.Handle("/remediations/{id}",
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getRemediation)),
+	).Methods("GET")
 
 	// Agent traces
 	apiRouter.Handle("/agents/{id}/traces",

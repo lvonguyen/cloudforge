@@ -7,7 +7,7 @@ import { TracePanelProvider } from '@/lib/trace-panel-context'
 import { AppShell } from '@/components/layout/AppShell'
 import { ExecutionTracePanel } from '@/components/layout/ExecutionTracePanel'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { RoutingErrorBoundary } from '@/components/ErrorBoundary'
 
 // Eager (always needed)
 import Landing from '@/pages/Landing'
@@ -28,6 +28,7 @@ const CommandCenter = lazy(() => import('@/pages/ops/CommandCenter'))
 const Findings = lazy(() => import('@/pages/ops/Findings'))
 const FindingDetail = lazy(() => import('@/pages/ops/FindingDetail'))
 const RemediationQueue = lazy(() => import('@/pages/ops/RemediationQueue'))
+const RemediationDetail = lazy(() => import('@/pages/ops/RemediationDetail'))
 const Costs = lazy(() => import('@/pages/ops/Costs'))
 const Compliance = lazy(() => import('@/pages/ops/Compliance'))
 const AttackPaths = lazy(() => import('@/pages/ops/AttackPaths'))
@@ -60,7 +61,7 @@ export default function App() {
 
                 {/* Admin routes */}
                 <Route element={<ProtectedRoute roles={['admin']}><Outlet /></ProtectedRoute>}>
-                  <Route element={<ErrorBoundary fallbackLabel="Admin"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></ErrorBoundary>}>
+                  <Route element={<RoutingErrorBoundary fallbackLabel="Admin"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></RoutingErrorBoundary>}>
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/admin/policies" element={<Policies />} />
                     <Route path="/admin/policies/:id" element={<PolicyDetail />} />
@@ -74,11 +75,12 @@ export default function App() {
 
                 {/* Operator routes */}
                 <Route element={<ProtectedRoute roles={['admin', 'operator']}><Outlet /></ProtectedRoute>}>
-                  <Route element={<ErrorBoundary fallbackLabel="Ops"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></ErrorBoundary>}>
+                  <Route element={<RoutingErrorBoundary fallbackLabel="Ops"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></RoutingErrorBoundary>}>
                     <Route path="/ops" element={<CommandCenter />} />
                     <Route path="/ops/findings" element={<Findings />} />
                     <Route path="/ops/findings/:id" element={<FindingDetail />} />
                     <Route path="/ops/remediation" element={<RemediationQueue />} />
+                    <Route path="/ops/remediation/:id" element={<RemediationDetail />} />
                     <Route path="/ops/costs" element={<Costs />} />
                     <Route path="/ops/compliance" element={<Compliance />} />
                     <Route path="/ops/attack-paths" element={<AttackPaths />} />
@@ -87,7 +89,7 @@ export default function App() {
 
                 {/* Requester / portal routes */}
                 <Route element={<ProtectedRoute roles={['admin', 'operator', 'requester']}><Outlet /></ProtectedRoute>}>
-                  <Route element={<ErrorBoundary fallbackLabel="Portal"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></ErrorBoundary>}>
+                  <Route element={<RoutingErrorBoundary fallbackLabel="Portal"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></RoutingErrorBoundary>}>
                     <Route path="/portal" element={<PortalDashboard />} />
                     <Route path="/portal/request" element={<Request />} />
                     <Route path="/portal/requests" element={<MyRequests />} />

@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import {
   ReactFlow,
   Background,
@@ -10,12 +11,13 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useAttackPaths, useAttackPathStats } from '@/hooks/useAttackPaths'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, Shield, AlertTriangle, Zap, Target, Sparkles } from 'lucide-react'
+import { ArrowLeft, Shield, AlertTriangle, Zap, Target, Sparkles, ArrowRight } from 'lucide-react'
 import type { AttackPath } from '@/types/attack-path'
+import { ProviderIcon } from '@/components/ui/ProviderIcon'
 
 const SEVERITY_COLORS: Record<string, string> = {
   CRITICAL: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-300 dark:border-red-700',
@@ -48,7 +50,7 @@ const CATEGORY_ICONS: Record<string, typeof Shield> = {
 function pathToFlow(path: AttackPath): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = path.nodes.map((n, i) => ({
     id: n.id,
-    position: { x: i * 280, y: 0 },
+    position: { x: i * 360, y: 0 },
     data: {
       label: (
         <div className="text-left px-2 py-1">
@@ -83,6 +85,8 @@ function pathToFlow(path: AttackPath): { nodes: Node[]; edges: Edge[] } {
     markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
     style: { strokeWidth: 2 },
     labelStyle: { fontSize: 10, fill: 'var(--color-muted-foreground)' },
+    labelBgStyle: { fill: 'var(--color-background)', fillOpacity: 0.9 },
+    labelBgPadding: [4, 6] as [number, number],
   }))
 
   return { nodes, edges }
@@ -172,7 +176,7 @@ function PathGraphView({ path, onBack }: { path: AttackPath; onBack: () => void 
         </div>
       )}
 
-      <div className="h-[320px] border border-border rounded-none bg-background">
+      <div className="h-[400px] border border-border rounded-none bg-background">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -197,6 +201,116 @@ function PathGraphView({ path, onBack }: { path: AttackPath; onBack: () => void 
             <span key={t} className="text-[10px] font-mono bg-muted px-1.5 py-0.5">{t}</span>
           ))}
         </div>
+      )}
+
+      {/* Resource Chain */}
+      <Card className="rounded-none">
+        <CardHeader className="pb-2 pt-3 px-4">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resource Chain</span>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {path.nodes.map(n => (
+              <div key={n.id} className="border border-border p-3 space-y-1">
+                <div className="flex items-center gap-2">
+                  <ProviderIcon provider={n.provider} className="h-4 w-4 shrink-0" />
+                  <span className="text-xs font-semibold truncate">{n.resource_name}</span>
+                </div>
+                <div className="text-[10px] text-muted-foreground">{n.resource_type} · {n.region}</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 rounded-none ${SEVERITY_COLORS[n.severity] ?? ''}`}>
+                    {n.severity}
+                  </Badge>
+                  {n.finding_id && (
+                    <Link
+                      to={`/ops/findings/${n.finding_id}`}
+                      className="text-[9px] font-mono text-muted-foreground hover:text-foreground underline underline-offset-2"
+                    >
+                      {n.finding_id}
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Attack Context */}
+      <Card className="rounded-none">
+        <CardHeader className="pb-2 pt-3 px-4">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Attack Context</span>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          {(() => {
+            const uniqueProviders = [...new Set(path.nodes.map(n => n.provider))]
+            const uniqueRegions = [...new Set(path.nodes.map(n => n.region))]
+            const uniqueAccounts = [...new Set(path.nodes.map(n => n.account_id))]
+            const scoreColor = path.severity === 'CRITICAL' ? 'text-red-600 dark:text-red-400'
+              : path.severity === 'HIGH' ? 'text-orange-600 dark:text-orange-400'
+              : path.severity === 'MEDIUM' ? 'text-yellow-600 dark:text-yellow-400'
+              : 'text-blue-600 dark:text-blue-400'
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-xs">
+                <div>
+                  <span className="text-muted-foreground">Entry Point: </span>
+                  <span className="font-medium">{path.entry_point.resource_name}</span>
+                  <span className="text-muted-foreground ml-1">({path.entry_point.category})</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Target: </span>
+                  <span className="font-medium">{path.target.resource_name}</span>
+                  <span className="text-muted-foreground ml-1">({path.target.resource_type})</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Providers: </span>
+                  {uniqueProviders.map(p => (
+                    <span key={p} className="flex items-center gap-1">
+                      <ProviderIcon provider={p} className="h-3.5 w-3.5" />
+                      <span className="font-mono uppercase text-[10px]">{p}</span>
+                    </span>
+                  ))}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Regions: </span>
+                  <span className="font-mono text-[10px]">{uniqueRegions.join(', ')}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Accounts: </span>
+                  <span className="font-mono text-[10px]">{uniqueAccounts.join(', ')}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Score: </span>
+                  <span className={`font-semibold ${scoreColor}`}>{path.score.toFixed(0)}</span>
+                  <span className="text-muted-foreground ml-1">({path.severity})</span>
+                </div>
+              </div>
+            )
+          })()}
+        </CardContent>
+      </Card>
+
+      {/* Finding References */}
+      {path.finding_ids.length > 0 && (
+        <Card className="rounded-none">
+          <CardHeader className="pb-2 pt-3 px-4">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Finding References</span>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="flex flex-wrap gap-2">
+              {path.finding_ids.map(fid => (
+                <Link
+                  key={fid}
+                  to={`/ops/findings/${fid}`}
+                  className="flex items-center gap-1 text-[10px] font-mono bg-muted px-2 py-1 hover:bg-muted/70 transition-colors"
+                >
+                  {fid}
+                  <ArrowRight className="h-2.5 w-2.5" />
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   )
