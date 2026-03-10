@@ -63,6 +63,7 @@ type Server struct {
 	attackPathStats   *AttackPathStats
 	aiProvider        ai.Provider // nil when AI is disabled (graceful degradation)
 	findingEnrichment map[string]*FindingEnrichment
+	roles             *api.RoleEnforcer
 }
 
 func main() {
@@ -183,6 +184,7 @@ func main() {
 		logger:            logger,
 		aiProvider:        aiProvider,
 		findingEnrichment: make(map[string]*FindingEnrichment),
+		roles:             &api.RoleEnforcer{DevMode: os.Getenv("APP_ENV") == "development"},
 	}
 
 	// Load mock data from frontend JSON files
@@ -313,105 +315,105 @@ func (s *Server) setupRoutes() {
 	// Exception read endpoints — require operator or admin
 	// Literal paths registered before parameterized to prevent /{id} shadowing.
 	apiRouter.Handle("/exceptions/pending", // operator, admin
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getPendingApprovals)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getPendingApprovals)),
 	).Methods("GET")
 	apiRouter.Handle("/exceptions/expiring", // operator, admin
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getExpiringExceptions)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getExpiringExceptions)),
 	).Methods("GET")
 	apiRouter.Handle("/exceptions/{id}", // operator, admin
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getException)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getException)),
 	).Methods("GET")
 	apiRouter.Handle("/applications/{appId}/exceptions", // operator, admin
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getExceptionsByApp)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getExceptionsByApp)),
 	).Methods("GET")
 
 	// Exception write endpoints — require admin
 	apiRouter.Handle("/exceptions", // admin only
-		api.RequireRole(api.RoleAdmin)(http.HandlerFunc(s.createException)),
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.createException)),
 	).Methods("POST")
 	apiRouter.Handle("/exceptions/{id}/approve", // admin only
-		api.RequireRole(api.RoleAdmin)(http.HandlerFunc(s.submitApproval)),
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.submitApproval)),
 	).Methods("POST")
 
 	// Policy validation — require operator or admin
 	apiRouter.Handle("/validate/exception", // operator, admin
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.validateException)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.validateException)),
 	).Methods("POST")
 
 	// Findings — read endpoints
 	apiRouter.Handle("/findings",
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listFindings)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listFindings)),
 	).Methods("GET")
 	apiRouter.Handle("/findings/{id}/enrich",
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.enrichFinding)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.enrichFinding)),
 	).Methods("POST")
 	apiRouter.Handle("/findings/{id}",
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getFinding)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getFinding)),
 	).Methods("GET")
 
 	// Compliance
 	apiRouter.Handle("/compliance/frameworks",
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listFrameworks)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listFrameworks)),
 	).Methods("GET")
 
 	// Agents
 	apiRouter.Handle("/agents",
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAgents)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAgents)),
 	).Methods("GET")
 	apiRouter.Handle("/agents/{id}",
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAgent)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAgent)),
 	).Methods("GET")
 
 	// Costs
 	apiRouter.Handle("/costs/summary",
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getCostSummary)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getCostSummary)),
 	).Methods("GET")
 
 	// Remediations
 	apiRouter.Handle("/remediations",
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listRemediations)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listRemediations)),
 	).Methods("GET")
 	apiRouter.Handle("/remediations/{id}/execute",
-		api.RequireRole(api.RoleAdmin)(http.HandlerFunc(s.executeRemediation)),
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.executeRemediation)),
 	).Methods("POST")
 	apiRouter.Handle("/remediations/{id}",
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getRemediation)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getRemediation)),
 	).Methods("GET")
 
 	// Agent traces
 	apiRouter.Handle("/agents/{id}/traces",
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAgentTraces)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAgentTraces)),
 	).Methods("GET")
 
 	// Audit log — admin only
 	apiRouter.Handle("/audit-log",
-		api.RequireRole(api.RoleAdmin)(http.HandlerFunc(s.listAuditLog)),
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.listAuditLog)),
 	).Methods("GET")
 
 	// Users — admin only
 	apiRouter.Handle("/users",
-		api.RequireRole(api.RoleAdmin)(http.HandlerFunc(s.listUsers)),
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.listUsers)),
 	).Methods("GET")
 
 	// Catalog
 	apiRouter.Handle("/catalog/modules",
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listCatalogModules)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listCatalogModules)),
 	).Methods("GET")
 
 	// Policies
 	apiRouter.Handle("/policies",
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listPolicies)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listPolicies)),
 	).Methods("GET")
 
 	// Attack paths
 	apiRouter.Handle("/attack-paths",
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAttackPaths)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAttackPaths)),
 	).Methods("GET")
 	apiRouter.Handle("/attack-paths/stats",
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAttackPathStats)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAttackPathStats)),
 	).Methods("GET")
 	apiRouter.Handle("/attack-paths/{id}",
-		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAttackPath)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAttackPath)),
 	).Methods("GET")
 }
 
