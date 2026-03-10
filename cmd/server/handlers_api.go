@@ -1,14 +1,19 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.uber.org/zap"
 )
 
 func (s *Server) listFindings(w http.ResponseWriter, r *http.Request) {
@@ -293,4 +298,137 @@ func (s *Server) listPolicies(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(results)
+}
+
+// FindingEnrichment holds cached AI analysis for a single finding.
+type FindingEnrichment struct {
+	FindingID       string   `json:"finding_id"`
+	RootCause       string   `json:"root_cause"`
+	Impact          string   `json:"impact"`
+	Remediation     string   `json:"remediation"`
+	RelatedControls []string `json:"related_controls"`
+	EnrichedAt      string   `json:"enriched_at"`
+}
+
+var enrichMu sync.Mutex
+
+const findingEnrichSystemPrompt = `You are a cloud security analyst. Given a security finding, provide:
+1. Root cause analysis
+2. Business impact assessment
+3. Step-by-step remediation
+4. Related CIS/NIST controls
+
+Respond ONLY with valid JSON matching this schema:
+{"root_cause":"...","impact":"...","remediation":"...","related_controls":["CIS x.y","NIST SC-z"]}`
+
+func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.enrichFinding")
+	defer span.End()
+	r = r.WithContext(ctx)
+
+	id := mux.Vars(r)["id"]
+	span.SetAttributes(attribute.String("finding.id", id))
+
+	if s.aiProvider == nil {
+		writeErrorResponse(w, "AI enrichment is not enabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Check cache first
+	enrichMu.Lock()
+	if cached, ok := s.findingEnrichment[id]; ok {
+		enrichMu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(cached)
+		return
+	}
+	enrichMu.Unlock()
+
+	// Find the finding
+	var finding *Finding
+	for i := range s.mockData.Findings {
+		if s.mockData.Findings[i].ID == id {
+			finding = &s.mockData.Findings[i]
+			break
+		}
+	}
+	if finding == nil {
+		writeErrorResponse(w, "finding not found", http.StatusNotFound)
+		return
+	}
+
+	// Call AI provider
+	callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	prompt := fmt.Sprintf(`Finding: %s
+Severity: %s | Category: %s | Provider: %s
+Resource: %s (%s) in %s
+Status: %s
+Description: %s`,
+		finding.Title,
+		finding.Severity, finding.Category, finding.CloudProvider,
+		finding.ResourceName, finding.ResourceType, finding.Region,
+		finding.Status,
+		finding.Remediation,
+	)
+
+	response, err := s.aiProvider.CompleteWithSystem(callCtx, findingEnrichSystemPrompt, prompt)
+	if err != nil {
+		s.logger.Error("AI enrichment failed", zap.String("finding_id", id), zap.Error(err))
+		writeErrorResponse(w, "AI enrichment failed", http.StatusInternalServerError)
+		return
+	}
+
+	enrichment, err := parseFindingEnrichment(id, response)
+	if err != nil {
+		s.logger.Error("Failed to parse enrichment response", zap.String("finding_id", id), zap.Error(err))
+		writeErrorResponse(w, "failed to parse AI response", http.StatusInternalServerError)
+		return
+	}
+
+	// Cache the result
+	enrichMu.Lock()
+	s.findingEnrichment[id] = enrichment
+	enrichMu.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(enrichment)
+}
+
+func parseFindingEnrichment(findingID, response string) (*FindingEnrichment, error) {
+	type aiResponse struct {
+		RootCause       string   `json:"root_cause"`
+		Impact          string   `json:"impact"`
+		Remediation     string   `json:"remediation"`
+		RelatedControls []string `json:"related_controls"`
+	}
+
+	var parsed aiResponse
+
+	// Try direct parse
+	if err := json.Unmarshal([]byte(response), &parsed); err != nil {
+		// Extract JSON from surrounding text
+		start := strings.Index(response, "{")
+		end := strings.LastIndex(response, "}")
+		if start == -1 || end == -1 || end <= start {
+			return nil, fmt.Errorf("no JSON in response")
+		}
+		if err := json.Unmarshal([]byte(response[start:end+1]), &parsed); err != nil {
+			return nil, fmt.Errorf("parsing extracted JSON: %w", err)
+		}
+	}
+
+	if parsed.RootCause == "" {
+		return nil, fmt.Errorf("missing root_cause in response")
+	}
+
+	return &FindingEnrichment{
+		FindingID:       findingID,
+		RootCause:       parsed.RootCause,
+		Impact:          parsed.Impact,
+		Remediation:     parsed.Remediation,
+		RelatedControls: parsed.RelatedControls,
+		EnrichedAt:      time.Now().UTC().Format(time.RFC3339),
+	}, nil
 }
