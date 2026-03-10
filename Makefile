@@ -1,4 +1,4 @@
-.PHONY: build run dev test clean docker-build docker-up docker-down migrate lint fmt help build-cspm run-cspm test-cspm bedrock-auth bedrock-check bedrock-export dev-ai
+.PHONY: build run dev test clean docker-build docker-up docker-down migrate lint fmt help build-cspm run-cspm test-cspm bedrock-auth bedrock-check bedrock-export dev-ai health smoke
 
 # Variables
 BINARY_NAME=cloudforge
@@ -28,6 +28,8 @@ help:
 	@echo "  make bedrock-auth  Authenticate to AWS SSO for Bedrock"
 	@echo "  make bedrock-check Validate Bedrock access (no login)"
 	@echo "  make dev-ai        Run dev servers with Bedrock AI enabled"
+	@echo "  make health        Check backend health endpoint"
+	@echo "  make smoke         Build, smoke-test health endpoints, stop"
 
 # Build binary
 build:
@@ -150,6 +152,17 @@ dev-ai:
 	$(GO) run ./cmd/server & \
 	cd frontend && npm run dev & \
 	wait
+
+health:  ## Check backend health
+	@curl -sf http://localhost:8080/health | jq . || echo "Backend not reachable"
+
+smoke: build  ## Start backend, verify health, stop
+	@echo "Starting backend for smoke test..."
+	@CLOUDFORGE_JWT_SECRET=smoke-test GRC_PROVIDER=memory ./bin/cloudforge-server &
+	@sleep 2
+	@curl -sf http://localhost:8080/healthz && echo "Liveness: OK" || echo "Liveness: FAIL"
+	@curl -sf http://localhost:8080/ready && echo "Readiness: OK" || echo "Readiness: FAIL"
+	@kill %1 2>/dev/null || true
 
 # Generate API documentation
 docs:

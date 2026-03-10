@@ -199,15 +199,17 @@ function TraceRow({ trace }: { trace: AgentTrace }) {
             {trace.status}
           </span>
         </div>
-        <div className="flex items-center gap-3 text-[10px] text-muted-foreground shrink-0">
-          <span>{trace.metrics.total_spans} spans</span>
-          <span>{trace.metrics.llm_calls} LLM</span>
-          <span>{trace.metrics.total_tokens.toLocaleString()} tokens</span>
-          <span>${trace.metrics.estimated_cost_usd.toFixed(4)}</span>
-          {trace.metrics.security_signals > 0 && (
-            <span className="text-red-600 dark:text-red-400 font-medium">{trace.metrics.security_signals} signal{trace.metrics.security_signals !== 1 ? 's' : ''}</span>
-          )}
-        </div>
+        {trace.metrics && (
+          <div className="flex items-center gap-3 text-[10px] text-muted-foreground shrink-0">
+            <span>{trace.metrics.total_spans} spans</span>
+            <span>{trace.metrics.llm_calls} LLM</span>
+            <span>{trace.metrics.total_tokens.toLocaleString()} tokens</span>
+            <span>${trace.metrics.estimated_cost_usd.toFixed(4)}</span>
+            {trace.metrics.security_signals > 0 && (
+              <span className="text-red-600 dark:text-red-400 font-medium">{trace.metrics.security_signals} signal{trace.metrics.security_signals !== 1 ? 's' : ''}</span>
+            )}
+          </div>
+        )}
       </button>
       {expanded && (
         <div className="px-4 pb-4 pt-2 bg-muted/20 border-t">
@@ -236,7 +238,7 @@ export default function AIAgentDetail() {
   }
 
   const riskCfg = RISK_CONFIG[agent.risk_level] ?? RISK_CONFIG.low
-  const allSignals = traces.flatMap(t => t.security_signals)
+  const allSignals = traces.flatMap(t => t.security_signals ?? [])
   const filteredSignals = signalFilter === 'all'
     ? allSignals
     : allSignals.filter(s => s.type === signalFilter)

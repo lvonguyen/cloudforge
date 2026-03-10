@@ -293,6 +293,12 @@ export default function Findings() {
     overscan: 10,
   })
 
+  const virtualItems = virtualizer.getVirtualItems()
+  const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0
+  const paddingBottom = virtualItems.length > 0
+    ? virtualizer.getTotalSize() - virtualItems[virtualItems.length - 1].end
+    : 0
+
   function handleSort(col: SortColumn) {
     if (sortCol === col) {
       setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
@@ -594,30 +600,26 @@ export default function Findings() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <tr style={{ height: virtualizer.getTotalSize() }}>
-                    <td colSpan={activeColumns.length} style={{ padding: 0, position: 'relative' }}>
-                      {virtualizer.getVirtualItems().map(virtualRow => {
-                        const f = sorted[virtualRow.index]
-                        return (
-                          <TableRow
-                            key={f.id}
-                            className="cursor-pointer hover:bg-muted/30 transition-colors absolute w-full"
-                            style={{
-                              height: `${virtualRow.size}px`,
-                              transform: `translateY(${virtualRow.start}px)`,
-                            }}
-                            onClick={() => navigate(`/ops/findings/${f.id}`)}
-                          >
-                            {activeColumns.map(col => (
-                              <TableCell key={col.key} className="overflow-hidden" style={{ width: columnWidths[col.key] }}>
-                                {renderCell(f, col.key)}
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        )
-                      })}
-                    </td>
-                  </tr>
+                  {paddingTop > 0 && <tr><td colSpan={activeColumns.length} style={{ height: paddingTop }} /></tr>}
+                  {virtualItems.map(virtualRow => {
+                    const f = sorted[virtualRow.index]
+                    return (
+                      <TableRow
+                        key={f.id}
+                        data-index={virtualRow.index}
+                        ref={virtualizer.measureElement}
+                        className="cursor-pointer hover:bg-muted/30 transition-colors"
+                        onClick={() => navigate(`/ops/findings/${f.id}`)}
+                      >
+                        {activeColumns.map(col => (
+                          <TableCell key={col.key} className="overflow-hidden" style={{ width: columnWidths[col.key] }}>
+                            {renderCell(f, col.key)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    )
+                  })}
+                  {paddingBottom > 0 && <tr><td colSpan={activeColumns.length} style={{ height: paddingBottom }} /></tr>}
                 </TableBody>
               </Table>
             </div>

@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
 
 interface Props { children: ReactNode; fallbackLabel?: string }
 interface State { hasError: boolean; error: Error | null }
@@ -8,6 +9,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('[ErrorBoundary]', error, errorInfo.componentStack)
   }
 
   render() {
@@ -29,4 +34,9 @@ export class ErrorBoundary extends Component<Props, State> {
     }
     return this.props.children
   }
+}
+
+export function RoutingErrorBoundary(props: Props) {
+  const { pathname } = useLocation()
+  return <ErrorBoundary key={pathname} {...props} />
 }

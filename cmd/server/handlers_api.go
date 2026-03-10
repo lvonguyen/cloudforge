@@ -111,6 +111,25 @@ func (s *Server) getCostSummary(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(s.mockData.Costs)
 }
 
+func (s *Server) getRemediation(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getRemediation")
+	defer span.End()
+	r = r.WithContext(ctx)
+
+	id := mux.Vars(r)["id"]
+	span.SetAttributes(attribute.String("remediation.id", id))
+
+	for _, rem := range s.mockData.Remediations {
+		if rem.ID == id {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(rem)
+			return
+		}
+	}
+
+	writeErrorResponse(w, "remediation not found", http.StatusNotFound)
+}
+
 func (s *Server) listRemediations(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listRemediations")
 	defer span.End()

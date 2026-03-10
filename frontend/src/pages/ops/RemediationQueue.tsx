@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -56,6 +57,7 @@ const PROVIDER_COLORS: Record<string, string> = {
 }
 
 function QueueItemCard({ item }: { item: QueueItem }) {
+  const navigate = useNavigate()
   const { openStreaming, openDryRun } = useTracePanel()
   const executeCooldown = useActionCooldown({ key: `execute-${item.id}`, cooldownMs: 30_000 })
   const dryRunCooldown = useActionCooldown({ key: `dryrun-${item.id}`, cooldownMs: 15_000 })
@@ -83,7 +85,10 @@ function QueueItemCard({ item }: { item: QueueItem }) {
   }
 
   return (
-    <Card className={item.status === 'failed' ? 'border-red-200 dark:border-red-800' : ''}>
+    <Card
+      className={`cursor-pointer hover:bg-muted/50 transition-colors ${item.status === 'failed' ? 'border-red-200 dark:border-red-800' : ''}`}
+      onClick={() => navigate(`/ops/remediation/${item.id}`)}
+    >
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
           <div className="flex-1 min-w-0">
@@ -103,7 +108,7 @@ function QueueItemCard({ item }: { item: QueueItem }) {
               <p className="text-[10px] text-muted-foreground">Handler: <code>{item.handler}</code></p>
             </div>
           </div>
-          <div className="flex gap-2 shrink-0">
+          <div className="flex gap-2 shrink-0" onClick={e => e.stopPropagation()}>
             {item.status === 'pending' && item.dry_run_ok !== false && (
               <Button
                 size="sm"

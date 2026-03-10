@@ -158,6 +158,8 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen: boolean; on
           size="icon"
           className="absolute -right-3 top-6 h-6 w-6 rounded-full border border-border bg-background shadow-sm"
           onClick={() => setCollapsed(c => !c)}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!collapsed}
         >
           {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </Button>
@@ -170,7 +172,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen: boolean; on
           <aside className="absolute left-0 top-0 h-full w-64 bg-sidebar-background border-r border-border shadow-lg">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <span className="text-sm font-semibold text-sidebar-foreground">Navigation</span>
-              <button onClick={onMobileClose} className="text-muted-foreground hover:text-foreground">
+              <button onClick={onMobileClose} aria-label="Close menu" className="text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
               </button>
             </div>
