@@ -23,9 +23,11 @@ func CORSMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 			}
 
 			if r.Method == http.MethodOptions {
-				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-				w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-CloudForge-Role")
-				w.Header().Set("Access-Control-Max-Age", "86400")
+				if origin != "" && allowed[origin] {
+					w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+					w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-CloudForge-Role")
+					w.Header().Set("Access-Control-Max-Age", "86400")
+				}
 				w.WriteHeader(http.StatusNoContent)
 				return
 			}

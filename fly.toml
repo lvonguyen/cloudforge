@@ -18,6 +18,7 @@ primary_region = "sjc"
   min_machines_running = 1
 
   [[http_service.checks]]
+    type = "http"
     interval = "30s"
     timeout = "5s"
     grace_period = "10s"

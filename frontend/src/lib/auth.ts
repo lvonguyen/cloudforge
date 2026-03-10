@@ -15,8 +15,9 @@ const DEFAULT_USER: User = {
 }
 
 const ROLE_KEY = 'cloudforge_role'
-const TOKEN_KEY = 'cloudforge_access_token'
+export const TOKEN_KEY = 'cloudforge_access_token'
 const VERIFIER_KEY = 'cloudforge_pkce_verifier'
+const STATE_KEY = 'cloudforge_oauth_state'
 
 const OKTA_ISSUER = import.meta.env.VITE_OKTA_ISSUER as string | undefined
 const OKTA_CLIENT_ID = import.meta.env.VITE_OKTA_CLIENT_ID as string | undefined
@@ -91,6 +92,7 @@ interface AuthContextValue {
   login: () => Promise<void>
   logout: () => void
   isAuthenticated: boolean
+  exchangeCode: (code: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -123,6 +125,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { verifier, challenge } = await createPKCEChallenge()
     sessionStorage.setItem(VERIFIER_KEY, verifier)
 
+    const state = crypto.randomUUID()
+    sessionStorage.setItem(STATE_KEY, state)
+
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: OKTA_CLIENT_ID,
@@ -130,19 +135,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       scope: 'openid profile email groups',
       code_challenge: challenge,
       code_challenge_method: 'S256',
-      state: crypto.randomUUID(),
+      state,
     })
     window.location.href = `${OKTA_ISSUER}/v1/authorize?${params}`
   }, [])
 
   const logout = useCallback(() => {
+    const idToken = getStoredToken()
     sessionStorage.removeItem(TOKEN_KEY)
     sessionStorage.removeItem(VERIFIER_KEY)
+    sessionStorage.removeItem(STATE_KEY)
     localStorage.removeItem(ROLE_KEY)
 
     if (!isDev && OKTA_ISSUER && OKTA_CLIENT_ID) {
       const params = new URLSearchParams({
-        id_token_hint: getStoredToken() ?? '',
+        id_token_hint: idToken ?? '',
         post_logout_redirect_uri: window.location.origin,
       })
       window.location.href = `${OKTA_ISSUER}/v1/logout?${params}`
@@ -181,8 +188,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const data = await res.json()
+    if (!data.access_token || typeof data.access_token !== 'string') {
+      throw new Error('Invalid token response from IdP')
+    }
     sessionStorage.setItem(TOKEN_KEY, data.access_token)
     sessionStorage.removeItem(VERIFIER_KEY)
+    sessionStorage.removeItem(STATE_KEY)
 
     const u = userFromToken(data.access_token, savedRole)
     setUser(u)
@@ -198,7 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login()
   }, [isDev, isAuthenticated, login])
 
-  const value: AuthContextValue & { exchangeCode: (code: string) => Promise<void> } = {
+  const value: AuthContextValue = {
     user,
     role: user.role,
     setRole,
@@ -211,7 +222,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return createElement(AuthContext.Provider, { value }, children)
 }
 
-export function useAuth(): AuthContextValue & { exchangeCode?: (code: string) => Promise<void> } {
+export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth must be used within AuthProvider')
   return ctx

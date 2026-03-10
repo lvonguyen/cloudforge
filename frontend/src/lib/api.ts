@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query'
+import { TOKEN_KEY } from './auth'
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api/v1'
 
@@ -30,7 +31,7 @@ class ApiError extends Error {
 function authHeaders(): Record<string, string> {
   const token = import.meta.env.DEV
     ? (import.meta.env.VITE_DEV_TOKEN as string | undefined)
-    : sessionStorage.getItem('cloudforge_access_token')
+    : sessionStorage.getItem(TOKEN_KEY)
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 

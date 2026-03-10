@@ -5,15 +5,22 @@ import { useAuth } from '@/lib/auth'
 export default function Callback() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { exchangeCode } = useAuth() as ReturnType<typeof useAuth> & { exchangeCode: (code: string) => Promise<void> }
+  const { exchangeCode } = useAuth()
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const code = searchParams.get('code')
     const errorParam = searchParams.get('error')
+    const returnedState = searchParams.get('state')
+    const savedState = sessionStorage.getItem('cloudforge_oauth_state')
 
     if (errorParam) {
       setError(searchParams.get('error_description') ?? errorParam)
+      return
+    }
+
+    if (!returnedState || returnedState !== savedState) {
+      setError('OAuth state mismatch — possible CSRF. Please try logging in again.')
       return
     }
 
