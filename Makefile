@@ -1,4 +1,4 @@
-.PHONY: build run dev test clean docker-build docker-up docker-down migrate lint fmt help build-cspm run-cspm test-cspm
+.PHONY: build run dev test clean docker-build docker-up docker-down migrate lint fmt help build-cspm run-cspm test-cspm bedrock-auth bedrock-check bedrock-export dev-ai
 
 # Variables
 BINARY_NAME=cloudforge
@@ -25,6 +25,9 @@ help:
 	@echo "  make build-cspm   Build cspm-aggregator binary"
 	@echo "  make run-cspm     Run cspm-aggregator locally"
 	@echo "  make test-cspm    Run cspm-aggregator tests"
+	@echo "  make bedrock-auth  Authenticate to AWS SSO for Bedrock"
+	@echo "  make bedrock-check Validate Bedrock access (no login)"
+	@echo "  make dev-ai        Run dev servers with Bedrock AI enabled"
 
 # Build binary
 build:
@@ -113,6 +116,40 @@ test-cspm:
 dev-setup:
 	$(GO) mod download
 	$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+# Bedrock AI targets
+bedrock-auth:
+	@echo "[*] Authenticating to AWS SSO for Bedrock..."
+	@AWS_PROFILE=$${AWS_PROFILE:-lvn-personal} aws sso login --profile $${AWS_PROFILE:-lvn-personal}
+	@$(MAKE) bedrock-check
+
+bedrock-check:
+	@echo "[*] Validating Bedrock access (profile: $${AWS_PROFILE:-lvn-personal})..."
+	@aws bedrock-runtime invoke-model \
+	  --profile $${AWS_PROFILE:-lvn-personal} \
+	  --region us-east-1 \
+	  --model-id us.anthropic.claude-sonnet-4-6 \
+	  --content-type application/json \
+	  --accept application/json \
+	  --body '{"anthropic_version":"bedrock-2023-05-31","max_tokens":20,"messages":[{"role":"user","content":"ping"}]}' \
+	  /dev/null 2>&1 && echo "[+] Bedrock access confirmed" || echo "[!] Bedrock access DENIED - check IAM permissions"
+
+bedrock-export:
+	@echo "[*] Exporting short-lived Bedrock credentials..."
+	@eval $$(aws configure export-credentials --profile $${AWS_PROFILE:-lvn-personal} --format env)
+	@echo "[+] Credentials exported to AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN"
+	@echo "[!] Valid for ~1 hour"
+
+dev-ai:
+	@trap 'kill 0' EXIT; \
+	AWS_PROFILE=$${AWS_PROFILE:-lvn-personal} \
+	CLOUDFORGE_AI_ENABLED=true \
+	CLOUDFORGE_AI_REGION=$${CLOUDFORGE_AI_REGION:-us-east-1} \
+	CLOUDFORGE_JWT_SECRET=dev-secret-do-not-use \
+	GRC_PROVIDER=memory \
+	$(GO) run ./cmd/server & \
+	cd frontend && npm run dev & \
+	wait
 
 # Generate API documentation
 docs:
