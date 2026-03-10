@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"cloudforge/internal/ai"
 	"cloudforge/internal/api"
 	"cloudforge/internal/api/gateway"
 	"cloudforge/internal/grc"
@@ -42,20 +43,25 @@ type Config struct {
 	RedisAddr        string // Redis address for rate limiting
 	RedisPasswordEnv string // Environment variable name for Redis password
 	RateLimitEnabled bool   // Enable rate limiting
+	AIEnabled        bool   // Enable Bedrock AI enrichment
+	AIRegion         string // AWS region for Bedrock (default: us-east-1)
+	AIModel          string // Bedrock model ID override
 }
 
 // Server holds the application state
 type Server struct {
-	config          Config
-	grcProvider     grc.GRCProvider
-	router          *mux.Router
-	authMiddleware  *api.AuthMiddleware
-	rateLimiter     *gateway.RateLimiter
-	healthChecker   *observability.HealthChecker
-	logger          *zap.Logger
-	mockData        *MockData
-	attackPaths     []AttackPath
-	attackPathStats *AttackPathStats
+	config            Config
+	grcProvider       grc.GRCProvider
+	router            *mux.Router
+	authMiddleware    *api.AuthMiddleware
+	rateLimiter       *gateway.RateLimiter
+	healthChecker     *observability.HealthChecker
+	logger            *zap.Logger
+	mockData          *MockData
+	attackPaths       []AttackPath
+	attackPathStats   *AttackPathStats
+	aiProvider        ai.Provider // nil when AI is disabled (graceful degradation)
+	findingEnrichment map[string]*FindingEnrichment
 }
 
 func main() {
@@ -78,6 +84,9 @@ func main() {
 		RedisAddr:        getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPasswordEnv: getEnv("REDIS_PASSWORD_ENV", "CLOUDFORGE_REDIS_PASSWORD"),
 		RateLimitEnabled: getEnv("RATE_LIMIT_ENABLED", "true") == "true",
+		AIEnabled:        getEnv("CLOUDFORGE_AI_ENABLED", "false") == "true",
+		AIRegion:         getEnv("CLOUDFORGE_AI_REGION", "us-east-1"),
+		AIModel:          getEnv("CLOUDFORGE_AI_MODEL", ""),
 	}
 
 	// Initialize GRC provider
@@ -135,15 +144,42 @@ func main() {
 		logger.Info("Rate limiter initialized")
 	}
 
+	// Initialize AI provider (optional — graceful degradation when unavailable)
+	var aiProvider ai.Provider
+	if cfg.AIEnabled {
+		bp, err := ai.NewBedrockProvider(cfg.AIRegion, cfg.AIModel)
+		if err != nil {
+			logger.Warn("AI provider init failed, enrichment disabled", zap.Error(err))
+		} else {
+			// Validate credentials with a lightweight ping
+			pingCtx, pingCancel := context.WithTimeout(context.Background(), 10*time.Second)
+			if _, err := bp.Complete(pingCtx, "ping"); err != nil {
+				logger.Warn("Bedrock credential validation failed, enrichment disabled",
+					zap.Error(err),
+					zap.String("region", cfg.AIRegion),
+				)
+			} else {
+				aiProvider = bp
+				logger.Info("AI provider initialized",
+					zap.String("region", cfg.AIRegion),
+					zap.String("model", bp.ModelID()),
+				)
+			}
+			pingCancel()
+		}
+	}
+
 	// Create server
 	srv := &Server{
-		config:         cfg,
-		grcProvider:    grcProvider,
-		router:         mux.NewRouter(),
-		authMiddleware: authMiddleware,
-		rateLimiter:    rateLimiter,
-		healthChecker:  healthChecker,
-		logger:         logger,
+		config:            cfg,
+		grcProvider:       grcProvider,
+		router:            mux.NewRouter(),
+		authMiddleware:    authMiddleware,
+		rateLimiter:       rateLimiter,
+		healthChecker:     healthChecker,
+		logger:            logger,
+		aiProvider:        aiProvider,
+		findingEnrichment: make(map[string]*FindingEnrichment),
 	}
 
 	// Load mock data from frontend JSON files
@@ -165,6 +201,14 @@ func main() {
 
 	// Compute attack paths from findings
 	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings)
+
+	// Enrich attack paths with AI if provider is available
+	if srv.aiProvider != nil {
+		enrichCtx, enrichCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		enrichAttackPaths(enrichCtx, srv.aiProvider, attackPaths, logger)
+		enrichCancel()
+	}
+
 	srv.attackPaths = attackPaths
 	srv.attackPathStats = attackPathStats
 	logger.Info("Attack paths computed",
@@ -289,6 +333,9 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/findings",
 		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listFindings)),
 	).Methods("GET")
+	apiRouter.Handle("/findings/{id}/enrich",
+		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.enrichFinding)),
+	).Methods("POST")
 	apiRouter.Handle("/findings/{id}",
 		api.RequireRole(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getFinding)),
 	).Methods("GET")

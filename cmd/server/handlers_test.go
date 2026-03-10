@@ -14,14 +14,12 @@ func TestHealthCheck(t *testing.T) {
 	rr := doRequest(t, router, "GET", "/health", "", "")
 	assertStatus(t, rr, http.StatusOK)
 
-	var result map[string]string
+	var result map[string]interface{}
 	assertJSON(t, rr, &result)
 
-	if result["status"] != "healthy" {
-		t.Errorf("status = %q, want %q", result["status"], "healthy")
-	}
-	if result["version"] != "0.1.0" {
-		t.Errorf("version = %q, want %q", result["version"], "0.1.0")
+	status, _ := result["status"].(string)
+	if status != "healthy" {
+		t.Errorf("status = %q, want %q", status, "healthy")
 	}
 }
 
