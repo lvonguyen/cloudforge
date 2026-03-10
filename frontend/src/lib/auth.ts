@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode, createElement } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode, createElement } from 'react'
 
 export type Role = 'admin' | 'operator' | 'requester'
 
@@ -14,80 +14,204 @@ const DEFAULT_USER: User = {
   role: 'admin',
 }
 
-const STORAGE_KEY = 'cloudforge_role'
+const ROLE_KEY = 'cloudforge_role'
+const TOKEN_KEY = 'cloudforge_access_token'
+const VERIFIER_KEY = 'cloudforge_pkce_verifier'
 
-// Decode CF Access JWT from CF_Authorization cookie (no signature verification —
-// CF Access validates at the edge before traffic reaches us).
-function parseCFAccessJWT(): { name: string; email: string } | null {
-  const match = document.cookie.match(/(?:^|;\s*)CF_Authorization=([^;]+)/)
-  const token = match?.[1]
-  if (!token) return null
+const OKTA_ISSUER = import.meta.env.VITE_OKTA_ISSUER as string | undefined
+const OKTA_CLIENT_ID = import.meta.env.VITE_OKTA_CLIENT_ID as string | undefined
 
+// --- PKCE helpers ---
+
+function generateRandomString(length: number): string {
+  const array = new Uint8Array(length)
+  crypto.getRandomValues(array)
+  return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('').slice(0, length)
+}
+
+async function sha256(plain: string): Promise<ArrayBuffer> {
+  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(plain))
+}
+
+function base64UrlEncode(buffer: ArrayBuffer): string {
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+}
+
+async function createPKCEChallenge(): Promise<{ verifier: string; challenge: string }> {
+  const verifier = generateRandomString(64)
+  const hashed = await sha256(verifier)
+  return { verifier, challenge: base64UrlEncode(hashed) }
+}
+
+// --- Token helpers ---
+
+function getStoredToken(): string | null {
+  return sessionStorage.getItem(TOKEN_KEY)
+}
+
+function parseJWTPayload(token: string): Record<string, unknown> | null {
   try {
     const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
-    const payload = JSON.parse(atob(base64))
-    return {
-      email: payload.email ?? '',
-      name: payload.name || payload.email || '',
-    }
+    return JSON.parse(atob(base64))
   } catch {
     return null
   }
 }
 
+function isTokenExpired(token: string): boolean {
+  const payload = parseJWTPayload(token)
+  if (!payload || typeof payload.exp !== 'number') return true
+  return payload.exp * 1000 < Date.now()
+}
+
+function userFromToken(token: string, savedRole: Role | null): User {
+  const payload = parseJWTPayload(token)
+  const email = (payload?.email as string) ?? ''
+  const name = (payload?.name as string) || email
+  const groups = (payload?.groups as string[]) ?? []
+
+  let role: Role = savedRole ?? 'requester'
+  if (!savedRole) {
+    if (groups.includes('cloudforge-admin')) role = 'admin'
+    else if (groups.includes('cloudforge-operator')) role = 'operator'
+  }
+
+  return { name, email, role }
+}
+
+// --- Auth context ---
+
 interface AuthContextValue {
   user: User
   role: Role
   setRole: (role: Role) => void
+  login: () => Promise<void>
   logout: () => void
+  isAuthenticated: boolean
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const savedRole = localStorage.getItem(ROLE_KEY) as Role | null
+  const isDev = import.meta.env.DEV
+
   const [user, setUser] = useState<User>(() => {
-    const savedRole = localStorage.getItem(STORAGE_KEY) as Role | null
+    if (isDev) return { ...DEFAULT_USER, role: savedRole ?? DEFAULT_USER.role }
 
-    // Production: hydrate identity from CF Access JWT, keep dev role switcher
-    if (!import.meta.env.DEV) {
-      const cfUser = parseCFAccessJWT()
-      if (cfUser) {
-        return {
-          name: cfUser.name,
-          email: cfUser.email,
-          role: savedRole ?? DEFAULT_USER.role,
-        }
-      }
+    const token = getStoredToken()
+    if (token && !isTokenExpired(token)) {
+      return userFromToken(token, savedRole)
     }
-
     return { ...DEFAULT_USER, role: savedRole ?? DEFAULT_USER.role }
   })
 
-  const setRole = (role: Role) => {
-    localStorage.setItem(STORAGE_KEY, role)
-    setUser(prev => ({ ...prev, role }))
-  }
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (isDev) return true
+    const token = getStoredToken()
+    return !!token && !isTokenExpired(token)
+  })
 
-  const logout = () => {
-    localStorage.removeItem(STORAGE_KEY)
-    if (!import.meta.env.DEV) {
-      window.location.href = '/cdn-cgi/access/logout'
+  const login = useCallback(async () => {
+    if (!OKTA_ISSUER || !OKTA_CLIENT_ID) {
+      console.warn('[auth] Okta not configured, skipping login')
+      return
+    }
+    const { verifier, challenge } = await createPKCEChallenge()
+    sessionStorage.setItem(VERIFIER_KEY, verifier)
+
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: OKTA_CLIENT_ID,
+      redirect_uri: `${window.location.origin}/callback`,
+      scope: 'openid profile email groups',
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+      state: crypto.randomUUID(),
+    })
+    window.location.href = `${OKTA_ISSUER}/v1/authorize?${params}`
+  }, [])
+
+  const logout = useCallback(() => {
+    sessionStorage.removeItem(TOKEN_KEY)
+    sessionStorage.removeItem(VERIFIER_KEY)
+    localStorage.removeItem(ROLE_KEY)
+
+    if (!isDev && OKTA_ISSUER && OKTA_CLIENT_ID) {
+      const params = new URLSearchParams({
+        id_token_hint: getStoredToken() ?? '',
+        post_logout_redirect_uri: window.location.origin,
+      })
+      window.location.href = `${OKTA_ISSUER}/v1/logout?${params}`
     } else {
       setUser(DEFAULT_USER)
+      setIsAuthenticated(false)
     }
+  }, [isDev])
+
+  const setRole = useCallback((role: Role) => {
+    localStorage.setItem(ROLE_KEY, role)
+    setUser((prev) => ({ ...prev, role }))
+  }, [])
+
+  // Exchange authorization code for tokens (called from Callback page)
+  const exchangeCode = useCallback(async (code: string) => {
+    if (!OKTA_ISSUER || !OKTA_CLIENT_ID) return
+    const verifier = sessionStorage.getItem(VERIFIER_KEY)
+    if (!verifier) throw new Error('Missing PKCE verifier')
+
+    const res = await fetch(`${OKTA_ISSUER}/v1/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: OKTA_CLIENT_ID,
+        redirect_uri: `${window.location.origin}/callback`,
+        code,
+        code_verifier: verifier,
+      }),
+    })
+
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(`Token exchange failed: ${text}`)
+    }
+
+    const data = await res.json()
+    sessionStorage.setItem(TOKEN_KEY, data.access_token)
+    sessionStorage.removeItem(VERIFIER_KEY)
+
+    const u = userFromToken(data.access_token, savedRole)
+    setUser(u)
+    setIsAuthenticated(true)
+  }, [savedRole])
+
+  // Auto-login redirect in production when no valid token
+  useEffect(() => {
+    if (isDev) return
+    if (isAuthenticated) return
+    if (window.location.pathname === '/callback') return
+    if (window.location.pathname === '/') return // Don't redirect on landing page
+    login()
+  }, [isDev, isAuthenticated, login])
+
+  const value: AuthContextValue & { exchangeCode: (code: string) => Promise<void> } = {
+    user,
+    role: user.role,
+    setRole,
+    login,
+    logout,
+    isAuthenticated,
+    exchangeCode,
   }
 
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY) as Role | null
-    if (saved && saved !== user.role) {
-      setUser(prev => ({ ...prev, role: saved }))
-    }
-  }, [user.role])
-
-  return createElement(AuthContext.Provider, { value: { user, role: user.role, setRole, logout } }, children)
+  return createElement(AuthContext.Provider, { value }, children)
 }
 
-export function useAuth(): AuthContextValue {
+export function useAuth(): AuthContextValue & { exchangeCode?: (code: string) => Promise<void> } {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth must be used within AuthProvider')
   return ctx

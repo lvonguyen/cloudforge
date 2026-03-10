@@ -9,14 +9,28 @@ export function useRemediations(filters?: { status?: string; tier?: number }) {
   const qs = params.toString()
   return useQuery({
     queryKey: ['remediations', filters],
-    queryFn: () => apiClient.get<RemediationRecord[]>(`/remediations${qs ? `?${qs}` : ''}`),
+    queryFn: async () => {
+      try {
+        return await apiClient.get<RemediationRecord[]>(`/remediations${qs ? `?${qs}` : ''}`)
+      } catch {
+        const mod = await import('@/lib/mock/remediations.json')
+        return mod.default as RemediationRecord[]
+      }
+    },
   })
 }
 
 export function useRemediation(id: string) {
   return useQuery({
     queryKey: ['remediations', id],
-    queryFn: () => apiClient.get<RemediationRecord>(`/remediations/${id}`),
+    queryFn: async () => {
+      try {
+        return await apiClient.get<RemediationRecord>(`/remediations/${id}`)
+      } catch {
+        const mod = await import('@/lib/mock/remediations.json')
+        return (mod.default as RemediationRecord[]).find((r) => r.id === id) ?? null
+      }
+    },
     enabled: Boolean(id),
   })
 }

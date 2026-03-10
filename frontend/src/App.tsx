@@ -39,6 +39,7 @@ const Request = lazy(() => import('@/pages/portal/Request'))
 const MyRequests = lazy(() => import('@/pages/portal/MyRequests'))
 const RequestDetail = lazy(() => import('@/pages/portal/RequestDetail'))
 const Catalog = lazy(() => import('@/pages/portal/Catalog'))
+const Callback = lazy(() => import('@/pages/Callback'))
 
 function PageFallback() {
   return (
@@ -55,6 +56,8 @@ export default function App() {
         <TracePanelProvider>
           <BrowserRouter>
             <Routes>
+              {/* OAuth callback — outside AppShell */}
+              <Route path="/callback" element={<Suspense fallback={<PageFallback />}><Callback /></Suspense>} />
               <Route element={<AppShell />}>
                 {/* Portfolio landing page */}
                 <Route index element={<Landing />} />

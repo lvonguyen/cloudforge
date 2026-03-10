@@ -16,6 +16,13 @@ export function usePolicies(filter?: string) {
   const status = filter && filter !== 'all' ? filter : undefined
   return useQuery({
     queryKey: ['policies', filter],
-    queryFn: () => apiClient.get<Policy[]>(`/policies${status ? `?status=${status}` : ''}`),
+    queryFn: async () => {
+      try {
+        return await apiClient.get<Policy[]>(`/policies${status ? `?status=${status}` : ''}`)
+      } catch {
+        const mod = await import('@/lib/mock/policies.json')
+        return mod.default as Policy[]
+      }
+    },
   })
 }

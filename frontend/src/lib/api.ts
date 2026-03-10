@@ -1,7 +1,6 @@
 import { QueryClient } from '@tanstack/react-query'
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api/v1'
-const DEV_TOKEN = import.meta.env.DEV ? import.meta.env.VITE_DEV_TOKEN : undefined
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,8 +28,9 @@ class ApiError extends Error {
 }
 
 function authHeaders(): Record<string, string> {
-  const cfToken = document.cookie.match(/(?:^|;\s*)CF_Authorization=([^;]+)/)?.[1]
-  const token = cfToken ?? DEV_TOKEN
+  const token = import.meta.env.DEV
+    ? (import.meta.env.VITE_DEV_TOKEN as string | undefined)
+    : sessionStorage.getItem('cloudforge_access_token')
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
