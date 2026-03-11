@@ -87,3 +87,9 @@ export-outputs/
 
 # Stale backups
 *.bck.yml
+
+# Wrangler local cache
+.wrangler/
+
+# Claude Code worktrees
+.claude/worktrees/
