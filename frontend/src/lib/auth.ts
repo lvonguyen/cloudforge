@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode, createElement } from 'react'
+import { createContext, useContext, useState, useCallback, type ReactNode, createElement } from 'react'
 
 export type Role = 'admin' | 'operator' | 'requester'
 
@@ -220,14 +220,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(true)
   }, [])
 
-  // Auto-login redirect in production when no valid token
-  useEffect(() => {
-    if (isDev) return
-    if (isAuthenticated) return
-    if (window.location.pathname === '/callback') return
-    if (window.location.pathname === '/') return // Don't redirect on landing page
-    login()
-  }, [isDev, isAuthenticated, login])
+  // Auto-login is handled by ProtectedRoute — no global redirect needed.
+  // The landing page (/) is public; protected routes trigger login on access.
 
   const value: AuthContextValue = {
     user,
