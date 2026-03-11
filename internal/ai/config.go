@@ -3,6 +3,7 @@ package ai
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -92,16 +93,16 @@ func NewProviderFromConfig(cfg ProviderConfig) (Provider, error) {
 // "local" to TierLocal.
 func tierForName(name string) ModelTier {
 	for _, kw := range []string{"fast", "sonnet"} {
-		if containsSubstring(name, kw) {
+		if strings.Contains(name, kw) {
 			return TierFast
 		}
 	}
 	for _, kw := range []string{"premium", "opus"} {
-		if containsSubstring(name, kw) {
+		if strings.Contains(name, kw) {
 			return TierPremium
 		}
 	}
-	if containsSubstring(name, "local") {
+	if strings.Contains(name, "local") {
 		return TierLocal
 	}
 	return TierFast
@@ -139,16 +140,4 @@ func NewRoutingProviderFromConfig(cfg AIConfig) (*RoutingProvider, error) {
 	}
 
 	return NewRoutingProvider(tiers, cfg.DefaultTier, fallback), nil
-}
-
-func containsSubstring(s, sub string) bool {
-	if len(sub) > len(s) {
-		return false
-	}
-	for i := 0; i <= len(s)-len(sub); i++ {
-		if s[i:i+len(sub)] == sub {
-			return true
-		}
-	}
-	return false
 }

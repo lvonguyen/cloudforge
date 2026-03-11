@@ -8,7 +8,6 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "pages:build": "tsc -b && vite build",
     "deploy": "npx wrangler@latest pages deploy dist --project-name=cloudforge-demo"
   },
   "dependencies": {

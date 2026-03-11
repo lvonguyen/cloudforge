@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -58,7 +59,7 @@ type OpenAIProvider struct {
 // Set isAzure=true to use the "api-key" header instead of "Authorization: Bearer".
 func NewOpenAIProvider(baseURL, apiKey, model string) *OpenAIProvider {
 	// Detect Azure by URL pattern (contains .openai.azure.com).
-	isAzure := containsAzureDomain(baseURL)
+	isAzure := strings.Contains(baseURL, ".openai.azure.com")
 
 	return &OpenAIProvider{
 		baseURL: baseURL,
@@ -136,13 +137,4 @@ func (p *OpenAIProvider) CompleteWithSystem(ctx context.Context, systemPrompt, u
 	}
 
 	return openaiResp.Choices[0].Message.Content, nil
-}
-
-func containsAzureDomain(url string) bool {
-	for i := 0; i < len(url)-len(".openai.azure.com"); i++ {
-		if url[i:i+len(".openai.azure.com")] == ".openai.azure.com" {
-			return true
-		}
-	}
-	return false
 }

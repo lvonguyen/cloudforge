@@ -9,21 +9,6 @@ export function useExceptions() {
   })
 }
 
-export function useExpiringExceptions() {
-  return useQuery({
-    queryKey: ['exceptions', 'expiring'],
-    queryFn: () => apiClient.get<ExceptionRequest[]>('/exceptions/expiring'),
-  })
-}
-
-export function useException(id: string) {
-  return useQuery({
-    queryKey: ['exceptions', id],
-    queryFn: () => apiClient.get<ExceptionRequest>(`/exceptions/${id}`),
-    enabled: Boolean(id),
-  })
-}
-
 export function useCreateException() {
   const qc = useQueryClient()
   return useMutation({
