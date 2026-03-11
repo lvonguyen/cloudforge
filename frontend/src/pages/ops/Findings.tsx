@@ -15,6 +15,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
+import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import type { Finding } from '@/types/compliance'
 
 const SEVERITY_ORDER: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
@@ -327,7 +328,7 @@ export default function Findings() {
         </div>
       )
       case 'category': return <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${CATEGORY_COLORS[f.category] ?? ''}`} title={f.category}>{CATEGORY_SHORT[f.category] ?? f.category}</Badge>
-      case 'provider': return <span className="text-xs font-mono uppercase text-muted-foreground">{f.cloud_provider.toUpperCase()}</span>
+      case 'provider': return <ProviderBadge provider={f.cloud_provider} />
       case 'resource_type': return <span className="text-xs font-mono uppercase text-muted-foreground">{f.resource_type}</span>
       case 'resource': return <span className="text-xs text-muted-foreground truncate block">{f.resource_name}</span>
       case 'region': return <span className="text-xs text-muted-foreground font-mono">{f.region}</span>

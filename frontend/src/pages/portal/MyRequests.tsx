@@ -7,6 +7,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { Plus, Clock, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react'
+import { ProviderBadge } from '@/components/ui/ProviderBadge'
 
 interface RequestRow {
   id: string
@@ -35,11 +36,6 @@ const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; className: stri
   EXPIRED: { icon: AlertTriangle, className: 'text-gray-500 dark:text-gray-400', badge: 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400' },
 }
 
-const PROVIDER_COLORS: Record<string, string> = {
-  aws: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
-  azure: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-  gcp: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-}
 
 export default function MyRequests() {
   const [statusFilter, setStatusFilter] = useState('ALL')
@@ -111,9 +107,7 @@ export default function MyRequests() {
                     <TableCell className="text-xs">{req.resource}</TableCell>
                     <TableCell><Badge variant="outline" className="text-[10px]">{req.type}</Badge></TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className={`text-[10px] ${PROVIDER_COLORS[req.provider] ?? ''}`}>
-                        {req.provider.toUpperCase()}
-                      </Badge>
+                      <ProviderBadge provider={req.provider} />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">

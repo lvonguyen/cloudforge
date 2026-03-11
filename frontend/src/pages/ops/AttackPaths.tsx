@@ -18,6 +18,7 @@ import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, Shield, AlertTriangle, Zap, Target, Sparkles, ArrowRight } from 'lucide-react'
 import type { AttackPath } from '@/types/attack-path'
 import { ProviderIcon } from '@/components/ui/ProviderIcon'
+import { ProviderBadge } from '@/components/ui/ProviderBadge'
 
 const SEVERITY_COLORS: Record<string, string> = {
   CRITICAL: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-300 dark:border-red-700',
@@ -31,12 +32,6 @@ const NODE_BORDER_COLORS: Record<string, string> = {
   HIGH: '#f97316',
   MEDIUM: '#eab308',
   LOW: '#3b82f6',
-}
-
-const PROVIDER_COLORS: Record<string, string> = {
-  aws: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
-  azure: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-  gcp: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
 }
 
 const CATEGORY_ICONS: Record<string, typeof Shield> = {
@@ -109,9 +104,7 @@ function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) 
               <span className="text-[10px] text-muted-foreground">{path.hop_count} hop{path.hop_count !== 1 ? 's' : ''}</span>
               <span className="text-[10px] text-muted-foreground">Score: {path.score.toFixed(0)}</span>
               {path.nodes.length > 0 && (
-                <Badge variant="secondary" className={`text-[10px] ${PROVIDER_COLORS[path.nodes[0].provider] ?? ''}`}>
-                  {path.nodes[0].provider.toUpperCase()}
-                </Badge>
+                <ProviderBadge provider={path.nodes[0].provider} />
               )}
               {path.ai_enriched && (
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 rounded-none bg-violet-100 text-violet-700 border-violet-300 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800 gap-0.5">

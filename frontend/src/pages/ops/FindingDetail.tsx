@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, ExternalLink, CheckCircle2, Shield, AlertTriangle, Brain, Crosshair, Building2 } from 'lucide-react'
 import { SeverityBadge } from '@/components/findings/SeverityBadge'
+import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
 
@@ -46,7 +47,7 @@ export default function FindingDetail() {
               <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">AUTO-REMEDIABLE</Badge>
             )}
             <Badge variant="outline" className="text-[10px]">{finding.category}</Badge>
-            <Badge variant="outline" className="text-[10px]">{finding.cloud_provider.toUpperCase()}</Badge>
+            <ProviderBadge provider={finding.cloud_provider} />
           </div>
           <h1 className="text-xl font-semibold leading-snug">{finding.title}</h1>
           <p className="text-sm text-muted-foreground mt-1">{finding.description}</p>

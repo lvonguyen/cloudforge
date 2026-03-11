@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, CheckCircle2, XCircle, Clock } from 'lucide-react'
+import { ProviderBadge } from '@/components/ui/ProviderBadge'
 
 interface ExceptionLifecycle {
   id: string
@@ -124,7 +125,7 @@ export default function RequestDetail() {
         <CardContent className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Application</p><p className="text-sm font-medium mt-0.5">{exc.app_id}</p></div>
           <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Team</p><p className="text-sm font-medium mt-0.5">{exc.team}</p></div>
-          <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Provider / Region</p><p className="text-sm font-medium mt-0.5">{exc.provider.toUpperCase()} · {exc.region}</p></div>
+          <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Provider / Region</p><div className="flex items-center gap-1.5 mt-0.5"><ProviderBadge provider={exc.provider} /><span className="text-sm font-medium">· {exc.region}</span></div></div>
           <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Requestor</p><p className="text-sm font-medium mt-0.5">{exc.requestor}</p></div>
           <div className="col-span-2">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Business Case</p>
