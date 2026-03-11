@@ -69,6 +69,20 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		roles:             &api.RoleEnforcer{DevMode: false},
 	}
 
+	// Build O(1) lookup maps (matches main.go init logic)
+	srv.findingsByID = make(map[string]*Finding, len(mockData.Findings))
+	for i := range mockData.Findings {
+		srv.findingsByID[mockData.Findings[i].ID] = &mockData.Findings[i]
+	}
+	srv.agentsByID = make(map[string]*Agent, len(mockData.Agents))
+	for i := range mockData.Agents {
+		srv.agentsByID[mockData.Agents[i].ID] = &mockData.Agents[i]
+	}
+	srv.remediationsByID = make(map[string]*RemediationRecord, len(mockData.Remediations))
+	for i := range mockData.Remediations {
+		srv.remediationsByID[mockData.Remediations[i].ID] = &mockData.Remediations[i]
+	}
+
 	srv.setupRoutes()
 
 	return srv, srv.router

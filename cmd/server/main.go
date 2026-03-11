@@ -232,7 +232,11 @@ func main() {
 	// Compute attack paths from findings
 	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings)
 
-	// Enrich attack paths with AI in the background to avoid blocking startup
+	srv.attackPaths = attackPaths
+	srv.attackPathStats = attackPathStats
+
+	// Enrich attack paths with AI in the background to avoid blocking startup.
+	// Assign srv.attackPaths before spawning so HTTP handlers always see the slice.
 	if srv.aiProvider != nil {
 		go func() {
 			enrichCtx, enrichCancel := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -240,9 +244,6 @@ func main() {
 			enrichAttackPaths(enrichCtx, srv.aiProvider, attackPaths, logger)
 		}()
 	}
-
-	srv.attackPaths = attackPaths
-	srv.attackPathStats = attackPathStats
 	logger.Info("Attack paths computed",
 		zap.Int("paths", len(attackPaths)),
 		zap.Int("findings_in_paths", attackPathStats.FindingsInPaths),

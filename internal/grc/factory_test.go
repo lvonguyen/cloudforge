@@ -23,10 +23,10 @@ func TestNewProvider(t *testing.T) {
 			errSubstr: "postgres db connection required",
 		},
 		{
-			name:      "archer provider requires config",
+			name:      "archer provider is not yet implemented",
 			config:    Config{Type: ProviderTypeArcher, Archer: nil},
 			wantErr:   true,
-			errSubstr: "archer config required",
+			errSubstr: "not yet implemented",
 		},
 		{
 			name:      "servicenow provider requires config",
@@ -46,13 +46,13 @@ func TestNewProvider(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "archer provider with invalid config returns wrapped error",
+			name: "archer provider with config still not implemented",
 			config: Config{
 				Type:   ProviderTypeArcher,
 				Archer: &ArcherConfig{},
 			},
 			wantErr:   true,
-			errSubstr: "initializing archer provider",
+			errSubstr: "not yet implemented",
 		},
 		{
 			name: "servicenow provider with invalid config returns wrapped error",

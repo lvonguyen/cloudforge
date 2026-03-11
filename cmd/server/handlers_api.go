@@ -62,9 +62,8 @@ func (s *Server) getFinding(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listFrameworks(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listFrameworks")
+	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listFrameworks")
 	defer span.End()
-	_ = ctx
 
 	span.SetAttributes(attribute.Int("frameworks.count", len(s.mockData.Frameworks)))
 
@@ -73,9 +72,8 @@ func (s *Server) listFrameworks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listAgents(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAgents")
+	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAgents")
 	defer span.End()
-	_ = ctx
 
 	span.SetAttributes(attribute.Int("agents.count", len(s.mockData.Agents)))
 
@@ -101,9 +99,8 @@ func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getCostSummary(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getCostSummary")
+	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getCostSummary")
 	defer span.End()
-	_ = ctx
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(s.mockData.Costs)
