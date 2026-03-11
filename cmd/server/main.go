@@ -75,9 +75,14 @@ func main() {
 	defer func() { _ = logger.Sync() }()
 
 	// Load configuration
+	providerType, err := grc.ProviderFromString(getEnv("GRC_PROVIDER", "memory"))
+	if err != nil {
+		log.Fatalf("Invalid GRC provider: %v", err)
+	}
+
 	cfg := Config{
 		Port:             getEnv("PORT", "8080"),
-		GRCProvider:      grc.ProviderType(getEnv("GRC_PROVIDER", "memory")),
+		GRCProvider:      providerType,
 		JWTSecretEnv:     getEnv("JWT_SECRET_ENV", "CLOUDFORGE_JWT_SECRET"),
 		JWTIssuer:        getEnv("JWT_ISSUER", ""),
 		JWTAudience:      getEnv("JWT_AUDIENCE", ""),

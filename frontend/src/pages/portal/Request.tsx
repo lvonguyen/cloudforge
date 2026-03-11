@@ -593,7 +593,10 @@ export default function Request() {
 
   const handleSubmit = async () => {
     const resource = catalog.find(c => c.id === selectedResource)
-    const exceptionType: ExceptionType = acceptedExceptions.length > 0 ? 'OTHER' : 'OTHER'
+    const knownTypes: ExceptionType[] = ['UNAPPROVED_REGION', 'OVERSIZED_INSTANCE', 'RESTRICTED_SERVICE', 'NETWORK_EXPOSURE', 'DATA_RESIDENCY', 'OTHER']
+    const exceptionType: ExceptionType = acceptedExceptions.length > 0
+      ? (knownTypes.includes(acceptedExceptions[0] as ExceptionType) ? acceptedExceptions[0] as ExceptionType : 'OTHER')
+      : 'OTHER'
 
     await createException.mutateAsync({
       application_id: String(formValues.applicationId),

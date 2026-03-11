@@ -40,14 +40,7 @@ func NewProvider(cfg Config) (GRCProvider, error) {
 		return NewPostgresGRCProvider(cfg.Postgres), nil
 
 	case ProviderTypeArcher:
-		if cfg.Archer == nil {
-			return nil, fmt.Errorf("archer config required for archer provider")
-		}
-		provider, err := NewArcherGRCProvider(*cfg.Archer)
-		if err != nil {
-			return nil, fmt.Errorf("initializing archer provider: %w", err)
-		}
-		return provider, nil
+		return nil, fmt.Errorf("archer provider is not yet implemented")
 
 	case ProviderTypeServiceNow:
 		if cfg.ServiceNow == nil {
