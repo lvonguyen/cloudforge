@@ -10,6 +10,8 @@ import { FileCode, CheckCircle2, AlertTriangle, Clock } from 'lucide-react'
 import { usePolicies } from '@/hooks/usePolicies'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
+import { useToast } from '@/hooks/useToast'
+import { ToastStack } from '@/components/ui/ToastStack'
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; className: string; label: string }> = {
   active: { icon: CheckCircle2, className: 'text-green-600 dark:text-green-400', label: 'Active' },
@@ -34,6 +36,7 @@ export default function Policies() {
   const { data: allPolicies = [] } = usePolicies()
   const { openTimeline } = useTracePanel()
   const newPolicyCooldown = useActionCooldown({ key: 'new-policy', cooldownMs: 3_000 })
+  const { toasts, toast, dismiss } = useToast()
   const filtered = filter === 'all' ? allPolicies : allPolicies.filter(p => p.status === filter)
 
   return (
@@ -102,6 +105,7 @@ export default function Policies() {
               },
             ])
             newPolicyCooldown.fire()
+            setTimeout(() => toast('Policy draft created successfully'), 1050)
           }}
         >
           <FileCode className="h-3.5 w-3.5" />{!newPolicyCooldown.canFire ? 'Creating\u2026' : 'New Policy'}
@@ -175,6 +179,8 @@ export default function Policies() {
           </Table>
         </CardContent>
       </Card>
+
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   )
 }

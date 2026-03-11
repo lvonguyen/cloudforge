@@ -67,6 +67,7 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
       ],
     },
   ],
+  viewer: [],
 }
 
 function NavContent({ collapsed }: { collapsed: boolean }) {

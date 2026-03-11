@@ -9,6 +9,8 @@ import { UserPlus } from 'lucide-react'
 import { useUsers } from '@/hooks/useUsers'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
+import { useToast } from '@/hooks/useToast'
+import { ToastStack } from '@/components/ui/ToastStack'
 import { cn } from '@/lib/utils'
 
 const ROLE_COLORS: Record<string, string> = {
@@ -24,6 +26,7 @@ export default function Users() {
   const filteredUsers = roleFilter === 'all' ? USERS : USERS.filter(u => u.role === roleFilter)
   const { openTimeline } = useTracePanel()
   const inviteCooldown = useActionCooldown({ key: 'invite-user', cooldownMs: 5_000 })
+  const { toasts, toast, dismiss } = useToast()
 
   return (
     <div className="space-y-6">
@@ -91,6 +94,7 @@ export default function Users() {
               },
             ])
             inviteCooldown.fire()
+            setTimeout(() => toast('Invitation sent to user'), 1400)
           }}
         >
           <UserPlus className="h-3.5 w-3.5" />{!inviteCooldown.canFire ? 'Inviting\u2026' : 'Invite User'}
@@ -172,6 +176,8 @@ export default function Users() {
           </Table>
         </CardContent>
       </Card>
+
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   )
 }

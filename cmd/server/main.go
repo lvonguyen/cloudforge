@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -62,6 +63,7 @@ type Server struct {
 	mockData          *MockData
 	findingsByID      map[string]*Finding
 	agentsByID        map[string]*Agent
+	tracesByAgentID   map[string][]AgentTrace
 	remediationsByID  map[string]*RemediationRecord
 	attackPaths       []AttackPath
 	attackPathStats   *AttackPathStats
@@ -217,6 +219,10 @@ func main() {
 	srv.remediationsByID = make(map[string]*RemediationRecord, len(mockData.Remediations))
 	for i := range mockData.Remediations {
 		srv.remediationsByID[mockData.Remediations[i].ID] = &mockData.Remediations[i]
+	}
+	srv.tracesByAgentID = make(map[string][]AgentTrace, len(mockData.Agents))
+	for _, tr := range mockData.Traces {
+		srv.tracesByAgentID[tr.AgentID] = append(srv.tracesByAgentID[tr.AgentID], tr)
 	}
 
 	logger.Info("Mock data loaded",
@@ -549,8 +555,12 @@ func (s *Server) getException(w http.ResponseWriter, r *http.Request) {
 
 	exc, err := s.grcProvider.GetException(r.Context(), id)
 	if err != nil {
+		if errors.Is(err, grc.ErrNotFound) {
+			writeErrorResponse(w, "exception not found", http.StatusNotFound)
+			return
+		}
 		s.logger.Error("get exception failed", zap.Error(err))
-		writeErrorResponse(w, "exception not found", http.StatusNotFound)
+		writeErrorResponse(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 

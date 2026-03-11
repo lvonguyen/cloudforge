@@ -96,29 +96,39 @@
 - [x] Validate `X-CloudForge-Role` against `roleRank` map in `RoleEnforcer.Require()`
 - [x] Invalid values silently ignored (not cast to Role)
 
-### P3 — Auth hardening (+0.2 to Auth + Correctness)
-- [ ] Make OIDC nonce check unconditional in `exchangeCode`
-- [ ] Set anonymous user (not `DEFAULT_USER`) on expired token in production
-- [ ] `getException`: distinguish `grc.ErrNotFound` from internal errors (404 vs 500)
+### P3 — Auth hardening (+0.2 to Auth + Correctness) — DONE (feat/close-gaps 535773c)
+- [x] Make OIDC nonce check unconditional in `exchangeCode`
+- [x] Set anonymous user (not `DEFAULT_USER`) on expired token in production
+- [x] `getException`: distinguish `grc.ErrNotFound` from internal errors (404 vs 500)
 
 ### Backlog (separate PRs)
-- [ ] `listAgentTraces` O(1) map (consistency with other handlers)
-- [ ] `SEVERITY_COLORS_BORDERED` computed merge to eliminate duplication
+- [x] `listAgentTraces` O(1) map (consistency with other handlers) — feat/close-gaps d1614fb
+- [x] `SEVERITY_COLORS_BORDERED` computed merge to eliminate duplication — feat/close-gaps d1614fb
 - [ ] `testServer()` helper — extract `Server.buildLookupMaps()` to DRY
-- [ ] Callback post-login redirect (`LOGIN_RETURN_KEY` wired but unused in `Callback.tsx`)
-- [ ] Redis fallback log dedup (log once at startup, not per-request)
+- [x] Callback post-login redirect — already working (verified)
+- [x] Redis fallback log dedup (atomic CAS, resets on recovery) — feat/close-gaps d1614fb + e48ac73
 - [ ] Frontend test expansion (API client, findings table, severity utils)
 - [ ] `archer` provider: delete stub or promote to real implementation
 - [ ] Fly.io action: re-pin to release-tag SHA
 - [ ] `localStorage` role persistence -> `sessionStorage` or derive from JWT
 
-### Next Phase: Documentation & Diagram Refresh
-- [ ] Root README.md: update completion badge (~85%), add live demo link, remove Temporal/FinOps aspirational claims
-- [ ] Architecture diagrams: verify Mermaid diagrams match current state (post-sweep changes)
-- [ ] ADR updates: check ADR-001..008 for accuracy against current implementation
-- [ ] Internal package docs: document which packages are real vs stub vs interface-only
+### Close-Gaps Phase (feat/close-gaps — pushed, pending QA iteration 2)
+- [x] Root README.md: update completion badge (~85%), add live demo link, package maturity table
+- [x] Wire 6 dead action buttons with toast feedback
+- [x] Promote 4 stub packages (container, secrets, waf, identity) — 31 tests
+- [x] Compliance page enhancement (framework details table)
+- [x] QA iteration 1 fixes: factory panic, honest error toasts, auth email, pointer aliasing, atomic CAS
+- [ ] Architecture diagrams: verify Mermaid diagrams match current state
+- [ ] ADR updates: check ADR-001..008 for accuracy
 - [ ] API documentation: OpenAPI spec or handler-level docs for 27 endpoints
 - [ ] Deployment docs: consolidate Fly.io + CF Pages setup into single operations guide
+
+### QA Iteration 2 (next session)
+- Regenerate diff: `git diff main...feat/close-gaps > /tmp/cloudforge-close-gaps.diff`
+- Run 3 blind agents (quality-review, bug-discovery, security-audit) against diff file
+- Do NOT leak threshold (4.5/5) to agents — blind scoring protocol
+- Compare scores against threshold; fix any new FIX items; iterate max 3 times
+- Target: all dimensions >= 4.5/5 before creating PR
 
 ### Relationship to Execution Plan
 

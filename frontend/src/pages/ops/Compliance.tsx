@@ -1,8 +1,24 @@
 import { useCompliance } from '@/hooks/useCompliance'
 import { FrameworkGrid } from '@/components/compliance/FrameworkGrid'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShieldCheck, ShieldAlert, Shield } from 'lucide-react'
+
+// Static last-assessed dates keyed by framework ID — would come from API in production
+const LAST_ASSESSED: Record<string, string> = {
+  'nist-csf':  '2026-03-01',
+  'pci-dss':   '2026-02-28',
+  'hipaa':     '2026-02-15',
+  'iso-27001': '2026-02-20',
+  'iso-42001': '2026-03-05',
+  'tisax':     '2026-01-30',
+}
+
+function scoreClass(score: number): string {
+  if (score >= 90) return 'text-green-600 dark:text-green-400'
+  if (score >= 75) return 'text-yellow-600 dark:text-yellow-400'
+  return 'text-red-600 dark:text-red-400'
+}
 
 export default function Compliance() {
   const { data: frameworks = [], isLoading } = useCompliance()
@@ -64,6 +80,37 @@ export default function Compliance() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Framework detail cards */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-mono uppercase tracking-wide">Framework Details</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y divide-border">
+            {frameworks.map(fw => (
+              <div key={fw.id} className="grid grid-cols-4 gap-4 px-4 py-3 text-sm items-center">
+                <div>
+                  <p className="font-medium">{fw.name}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{fw.category}</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-mono text-xs text-muted-foreground">Controls</p>
+                  <p className="font-semibold">{fw.controls_passing}<span className="text-muted-foreground font-normal">/{fw.total_controls}</span></p>
+                </div>
+                <div className="text-center">
+                  <p className="font-mono text-xs text-muted-foreground">Compliance</p>
+                  <p className={`font-semibold ${scoreClass(fw.score)}`}>{fw.score.toFixed(1)}%</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-mono text-xs text-muted-foreground">Last Assessed</p>
+                  <p className="text-xs">{LAST_ASSESSED[fw.id] ?? '—'}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Framework grid */}
       <FrameworkGrid frameworks={frameworks} />

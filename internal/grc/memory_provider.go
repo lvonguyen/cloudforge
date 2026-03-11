@@ -52,7 +52,7 @@ func (m *MemoryGRCProvider) GetException(ctx context.Context, id string) (*Excep
 		copy := *exc
 		return &copy, nil
 	}
-	return nil, fmt.Errorf("exception %s not found", id)
+	return nil, fmt.Errorf("exception %s: %w", id, ErrNotFound)
 }
 
 // UpdateException updates an existing exception.

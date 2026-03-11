@@ -5,8 +5,12 @@ package grc
 
 import (
 	"context"
+	"errors"
 	"time"
 )
+
+// ErrNotFound is returned by GRC providers when a requested resource does not exist.
+var ErrNotFound = errors.New("not found")
 
 // ExceptionRequest represents an out-of-band policy exception request.
 // When a user requests resources that violate policy (e.g., unapproved region,
