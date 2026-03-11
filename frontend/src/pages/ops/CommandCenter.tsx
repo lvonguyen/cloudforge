@@ -144,7 +144,14 @@ export default function CommandCenter() {
         {((exceptions.data && exceptions.data.length > 0) || exceptions.isError) && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {(exceptions.data ?? MOCK_EXCEPTIONS).map(exc => (
-              <div key={exc.id} className="relative cursor-pointer" onClick={() => navigate(`/portal/requests/${exc.id}`)}>
+              <div
+                key={exc.id}
+                className="relative cursor-pointer"
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/portal/requests/${exc.id}`)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/portal/requests/${exc.id}`) } }}
+              >
                 <ExceptionCard exception={exc} />
                 {exc.status === 'PENDING' && (
                   <div className="px-4 pb-3">
