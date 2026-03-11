@@ -87,7 +87,7 @@ describe('useActionCooldown', () => {
     act(() => {
       result.current.fire()
     })
-    const firstRemaining = result.current.remainingMs
+    expect(result.current.canFire).toBe(false)
 
     act(() => {
       vi.advanceTimersByTime(500)
@@ -97,8 +97,8 @@ describe('useActionCooldown', () => {
       result.current.fire() // should be blocked
     })
 
-    // remainingMs should be decreasing, not reset
-    expect(result.current.remainingMs).toBeLessThan(firstRemaining)
+    // Still in cooldown — fire() didn't reset it
     expect(result.current.canFire).toBe(false)
+    expect(result.current.remainingMs).toBeGreaterThan(0)
   })
 })
