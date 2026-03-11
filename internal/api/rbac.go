@@ -77,9 +77,13 @@ func (re *RoleEnforcer) Require(roles ...Role) func(http.Handler) http.Handler {
 
 			// Dev override: allow X-CloudForge-Role header to set role for demo.
 			// Only enabled when APP_ENV=="development" was read at startup.
+			// Only valid canonical roles are accepted; invalid values are ignored.
 			if re.DevMode {
 				if override := r.Header.Get("X-CloudForge-Role"); override != "" {
-					role = Role(strings.ToLower(override))
+					candidate := Role(strings.ToLower(override))
+					if _, valid := roleRank[candidate]; valid {
+						role = candidate
+					}
 				}
 			}
 

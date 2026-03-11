@@ -13,10 +13,14 @@ func (s *Server) listAttackPaths(w http.ResponseWriter, r *http.Request) {
 	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAttackPaths")
 	defer span.End()
 
-	span.SetAttributes(attribute.Int("attack_paths.count", len(s.attackPaths)))
+	s.attackPathMu.RLock()
+	paths := s.attackPaths
+	s.attackPathMu.RUnlock()
+
+	span.SetAttributes(attribute.Int("attack_paths.count", len(paths)))
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(s.attackPaths)
+	_ = json.NewEncoder(w).Encode(paths)
 }
 
 func (s *Server) getAttackPath(w http.ResponseWriter, r *http.Request) {
@@ -27,12 +31,21 @@ func (s *Server) getAttackPath(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("attack_path.id", id))
 
-	for _, p := range s.attackPaths {
-		if p.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(p)
-			return
+	s.attackPathMu.RLock()
+	var found *AttackPath
+	for i := range s.attackPaths {
+		if s.attackPaths[i].ID == id {
+			p := s.attackPaths[i]
+			found = &p
+			break
 		}
+	}
+	s.attackPathMu.RUnlock()
+
+	if found != nil {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(found)
+		return
 	}
 
 	writeErrorResponse(w, "attack path not found", http.StatusNotFound)

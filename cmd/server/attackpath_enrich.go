@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"cloudforge/internal/ai"
@@ -31,7 +32,8 @@ Respond ONLY with valid JSON matching this schema:
 // enrichAttackPaths enriches attack paths with AI-generated descriptions.
 // Paths are processed in batches of 5 with a 300ms delay between batches.
 // Failures are logged and skipped — the static heuristic data is preserved.
-func enrichAttackPaths(ctx context.Context, provider ai.Provider, paths []AttackPath, logger *zap.Logger) {
+// mu guards concurrent reads from HTTP handlers during enrichment.
+func enrichAttackPaths(ctx context.Context, provider ai.Provider, paths []AttackPath, mu *sync.RWMutex, logger *zap.Logger) {
 	if len(paths) == 0 {
 		return
 	}
@@ -52,13 +54,19 @@ func enrichAttackPaths(ctx context.Context, provider ai.Provider, paths []Attack
 				return
 			}
 
-			if err := enrichSinglePath(ctx, provider, &paths[j]); err != nil {
+			// AI call runs without lock; only the field writes are synchronized.
+			result, err := fetchEnrichment(ctx, provider, &paths[j])
+			if err != nil {
 				logger.Warn("Failed to enrich attack path",
 					zap.String("path_id", paths[j].ID),
 					zap.Error(err),
 				)
 				continue
 			}
+
+			mu.Lock()
+			applyEnrichment(&paths[j], result)
+			mu.Unlock()
 			enriched++
 		}
 
@@ -75,7 +83,9 @@ func enrichAttackPaths(ctx context.Context, provider ai.Provider, paths []Attack
 	logger.Info("Attack path enrichment complete", zap.Int("enriched", enriched), zap.Int("total", len(paths)))
 }
 
-func enrichSinglePath(ctx context.Context, provider ai.Provider, path *AttackPath) error {
+// fetchEnrichment calls the AI provider and returns the parsed result without
+// mutating the path. The caller is responsible for applying under lock.
+func fetchEnrichment(ctx context.Context, provider ai.Provider, path *AttackPath) (*enrichmentResponse, error) {
 	callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -83,20 +93,24 @@ func enrichSinglePath(ctx context.Context, provider ai.Provider, path *AttackPat
 
 	response, err := provider.CompleteWithSystem(callCtx, enrichSystemPrompt, prompt)
 	if err != nil {
-		return fmt.Errorf("AI call failed: %w", err)
+		return nil, fmt.Errorf("AI call failed: %w", err)
 	}
 
 	result, err := parseEnrichmentResponse(response)
 	if err != nil {
-		return fmt.Errorf("parsing AI response: %w", err)
+		return nil, fmt.Errorf("parsing AI response: %w", err)
 	}
 
+	return result, nil
+}
+
+// applyEnrichment writes AI results to the path. Must be called under write lock.
+func applyEnrichment(path *AttackPath, result *enrichmentResponse) {
 	path.AIDescription = result.Description
 	path.AIRemediation = result.Remediation
 	path.AILikelihood = result.Likelihood
 	path.AIEnriched = true
 
-	// Merge any additional MITRE tactics from AI
 	if len(result.MITRETactics) > 0 {
 		existing := make(map[string]bool, len(path.MITRETactics))
 		for _, t := range path.MITRETactics {
@@ -108,8 +122,6 @@ func enrichSinglePath(ctx context.Context, provider ai.Provider, path *AttackPat
 			}
 		}
 	}
-
-	return nil
 }
 
 func buildEnrichmentPrompt(path *AttackPath) string {
