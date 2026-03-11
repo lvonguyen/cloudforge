@@ -65,6 +65,7 @@ type Server struct {
 	remediationsByID  map[string]*RemediationRecord
 	attackPaths       []AttackPath
 	attackPathStats   *AttackPathStats
+	attackPathMu      sync.RWMutex
 	aiProvider        ai.Provider // nil when AI is disabled (graceful degradation)
 	findingEnrichment map[string]*FindingEnrichment
 	enrichMu          sync.Mutex
@@ -241,7 +242,7 @@ func main() {
 		go func() {
 			enrichCtx, enrichCancel := context.WithTimeout(context.Background(), 5*time.Minute)
 			defer enrichCancel()
-			enrichAttackPaths(enrichCtx, srv.aiProvider, attackPaths, logger)
+			enrichAttackPaths(enrichCtx, srv.aiProvider, attackPaths, &srv.attackPathMu, logger)
 		}()
 	}
 	logger.Info("Attack paths computed",
