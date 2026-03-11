@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { RoleSwitcher } from './RoleSwitcher'
 import { ThemeToggle } from './ThemeToggle'
 import { useAuth } from '@/lib/auth'
@@ -14,7 +13,6 @@ import { Shield, Search, LogOut, User, Menu } from 'lucide-react'
 
 export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
   const { user, logout } = useAuth()
-  const [searchOpen, setSearchOpen] = useState(false)
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-border bg-background px-6">
@@ -38,11 +36,9 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
       <div className="relative flex-1 max-w-sm">
         <button
           type="button"
-          onClick={() => setSearchOpen(true)}
-          onBlur={() => setSearchOpen(false)}
+          disabled
           aria-label="Search"
-          aria-haspopup="dialog"
-          className="flex w-full items-center gap-2 rounded-md border border-border bg-muted/50 px-3 h-8 text-sm text-muted-foreground hover:bg-muted/70 transition-colors"
+          className="flex w-full items-center gap-2 rounded-md border border-border bg-muted/50 px-3 h-8 text-sm text-muted-foreground cursor-not-allowed"
         >
           <Search className="h-4 w-4 shrink-0" />
           <span className="flex-1 text-left">Search...</span>
@@ -50,11 +46,6 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
             ⌘K
           </kbd>
         </button>
-        {searchOpen && (
-          <div className="absolute top-full left-0 mt-1 w-full rounded-md border border-border bg-background p-3 shadow-md z-50">
-            <p className="text-xs text-muted-foreground text-center">Search — coming soon</p>
-          </div>
-        )}
       </div>
 
       {/* Right side */}
