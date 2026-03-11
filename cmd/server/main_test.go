@@ -82,6 +82,10 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 	for i := range mockData.Remediations {
 		srv.remediationsByID[mockData.Remediations[i].ID] = &mockData.Remediations[i]
 	}
+	srv.tracesByAgentID = make(map[string][]AgentTrace, len(mockData.Agents))
+	for _, tr := range mockData.Traces {
+		srv.tracesByAgentID[tr.AgentID] = append(srv.tracesByAgentID[tr.AgentID], tr)
+	}
 
 	srv.setupRoutes()
 

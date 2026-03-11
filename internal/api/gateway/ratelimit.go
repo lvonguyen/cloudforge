@@ -18,11 +18,12 @@ import (
 
 // RateLimiter provides configurable rate limiting for API endpoints
 type RateLimiter struct {
-	redis        *redis.Client
-	logger       *zap.Logger
-	config       RateLimitConfig
-	localLimits  sync.Map // Fallback counters for Redis unavailability
-	trustedProxy []net.IP // Trusted proxy IPs for X-Forwarded-For parsing
+	redis           *redis.Client
+	logger          *zap.Logger
+	config          RateLimitConfig
+	localLimits     sync.Map // Fallback counters for Redis unavailability
+	trustedProxy    []net.IP // Trusted proxy IPs for X-Forwarded-For parsing
+	logFallbackOnce sync.Once
 }
 
 // localCounter tracks request counts for in-memory fallback rate limiting
@@ -423,7 +424,9 @@ func (rl *RateLimiter) Middleware(getTier func(r *http.Request) string, getClien
 			// Check rate limit
 			result, err := rl.Check(ctx, key)
 			if err != nil {
-				rl.logger.Warn("Rate limit check failed, using local fallback", zap.Error(err))
+				rl.logFallbackOnce.Do(func() {
+					rl.logger.Warn("Redis unavailable, using in-memory rate limiter", zap.Error(err))
+				})
 
 				// Use local fallback or fail closed based on config
 				if rl.config.FailClosed {

@@ -8,13 +8,16 @@ export const SEVERITY_COLORS: Record<string, string> = {
   LOW: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
 }
 
-// AttackPaths adds border classes for outlined badges
-export const SEVERITY_COLORS_BORDERED: Record<string, string> = {
-  CRITICAL: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-300 dark:border-red-700',
-  HIGH: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 border-orange-300 dark:border-orange-700',
-  MEDIUM: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700',
-  LOW: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-300 dark:border-blue-700',
+// AttackPaths adds border classes for outlined badges — computed from SEVERITY_COLORS
+const SEVERITY_BORDER_OVERRIDES: Record<string, string> = {
+  CRITICAL: 'border-red-300 dark:border-red-700',
+  HIGH: 'border-orange-300 dark:border-orange-700',
+  MEDIUM: 'border-yellow-300 dark:border-yellow-700',
+  LOW: 'border-blue-300 dark:border-blue-700',
 }
+export const SEVERITY_COLORS_BORDERED: Record<string, string> = Object.fromEntries(
+  Object.entries(SEVERITY_COLORS).map(([k, v]) => [k, `${v} ${SEVERITY_BORDER_OVERRIDES[k] ?? ''}`]),
+)
 
 // Remediation workflow statuses (lowercase keys)
 export const REMEDIATION_STATUS_COLORS: Record<string, string> = {

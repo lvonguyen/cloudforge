@@ -190,11 +190,9 @@ func (s *Server) listAgentTraces(w http.ResponseWriter, r *http.Request) {
 	agentID := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("agent.id", agentID))
 
-	results := make([]AgentTrace, 0)
-	for _, tr := range s.mockData.Traces {
-		if tr.AgentID == agentID {
-			results = append(results, tr)
-		}
+	results := s.tracesByAgentID[agentID]
+	if results == nil {
+		results = []AgentTrace{}
 	}
 
 	span.SetAttributes(attribute.Int("traces.count", len(results)))
