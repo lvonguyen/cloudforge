@@ -22,7 +22,7 @@ grc:
     username: cloudforge
     # Load password from environment variable (never hardcode)
     password_env: CLOUDFORGE_DB_PASSWORD
-    ssl_mode: disable
+    ssl_mode: require  # Use 'disable' for local development
 
   # RSA Archer provider settings (stub)
   archer:
@@ -56,7 +56,7 @@ workflow:
 
 # Authentication (OIDC/JWT)
 auth:
-  enabled: false  # Enable in production
+  enabled: true
   issuer_url: https://login.company.com
   client_id: cloudforge
   audience: cloudforge-api

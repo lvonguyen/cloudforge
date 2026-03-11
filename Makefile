@@ -160,6 +160,3 @@ smoke: build  ## Start backend, verify health, stop
 	@curl -sf http://localhost:8080/ready && echo "Readiness: OK" || echo "Readiness: FAIL"
 	@kill %1 2>/dev/null || true
 
-# Generate API documentation
-docs:
-	@echo "TODO: Add API documentation generation"
