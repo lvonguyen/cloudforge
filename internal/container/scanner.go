@@ -24,11 +24,13 @@ type Scanner interface {
 }
 
 // NewScanner returns a Scanner for the given provider name.
-// Supports "memory" (in-process mock). Extend the switch for real providers.
+// Supports "memory" (in-process mock) and "trivy" (Trivy CLI).
 func NewScanner(provider string) Scanner {
 	switch provider {
 	case "memory", "":
 		return newMockScanner()
+	case "trivy":
+		return newTrivyScanner()
 	default:
 		panic(fmt.Sprintf("unsupported container scanner provider: %q", provider))
 	}

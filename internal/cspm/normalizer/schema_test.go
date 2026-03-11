@@ -55,6 +55,7 @@ func TestNormalizeAWSFinding_FullASFF(t *testing.T) {
 	}
 
 	f := n.NormalizeAWSFinding(raw)
+	n.EnrichFinding(&f)
 
 	if f.CSP != "aws" {
 		t.Errorf("expected CSP aws, got %s", f.CSP)
@@ -247,6 +248,7 @@ func TestNormalizeAWSFinding_EmptyFinding_NoError(t *testing.T) {
 	n := newNormalizer()
 
 	f := n.NormalizeAWSFinding(map[string]interface{}{})
+	n.EnrichFinding(&f)
 
 	if f.CSP != "aws" {
 		t.Errorf("expected CSP aws, got %s", f.CSP)
@@ -318,6 +320,7 @@ func TestNormalizeAzureFinding_FullAssessment(t *testing.T) {
 	}
 
 	f := n.NormalizeAzureFinding(raw)
+	n.EnrichFinding(&f)
 
 	if f.CSP != "azure" {
 		t.Errorf("expected CSP azure, got %s", f.CSP)
@@ -487,6 +490,7 @@ func TestNormalizeGCPFinding_FullSCCFinding(t *testing.T) {
 	}
 
 	f := n.NormalizeGCPFinding(raw)
+	n.EnrichFinding(&f)
 
 	if f.CSP != "gcp" {
 		t.Errorf("expected CSP gcp, got %s", f.CSP)
@@ -1179,7 +1183,7 @@ func TestSeverityPriority_ContainsAllSeverities(t *testing.T) {
 }
 
 func TestSLADays_ContainsAllSeverities(t *testing.T) {
-	required := []string{"CRITICAL", "HIGH", "MEDIUM", "LOW"}
+	required := []string{"CRITICAL", "HIGH", "MEDIUM", "LOW", "INFORMATIONAL"}
 	for _, sev := range required {
 		days, ok := SLADays[sev]
 		if !ok {
@@ -1192,6 +1196,9 @@ func TestSLADays_ContainsAllSeverities(t *testing.T) {
 	// More severe = shorter SLA.
 	if SLADays["CRITICAL"] >= SLADays["HIGH"] {
 		t.Error("CRITICAL SLA should be shorter than HIGH SLA")
+	}
+	if SLADays["LOW"] >= SLADays["INFORMATIONAL"] {
+		t.Error("LOW SLA should be shorter than INFORMATIONAL SLA")
 	}
 }
 

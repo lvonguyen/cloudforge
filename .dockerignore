@@ -1,0 +1,45 @@
+# Build artifacts
+frontend/dist
+frontend/node_modules
+node_modules
+
+# Version control
+.git
+.gitignore
+
+# IDE / editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# CI / tooling
+.github
+.gitlab
+.claude
+tasks
+
+# Documentation (not needed at runtime)
+docs
+*.md
+!README.md
+LICENSE
+CONTRIBUTING.md
+CHANGELOG.md
+HANDOFF.md
+
+# Test data and configs
+testdata
+**/*_test.go
+frontend/src/test
+
+# Secrets and local config
+.env
+.env.*
+*.pem
+*.key
+
+# OS
+.DS_Store
+Thumbs.db

@@ -201,10 +201,11 @@ var SeverityPriority = map[string]int{
 
 // SLADays maps severity to remediation SLA in days
 var SLADays = map[string]int{
-	"CRITICAL": 7,
-	"HIGH":     14,
-	"MEDIUM":   30,
-	"LOW":      90,
+	"CRITICAL":      7,
+	"HIGH":          14,
+	"MEDIUM":        30,
+	"LOW":           90,
+	"INFORMATIONAL": 180,
 }
 
 // Normalizer converts provider-specific findings to common schema
@@ -478,7 +479,6 @@ func (n *Normalizer) NormalizeAWSFinding(raw map[string]interface{}) Finding {
 		f.LastSeen = parseTime(getStr(raw, "UpdatedAt"))
 	}
 
-	n.EnrichFinding(&f)
 	return f
 }
 
@@ -608,7 +608,6 @@ func (n *Normalizer) NormalizeAzureFinding(raw map[string]interface{}) Finding {
 		f.LastSeen = parseTime(getStr(status, "statusChangeDate"))
 	}
 
-	n.EnrichFinding(&f)
 	return f
 }
 
@@ -703,7 +702,6 @@ func (n *Normalizer) NormalizeGCPFinding(raw map[string]interface{}) Finding {
 	f.FirstSeen = parseTime(getStr(raw, "createTime"))
 	f.LastSeen = parseTime(getStr(raw, "eventTime"))
 
-	n.EnrichFinding(&f)
 	return f
 }
 
