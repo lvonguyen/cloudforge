@@ -25,7 +25,7 @@ export function SLACountdown({ dueDate, slaBreach }: Props) {
 
   return (
     <span className={cn('flex items-center gap-1 text-xs font-medium', breached ? 'text-red-600' : 'text-muted-foreground')}>
-      <Clock className="h-3 w-3" />
+      <Clock className="h-3 w-3" aria-hidden="true" />
       {label}
     </span>
   )

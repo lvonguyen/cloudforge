@@ -605,7 +605,10 @@ export default function Findings() {
                         data-index={virtualRow.index}
                         ref={virtualizer.measureElement}
                         className="cursor-pointer hover:bg-muted/30 transition-colors"
+                        tabIndex={0}
+                        role="link"
                         onClick={() => navigate(`/ops/findings/${f.id}`)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/ops/findings/${f.id}`) } }}
                       >
                         {activeColumns.map(col => (
                           <TableCell key={col.key} className="overflow-hidden" style={{ width: columnWidths[col.key] }}>
