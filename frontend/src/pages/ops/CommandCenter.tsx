@@ -121,7 +121,7 @@ export default function CommandCenter() {
       {/* Page heading */}
       <div>
         <h1 className="text-xl font-semibold">Command Center</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Operations overview — Feb 2026</p>
+        <p className="text-sm text-muted-foreground mt-0.5">Operations overview — {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>
       </div>
 
       {/* Section 1: Exception Queue */}

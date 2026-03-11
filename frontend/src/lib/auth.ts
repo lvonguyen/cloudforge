@@ -20,6 +20,7 @@ const ID_TOKEN_KEY = 'cloudforge_id_token'
 const VERIFIER_KEY = 'cloudforge_pkce_verifier'
 export const STATE_KEY = 'cloudforge_oauth_state'
 const NONCE_KEY = 'cloudforge_oauth_nonce'
+export const LOGIN_RETURN_KEY = 'cloudforge_login_return'
 
 const OKTA_ISSUER = import.meta.env.VITE_OKTA_ISSUER as string | undefined
 const OKTA_CLIENT_ID = import.meta.env.VITE_OKTA_CLIENT_ID as string | undefined

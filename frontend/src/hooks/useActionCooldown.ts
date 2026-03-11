@@ -57,15 +57,14 @@ export function useActionCooldown(config: CooldownConfig): CooldownState {
   }, [key])
 
   useEffect(() => {
-    setRemainingMs(calcRemaining())
+    const r = calcRemaining()
+    setRemainingMs(r)
 
-    const interval = setInterval(() => {
-      const r = calcRemaining()
-      setRemainingMs(r)
-      if (r <= 0) clearInterval(interval)
-    }, 100)
+    if (r <= 0) return
 
-    return () => clearInterval(interval)
+    // Single timeout fires exactly when cooldown expires — no polling
+    const id = setTimeout(() => setRemainingMs(0), r)
+    return () => clearTimeout(id)
   }, [calcRemaining])
 
   return {

@@ -25,7 +25,7 @@ export default function Compliance() {
           <h1 className="text-xl font-semibold">Compliance Status</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{frameworks.length} frameworks tracked</p>
         </div>
-        <Badge variant="secondary" className="text-xs">Feb 2026</Badge>
+        <Badge variant="secondary" className="text-xs">{new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</Badge>
       </div>
 
       {/* Summary KPIs */}
