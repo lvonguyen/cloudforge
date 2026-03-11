@@ -176,12 +176,8 @@ func loadFindings(dir string) ([]*cspmscoring.PrioritizedFinding, error) {
 		}
 
 		// Only process auto-remediation-ready findings.
-		// Explicitly copy the loop variable before taking its address so the
-		// code is safe regardless of Go version. In pre-1.22 Go, taking &finding
-		// inside a loop where finding is a range variable causes all appended
-		// pointers to alias to the same memory. Even though finding is declared
-		// with var here (new allocation per iteration), the explicit copy makes
-		// the intent unambiguous and future-proof.
+		// Copy before taking address for clarity — ensures distinct pointers
+		// regardless of future refactoring to range-based iteration.
 		if finding.AutoRemediationReady {
 			f := finding
 			results = append(results, &f)
