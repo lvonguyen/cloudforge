@@ -1,9 +1,9 @@
 # Tech Debt Sweep — Status & Plan
 
-**Branch:** `feat/tech-debt-sweep`
+**Branch:** merged to `main` (ff-merge)
 **Started:** 2026-03-10
-**Updated:** 2026-03-11
-**Base:** `main` (commit `f3a99c4`)
+**Merged:** 2026-03-11
+**Commits:** `b6a2d36..9b3c969` (10 chunks) + `a05f8f7` (plan doc)
 
 ---
 
@@ -38,32 +38,79 @@
 | Concurrency | Data race on attackPaths slice | Assignment before goroutine | Race-free startup |
 | Code smell | _ = ctx pattern, custom containsSubstring | Clean assignments, stdlib | Idiomatic Go |
 
-## Verification (post-commit 10)
+## Verification (post-merge)
 
 - [x] `go vet ./...` — PASS
 - [x] `go test ./...` — ALL PASS
 - [x] `npx tsc -b` — PASS
 - [x] `npx vitest run` — 22/22 PASS
 - [x] Opus distiller review — all FIX items resolved
+- [x] Merged to `main`, pushed to origin
 
 ---
 
-## Next Steps
+## QA Agent Scores (post-sweep, iteration 1)
 
-### Immediate (before PR merge)
+### Quality Review — 4.2/5
+| Dimension | Score | Top Issue |
+|---|---|---|
+| Code Quality | 4.3 | `listAgentTraces` missing O(1) map |
+| Consistency | 4.2 | `SEVERITY_COLORS_BORDERED` duplication |
+| Maintainability | 3.8 | Frontend test coverage thin (3/~20 components) |
+| Architecture | 4.4 | `archer` stub (YAGNI), Server struct cohesion |
 
-- [ ] **QA agent iteration** — Run quality-review + bug-discovery + security-audit per AGENT_REVIEW_ITERATION_PROTOCOL.md. Target: >= 4.5/5 across dimensions (practical tier).
-- [ ] **Address any QA findings** — Max 2 more iteration rounds if needed.
-- [ ] **Decision: squash vs keep atomic** — 10 commits can be squash-merged (cleaner main history) or kept atomic (per-chunk bisectability). Recommend: squash-merge via PR with chunk list in body.
+### Bug Discovery — 3.8/5
+| Dimension | Score | Top Issue |
+|---|---|---|
+| Correctness | 3.8 | `auth.ts` expired-token fallback to admin identity |
+| Error Handling | 4.0 | `getException` maps all errors to 404 |
+| Type Safety | 4.2 | `interface{}` vs `any` (cosmetic) |
+| Concurrency Safety | 3.2 | `enrichAttackPaths` race on `s.attackPaths` |
 
-### Follow-up (separate PRs, not this sweep)
+### Security Audit — 4.0/5
+| Dimension | Score | Top Issue |
+|---|---|---|
+| Authentication | 4.2 | Conditional nonce check in OIDC exchange |
+| Authorization | 3.5 | `X-CloudForge-Role` no enum validation |
+| Input Validation | 4.0 | No length/charset on free-text query params |
+| Secrets Management | 2.8 | `.env.development` with admin JWT committed |
+| CI/CD Security | 4.5 | Fly.io action pinned to branch SHA |
 
-- [ ] **testServer() helper extraction** — The O(1 map init in testServer() duplicates main.go lines 208-218. Consider extracting `Server.buildLookupMaps()` method to DRY both paths. (Low priority — only 2 call sites.)
-- [ ] **Callback post-login redirect** — `/callback` currently lands on `/` instead of the originally requested route. `LOGIN_RETURN_KEY` is wired but `Callback.tsx` doesn't read it yet.
-- [ ] **Redis graceful degradation logging** — Rate limiter fallback logs are noisy (`Rate limit check failed, using local fallback` on every request). Consider logging once at startup instead of per-request.
-- [ ] **OPA nested package query** — `data.cloudforge.ai` returns nested results; `Evaluate()` only checks top-level `allow`. Known design limitation, not a regression.
-- [ ] **Frontend test expansion** — Current 22 tests cover auth, plan-templates, useActionCooldown. Gaps: API client, findings table rendering, severity utilities.
-- [ ] **Healthcheck/predeploy hooks** — Backend uptime monitoring for Fly.io deployment.
+### Overall: 4.0/5 (target: 4.5)
+
+---
+
+## Next Steps — Priority Fixes (target: 4.5/5)
+
+### P0 — Secrets leak (SEC-001, +0.4 to Secrets)
+- [ ] `git rm --cached frontend/.env.development`
+- [ ] Add `.env.development`, `.env.local`, `.env.*.local` to `frontend/.gitignore`
+- [ ] Rotate `CLOUDFORGE_JWT_SECRET` on Fly.io (`flyctl secrets set`)
+- [ ] Regenerate dev token with short TTL
+
+### P1 — Attack path data race (+0.5 to Concurrency)
+- [ ] Add `sync.RWMutex` on `Server` guarding `attackPaths` reads/writes
+- [ ] OR: enrich synchronously at startup with timeout (simpler for demo)
+
+### P2 — Role enum validation (+0.3 to Authorization)
+- [ ] Validate `X-CloudForge-Role` against `{admin, operator, requester}` in `RoleEnforcer.Require()`
+- [ ] Reject and log invalid values
+
+### P3 — Auth hardening (+0.2 to Auth + Correctness)
+- [ ] Make OIDC nonce check unconditional in `exchangeCode`
+- [ ] Set anonymous user (not `DEFAULT_USER`) on expired token in production
+- [ ] `getException`: distinguish `grc.ErrNotFound` from internal errors (404 vs 500)
+
+### Backlog (separate PRs)
+- [ ] `listAgentTraces` O(1) map (consistency with other handlers)
+- [ ] `SEVERITY_COLORS_BORDERED` computed merge to eliminate duplication
+- [ ] `testServer()` helper — extract `Server.buildLookupMaps()` to DRY
+- [ ] Callback post-login redirect (`LOGIN_RETURN_KEY` wired but unused in `Callback.tsx`)
+- [ ] Redis fallback log dedup (log once at startup, not per-request)
+- [ ] Frontend test expansion (API client, findings table, severity utils)
+- [ ] `archer` provider: delete stub or promote to real implementation
+- [ ] Fly.io action: re-pin to release-tag SHA
+- [ ] `localStorage` role persistence -> `sessionStorage` or derive from JWT
 
 ### Relationship to Execution Plan
 
