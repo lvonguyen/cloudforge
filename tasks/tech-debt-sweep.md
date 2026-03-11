@@ -113,7 +113,7 @@
 - [ ] `localStorage` role persistence -> `sessionStorage` or derive from JWT
 
 ### Next Phase: Documentation & Diagram Refresh
-- [ ] Root README.md: update completion badge (~85%), add live demo link, remove Temporal/FinOps aspirational claims
+- [x] Root README.md: update completion badge (~85%), add live demo link, remove Temporal/FinOps aspirational claims
 - [ ] Architecture diagrams: verify Mermaid diagrams match current state (post-sweep changes)
 - [ ] ADR updates: check ADR-001..008 for accuracy against current implementation
 - [ ] Internal package docs: document which packages are real vs stub vs interface-only

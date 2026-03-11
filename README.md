@@ -1,19 +1,21 @@
 # CloudForge
 
-![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white)
+![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Development Status](https://img.shields.io/badge/status-active%20development-blue)
-![Implementation](https://img.shields.io/badge/implementation-96%25-green)
+![Implementation](https://img.shields.io/badge/implementation-85%25-blue)
 
 ## Enterprise Cloud Governance Platform with Self-Service Provisioning
 
 CloudForge is a reference architecture and implementation for an Internal Developer Platform (IDP) that enables self-service cloud resource provisioning with built-in governance, compliance guardrails, and exception management workflows.
 
+> **[Live Demo](https://cloudforge-demo.lvonguyen.com)** | **[API](https://cloudforge-api.fly.dev/health)**
+
 ---
 
 ## [/] Implementation Status
 
-> **Current State:** Active development (~96% complete). Core API functional, GRC integration working, remediation dispatcher operational, CI/CD pipeline hardened, IaC deploy layer with multi-cloud Terraform modules and policy-as-code, self-service portal built and deployed.
+> **Current State:** Active development (~85% feature-complete). Core API functional, GRC integration working, remediation dispatcher operational, CI/CD pipeline hardened, IaC deploy layer with multi-cloud Terraform modules and policy-as-code, self-service portal built and deployed.
 
 | Component | Status | Notes |
 | --------- | ------ | ----- |
@@ -62,8 +64,8 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | **Security** | | |
 | Rate limiting | Done | Redis-backed, tier-based, wired into `/api/v1` routes |
 | JWT authentication | Done | HS256/RS256 validation, JWKS caching, wired into router |
-| OIDC provider integration | Interface Only | Okta/Entra ID providers exist, not wired into auth flow |
-| Authorization (RBAC) | Done | CF Access groups, dev header override, RequireRole/RequireScope middleware |
+| OIDC provider integration | Interface Only | Okta OIDC configured (Fly.io production), Entra ID provider interface exists |
+| Authorization (RBAC) | Done | Role-based middleware (admin/operator/requester), dev header override with enum validation |
 | **IaC / Deploy** | | |
 | Terraform modules (compute) | Done | Cloud Run + ECS Fargate + Azure Container Apps |
 | Terraform modules (database) | Done | Cloud SQL + RDS + Azure PostgreSQL |
@@ -89,6 +91,27 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | Unit tests | Partial | 24+ test files, 400+ test functions incl. 36 handler tests (httptest) |
 | Integration tests | 0% | |
 
+### Package Maturity
+
+| Package | Status | Description |
+|---------|--------|-------------|
+| `internal/api` | Production | HTTP handlers, RBAC, rate limiting |
+| `internal/grc` | Production | GRC provider abstraction (Archer, ServiceNow, PostgreSQL, Memory) |
+| `internal/compliance` | Production | 20+ framework engine, dedup, control mapping |
+| `internal/ai` | Production | Claude/OpenAI provider abstraction |
+| `internal/ai-governance` | Production | Embedded OPA, agent registry, STRIDE/ATLAS |
+| `internal/policy` | Production | OPA integration, Rego evaluation |
+| `internal/observability` | Production | Structured logging (zap), Prometheus metrics |
+| `internal/findings` | Production | Finding types, bridge to CSPM aggregator |
+| `pkg/remediation` | Production | Executor engine, 10 handlers, rollback |
+| `internal/cicd` | Partial | SAST/VCS interfaces, basic integrations |
+| `internal/finops` | Interface Only | Cost aggregation interfaces, no cloud API wiring |
+| `internal/container` | Interface + Mock | K8s admission webhook pattern, image scan interface |
+| `internal/secrets` | Interface + Mock | Vault integration interface, mock provider |
+| `internal/waf` | Interface + Mock | Golden template validation, compliance scanner |
+| `internal/identity` | Interface + Mock | Okta/Entra ID provider stubs with mock returns |
+| `internal/workflow` | Stub | Temporal workflow definitions, not wired |
+
 ---
 
 ## [!] Known Limitations
@@ -97,8 +120,9 @@ This is a **portfolio reference implementation**, not production software:
 
 1. **Test Coverage Gap** - 24+ test files (400+ functions including handler tests) cover cspm, grc, remediation, ai, compliance; integration tests pending
 2. **OIDC Provider Stub** - JWT auth middleware is production-ready (HS256/RS256, JWKS), but Okta/Entra ID providers not wired into auth flow
-3. **Temporal Workflows** - Workflow definitions exist, orchestration not fully tested
-4. **FinOps Module** - Cost aggregation interfaces only, no cloud API integration
+3. **Temporal Workflows** — Workflow definitions exist, orchestration layer not wired into request flow
+4. **FinOps Module** — Cost aggregation interfaces defined, no cloud API integration yet
+5. **Stub Packages** — container, secrets, waf, identity modules have interfaces and mock implementations but no production wiring
 
 **Production Requirements:**
 
@@ -237,7 +261,7 @@ cloudforge/
 ├── configs/                       # Configuration templates
 ├── frontend/                      # Self-service portal (React 19 + Vite 7)
 │   ├── src/
-│   │   ├── pages/                 # 18 route pages (admin, ops, portal views)
+│   │   ├── pages/                 # 21 route pages (admin, ops, portal views)
 │   │   ├── components/            # shadcn/ui component layer
 │   │   ├── hooks/                 # Custom hooks (deploy preview, etc.)
 │   │   ├── lib/                   # API client, auth, utilities
@@ -458,8 +482,8 @@ workflow:
 ## [!] Security
 
 - All API endpoints require authentication (OIDC via Entra ID/Okta)
-- Service-to-service communication uses mTLS
-- Secrets managed via HashiCorp Vault
+- Service-to-service communication planned for mTLS
+- Secrets managed via environment variables (HashiCorp Vault integration planned)
 - Audit logging for all provisioning actions
 - RBAC with Zero Trust policy enforcement
 - API rate limiting and throttling
@@ -521,7 +545,7 @@ Built-in support for 20+ frameworks:
 - [x] Architecture hardening — BOLA fix, N+1 queries, CI pinning
 - [x] JWT authentication middleware (HS256/RS256, JWKS caching)
 - [ ] Wire Okta/Entra ID providers into auth flow
-- [ ] RBAC authorization middleware (role-based endpoint access)
+- [x] RBAC authorization middleware (role-based endpoint access)
 - [ ] Handler-level unit tests (target: 80% coverage)
 - [ ] Integration test suite
 - [ ] Merge cspm-aggregator into monorepo
@@ -542,7 +566,7 @@ Built-in support for 20+ frameworks:
 - [x] EPSS scoring integration (FIRST API, batch fetching, 12h cache)
 - [x] CISA KEV catalog integration (auto-refresh, known exploit lookup)
 - [ ] GreyNoise integration (API client for IP classification)
-- [ ] Attack path computation engine (graph-based traversal)
+- [x] Attack path computation engine (in-memory BFS + ReactFlow DAG)
 - [ ] Toxic combination detection (multi-finding chain analysis)
 - [ ] Blast radius computation (IAM + network reachability)
 - [ ] False-severity edge case detection (package reachability, compensating controls)
@@ -561,6 +585,7 @@ Built-in support for 20+ frameworks:
 
 | Date | Author | Change |
 | ---- | ------ | ------ |
+| 2026-03-11 | Liem Vo-Nguyen | Close gaps: honest badges, package maturity table, doc accuracy pass |
 | 2026-03-04 | Liem Vo-Nguyen | Build and deploy self-service portal — React 19, Vite 7, 18 pages, 3 role views, dark mode, Cloudflare Pages |
 | 2026-03-04 | Liem Vo-Nguyen | Documentation reorg — archive superseded docs, add diagram refs, fix stale README |
 | 2026-02-27 | Liem Vo-Nguyen | Add IaC deploy layer — 3 TF modules, 5 Rego policies, scripts, Dockerfiles |
