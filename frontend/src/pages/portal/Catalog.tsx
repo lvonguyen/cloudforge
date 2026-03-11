@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import {
   Server, Database, Box, HardDrive, Zap, Network, Globe, Layers,
   Mail, Container, BarChart3, Search, CheckCircle2, Clock,
+  Shield, Cpu, Activity, GitBranch,
   type LucideIcon,
 } from 'lucide-react'
 import { useCatalog } from '@/hooks/useCatalog'
@@ -26,6 +27,10 @@ const ICON_MAP: Record<string, LucideIcon> = {
   'mail': Mail,
   'container': Container,
   'bar-chart-3': BarChart3,
+  'shield': Shield,
+  'cpu': Cpu,
+  'activity': Activity,
+  'git-branch': GitBranch,
 }
 
 const COMPLIANCE_COLORS: Record<string, string> = {
@@ -36,7 +41,7 @@ const COMPLIANCE_COLORS: Record<string, string> = {
 }
 
 const PROVIDER_FILTER = ['ALL', 'aws', 'azure', 'gcp'] as const
-const CATEGORIES = ['All', 'compute', 'storage', 'database', 'network', 'serverless', 'container', 'messaging', 'analytics'] as const
+const CATEGORIES = ['All', 'compute', 'storage', 'database', 'network', 'serverless', 'container', 'messaging', 'analytics', 'security', 'observability', 'ai-ml', 'cicd'] as const
 
 export default function Catalog() {
   const navigate = useNavigate()

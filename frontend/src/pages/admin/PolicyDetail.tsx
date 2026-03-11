@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import policiesData from '@/lib/mock/policies.json'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -422,6 +423,199 @@ deny[msg] {
   },
 }
 
+// ── Generator for uncurated policies ────────────────────────────────────────
+
+function generatePolicyDetail(summary: typeof policiesData[number]): PolicyDetailData {
+  const packagePath = summary.namespace || `cloudforge.${summary.category}`
+
+  const regoTemplates: Record<string, string> = {
+    encryption: `package ${packagePath}
+
+import future.keywords.in
+
+default allow := false
+
+deny[msg] {
+  not input.resource.encryption_enabled
+  msg := sprintf("Resource '%s' does not have encryption at rest enabled", [input.resource.name])
+}
+
+deny[msg] {
+  input.resource.encryption_key_type == "provider-managed"
+  input.resource.classification in {"confidential", "restricted"}
+  msg := sprintf("Resource '%s' with classification '%s' must use customer-managed keys",
+    [input.resource.name, input.resource.classification])
+}`,
+    security: `package ${packagePath}
+
+import future.keywords.in
+
+default allow := false
+
+deny[msg] {
+  input.resource.public_access == true
+  msg := sprintf("Resource '%s' has public access enabled — denied by security policy", [input.resource.name])
+}
+
+deny[msg] {
+  not input.resource.audit_logging
+  msg := sprintf("Resource '%s' must have audit logging enabled", [input.resource.name])
+}`,
+    cost: `package ${packagePath}
+
+import future.keywords.in
+
+default allow := false
+
+deny[msg] {
+  input.request.estimated_monthly_cost > input.budget.threshold
+  msg := sprintf("Estimated cost $%d exceeds budget threshold $%d for %s",
+    [input.request.estimated_monthly_cost, input.budget.threshold, input.request.environment])
+}`,
+    container: `package ${packagePath}
+
+import future.keywords.in
+
+default allow := false
+
+deny[msg] {
+  not input.image.registry in {"ecr.contoso.dev", "acr.contoso.dev", "gcr.contoso.dev"}
+  msg := sprintf("Image '%s' is from unapproved registry", [input.image.uri])
+}
+
+deny[msg] {
+  input.container.privileged == true
+  msg := "Privileged containers are not allowed"
+}`,
+    network: `package ${packagePath}
+
+import future.keywords.in
+
+default allow := false
+
+deny[msg] {
+  input.rule.direction == "ingress"
+  input.rule.source == "0.0.0.0/0"
+  input.rule.port != 443
+  msg := sprintf("Ingress from 0.0.0.0/0 on port %d is not allowed — only 443 permitted", [input.rule.port])
+}`,
+    compliance: `package ${packagePath}
+
+import future.keywords.in
+
+default allow := false
+
+deny[msg] {
+  not input.resource.compliance_tags
+  msg := sprintf("Resource '%s' is missing compliance tags", [input.resource.name])
+}
+
+deny[msg] {
+  required := {"data-classification", "retention-period", "audit-scope"}
+  missing := required - {k | input.resource.compliance_tags[k]}
+  count(missing) > 0
+  msg := sprintf("Missing compliance tags: %v", [missing])
+}`,
+    identity: `package ${packagePath}
+
+import future.keywords.in
+
+default allow := false
+
+deny[msg] {
+  input.principal.type == "user"
+  not input.principal.mfa_enabled
+  msg := sprintf("User '%s' must have MFA enabled", [input.principal.name])
+}
+
+deny[msg] {
+  input.principal.type == "service_account"
+  input.principal.key_age_days > 90
+  msg := sprintf("Service account '%s' key is %d days old — max 90 days",
+    [input.principal.name, input.principal.key_age_days])
+}`,
+    tagging: `package ${packagePath}
+
+import future.keywords.in
+
+required_tags := {"environment", "owner", "cost-center", "project", "team"}
+
+deny[msg] {
+  missing := required_tags - {k | input.tags[k]}
+  count(missing) > 0
+  msg := sprintf("Missing required tags: %v", [missing])
+}`,
+    'ai-governance': `package ${packagePath}
+
+import future.keywords.in
+
+default allow := false
+
+deny[msg] {
+  not input.model.version_pinned
+  msg := sprintf("Model '%s' must have a pinned version — floating versions are not allowed", [input.model.name])
+}
+
+deny[msg] {
+  input.model.output_type == "pii"
+  not input.guardrails.pii_filter_enabled
+  msg := "PII filter must be enabled for models that may output PII"
+}`,
+    storage: `package ${packagePath}
+
+import future.keywords.in
+
+default allow := false
+
+deny[msg] {
+  not input.resource.lifecycle_policy
+  msg := sprintf("Storage resource '%s' must have a lifecycle policy configured", [input.resource.name])
+}
+
+deny[msg] {
+  input.resource.retention_days < 30
+  msg := sprintf("Minimum retention is 30 days — resource '%s' has %d days",
+    [input.resource.name, input.resource.retention_days])
+}`,
+  }
+
+  const rego = regoTemplates[summary.category] ?? `package ${packagePath}\n\ndefault allow := false\n\ndeny[msg] {\n  msg := "Policy evaluation pending configuration"\n}`
+
+  const resources = ['ec2-web-prod-05', 'rds-analytics-stg', 'lambda-etl-prod', 'ecs-api-gateway', 's3-data-lake-prod', 'aks-platform-stg', 'gke-ml-prod', 'vm-batch-dev']
+  const actors = ['operator1@contoso.dev', 'user1@contoso.dev', 'user2@contoso.dev', 'operator2@contoso.dev', 'admin1@contoso.dev']
+
+  const recentEvals: PolicyEvaluation[] = summary.evaluations > 0 ? Array.from({ length: 5 }, (_, i) => ({
+    timestamp: `2026-02-${String(27 - i).padStart(2, '0')}T${String(14 - i).padStart(2, '0')}:${String(30 + i * 7).padStart(2, '0')}:00Z`,
+    resource: resources[i % resources.length],
+    result: (i === 2 && summary.denials > 0 ? 'deny' : 'allow') as 'allow' | 'deny',
+    reason: i === 2 && summary.denials > 0 ? `Denied by ${summary.name} policy` : undefined,
+  })) : []
+
+  const recentDenials: PolicyDenial[] = summary.denials > 0 ? Array.from({ length: Math.min(3, summary.denials) }, (_, i) => ({
+    timestamp: `2026-02-${String(27 - i * 3).padStart(2, '0')}T${String(10 + i * 2).padStart(2, '0')}:${String(15 + i * 12).padStart(2, '0')}:00Z`,
+    resource: resources[(i + 3) % resources.length],
+    reason: `Denied by ${summary.name} policy`,
+    requestor: actors[i % actors.length],
+  })) : []
+
+  return {
+    id: summary.id,
+    name: summary.name,
+    namespace: summary.namespace,
+    status: summary.status as 'active' | 'inactive' | 'draft',
+    category: summary.category,
+    evaluations: summary.evaluations,
+    denials: summary.denials,
+    last_updated: summary.last_updated.split('T')[0],
+    created: '2025-10-01',
+    version: summary.evaluations > 5000 ? '2.0.0' : summary.evaluations > 0 ? '1.0.0' : '0.1.0',
+    description: `Policy ${summary.name} in namespace ${summary.namespace}. ${summary.status === 'active' ? `Currently enforcing with ${summary.evaluations.toLocaleString()} evaluations and ${summary.denials} denials.` : `Currently ${summary.status}.`}`,
+    rego,
+    recent_evaluations: recentEvals,
+    recent_denials: recentDenials,
+  }
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function PolicyDetail() {
@@ -429,7 +623,13 @@ export default function PolicyDetail() {
   const navigate = useNavigate()
   const [copied, setCopied] = useState(false)
 
-  const policy = id ? POLICY_DETAILS[id] : undefined
+  const policy = (() => {
+    if (!id) return undefined
+    if (POLICY_DETAILS[id]) return POLICY_DETAILS[id]
+    const summary = policiesData.find((p: { id: string }) => p.id === id)
+    if (!summary) return undefined
+    return generatePolicyDetail(summary)
+  })()
 
   if (!policy) {
     return (
