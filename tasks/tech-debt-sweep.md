@@ -88,13 +88,13 @@
 - [ ] Rotate `CLOUDFORGE_JWT_SECRET` on Fly.io (`flyctl secrets set`)
 - [ ] Regenerate dev token with short TTL
 
-### P1 — Attack path data race (+0.5 to Concurrency)
-- [ ] Add `sync.RWMutex` on `Server` guarding `attackPaths` reads/writes
-- [ ] OR: enrich synchronously at startup with timeout (simpler for demo)
+### P1 — Attack path data race (+0.5 to Concurrency) — DONE (767fd1b)
+- [x] `attackPathMu sync.RWMutex` on Server, RLock in handlers
+- [x] Split `enrichSinglePath` into `fetchEnrichment` (no lock) + `applyEnrichment` (under lock)
 
-### P2 — Role enum validation (+0.3 to Authorization)
-- [ ] Validate `X-CloudForge-Role` against `{admin, operator, requester}` in `RoleEnforcer.Require()`
-- [ ] Reject and log invalid values
+### P2 — Role enum validation (+0.3 to Authorization) — DONE (767fd1b)
+- [x] Validate `X-CloudForge-Role` against `roleRank` map in `RoleEnforcer.Require()`
+- [x] Invalid values silently ignored (not cast to Role)
 
 ### P3 — Auth hardening (+0.2 to Auth + Correctness)
 - [ ] Make OIDC nonce check unconditional in `exchangeCode`
@@ -111,6 +111,14 @@
 - [ ] `archer` provider: delete stub or promote to real implementation
 - [ ] Fly.io action: re-pin to release-tag SHA
 - [ ] `localStorage` role persistence -> `sessionStorage` or derive from JWT
+
+### Next Phase: Documentation & Diagram Refresh
+- [ ] Root README.md: update completion badge (~85%), add live demo link, remove Temporal/FinOps aspirational claims
+- [ ] Architecture diagrams: verify Mermaid diagrams match current state (post-sweep changes)
+- [ ] ADR updates: check ADR-001..008 for accuracy against current implementation
+- [ ] Internal package docs: document which packages are real vs stub vs interface-only
+- [ ] API documentation: OpenAPI spec or handler-level docs for 27 endpoints
+- [ ] Deployment docs: consolidate Fly.io + CF Pages setup into single operations guide
 
 ### Relationship to Execution Plan
 
