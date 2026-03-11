@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useAuth, STATE_KEY } from '@/lib/auth'
-import { LOGIN_RETURN_KEY } from '@/components/auth/ProtectedRoute'
+import { useAuth, STATE_KEY, LOGIN_RETURN_KEY } from '@/lib/auth'
 
 export default function Callback() {
   const [searchParams] = useSearchParams()

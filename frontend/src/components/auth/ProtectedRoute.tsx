@@ -1,10 +1,6 @@
 import { useEffect } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { useAuth, type Role } from '@/lib/auth'
-
-const LOGIN_RETURN_KEY = 'cloudforge_login_return'
-
-export { LOGIN_RETURN_KEY }
+import { useAuth, type Role, LOGIN_RETURN_KEY } from '@/lib/auth'
 
 export function ProtectedRoute({ roles, children }: { roles: Role[]; children: React.ReactNode }) {
   const { role, isAuthenticated, login } = useAuth()

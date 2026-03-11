@@ -60,6 +60,9 @@ type Server struct {
 	healthChecker     *observability.HealthChecker
 	logger            *zap.Logger
 	mockData          *MockData
+	findingsByID      map[string]*Finding
+	agentsByID        map[string]*Agent
+	remediationsByID  map[string]*RemediationRecord
 	attackPaths       []AttackPath
 	attackPathStats   *AttackPathStats
 	aiProvider        ai.Provider // nil when AI is disabled (graceful degradation)
@@ -200,6 +203,21 @@ func main() {
 		logger.Fatal("Failed to load mock data", zap.Error(err))
 	}
 	srv.mockData = mockData
+
+	// Build O(1) lookup maps for hot-path single-item handlers
+	srv.findingsByID = make(map[string]*Finding, len(mockData.Findings))
+	for i := range mockData.Findings {
+		srv.findingsByID[mockData.Findings[i].ID] = &mockData.Findings[i]
+	}
+	srv.agentsByID = make(map[string]*Agent, len(mockData.Agents))
+	for i := range mockData.Agents {
+		srv.agentsByID[mockData.Agents[i].ID] = &mockData.Agents[i]
+	}
+	srv.remediationsByID = make(map[string]*RemediationRecord, len(mockData.Remediations))
+	for i := range mockData.Remediations {
+		srv.remediationsByID[mockData.Remediations[i].ID] = &mockData.Remediations[i]
+	}
+
 	logger.Info("Mock data loaded",
 		zap.Int("findings", len(mockData.Findings)),
 		zap.Int("agents", len(mockData.Agents)),
@@ -214,11 +232,13 @@ func main() {
 	// Compute attack paths from findings
 	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings)
 
-	// Enrich attack paths with AI if provider is available
+	// Enrich attack paths with AI in the background to avoid blocking startup
 	if srv.aiProvider != nil {
-		enrichCtx, enrichCancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		enrichAttackPaths(enrichCtx, srv.aiProvider, attackPaths, logger)
-		enrichCancel()
+		go func() {
+			enrichCtx, enrichCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer enrichCancel()
+			enrichAttackPaths(enrichCtx, srv.aiProvider, attackPaths, logger)
+		}()
 	}
 
 	srv.attackPaths = attackPaths

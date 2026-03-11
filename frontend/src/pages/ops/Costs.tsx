@@ -49,7 +49,7 @@ export default function Costs() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold">Cost Management</h1>
-          <Badge variant="secondary" className="text-xs">Feb 2026</Badge>
+          <Badge variant="secondary" className="text-xs">{new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</Badge>
         </div>
         <Select value={period} onValueChange={v => setPeriod(v as Period)}>
           <SelectTrigger className="w-24 h-8 text-xs">

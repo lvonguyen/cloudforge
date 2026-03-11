@@ -52,12 +52,10 @@ func (s *Server) getFinding(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("finding.id", id))
 
-	for _, f := range s.mockData.Findings {
-		if f.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(f)
-			return
-		}
+	if f, ok := s.findingsByID[id]; ok {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(f)
+		return
 	}
 
 	writeErrorResponse(w, "finding not found", http.StatusNotFound)
@@ -93,12 +91,10 @@ func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("agent.id", id))
 
-	for _, a := range s.mockData.Agents {
-		if a.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(a)
-			return
-		}
+	if a, ok := s.agentsByID[id]; ok {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(a)
+		return
 	}
 
 	writeErrorResponse(w, "agent not found", http.StatusNotFound)
@@ -121,12 +117,10 @@ func (s *Server) getRemediation(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("remediation.id", id))
 
-	for _, rem := range s.mockData.Remediations {
-		if rem.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(rem)
-			return
-		}
+	if rem, ok := s.remediationsByID[id]; ok {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(rem)
+		return
 	}
 
 	writeErrorResponse(w, "remediation not found", http.StatusNotFound)
@@ -179,15 +173,13 @@ func (s *Server) executeRemediation(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("remediation.id", id))
 
-	for _, rem := range s.mockData.Remediations {
-		if rem.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]string{
-				"status":         "executing",
-				"remediation_id": id,
-			})
-			return
-		}
+	if _, ok := s.remediationsByID[id]; ok {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"status":         "executing",
+			"remediation_id": id,
+		})
+		return
 	}
 
 	writeErrorResponse(w, "remediation not found", http.StatusNotFound)
@@ -369,14 +361,8 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 	s.enrichMu.Unlock()
 
 	// Find the finding
-	var finding *Finding
-	for i := range s.mockData.Findings {
-		if s.mockData.Findings[i].ID == id {
-			finding = &s.mockData.Findings[i]
-			break
-		}
-	}
-	if finding == nil {
+	finding, ok := s.findingsByID[id]
+	if !ok {
 		writeErrorResponse(w, "finding not found", http.StatusNotFound)
 		return
 	}

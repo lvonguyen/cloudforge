@@ -2,6 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient, ApiError } from '@/lib/api'
 import type { Finding } from '@/types/compliance'
 
+async function fetchMockFindings(): Promise<Finding[]> {
+  const res = await fetch('/mock/findings.json')
+  if (!res.ok) throw new Error(`Failed to load mock findings: ${res.status}`)
+  return res.json()
+}
+
 async function fetchFindings(filters?: { severity?: string; provider?: string; status?: string }): Promise<Finding[]> {
   const params = new URLSearchParams()
   if (filters?.severity) params.set('severity', filters.severity)
@@ -13,8 +19,7 @@ async function fetchFindings(filters?: { severity?: string; provider?: string; s
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
     console.warn('[useFindings] API unavailable, using mock data')
-    const mod = await import('@/lib/mock/findings.json')
-    return mod.default as unknown as Finding[]
+    return fetchMockFindings()
   }
 }
 
@@ -34,8 +39,8 @@ export function useFinding(id: string) {
       } catch (err) {
         if (err instanceof ApiError && err.status < 500) throw err
         console.warn('[useFinding] API unavailable, using mock data')
-        const mod = await import('@/lib/mock/findings.json')
-        return (mod.default as unknown as Finding[]).find((f) => f.id === id) ?? null
+        const findings = await fetchMockFindings()
+        return findings.find((f) => f.id === id) ?? null
       }
     },
     enabled: Boolean(id),

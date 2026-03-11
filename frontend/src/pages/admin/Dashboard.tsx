@@ -37,7 +37,7 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">Admin Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Platform overview — Feb 2026</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Platform overview — {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>
         </div>
         <Badge variant="secondary" className="text-xs">Live</Badge>
       </div>
