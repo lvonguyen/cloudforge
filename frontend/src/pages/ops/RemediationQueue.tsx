@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { RemediationTierBadge } from '@/components/remediation/RemediationTierBadge'
+import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { CheckCircle2, Play, Eye, RotateCcw } from 'lucide-react'
 import { useRemediations } from '@/hooks/useRemediations'
 import { useTracePanel } from '@/lib/trace-panel-context'
@@ -50,11 +50,6 @@ const STATUS_COLORS: Record<string, string> = {
   skipped: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
 }
 
-const PROVIDER_COLORS: Record<string, string> = {
-  aws: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
-  gcp: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-  azure: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-}
 
 function QueueItemCard({ item }: { item: QueueItem }) {
   const navigate = useNavigate()
@@ -94,7 +89,7 @@ function QueueItemCard({ item }: { item: QueueItem }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[item.status] ?? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300'}`}>{item.status}</span>
-              <Badge variant="secondary" className={`text-[10px] ${PROVIDER_COLORS[item.provider] ?? ''}`}>{item.provider.toUpperCase()}</Badge>
+              <ProviderBadge provider={item.provider} />
               {(item.dry_run_ok === true || dryRunPassed) && (
                 <span className="text-[10px] text-green-600 dark:text-green-400 flex items-center gap-0.5"><CheckCircle2 className="h-3 w-3" />dry-run passed</span>
               )}

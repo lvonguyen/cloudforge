@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useCatalog } from '@/hooks/useCatalog'
+import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import type { CatalogModule } from '@/types/catalog'
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -25,12 +26,6 @@ const ICON_MAP: Record<string, LucideIcon> = {
   'mail': Mail,
   'container': Container,
   'bar-chart-3': BarChart3,
-}
-
-const PROVIDER_COLORS: Record<string, string> = {
-  aws: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
-  azure: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-  gcp: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
 }
 
 const COMPLIANCE_COLORS: Record<string, string> = {
@@ -152,9 +147,7 @@ export default function Catalog() {
                         <p className="text-[10px] text-muted-foreground font-mono">{module.version}</p>
                       </div>
                     </div>
-                    <Badge variant="secondary" className={`text-[10px] shrink-0 ${PROVIDER_COLORS[module.provider] ?? ''}`}>
-                      {module.provider.toUpperCase()}
-                    </Badge>
+                    <ProviderBadge provider={module.provider} className="shrink-0" />
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
