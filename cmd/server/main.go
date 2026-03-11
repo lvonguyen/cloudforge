@@ -401,7 +401,7 @@ func (s *Server) setupRoutes() {
 
 	// Costs
 	apiRouter.Handle("/costs/summary",
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getCostSummary)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getCostSummaryComputed)),
 	).Methods("GET")
 
 	// Remediations
@@ -450,6 +450,52 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/attack-paths/{id}",
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAttackPath)),
 	).Methods("GET")
+
+	// Container security
+	apiRouter.Handle("/container/scan",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.scanContainer)),
+	).Methods("GET")
+	apiRouter.Handle("/container/admission",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.checkAdmission)),
+	).Methods("GET")
+
+	// Secrets management
+	apiRouter.Handle("/secrets",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listSecrets)),
+	).Methods("GET")
+	apiRouter.Handle("/secrets/scan",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.scanSecrets)),
+	).Methods("GET")
+	apiRouter.Handle("/secrets/{path:.*}",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getSecret)),
+	).Methods("GET")
+
+	// WAF templates
+	apiRouter.Handle("/waf/templates",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listWAFTemplates)),
+	).Methods("GET")
+	apiRouter.Handle("/waf/compliance/{templateId}",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.validateWAFCompliance)),
+	).Methods("GET")
+
+	// Identity & Zero Trust
+	apiRouter.Handle("/identity/users",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listIdentityUsers)),
+	).Methods("GET")
+	apiRouter.Handle("/identity/users/{id}/risk",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getIdentityUserRisk)),
+	).Methods("GET")
+
+	// Workflow orchestration
+	apiRouter.Handle("/workflows",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listWorkflows)),
+	).Methods("GET")
+	apiRouter.Handle("/workflows/{id}",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getWorkflow)),
+	).Methods("GET")
+	apiRouter.Handle("/workflows/{id}/approve",
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.approveWorkflow)),
+	).Methods("POST")
 }
 
 // getTierFromRequest extracts the API tier from the request.

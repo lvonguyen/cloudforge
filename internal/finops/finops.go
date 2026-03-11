@@ -60,6 +60,17 @@ type CostAllocation struct {
 	Percentage float64            `json:"percentage"`
 }
 
+// CostSummary is the computed response for /costs/summary.
+type CostSummary struct {
+	TotalCost   float64            `json:"total_cost"`
+	ByProvider  map[string]float64 `json:"by_provider"`
+	ByService   map[string]float64 `json:"by_service"`
+	Anomalies   []AnomalyAlert     `json:"anomalies"`
+	Allocations []CostAllocation   `json:"allocations"`
+	Period      string             `json:"period"`
+	RecordCount int                `json:"record_count"`
+}
+
 // Aggregator aggregates costs from multiple cloud providers
 type Aggregator interface {
 	// FetchCosts retrieves cost data from cloud provider for date range
