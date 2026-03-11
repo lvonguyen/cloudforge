@@ -10,6 +10,7 @@ import { useRemediations } from '@/hooks/useRemediations'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
 import type { RemediationRecord } from '@/types/remediation'
+import { REMEDIATION_STATUS_COLORS as STATUS_COLORS } from '@/lib/severity'
 
 interface QueueItem {
   id: string
@@ -42,13 +43,6 @@ function toQueueItem(r: RemediationRecord): QueueItem {
   }
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  pending: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300',
-  in_progress: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-  completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-  failed: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-  skipped: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
-}
 
 function QueueItemCard({ item }: { item: QueueItem }) {
   const navigate = useNavigate()
