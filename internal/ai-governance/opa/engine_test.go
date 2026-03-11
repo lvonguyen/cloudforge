@@ -85,6 +85,35 @@ func TestLoadPolicies_KeyCollision(t *testing.T) {
 	}
 }
 
+// TestLoadPolicies_EvaluateFallback verifies that Evaluate can find a loaded
+// policy via the "default" fallback key when called with a non-matching path.
+func TestLoadPolicies_EvaluateFallback(t *testing.T) {
+	dir := t.TempDir()
+	pathA := writeTempPolicy(t, dir, "allow.rego", policyAllow)
+
+	ctx := context.Background()
+
+	engine, err := NewEngine()
+	if err != nil {
+		t.Fatalf("NewEngine: %v", err)
+	}
+
+	if err := engine.LoadPolicies(ctx, []string{pathA}); err != nil {
+		t.Fatalf("LoadPolicies: %v", err)
+	}
+
+	// Evaluate with a non-matching key — should fall back to "default".
+	input := &EvaluationInput{Agent: AgentContext{ID: "test-agent", Name: "test"}}
+	decision, err := engine.Evaluate(ctx, "nonexistent.path", input)
+	if err != nil {
+		t.Fatalf("Evaluate with fallback key: %v", err)
+	}
+
+	if decision == nil {
+		t.Fatal("expected non-nil Decision from default fallback")
+	}
+}
+
 // TestLoadPolicies_EmptyPaths ensures LoadPolicies rejects empty path slices.
 func TestLoadPolicies_EmptyPaths(t *testing.T) {
 	engine, err := NewEngine()

@@ -36,7 +36,6 @@ const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; className: stri
   EXPIRED: { icon: AlertTriangle, className: 'text-gray-500 dark:text-gray-400', badge: 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400' },
 }
 
-
 export default function MyRequests() {
   const [statusFilter, setStatusFilter] = useState('ALL')
 

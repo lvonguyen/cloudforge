@@ -146,7 +146,7 @@ func (s *Server) listRemediations(w http.ResponseWriter, r *http.Request) {
 			// Inverted check fixed: a non-empty but non-numeric tier parameter must
 			// be rejected. Previously err == nil was used, which silently swallowed
 			// parse failures and returned all records as if no filter was applied.
-			writeErrorResponse(w, fmt.Sprintf("invalid tier: %v", err), http.StatusBadRequest)
+			writeErrorResponse(w, "invalid tier: must be a positive integer", http.StatusBadRequest)
 			return
 		}
 		hasTier = true

@@ -50,7 +50,6 @@ const STATUS_COLORS: Record<string, string> = {
   skipped: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
 }
 
-
 function QueueItemCard({ item }: { item: QueueItem }) {
   const navigate = useNavigate()
   const { openStreaming, openDryRun } = useTracePanel()

@@ -21,7 +21,7 @@ export function FindingCard({ finding, onClick }: { finding: Finding; onClick?: 
         <p className="text-sm font-medium leading-tight line-clamp-2">{finding.title}</p>
       </CardHeader>
       <CardContent className="text-xs text-muted-foreground space-y-1">
-        <p className="flex items-center gap-1">{finding.resource_name} · <ProviderBadge provider={finding.cloud_provider} /> {finding.region}</p>
+        <div className="flex items-center gap-1">{finding.resource_name} · <ProviderBadge provider={finding.cloud_provider} /> {finding.region}</div>
         {finding.cves && finding.cves.length > 0 && (
           <p className="font-mono text-destructive">{finding.cves[0].id} CVSS {finding.cvss?.toFixed(1)}</p>
         )}
