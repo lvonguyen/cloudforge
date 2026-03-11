@@ -17,18 +17,13 @@ import {
 } from '@/components/ui/table'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import type { Finding } from '@/types/compliance'
+import { SEVERITY_COLORS } from '@/lib/severity'
 
 const SEVERITY_ORDER: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
 
 const SEVERITY_TABS = ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const
 type SeverityTab = (typeof SEVERITY_TABS)[number]
 
-const SEVERITY_COLORS: Record<string, string> = {
-  CRITICAL: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  HIGH: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-  MEDIUM: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  LOW: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-}
 
 const CATEGORY_COLORS: Record<string, string> = {
   VULNERABILITY: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',

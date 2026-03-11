@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth'
 import { FileText, Clock, CheckCircle2, XCircle, Plus } from 'lucide-react'
+import { EXCEPTION_STATUS_COLORS as STATUS_COLORS } from '@/lib/severity'
 
 const MY_REQUESTS = [
   { id: 'EXC-002', resource: 'EC2 m5.24xlarge in us-east-1', type: 'OVERSIZED_INSTANCE', status: 'PENDING', created: '2026-02-24' },
@@ -16,11 +17,6 @@ const PENDING_APPROVALS = [
   { id: 'EXC-004', app: 'auth-service', resource: 'SG port 22 open', requestor: 'operator2@contoso.dev', since: '4h ago' },
 ]
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  APPROVED: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  REJECTED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-}
 
 const STATUS_ICONS: Record<string, typeof CheckCircle2> = {
   PENDING: Clock,

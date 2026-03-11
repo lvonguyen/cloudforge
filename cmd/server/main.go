@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -63,6 +64,7 @@ type Server struct {
 	attackPathStats   *AttackPathStats
 	aiProvider        ai.Provider // nil when AI is disabled (graceful degradation)
 	findingEnrichment map[string]*FindingEnrichment
+	enrichMu          sync.Mutex
 	roles             *api.RoleEnforcer
 }
 
@@ -77,7 +79,7 @@ func main() {
 	// Load configuration
 	providerType, err := grc.ProviderFromString(getEnv("GRC_PROVIDER", "memory"))
 	if err != nil {
-		log.Fatalf("Invalid GRC provider: %v", err)
+		logger.Fatal("Invalid GRC provider", zap.Error(err))
 	}
 
 	cfg := Config{
@@ -102,7 +104,7 @@ func main() {
 		Type: cfg.GRCProvider,
 	})
 	if err != nil {
-		log.Fatalf("Failed to initialize GRC provider: %v", err)
+		logger.Fatal("Failed to initialize GRC provider", zap.Error(err))
 	}
 
 	// Initialize authentication middleware
@@ -114,7 +116,7 @@ func main() {
 		SkipPaths:    []string{"/health", "/healthz", "/ready"},
 	}, logger)
 	if err != nil {
-		log.Fatalf("Failed to initialize auth middleware: %v", err)
+		logger.Fatal("Failed to initialize auth middleware", zap.Error(err))
 	}
 
 	// Initialize health checker
@@ -195,7 +197,7 @@ func main() {
 	// Load mock data from frontend JSON files
 	mockData, err := loadMockData(mockDataDir())
 	if err != nil {
-		log.Fatalf("Failed to load mock data: %v", err)
+		logger.Fatal("Failed to load mock data", zap.Error(err))
 	}
 	srv.mockData = mockData
 	logger.Info("Mock data loaded",

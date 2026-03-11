@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { SEVERITY_COLORS } from '@/lib/severity'
 import { useExceptions, useApproveException } from '@/hooks/useExceptions'
 import { useFindings } from '@/hooks/useFindings'
 import { useCostAnomalies } from '@/hooks/useCosts'
@@ -77,12 +78,6 @@ const MOCK_EXCEPTIONS: ExceptionRequest[] = [
 const SEVERITY_TABS = ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const
 type SeverityTab = (typeof SEVERITY_TABS)[number]
 
-const SEVERITY_COLORS: Record<string, string> = {
-  CRITICAL: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  HIGH: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-  MEDIUM: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  LOW: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-}
 
 export default function CommandCenter() {
   const navigate = useNavigate()

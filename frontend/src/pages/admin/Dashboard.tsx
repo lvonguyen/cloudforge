@@ -6,6 +6,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { ShieldCheck, Bot, AlertTriangle, FileText, TrendingUp } from 'lucide-react'
+import { EXCEPTION_STATUS_COLORS as STATUS_COLORS } from '@/lib/severity'
 
 const KPI_CARDS = [
   { label: 'Active Policies', value: 42, sub: '3 pending review', icon: FileText, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/20', link: '/admin/policies' },
@@ -21,12 +22,6 @@ const EXCEPTION_QUEUE = [
   { id: 'EXC-004', app: 'auth-service', type: 'NETWORK_EXPOSURE', resource: 'SG sg-0abc1234 port 22', status: 'PENDING', created: '2026-02-22', sla: '4h' },
 ]
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  APPROVED: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  REJECTED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  EXPIRED: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300',
-}
 
 const TREND = [
   { label: 'Policies Evaluated', value: '18,432', change: '+12%' },

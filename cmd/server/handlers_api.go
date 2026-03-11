@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -65,8 +64,9 @@ func (s *Server) getFinding(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listFrameworks(w http.ResponseWriter, r *http.Request) {
-	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listFrameworks")
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listFrameworks")
 	defer span.End()
+	_ = ctx
 
 	span.SetAttributes(attribute.Int("frameworks.count", len(s.mockData.Frameworks)))
 
@@ -75,8 +75,9 @@ func (s *Server) listFrameworks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listAgents(w http.ResponseWriter, r *http.Request) {
-	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAgents")
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAgents")
 	defer span.End()
+	_ = ctx
 
 	span.SetAttributes(attribute.Int("agents.count", len(s.mockData.Agents)))
 
@@ -104,8 +105,9 @@ func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getCostSummary(w http.ResponseWriter, r *http.Request) {
-	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getCostSummary")
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getCostSummary")
 	defer span.End()
+	_ = ctx
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(s.mockData.Costs)
@@ -334,8 +336,6 @@ type FindingEnrichment struct {
 	EnrichedAt      string   `json:"enriched_at"`
 }
 
-var enrichMu sync.Mutex
-
 const findingEnrichSystemPrompt = `You are a cloud security analyst. Given a security finding, provide:
 1. Root cause analysis
 2. Business impact assessment
@@ -359,14 +359,14 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check cache first
-	enrichMu.Lock()
+	s.enrichMu.Lock()
 	if cached, ok := s.findingEnrichment[id]; ok {
-		enrichMu.Unlock()
+		s.enrichMu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(cached)
 		return
 	}
-	enrichMu.Unlock()
+	s.enrichMu.Unlock()
 
 	// Find the finding
 	var finding *Finding
@@ -412,9 +412,9 @@ Description: %s`,
 	}
 
 	// Cache the result
-	enrichMu.Lock()
+	s.enrichMu.Lock()
 	s.findingEnrichment[id] = enrichment
-	enrichMu.Unlock()
+	s.enrichMu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(enrichment)

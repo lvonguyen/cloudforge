@@ -9,6 +9,7 @@ import { UserPlus } from 'lucide-react'
 import { useUsers } from '@/hooks/useUsers'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
+import { cn } from '@/lib/utils'
 
 const ROLE_COLORS: Record<string, string> = {
   admin: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
@@ -99,9 +100,10 @@ export default function Users() {
       <div className="flex gap-3">
         <button
           onClick={() => setRoleFilter('all')}
-          className={`px-3 py-1.5 rounded-none text-xs font-medium transition-colors ${
-            roleFilter === 'all' ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/80'
-          }`}
+          className={cn(
+            'px-3 py-1.5 rounded-none text-xs font-medium transition-colors',
+            roleFilter === 'all' ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/80',
+          )}
         >
           All ({USERS.length})
         </button>
@@ -109,9 +111,10 @@ export default function Users() {
           <button
             key={role}
             onClick={() => setRoleFilter(prev => prev === role ? 'all' : role)}
-            className={`px-3 py-1.5 rounded-none text-xs font-medium transition-colors ${
-              roleFilter === role ? 'bg-foreground text-background' : ROLE_COLORS[role] + ' hover:opacity-80'
-            }`}
+            className={cn(
+              'px-3 py-1.5 rounded-none text-xs font-medium transition-colors',
+              roleFilter === role ? 'bg-foreground text-background' : cn(ROLE_COLORS[role], 'hover:opacity-80'),
+            )}
           >
             {role.charAt(0).toUpperCase() + role.slice(1)}: {USERS.filter(u => u.role === role).length}
           </button>
@@ -147,14 +150,19 @@ export default function Users() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{user.email}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={`text-[10px] ${ROLE_COLORS[user.role]}`}>
+                    <Badge variant="secondary" className={cn('text-[10px]', ROLE_COLORS[user.role])}>
                       {user.role}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs">{user.team}</TableCell>
                   <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">{user.last_login}</TableCell>
                   <TableCell>
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${user.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-900/30 dark:text-gray-400'}`}>
+                    <span className={cn(
+                      'text-[10px] font-medium px-2 py-0.5 rounded-full',
+                      user.status === 'active'
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                        : 'bg-gray-100 text-gray-500 dark:bg-gray-900/30 dark:text-gray-400',
+                    )}>
                       {user.status}
                     </span>
                   </TableCell>
