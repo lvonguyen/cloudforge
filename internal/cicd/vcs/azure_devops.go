@@ -76,7 +76,9 @@ func (p *AzureDevOpsProvider) doRequest(ctx context.Context, method, url string,
 	}
 
 	// Azure DevOps uses Basic auth with PAT
-	auth := base64.StdEncoding.EncodeToString([]byte(":" + p.token))
+	// Use RawURLEncoding (no padding, URL-safe alphabet) consistent with the
+	// rest of the codebase and safe for embedding in URL contexts.
+	auth := base64.RawURLEncoding.EncodeToString([]byte(":" + p.token))
 	req.Header.Set("Authorization", "Basic "+auth)
 	req.Header.Set("Accept", "application/json")
 	if body != nil {
