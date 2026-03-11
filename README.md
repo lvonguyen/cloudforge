@@ -339,7 +339,7 @@ Pluggable providers for enterprise GRC platforms:
 
 | Component | Technology | Purpose |
 | --------- | ---------- | ------- |
-| API Server | [Go 1.24](https://go.dev/) | Core platform API |
+| API Server | [Go 1.25](https://go.dev/) | Core platform API |
 | Portal | [React 19](https://react.dev/) / [Vite 7](https://vitejs.dev/) | Self-service SPA — Tailwind CSS v4, shadcn/ui, Cloudflare Pages |
 | Workflows | [Temporal](https://temporal.io/) | Orchestration, approvals |
 | Policies | [OPA / Rego](https://www.openpolicyagent.org/) | Guardrails, validation |
@@ -356,7 +356,7 @@ Pluggable providers for enterprise GRC platforms:
 
 ### Prerequisites
 
-- Go 1.24+
+- Go 1.25+
 - Docker & Docker Compose
 - Terraform 1.5+
 - OPA CLI
@@ -440,6 +440,7 @@ workflow:
 | [ADR-005](docs/adr/ADR-005-rate-limiting.md) | Rate Limiting Strategy |
 | [ADR-006](docs/adr/ADR-006-authentication.md) | Authentication (OIDC) |
 | [ADR-007](docs/adr/ADR-007-grc-integration.md) | GRC Integration Pattern |
+| [ADR-008](docs/adr/ADR-008-attack-path-computation.md) | Attack Path Computation (BFS + ReactFlow) |
 
 ### Runbooks
 
