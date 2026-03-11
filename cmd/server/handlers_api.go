@@ -142,9 +142,14 @@ func (s *Server) listRemediations(w http.ResponseWriter, r *http.Request) {
 	if tierFilter != "" {
 		var err error
 		tierVal, err = strconv.Atoi(tierFilter)
-		if err == nil {
-			hasTier = true
+		if err != nil {
+			// Inverted check fixed: a non-empty but non-numeric tier parameter must
+			// be rejected. Previously err == nil was used, which silently swallowed
+			// parse failures and returned all records as if no filter was applied.
+			writeErrorResponse(w, fmt.Sprintf("invalid tier: %v", err), http.StatusBadRequest)
+			return
 		}
+		hasTier = true
 	}
 
 	results := make([]RemediationRecord, 0, len(s.mockData.Remediations))
