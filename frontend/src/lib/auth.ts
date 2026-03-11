@@ -56,7 +56,7 @@ function getStoredToken(): string | null {
   return sessionStorage.getItem(TOKEN_KEY)
 }
 
-function parseJWTPayload(token: string): Record<string, unknown> | null {
+export function parseJWTPayload(token: string): Record<string, unknown> | null {
   try {
     const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
     return JSON.parse(atob(base64))
@@ -65,7 +65,7 @@ function parseJWTPayload(token: string): Record<string, unknown> | null {
   }
 }
 
-function isTokenExpired(token: string): boolean {
+export function isTokenExpired(token: string): boolean {
   const payload = parseJWTPayload(token)
   if (!payload || typeof payload.exp !== 'number') return true
   return payload.exp * 1000 < Date.now()
