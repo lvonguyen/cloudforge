@@ -50,7 +50,7 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
     {
       section: 'Intelligence',
       items: [
-        { to: '/ops/costs', label: 'Costs', icon: DollarSign },
+        { to: '/ops/costs', label: 'Spend', icon: DollarSign },
         { to: '/ops/compliance', label: 'Compliance', icon: Shield },
         { to: '/ops/attack-paths', label: 'Attack Paths', icon: GitBranch },
       ],

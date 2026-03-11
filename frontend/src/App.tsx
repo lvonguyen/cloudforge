@@ -29,7 +29,7 @@ const Findings = lazy(() => import('@/pages/ops/Findings'))
 const FindingDetail = lazy(() => import('@/pages/ops/FindingDetail'))
 const RemediationQueue = lazy(() => import('@/pages/ops/RemediationQueue'))
 const RemediationDetail = lazy(() => import('@/pages/ops/RemediationDetail'))
-const Costs = lazy(() => import('@/pages/ops/Costs'))
+const Spend = lazy(() => import('@/pages/ops/Spend'))
 const Compliance = lazy(() => import('@/pages/ops/Compliance'))
 const AttackPaths = lazy(() => import('@/pages/ops/AttackPaths'))
 
@@ -84,7 +84,7 @@ export default function App() {
                     <Route path="/ops/findings/:id" element={<FindingDetail />} />
                     <Route path="/ops/remediation" element={<RemediationQueue />} />
                     <Route path="/ops/remediation/:id" element={<RemediationDetail />} />
-                    <Route path="/ops/costs" element={<Costs />} />
+                    <Route path="/ops/costs" element={<Spend />} />
                     <Route path="/ops/compliance" element={<Compliance />} />
                     <Route path="/ops/attack-paths" element={<AttackPaths />} />
                   </Route>

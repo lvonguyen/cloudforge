@@ -18,7 +18,7 @@ function calcMoM(daily: DailyProviderCost[], key: keyof Pick<DailyProviderCost, 
   return ((last30 - prev30) / prev30) * 100
 }
 
-export default function Costs() {
+export default function Spend() {
   const [period, setPeriod] = useState<Period>('90')
   const { data: summary, isLoading, isError } = useCostSummary()
 
@@ -48,7 +48,7 @@ export default function Costs() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold">Cost Management</h1>
+          <h1 className="text-xl font-semibold">Spend Management</h1>
           <Badge variant="secondary" className="text-xs">{new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</Badge>
         </div>
         <Select value={period} onValueChange={v => setPeriod(v as Period)}>

@@ -39,7 +39,7 @@ func newFinopsService() *finopsService {
 // getCostSummaryComputed replaces the old static JSON handler with computed data.
 // It returns the types.go CostSummary shape to maintain API compatibility.
 func (s *Server) getCostSummaryComputed(w http.ResponseWriter, r *http.Request) {
-	svc := newFinopsService()
+	svc := s.finopsSvc
 
 	end := time.Now().UTC()
 	start := end.AddDate(0, 0, -30)
