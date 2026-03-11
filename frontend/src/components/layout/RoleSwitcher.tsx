@@ -21,6 +21,7 @@ const ROLE_HOME: Record<Role, string> = {
   admin: '/admin',
   operator: '/ops',
   requester: '/portal',
+  viewer: '/',
 }
 
 export function RoleSwitcher() {

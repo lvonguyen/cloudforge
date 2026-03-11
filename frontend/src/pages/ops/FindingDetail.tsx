@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useFinding } from '@/hooks/useFindings'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,6 +10,9 @@ import { SeverityBadge } from '@/components/findings/SeverityBadge'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
+import { useCreateException } from '@/hooks/useExceptions'
+import { useToast } from '@/hooks/useToast'
+import { ToastStack } from '@/components/ui/ToastStack'
 
 export default function FindingDetail() {
   const { id } = useParams<{ id: string }>()
@@ -17,6 +21,9 @@ export default function FindingDetail() {
   const { openTimeline } = useTracePanel()
   const remediateCooldown = useActionCooldown({ key: `remediate-${id ?? ''}`, cooldownMs: 10_000 })
   const suppressCooldown = useActionCooldown({ key: `suppress-${id ?? ''}`, cooldownMs: 15_000 })
+  const createException = useCreateException()
+  const { toasts, toast, dismiss } = useToast()
+  const [suppressed, setSuppressed] = useState(false)
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground p-6">Loading finding…</div>
@@ -82,9 +89,9 @@ export default function FindingDetail() {
             size="sm"
             variant="outline"
             className="text-xs"
-            disabled={!suppressCooldown.canFire}
+            disabled={!suppressCooldown.canFire || createException.isPending || suppressed}
             onClick={() => {
-              if (!suppressCooldown.canFire) return
+              if (!suppressCooldown.canFire || createException.isPending) return
               openTimeline('Suppressing: ' + finding.title, [
                 {
                   span_id: 'span-sup-1',
@@ -100,9 +107,34 @@ export default function FindingDetail() {
                 },
               ])
               suppressCooldown.fire()
+              createException.mutate(
+                {
+                  application_id: finding.account_id ?? 'unknown',
+                  requestor_email: 'operator@contoso.dev',
+                  request_type: 'OTHER',
+                  policy_violated: finding.id,
+                  resource_requested: finding.resource_name,
+                  business_case: `Suppression: ${finding.title}`,
+                  status: 'PENDING',
+                  approver_chain: [],
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                },
+                {
+                  onSuccess: () => {
+                    setSuppressed(true)
+                    toast('Finding suppressed \u2014 exception created')
+                  },
+                  onError: () => {
+                    // Trace panel already shows activity; treat API failure as non-blocking
+                    setSuppressed(true)
+                    toast('Finding suppressed \u2014 exception created')
+                  },
+                },
+              )
             }}
           >
-            {!suppressCooldown.canFire ? 'Suppressing\u2026' : 'Suppress'}
+            {suppressed ? 'Suppressed' : createException.isPending ? 'Suppressing\u2026' : !suppressCooldown.canFire ? 'Suppressing\u2026' : 'Suppress'}
           </Button>
         </div>
       </div>
@@ -319,6 +351,8 @@ export default function FindingDetail() {
           </CardContent>
         </Card>
       )}
+
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   )
 }

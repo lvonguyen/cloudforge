@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -5,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
+import { useToast } from '@/hooks/useToast'
+import { ToastStack } from '@/components/ui/ToastStack'
 
 interface ExceptionLifecycle {
   id: string
@@ -80,6 +83,9 @@ const STATUS_BADGE: Record<string, string> = {
 export default function RequestDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { toasts, toast, dismiss } = useToast()
+  const [withdrawn, setWithdrawn] = useState(false)
+  const [withdrawing, setWithdrawing] = useState(false)
 
   const exc = id ? MOCK_DETAILS[id] : undefined
 
@@ -110,8 +116,24 @@ export default function RequestDetail() {
           </div>
           <p className="text-sm text-muted-foreground">{exc.resource}</p>
         </div>
-        {exc.status === 'PENDING' && (
-          <Button size="sm" variant="outline" className="text-xs shrink-0">Withdraw</Button>
+        {exc.status === 'PENDING' && !withdrawn && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs shrink-0"
+            disabled={withdrawing}
+            onClick={() => {
+              setWithdrawing(true)
+              setTimeout(() => {
+                setWithdrawing(false)
+                setWithdrawn(true)
+                toast('Request withdrawn')
+                setTimeout(() => navigate('/portal/requests'), 1500)
+              }, 800)
+            }}
+          >
+            {withdrawing ? 'Withdrawing\u2026' : 'Withdraw'}
+          </Button>
         )}
       </div>
 
@@ -199,6 +221,8 @@ export default function RequestDetail() {
           ))}
         </CardContent>
       </Card>
+
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   )
 }

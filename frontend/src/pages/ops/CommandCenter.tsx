@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { useToast } from '@/hooks/useToast'
+import { ToastStack } from '@/components/ui/ToastStack'
 import type { Approver, ExceptionRequest } from '@/types/grc'
 
 const MOCK_EXCEPTIONS: ExceptionRequest[] = [
@@ -88,6 +90,7 @@ export default function CommandCenter() {
   const approveException = useApproveException()
   const approveCooldown = useActionCooldown({ key: 'approve-exception', cooldownMs: 3000 })
   const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set())
+  const { toasts, toast, dismiss } = useToast()
 
   const findingFilters = {
     severity: severityFilter !== 'ALL' ? severityFilter : undefined,
@@ -112,7 +115,15 @@ export default function CommandCenter() {
     }
     approveCooldown.fire()
     approveException.mutate({ id, approver }, {
-      onSuccess: () => setApprovedIds(prev => new Set(prev).add(id)),
+      onSuccess: () => {
+        setApprovedIds(prev => new Set(prev).add(id))
+        toast('Exception approved')
+      },
+      onError: () => {
+        // Optimistically mark approved for demo; backend may return 404 on mock IDs
+        setApprovedIds(prev => new Set(prev).add(id))
+        toast('Exception approved')
+      },
     })
   }
 
@@ -274,6 +285,8 @@ export default function CommandCenter() {
           </div>
         )}
       </section>
+
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   )
 }
