@@ -38,6 +38,7 @@ COPY --from=builder /cloudforge /app/cloudforge
 
 # Copy mock data files required by the in-memory GRC provider
 COPY --from=builder /app/frontend/src/lib/mock /app/frontend/src/lib/mock
+COPY --from=builder /app/frontend/public/mock /app/frontend/public/mock
 
 # Copy config template
 COPY configs/config.example.yaml /app/config.example.yaml
