@@ -135,7 +135,7 @@ export default function CommandCenter() {
           <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground">
             Exception Queue
           </h2>
-          <Link to="/ops/exceptions" className="text-xs text-primary hover:underline">
+          <Link to="/ops/remediation" className="text-xs text-primary hover:underline">
             View All →
           </Link>
         </div>

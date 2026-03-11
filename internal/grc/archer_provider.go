@@ -32,7 +32,7 @@ type ArcherConfig struct {
 type ArcherGRCProvider struct {
 	config     ArcherConfig
 	httpClient *http.Client
-	authToken  string //nolint:unused // Reserved for future auth implementation
+	authToken  string // reserved for future auth implementation
 	password   string // loaded from env at initialization
 }
 

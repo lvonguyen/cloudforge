@@ -95,10 +95,6 @@ migrate:
 opa-test:
 	opa test policies/ -v
 
-# Evaluate OPA policy with sample input
-opa-eval:
-	opa eval -d policies/ -i test/sample_input.json "data.cloudforge.response"
-
 # Clean build artifacts
 clean:
 	rm -rf bin/
@@ -158,7 +154,7 @@ health:  ## Check backend health
 
 smoke: build  ## Start backend, verify health, stop
 	@echo "Starting backend for smoke test..."
-	@CLOUDFORGE_JWT_SECRET=smoke-test GRC_PROVIDER=memory ./bin/cloudforge-server &
+	@CLOUDFORGE_JWT_SECRET=smoke-test GRC_PROVIDER=memory ./bin/cloudforge &
 	@sleep 2
 	@curl -sf http://localhost:8080/healthz && echo "Liveness: OK" || echo "Liveness: FAIL"
 	@curl -sf http://localhost:8080/ready && echo "Readiness: OK" || echo "Readiness: FAIL"
