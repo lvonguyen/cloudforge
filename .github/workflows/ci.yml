@@ -150,9 +150,9 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up OPA
-        uses: open-policy-agent/setup-opa@v2
+        uses: open-policy-agent/setup-opa@950f159a49aa91f9323f36f1de81c7f6b5de9576 # v2.3.0
         with:
-          version: latest
+          version: '0.68.0'
 
       - name: Test policies
         run: |
@@ -162,11 +162,30 @@ jobs:
             echo "No policies to test, skipping"
           fi
 
+  frontend:
+    name: Frontend Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install, type-check, and build
+        run: cd frontend && npm ci && npx tsc -b && npm run build
+
   docker:
     name: Docker Build
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [build, lint, security]
+    needs: [build, lint, security, opa, frontend]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     permissions:
@@ -233,3 +252,8 @@ jobs:
         run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Verify deployment health
+        run: |
+          sleep 10
+          curl -sf https://cloudforge-api.fly.dev/health || exit 1
