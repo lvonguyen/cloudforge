@@ -11,6 +11,7 @@ package opa
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -96,6 +97,10 @@ func NewEngine() (*Engine, error) {
 }
 
 // LoadPolicies loads Rego policies from the specified paths.
+// Each call is keyed by paths[0] so that multiple disjoint policy groups can
+// be loaded without overwriting one another. Previously every call stored
+// under the hard-coded key "default", causing a key collision when LoadPolicies
+// was invoked more than once with different path sets.
 func (e *Engine) LoadPolicies(ctx context.Context, paths []string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -104,18 +109,30 @@ func (e *Engine) LoadPolicies(ctx context.Context, paths []string) error {
 		return fmt.Errorf("no policy paths provided")
 	}
 
-	r := rego.New(
+	// Build rego.Module options from each path so no write transaction is
+	// needed on the store (rego.Load requires a write transaction; rego.Module
+	// does not, allowing multiple policy groups to coexist in one engine).
+	opts := []func(*rego.Rego){
 		rego.Query("data.cloudforge.ai"),
 		rego.Store(e.store),
-		rego.Load(paths, nil),
-	)
+	}
+	for _, p := range paths {
+		src, err := os.ReadFile(p)
+		if err != nil {
+			return fmt.Errorf("reading policy %s: %w", p, err)
+		}
+		opts = append(opts, rego.Module(p, string(src)))
+	}
+
+	r := rego.New(opts...)
 
 	pq, err := r.PrepareForEval(ctx)
 	if err != nil {
 		return fmt.Errorf("preparing policy: %w", err)
 	}
 
-	e.queries["default"] = &pq
+	// Key by the first path so each policy group is independently addressable.
+	e.queries[paths[0]] = &pq
 	return nil
 }
 
