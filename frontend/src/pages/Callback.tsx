@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth, STATE_KEY } from '@/lib/auth'
+import { LOGIN_RETURN_KEY } from '@/components/auth/ProtectedRoute'
 
 export default function Callback() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { exchangeCode } = useAuth()
+  const { exchangeCode, login } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const called = useRef(false)
 
@@ -34,7 +35,11 @@ export default function Callback() {
     }
 
     exchangeCode(code)
-      .then(() => navigate('/ops', { replace: true }))
+      .then(() => {
+        const returnPath = sessionStorage.getItem(LOGIN_RETURN_KEY) ?? '/ops'
+        sessionStorage.removeItem(LOGIN_RETURN_KEY)
+        navigate(returnPath, { replace: true })
+      })
       .catch((err) => setError(err instanceof Error ? err.message : 'Token exchange failed'))
   }, [searchParams, exchangeCode, navigate])
 
@@ -44,7 +49,15 @@ export default function Callback() {
         <div className="max-w-md space-y-4 text-center">
           <h1 className="text-xl font-mono font-bold text-destructive">Authentication Error</h1>
           <p className="text-sm text-muted-foreground">{error}</p>
-          <a href="/" className="text-sm underline">Return to home</a>
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={() => login()}
+              className="text-sm font-medium underline hover:no-underline"
+            >
+              Try again
+            </button>
+            <a href="/" className="text-sm underline">Return to home</a>
+          </div>
         </div>
       </div>
     )
