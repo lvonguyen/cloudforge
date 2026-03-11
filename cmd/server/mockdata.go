@@ -42,10 +42,11 @@ type MockData struct {
 // basePath should be the project root (where frontend/ lives).
 func loadMockData(basePath string) (*MockData, error) {
 	mockDir := filepath.Join(basePath, "frontend", "src", "lib", "mock")
+	publicMockDir := filepath.Join(basePath, "frontend", "public", "mock")
 
 	data := &MockData{}
 
-	if err := loadJSON(filepath.Join(mockDir, "findings.json"), &data.Findings); err != nil {
+	if err := loadJSON(filepath.Join(publicMockDir, "findings.json"), &data.Findings); err != nil {
 		return nil, fmt.Errorf("loading findings: %w", err)
 	}
 	if err := loadJSON(filepath.Join(mockDir, "agents.json"), &data.Agents); err != nil {
