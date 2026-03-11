@@ -1,6 +1,10 @@
-# CloudForge Backend — delegates to root Dockerfile
+# CloudForge Backend — deploy/docker variant
 # This file exists for deploy/docker/ convention.
 # The canonical Dockerfile is at the repository root.
+#
+# Diverges from root Dockerfile in:
+#   - Config copied to /app/configs/config.yaml (root uses /app/config.example.yaml)
+#   - User shell: /sbin/nologin (root uses /bin/sh)
 #
 # Usage:
 #   docker build -f deploy/docker/Dockerfile.backend -t cloudforge-api .
