@@ -1,17 +1,26 @@
 import { createContext, useContext, useState, useCallback, type ReactNode, createElement } from 'react'
 
-export type Role = 'admin' | 'operator' | 'requester'
+export type Role = 'admin' | 'operator' | 'requester' | 'viewer'
 
 export interface User {
   name: string
   email: string
   role: Role
+  groups?: string[]
 }
 
 const DEFAULT_USER: User = {
   name: 'Admin One',
   email: 'admin1@contoso.dev',
   role: 'admin',
+  groups: ['cloudforge-admin'],
+}
+
+const ANONYMOUS_USER: User = {
+  name: 'Anonymous',
+  email: '',
+  role: 'viewer',
+  groups: [],
 }
 
 const ROLE_KEY = 'cloudforge_role'
@@ -111,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (token && !isTokenExpired(token)) {
       return userFromToken(token, savedRole)
     }
-    return { ...DEFAULT_USER, role: savedRole ?? DEFAULT_USER.role }
+    return ANONYMOUS_USER
   })
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -200,13 +209,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!data.access_token || typeof data.access_token !== 'string') {
       throw new Error('Invalid token response from IdP')
     }
-    // Verify nonce in id_token to prevent replay attacks
+    // Always verify nonce in id_token to prevent replay attacks.
+    // Absence of id_token or stored nonce is itself an error condition.
     const storedNonce = sessionStorage.getItem(NONCE_KEY)
-    if (data.id_token && storedNonce) {
-      const idPayload = parseJWTPayload(data.id_token)
-      if (!idPayload || idPayload.nonce !== storedNonce) {
-        throw new Error('OIDC nonce mismatch — possible token replay')
-      }
+    if (!storedNonce) {
+      throw new Error('OIDC nonce missing from session — possible replay attack')
+    }
+    if (!data.id_token) {
+      throw new Error('id_token missing from token response — cannot verify nonce')
+    }
+    const idPayload = parseJWTPayload(data.id_token)
+    if (!idPayload || idPayload.nonce !== storedNonce) {
+      throw new Error('OIDC nonce mismatch — possible token replay')
     }
 
     sessionStorage.setItem(TOKEN_KEY, data.access_token)
