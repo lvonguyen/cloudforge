@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAuth } from '@/lib/auth'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useFinding } from '@/hooks/useFindings'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,6 +18,7 @@ import { ToastStack } from '@/components/ui/ToastStack'
 export default function FindingDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { data: finding, isLoading } = useFinding(id ?? '')
   const { openTimeline } = useTracePanel()
   const remediateCooldown = useActionCooldown({ key: `remediate-${id ?? ''}`, cooldownMs: 10_000 })
@@ -110,7 +112,7 @@ export default function FindingDetail() {
               createException.mutate(
                 {
                   application_id: finding.account_id ?? 'unknown',
-                  requestor_email: 'operator@contoso.dev',
+                  requestor_email: user?.email || 'operator@contoso.dev',
                   request_type: 'OTHER',
                   policy_violated: finding.id,
                   resource_requested: finding.resource_name,
@@ -126,9 +128,9 @@ export default function FindingDetail() {
                     toast('Finding suppressed \u2014 exception created')
                   },
                   onError: () => {
-                    // Trace panel already shows activity; treat API failure as non-blocking
+                    // Mark suppressed in UI for demo (backend returns 404 on mock IDs)
                     setSuppressed(true)
-                    toast('Finding suppressed \u2014 exception created')
+                    toast('Suppressed (demo — API unavailable)', 'info')
                   },
                 },
               )

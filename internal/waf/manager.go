@@ -4,6 +4,7 @@ package waf
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 // ErrNotFound is returned when a requested template or resource is not found.
@@ -24,6 +25,6 @@ func NewTemplateManager(provider string) TemplateManager {
 	case "memory", "":
 		return newMockTemplateManager()
 	default:
-		return newMockTemplateManager()
+		panic(fmt.Sprintf("unsupported WAF template manager provider: %q", provider))
 	}
 }

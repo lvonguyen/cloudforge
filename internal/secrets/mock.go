@@ -26,37 +26,40 @@ func newMemoryLifecycle() *memoryLifecycle {
 func (m *memoryLifecycle) seed() {
 	now := time.Now()
 
-	soon := now.Add(15 * 24 * time.Hour)  // expires in 15 days — should appear in CheckExpiry
-	far := now.Add(180 * 24 * time.Hour)  // expires in 6 months
-	past := now.Add(-10 * 24 * time.Hour) // already expired
+	// Each entry gets its own time.Time to avoid pointer aliasing.
+	soonAPI := now.Add(15 * 24 * time.Hour)   // expires in 15 days
+	soonOAuth := now.Add(15 * 24 * time.Hour) // expires in 15 days
+	farDB := now.Add(180 * 24 * time.Hour)    // expires in 6 months
+	farTLS := now.Add(180 * 24 * time.Hour)   // expires in 6 months
+	past := now.Add(-10 * 24 * time.Hour)     // already expired
 
 	entries := []SecretRecord{
 		{
 			Key:       "db-password",
 			Version:   3,
 			CreatedAt: now.Add(-90 * 24 * time.Hour),
-			ExpiresAt: &far,
+			ExpiresAt: &farDB,
 			Metadata:  map[string]string{"owner": "platform-team", "env": "production"},
 		},
 		{
 			Key:       "api-key",
 			Version:   1,
 			CreatedAt: now.Add(-30 * 24 * time.Hour),
-			ExpiresAt: &soon, // expiring soon — surfaced by CheckExpiry
+			ExpiresAt: &soonAPI, // expiring soon — surfaced by CheckExpiry
 			Metadata:  map[string]string{"owner": "integrations-team", "env": "production"},
 		},
 		{
 			Key:       "tls-cert",
 			Version:   2,
 			CreatedAt: now.Add(-60 * 24 * time.Hour),
-			ExpiresAt: &far,
+			ExpiresAt: &farTLS,
 			Metadata:  map[string]string{"owner": "security-team", "env": "production", "type": "certificate"},
 		},
 		{
 			Key:       "oauth-client-secret",
 			Version:   1,
 			CreatedAt: now.Add(-120 * 24 * time.Hour),
-			ExpiresAt: &soon, // expiring soon — surfaced by CheckExpiry
+			ExpiresAt: &soonOAuth, // expiring soon — surfaced by CheckExpiry
 			Metadata:  map[string]string{"owner": "identity-team", "env": "production"},
 		},
 		{

@@ -4,6 +4,7 @@ package secrets
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -34,7 +35,7 @@ type Lifecycle interface {
 	GetSecret(ctx context.Context, key string) (*SecretRecord, error)
 	RotateSecret(ctx context.Context, key string) (*RotationResult, error)
 	ListSecrets(ctx context.Context) ([]SecretRecord, error)
-	// CheckExpiry returns secrets expiring within 30 days.
+	// CheckExpiry returns secrets expiring within 30 days or already expired.
 	CheckExpiry(ctx context.Context) ([]SecretRecord, error)
 }
 
@@ -45,6 +46,6 @@ func NewLifecycle(provider string) Lifecycle {
 	case "memory", "":
 		return newMemoryLifecycle()
 	default:
-		return newMemoryLifecycle()
+		panic(fmt.Sprintf("unsupported secrets lifecycle provider: %q", provider))
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -23,7 +24,7 @@ type RateLimiter struct {
 	config          RateLimitConfig
 	localLimits     sync.Map // Fallback counters for Redis unavailability
 	trustedProxy    []net.IP // Trusted proxy IPs for X-Forwarded-For parsing
-	logFallbackOnce sync.Once
+	redisFailLogged uint32   // atomic flag: 1 = fallback warning already logged for current outage
 }
 
 // localCounter tracks request counts for in-memory fallback rate limiting
@@ -424,9 +425,9 @@ func (rl *RateLimiter) Middleware(getTier func(r *http.Request) string, getClien
 			// Check rate limit
 			result, err := rl.Check(ctx, key)
 			if err != nil {
-				rl.logFallbackOnce.Do(func() {
+				if atomic.CompareAndSwapUint32(&rl.redisFailLogged, 0, 1) {
 					rl.logger.Warn("Redis unavailable, using in-memory rate limiter", zap.Error(err))
-				})
+				}
 
 				// Use local fallback or fail closed based on config
 				if rl.config.FailClosed {
@@ -447,6 +448,9 @@ func (rl *RateLimiter) Middleware(getTier func(r *http.Request) string, getClien
 				next.ServeHTTP(w, r)
 				return
 			}
+
+			// Redis recovered — reset the fallback log flag for the next outage.
+			atomic.StoreUint32(&rl.redisFailLogged, 0)
 
 			// Set rate limit headers
 			if rl.config.IncludeHeaders {

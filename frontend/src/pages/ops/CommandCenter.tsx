@@ -120,9 +120,9 @@ export default function CommandCenter() {
         toast('Exception approved')
       },
       onError: () => {
-        // Optimistically mark approved for demo; backend may return 404 on mock IDs
+        // Mark approved in UI for demo (backend returns 404 on mock IDs)
         setApprovedIds(prev => new Set(prev).add(id))
-        toast('Exception approved')
+        toast('Approved (demo — API unavailable)', 'info')
       },
     })
   }

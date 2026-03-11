@@ -224,7 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     sessionStorage.setItem(TOKEN_KEY, data.access_token)
-    if (data.id_token) sessionStorage.setItem(ID_TOKEN_KEY, data.id_token)
+    sessionStorage.setItem(ID_TOKEN_KEY, data.id_token)
     sessionStorage.removeItem(VERIFIER_KEY)
     sessionStorage.removeItem(STATE_KEY)
     sessionStorage.removeItem(NONCE_KEY)

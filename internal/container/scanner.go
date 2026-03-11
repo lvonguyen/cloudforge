@@ -4,6 +4,7 @@ package container
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 // ErrNotFound is returned when a resource is not found.
@@ -29,6 +30,6 @@ func NewScanner(provider string) Scanner {
 	case "memory", "":
 		return newMockScanner()
 	default:
-		return newMockScanner()
+		panic(fmt.Sprintf("unsupported container scanner provider: %q", provider))
 	}
 }
