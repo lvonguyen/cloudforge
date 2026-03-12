@@ -15,6 +15,13 @@ import (
 	"cloudforge/pkg/remediation"
 )
 
+// guardDutyAPI abstracts the GuardDuty SDK calls for testability.
+type guardDutyAPI interface {
+	CreateDetector(ctx context.Context, params *guardduty.CreateDetectorInput, optFns ...func(*guardduty.Options)) (*guardduty.CreateDetectorOutput, error)
+	ListDetectors(ctx context.Context, params *guardduty.ListDetectorsInput, optFns ...func(*guardduty.Options)) (*guardduty.ListDetectorsOutput, error)
+	GetDetector(ctx context.Context, params *guardduty.GetDetectorInput, optFns ...func(*guardduty.Options)) (*guardduty.GetDetectorOutput, error)
+}
+
 // GuardDutyRemediator enables Amazon GuardDuty threat detection.
 //
 // Finding Type: GuardDuty.1
@@ -22,12 +29,27 @@ import (
 // Impact: Enables threat detection, incurs GuardDuty costs (~$4.60/month per account base)
 // CSPs: AWS
 type GuardDutyRemediator struct {
-	tier int
+	tier          int
+	clientFactory func(ctx context.Context, region string) (guardDutyAPI, error)
 }
 
 // NewGuardDutyRemediator creates a new GuardDuty remediation handler.
 func NewGuardDutyRemediator() *GuardDutyRemediator {
-	return &GuardDutyRemediator{tier: 1}
+	return &GuardDutyRemediator{
+		tier: 1,
+		clientFactory: func(ctx context.Context, region string) (guardDutyAPI, error) {
+			cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+			if err != nil {
+				return nil, err
+			}
+			return guardduty.NewFromConfig(cfg), nil
+		},
+	}
+}
+
+// newGuardDutyRemediatorForTest creates a GuardDutyRemediator with a custom client factory for testing.
+func newGuardDutyRemediatorForTest(factory func(ctx context.Context, region string) (guardDutyAPI, error)) *GuardDutyRemediator {
+	return &GuardDutyRemediator{tier: 1, clientFactory: factory}
 }
 
 // Tier returns the complexity tier (1 = auto-safe).
@@ -46,13 +68,10 @@ func (g *GuardDutyRemediator) Remediate(ctx context.Context, finding *cspmscorin
 		Actions:    []string{},
 	}
 
-	// Load AWS config for the finding's region
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(finding.Finding.Region))
+	client, err := g.clientFactory(ctx, finding.Finding.Region)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
-
-	client := guardduty.NewFromConfig(cfg)
 
 	// Enable GuardDuty
 	output, err := client.CreateDetector(ctx, &guardduty.CreateDetectorInput{
@@ -98,13 +117,10 @@ func (g *GuardDutyRemediator) Validate(ctx context.Context, finding *cspmscoring
 		Evidence:    []string{},
 	}
 
-	// Load AWS config
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(finding.Finding.Region))
+	client, err := g.clientFactory(ctx, finding.Finding.Region)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
-
-	client := guardduty.NewFromConfig(cfg)
 
 	// List detectors
 	listOutput, err := client.ListDetectors(ctx, &guardduty.ListDetectorsInput{})
@@ -158,8 +174,8 @@ func (g *GuardDutyRemediator) DryRun(ctx context.Context, finding *cspmscoring.P
 		EstimatedImpact: "Cost: ~$4.60/month base + $1/GB CloudTrail analysis. No service disruption.",
 	}
 
-	// Load AWS config to verify credentials
-	_, err := config.LoadDefaultConfig(ctx, config.WithRegion(finding.Finding.Region))
+	// Verify credentials via client factory
+	client, err := g.clientFactory(ctx, finding.Finding.Region)
 	if err != nil {
 		dryRun.WouldSucceed = false
 		dryRun.PrerequisitesMet = false
@@ -168,8 +184,6 @@ func (g *GuardDutyRemediator) DryRun(ctx context.Context, finding *cspmscoring.P
 	}
 
 	// Check if already enabled (optional pre-check)
-	cfg, _ := config.LoadDefaultConfig(ctx, config.WithRegion(finding.Finding.Region))
-	client := guardduty.NewFromConfig(cfg)
 	listOutput, err := client.ListDetectors(ctx, &guardduty.ListDetectorsInput{})
 	if err == nil && len(listOutput.DetectorIds) > 0 {
 		dryRun.Warnings = append(dryRun.Warnings, "GuardDuty may already be enabled in this region")

@@ -27,6 +27,7 @@ type VertexProvider struct {
 	projectID  string
 	region     string
 	model      string
+	baseURL    string
 	httpClient *http.Client
 }
 
@@ -62,10 +63,13 @@ func (p *VertexProvider) Complete(ctx context.Context, prompt string) (string, e
 
 // CompleteWithSystem sends a system + user prompt pair to Vertex AI via rawPredict.
 func (p *VertexProvider) CompleteWithSystem(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
-	endpoint := fmt.Sprintf(
-		"https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/anthropic/models/%s:rawPredict",
-		p.region, p.projectID, p.region, p.model,
-	)
+	endpoint := p.baseURL
+	if endpoint == "" {
+		endpoint = fmt.Sprintf(
+			"https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/anthropic/models/%s:rawPredict",
+			p.region, p.projectID, p.region, p.model,
+		)
+	}
 
 	reqBody := anthropicRequest{
 		Model:     p.model,

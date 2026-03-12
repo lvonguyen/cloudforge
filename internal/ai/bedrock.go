@@ -17,9 +17,14 @@ const (
 	BedrockModelOpus = "us.anthropic.claude-opus-4-6-v1"
 )
 
+// bedrockInvoker abstracts the Bedrock InvokeModel call for testability.
+type bedrockInvoker interface {
+	InvokeModel(ctx context.Context, params *bedrockruntime.InvokeModelInput, optFns ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelOutput, error)
+}
+
 // BedrockProvider implements Provider using AWS Bedrock with Claude models.
 type BedrockProvider struct {
-	client  *bedrockruntime.Client
+	client  bedrockInvoker
 	modelID string
 	region  string
 }
@@ -99,4 +104,13 @@ func (p *BedrockProvider) CompleteWithSystem(ctx context.Context, systemPrompt, 
 	}
 
 	return resp.Content[0].Text, nil
+}
+
+// newBedrockProviderForTest creates a BedrockProvider with a custom client for testing.
+func newBedrockProviderForTest(client bedrockInvoker, modelID string) *BedrockProvider {
+	return &BedrockProvider{
+		client:  client,
+		modelID: modelID,
+		region:  "us-east-1",
+	}
 }

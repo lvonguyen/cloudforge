@@ -24,14 +24,16 @@ type Provider interface {
 type AnthropicProvider struct {
 	apiKey     string
 	model      string
+	baseURL    string
 	httpClient *http.Client
 }
 
 // NewAnthropicProvider creates a new Anthropic provider
 func NewAnthropicProvider(apiKey string) *AnthropicProvider {
 	return &AnthropicProvider{
-		apiKey: apiKey,
-		model:  "claude-opus-4-6",
+		apiKey:  apiKey,
+		model:   "claude-opus-4-6",
+		baseURL: "https://api.anthropic.com",
 		httpClient: &http.Client{
 			Timeout: 120 * time.Second,
 		},
@@ -94,7 +96,7 @@ func (p *AnthropicProvider) CompleteWithSystem(ctx context.Context, systemPrompt
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST",
-		"https://api.anthropic.com/v1/messages",
+		p.baseURL+"/v1/messages",
 		bytes.NewReader(body))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
