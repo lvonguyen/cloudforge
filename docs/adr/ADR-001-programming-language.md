@@ -71,6 +71,6 @@ We will use **Go 1.25** as the primary language.
 
 ## Related Decisions
 
-- ADR-002: API Framework Selection
-- ADR-003: Database Selection
+- ADR-002: Database Selection
+- ADR-003: Caching Strategy
 

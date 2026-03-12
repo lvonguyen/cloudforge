@@ -49,12 +49,13 @@ We will implement **OIDC/SAML federation** for human users and **API keys with s
 
 ### Roles
 
-| Role | Description | Findings | Reports | Config | Users |
-|------|-------------|----------|---------|--------|-------|
-| viewer | Read-only access | Read | Read | - | - |
-| requester | Request resources | Read | Read | - | - |
-| operator | SecOps team | Read/Update | Create | Read | - |
-| admin | Tenant admin | Full | Full | Full | Manage |
+| Role | Constant | Description | Findings | Reports | Config | Users |
+|------|----------|-------------|----------|---------|--------|-------|
+| requester | `RoleRequester` | Request resources | Read | Read | - | - |
+| operator | `RoleOperator` | SecOps team | Read/Update | Create | Read | - |
+| admin | `RoleAdmin` | Tenant admin | Full | Full | Full | Manage |
+
+> **Note:** The frontend includes a fourth "viewer" role for read-only UI access, but the Go backend defines only three role constants (`RoleAdmin`, `RoleOperator`, `RoleRequester`). There is no `RoleViewer` in `internal/api/`. This mismatch is documented as a known limitation.|
 
 ### Permissions
 

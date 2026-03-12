@@ -288,7 +288,7 @@ Pluggable providers for enterprise GRC platforms:
 
 - **Contextual risk scoring** — LLM-powered severity re-scoring that considers asset tier, environment (prod/dev/sandbox), internet exposure, blast radius, and compensating controls
 - **Severity normalization** — per-CSP normalization (AWS ASFF normalized scores, Azure severity labels, GCP attack exposure scores) into unified severity taxonomy
-- **Threat intel enrichment** — EPSS scoring (FIRST API, 12h cache) and CISA KEV catalog (auto-refresh) integrated into risk pipeline; GreyNoise schema defined (client planned)
+- **Threat intel enrichment** — EPSS scoring (FIRST API, 12h cache) and CISA KEV catalog (auto-refresh) integrated into risk pipeline; GreyNoise IP classification enrichment (12h cache)
 - **Attack path schema** — `AttackPathContext` with blast radius count, IAM escalation path, chokepoint detection, toxic combination flag (graph computation engine in roadmap)
 - **MITRE ATT&CK mapping** — tactic and technique fields on findings for kill-chain context
 
@@ -421,6 +421,10 @@ workflow:
 | [ADR-006](docs/adr/ADR-006-authentication.md) | Authentication (OIDC) |
 | [ADR-007](docs/adr/ADR-007-grc-integration.md) | GRC Integration Pattern |
 | [ADR-008](docs/adr/ADR-008-attack-path-computation.md) | Attack Path Computation (BFS + ReactFlow) |
+| [ADR-009](docs/adr/ADR-009-remediation-dispatcher.md) | Remediation Dispatcher Architecture |
+| [ADR-010](docs/adr/ADR-010-finops-cost-aggregation.md) | FinOps Multi-Cloud Cost Aggregation |
+| [ADR-011](docs/adr/ADR-011-toxic-combo-detection.md) | Toxic Combination Detection Strategy |
+| [ADR-012](docs/adr/ADR-012-whitelabel-architecture.md) | Whitelabel/Multi-Tenant Architecture |
 
 ### Runbooks
 
@@ -432,6 +436,9 @@ workflow:
 | [04-performance](docs/runbooks/04-performance-troubleshooting.md) | Performance issues |
 | [05-remediation-operations](docs/runbooks/05-remediation-operations.md) | Remediation operations |
 | [06-policy-management](docs/runbooks/06-policy-management.md) | OPA policy management |
+| [07-secrets-rotation](docs/runbooks/07-secrets-rotation.md) | Secrets rotation procedures |
+| [08-finops-budget-alerts](docs/runbooks/08-finops-budget-alerts.md) | FinOps budget alerting |
+| [09-identity-provider-setup](docs/runbooks/09-identity-provider-setup.md) | Okta/Entra ID setup |
 
 ---
 

@@ -14,6 +14,9 @@ This directory contains operational runbooks for CloudForge. Each runbook provid
 | [04-performance-troubleshooting.md](./04-performance-troubleshooting.md) | CPU/memory profiling, DB analysis, optimization | Medium |
 | [05-remediation-operations.md](./05-remediation-operations.md) | Remediation dispatcher, per-handler ops, rollback, emergency stop | High |
 | [06-policy-management.md](./06-policy-management.md) | OPA lifecycle, dual-OPA ops, IaC policy gates, Rego testing | High |
+| [07-secrets-rotation.md](./07-secrets-rotation.md) | JWT keys, DB passwords, API keys, IdP secrets rotation | High |
+| [08-finops-budget-alerts.md](./08-finops-budget-alerts.md) | Budget configuration, alert channels, anomaly investigation, chargeback | Medium |
+| [09-identity-provider-setup.md](./09-identity-provider-setup.md) | Okta/Entra ID OIDC setup, JWT validation, mock provider | High |
 
 ## Runbook Template
 

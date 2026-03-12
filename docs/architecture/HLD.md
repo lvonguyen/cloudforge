@@ -2,9 +2,9 @@
 
 | Property | Value |
 | --- | --- |
-| Version | 2.0 |
+| Version | 3.0 |
 | Author | Liem Vo-Nguyen |
-| Date | January 2026 |
+| Date | March 2026 |
 | Status | Active |
 | LinkedIn | [linkedin.com/in/liemvonguyen](https://linkedin.com/in/liemvonguyen) |
 
@@ -16,6 +16,8 @@
 | [Component Rationale](./component-rationale.md) | Technology selection with cost analysis |
 | [DR/BC Plan](../DR-BC.md) | Disaster Recovery and Business Continuity |
 | [Pitch Deck](../pitch-deck.md) | Executive presentation |
+| [ADRs](../adr/) | Architecture Decision Records (ADR-001 through ADR-012) |
+| [Runbooks](../runbooks/README.md) | Operational procedures (9 runbooks) |
 
 ---
 
@@ -23,11 +25,16 @@
 
 CloudForge is an Enterprise Cloud Governance Platform that provides:
 - Self-service cloud resource provisioning with built-in governance guardrails
+- Cloud Security Posture Management (CSPM) with multi-cloud aggregation
 - Multi-framework compliance mapping (CIS, NIST, ISO, PCI-DSS, HIPAA, etc.)
 - AI-powered risk analysis and toxic combination detection
+- Attack path computation and visualization
+- Automated remediation with rollback capabilities
 - CI/CD security scanning integration (SonarQube, Checkov, Veracode)
 - VCS integration (GitHub, GitLab, Azure DevOps)
 - Identity and Zero Trust policy enforcement (Entra ID, Okta)
+- FinOps cost management with budget alerting
+- AI governance with embedded OPA policy engine
 
 ### 1.1 Business Drivers
 
@@ -37,6 +44,8 @@ CloudForge is an Enterprise Cloud Governance Platform that provides:
 - Provide comprehensive compliance mapping across 20+ frameworks
 - AI-powered contextual risk scoring beyond static severity
 - CI/CD pipeline security with SAST/DAST/IaC scanning
+- Reduce mean time to remediation through automated security fixes
+- Control cloud costs with multi-cloud FinOps aggregation and budget alerting
 
 ---
 
@@ -46,8 +55,8 @@ CloudForge is an Enterprise Cloud Governance Platform that provides:
 %%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia'}}}%%
 flowchart TB
     subgraph Portal["Portal Layer"]
-        UI[Backstage/React UI]
-        API[REST API]
+        UI[React 19 SPA]
+        API[REST API — gorilla/mux]
     end
 
     subgraph Core["Core Platform"]
@@ -55,15 +64,24 @@ flowchart TB
         Orchestration[Temporal Workflows]
         AIAnalyzer[AI Risk Analyzer]
         ComplianceEngine[Compliance Framework Engine]
+        RemediationEngine[Remediation Dispatcher]
+        FinOpsEngine[FinOps Aggregator]
+    end
+
+    subgraph CSPM["CSPM Aggregator"]
+        Normalizer[Multi-CSP Normalizer]
+        AttackPath[Attack Path Engine]
+        ToxicCombo[Toxic Combo Detector]
+        ThreatIntel[Threat Intel — EPSS/KEV/GreyNoise]
     end
 
     subgraph Security["Security Modules"]
         WAF[WAF Golden Templates]
         Container[Container Security]
         Secrets[Secrets Management]
-        APISec[API Security Scanner]
         CICD[CI/CD Security]
         Identity[Identity/Zero Trust]
+        AIGov[AI Governance — Embedded OPA]
     end
 
     subgraph Integrations["External Integrations"]
@@ -88,30 +106,42 @@ flowchart TB
     API --> Orchestration
     API --> AIAnalyzer
     API --> ComplianceEngine
+    API --> RemediationEngine
+    API --> FinOpsEngine
+    API --> CSPM
 
     PolicyEngine --> Security
     ComplianceEngine --> Compliance
     Security --> Integrations
+    CSPM --> Cloud
+    CSPM --> ThreatIntel
 ```
 
 ### 2.1 Component Summary
 
 | Component | Purpose | Technology |
 | --- | --- | --- |
-| Portal Layer | Self-service UI for requests and dashboards | Backstage / React |
+| Portal Layer | Self-service UI for requests and dashboards | React 19 / Vite 7 / Tailwind CSS v4 / shadcn/ui |
+| REST API | HTTP API server with RBAC and rate limiting | Go 1.25 / gorilla/mux |
 | Orchestration Engine | Workflow management for approvals and provisioning | Temporal |
-| Policy Engine | Evaluate requests against governance rules | OPA / Rego |
+| Policy Engine | Evaluate requests against governance rules (dual-OPA) | OPA / Rego (external server + embedded Go library) |
 | AI Risk Analyzer | Contextual risk scoring, toxic combo detection | Claude Opus 4.6 / GPT-4 |
 | Compliance Engine | Multi-framework compliance mapping and assessment | Go |
+| CSPM Aggregator | Multi-cloud finding normalization and enrichment | Go (AWS/Azure/GCP SDK clients) |
+| Attack Path Engine | In-memory BFS graph computation | Go + ReactFlow (frontend) |
+| Toxic Combo Detector | 4-pattern toxic combination detection | Go |
+| Threat Intelligence | EPSS, CISA KEV, GreyNoise enrichment | Go (HTTP clients with caching) |
+| Remediation Dispatcher | Automated security fix execution with rollback | Go (10 handlers, 8 domains, 3 tiers) |
+| FinOps Aggregator | Multi-cloud cost aggregation and budget alerting | Go (AWS/Azure/GCP cost APIs) |
 | WAF Module | Golden templates and compliance scanning | Go |
-| Container Security | Image scanning, runtime security | Go + Trivy |
-| Secrets Management | Multi-cloud secrets with rotation | Go |
-| API Security | OpenAPI analysis, vulnerability detection | Go |
+| Container Security | Image scanning, admission control | Go |
+| Secrets Management | Multi-cloud secrets with rotation lifecycle | Go |
 | CI/CD Security | Pipeline and dependency scanning | Go |
-| Identity Module | Zero Trust policy enforcement, RBAC | Go |
+| Identity Module | Zero Trust policy enforcement, RBAC | Go (Okta/Entra ID) |
+| AI Governance | Embedded OPA for AI agent tool/data-flow control | Go + OPA library |
 | VCS Integration | GitHub/GitLab/Azure DevOps APIs | Go |
 | SAST Integration | SonarQube, Veracode, Checkov | Go |
-| GRC Integration | Archer, ServiceNow ticketing | Go |
+| GRC Integration | Archer, ServiceNow ticketing | Go (provider pattern) |
 
 ---
 
@@ -125,8 +155,9 @@ flowchart TB
 | Cloud | AWS Security Best Practices, GCP CIS v2, Azure MCSB |
 | Healthcare | HIPAA Security Rule, HITRUST CSF v11 |
 | Finance | PCI-DSS 4.0, SOX ITGC, GLBA Safeguards Rule, FFIEC |
-| Government | NIST 800-53 Rev 5, FedRAMP, DISA STIGs |
+| Government | NIST 800-53 Rev 5, FedRAMP, DISA STIGs, CMMC |
 | AI/ML | NIST AI RMF 1.0, ISO 42001:2023 |
+| Automotive | ISO 21434, UN ECE R155, TISAX |
 
 ### 3.2 Finding Schema
 
@@ -144,13 +175,16 @@ Comprehensive finding schema including:
 | Ownership | TechnicalContact, ServiceName, LineOfBusiness, Team |
 | Workflow | Status, FalsePositive, TicketID, DueDate, SLABreachDate |
 | Deduplication | DeduplicationKey, CanonicalRuleID, RelatedRules |
+| Attack Path | AttackPathContext, BlastRadius, ToxicComboFlag, MITRETactic |
 
 ### 3.3 AI-Powered Analysis
 
 - **Contextual Risk Scoring**: Environment, exploitability, blast radius
-- **Toxic Combination Detection**: Identifies high-risk finding combinations
+- **Toxic Combination Detection**: 4 patterns (public storage, IAM+noMFA, internet+CVE, SG+DB)
 - **Misconfiguration Analysis**: Root cause, impact, remediation steps
 - **Vulnerability Analysis**: Exploit likelihood, attack surface, priority
+- **Blast Radius Computation**: Account/VPC/transit reachability analysis
+- **False Positive/Negative Detection**: 3 FP suppression + 3 FN escalation rules
 
 ### 3.4 Deduplication Logic
 
@@ -191,7 +225,19 @@ When a finding is captured by multiple rules:
 | Microsoft Entra ID | User/Group management, Risk scoring, PIM integration |
 | Okta | User/Group management, Role assignment |
 
-### 5.2 Zero Trust Policies
+### 5.2 RBAC Model
+
+Three backend roles enforce API access control:
+
+| Role | Description | Scope |
+| --- | --- | --- |
+| Admin | Tenant administrator | Full access: all endpoints, user management, audit log |
+| Operator | SecOps team | Read/update: findings, remediations, compliance, exceptions |
+| Requester | End user | Read + submit: own exceptions, catalog browsing |
+
+Note: The frontend includes a fourth "viewer" role for read-only access, but the backend does not define a RoleViewer constant. See [ADR-006](../adr/ADR-006-authentication.md) for the full RBAC design.
+
+### 5.3 Zero Trust Policies
 
 - Block high-risk sign-ins
 - Require MFA for sensitive operations
@@ -200,9 +246,88 @@ When a finding is captured by multiple rules:
 
 ---
 
-## 6. Deployment Architecture
+## 6. Remediation Dispatcher
 
-### 6.1 Multi-Cloud Support
+### 6.1 Architecture
+
+The remediation dispatcher provides automated security fix execution with a tiered execution model:
+
+| Tier | Handler Types | Concurrency | Timeout |
+|------|--------------|-------------|---------|
+| T1 (Auto-Safe) | Network ACLs, Storage ACLs | 10 parallel | 30s |
+| T2 (Verify) | Compute config, IAM key rotation | 5 parallel | 120s |
+| T3 (Change Window) | OS patching, key rotation | 2 parallel | 600s |
+
+### 6.2 Handlers (10 across 8 domains)
+
+| Domain | Handler | Cloud Provider |
+|--------|---------|---------------|
+| Network | BlockPublicSSH (SSH/RDP) | AWS |
+| Storage | S3PublicAccessBlock | AWS |
+| Compute | IMDSv2Enforcement | AWS |
+| Identity | IAMKeyRotation | AWS |
+| Security Services | GuardDutyEnablement | AWS |
+| Security Services | AzureDefender (stub) | Azure |
+| Secrets | RotationGuidance (manual) | Multi-cloud |
+| Patching | SSMPatchCompliance (query-only) | AWS |
+
+### 6.3 Rollback
+
+State snapshots are stored in S3/GCS before every remediation. Rollback window: 48 hours.
+
+See [ADR-009](../adr/ADR-009-remediation-dispatcher.md) for the full architecture decision.
+
+---
+
+## 7. Attack Path Analysis
+
+### 7.1 Computation Engine
+
+In-memory BFS graph engine that builds an adjacency graph from loaded findings at startup:
+
+- **Nodes**: Resources extracted from findings (keyed by resource_id)
+- **Edges**: Inferred relationships (same account + compatible resource types)
+- **Traversal**: BFS from entry points (internet-exposed) to targets (data stores)
+- **Max depth**: 4 hops
+
+### 7.2 API
+
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| /api/v1/attack-paths | GET | Paginated attack paths (default 20/page, max 100) |
+| /api/v1/attack-paths/{id} | GET | Single path with full finding details |
+| /api/v1/attack-paths/stats | GET | Coverage stats (findings in paths vs isolated) |
+
+See [ADR-008](../adr/ADR-008-attack-path-computation.md) for the architecture decision.
+
+---
+
+## 8. FinOps Cost Management
+
+### 8.1 Components
+
+| Component | Package | Description |
+|-----------|---------|-------------|
+| Cost Aggregator | `internal/finops/aggregator/` | AWS/Azure/GCP cost API clients |
+| Anomaly Detection | `internal/finops/anomaly/` | ML-based spend anomaly alerting |
+| Chargeback Engine | `internal/finops/chargeback/` | Tag-based cost allocation + CSV export |
+| Budget Monitor | `internal/finops/alerting/` | Slack + PagerDuty budget alerts |
+| Cost Estimation | `internal/finops/estimation.go` | 21-resource lookup table |
+| Reporter | `internal/finops/reporter/` | Showback/chargeback reports |
+
+### 8.2 Budget Alerting
+
+Budget alerts are sent via two channels:
+- **Slack**: Block Kit formatted messages
+- **PagerDuty**: Events API v2 integration
+
+See [ADR-010](../adr/ADR-010-finops-cost-aggregation.md) for the architecture decision.
+
+---
+
+## 9. Deployment Architecture
+
+### 9.1 Multi-Cloud Support
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia'}}}%%
@@ -229,7 +354,18 @@ flowchart LR
     AKS <-->|Cross-Region Sync| GKE
 ```
 
-### 6.2 High Availability
+### 9.2 Terraform Modules
+
+| Module | Path | Providers |
+|--------|------|-----------|
+| Compute | `deploy/terraform/modules/compute/` | Cloud Run, ECS Fargate, Azure Container Apps |
+| Database | `deploy/terraform/modules/database/` | Cloud SQL, RDS, Azure PostgreSQL |
+| Redis | `deploy/terraform/modules/redis/` | Memorystore, ElastiCache, Azure Cache |
+| Network | `deploy/terraform/modules/network/` | AWS VPC, Azure VNet, GCP VPC |
+
+Environments: `dev`, `staging`, `prod` in `deploy/terraform/environments/`.
+
+### 9.3 High Availability
 
 - Active-Active across 2+ regions
 - Database replication with automatic failover
@@ -238,16 +374,17 @@ flowchart LR
 
 ---
 
-## 7. Security Considerations
+## 10. Security Considerations
 
-### 7.1 Authentication & Authorization
+### 10.1 Authentication & Authorization
 
+- JWT authentication (HS256/RS256, JWKS caching)
+- OIDC federation (Okta, Entra ID) with mock fallback for development
+- RBAC middleware (Admin, Operator, Requester roles)
+- API rate limiting (Redis-backed, tier-based: anonymous/free/basic/professional/enterprise)
 - OIDC/WIF for cloud provider access
-- Mutual TLS for service-to-service
-- RBAC with least privilege
-- API keys rotated via secrets management
 
-### 7.2 Data Protection
+### 10.2 Data Protection
 
 - Encryption at rest (AES-256)
 - Encryption in transit (TLS 1.3)
@@ -255,9 +392,9 @@ flowchart LR
 
 ---
 
-## 8. Monitoring & Observability
+## 11. Monitoring & Observability
 
-### 8.1 Telemetry Stack
+### 11.1 Telemetry Stack
 
 | Component | Tool | Purpose |
 | --- | --- | --- |
@@ -266,7 +403,7 @@ flowchart LR
 | Tracing | OpenTelemetry | Distributed tracing across services |
 | Alerting | PagerDuty/Opsgenie | Incident notification |
 
-### 8.2 Key Metrics
+### 11.2 Key Metrics
 
 | Metric | Description | Alert Threshold |
 | --- | --- | --- |
@@ -277,16 +414,16 @@ flowchart LR
 | `cloudforge_health_status` | Component health (1=healthy, 0=unhealthy) | Any 0 |
 | `cloudforge_rate_limit_hits_total` | Rate limit violations | >100/min |
 
-### 8.3 Health Endpoints
+### 11.3 Health Endpoints
 
 | Endpoint | Purpose | Response |
 | --- | --- | --- |
-| `/live` | Kubernetes liveness probe | `{"status": "alive"}` |
-| `/ready` | Kubernetes readiness probe | Full component health status |
 | `/health` | Detailed health check | All components with latency |
+| `/healthz` | Kubernetes liveness probe | `{"status": "alive"}` |
+| `/ready` | Kubernetes readiness probe | Full component health status |
 | `/metrics` | Prometheus metrics | Prometheus format |
 
-### 8.4 Troubleshooting
+### 11.4 Troubleshooting
 
 Built-in troubleshooting capabilities provide remediation suggestions for common issues:
 
@@ -299,19 +436,49 @@ See [Technical Runbooks](../runbooks/README.md) for detailed operational procedu
 
 ---
 
-## 9. API Reference
+## 12. API Reference
 
-### 9.1 Core Endpoints
+### 12.1 Core Endpoints
 
-| Endpoint | Method | Description |
-| --- | --- | --- |
-| /api/v1/findings | GET/POST | List/create findings |
-| /api/v1/findings/{id}/compliance | GET | Get compliance mappings |
-| /api/v1/findings/{id}/risk | GET | Get AI risk assessment |
-| /api/v1/compliance/frameworks | GET | List available frameworks |
-| /api/v1/compliance/frameworks/{id}/controls | GET | List framework controls |
-| /api/v1/cicd/scan | POST | Trigger CI/CD security scan |
-| /api/v1/identity/evaluate | POST | Evaluate Zero Trust policy |
+| Endpoint | Method | RBAC | Description |
+| --- | --- | --- | --- |
+| /api/v1/findings | GET | operator, admin | List findings |
+| /api/v1/findings/{id} | GET | operator, admin | Get finding detail |
+| /api/v1/findings/{id}/enrich | POST | operator, admin | Enrich finding with AI |
+| /api/v1/compliance/frameworks | GET | operator, admin | List available frameworks |
+| /api/v1/attack-paths | GET | operator, admin | List attack paths (paginated) |
+| /api/v1/attack-paths/stats | GET | operator, admin | Attack path coverage stats |
+| /api/v1/attack-paths/{id} | GET | operator, admin | Get attack path detail |
+| /api/v1/remediations | GET | operator, admin | List remediations |
+| /api/v1/remediations/{id} | GET | operator, admin | Get remediation detail |
+| /api/v1/remediations/{id}/execute | POST | admin | Execute remediation |
+| /api/v1/costs/summary | GET | operator, admin | Get cost summary |
+| /api/v1/exceptions | POST | admin | Create exception |
+| /api/v1/exceptions/{id} | GET | operator, admin | Get exception |
+| /api/v1/exceptions/mine | GET | requester+ | Get my exceptions |
+| /api/v1/exceptions/pending | GET | operator, admin | Pending approvals |
+| /api/v1/exceptions/expiring | GET | operator, admin | Expiring exceptions |
+| /api/v1/exceptions/{id}/approve | POST | admin | Submit approval |
+| /api/v1/validate/exception | POST | operator, admin | Validate exception against policy |
+| /api/v1/agents | GET | operator, admin | List AI agents |
+| /api/v1/agents/{id} | GET | operator, admin | Get agent detail |
+| /api/v1/agents/{id}/traces | GET | operator, admin | Get agent traces |
+| /api/v1/audit-log | GET | admin | List audit log |
+| /api/v1/users | GET | admin | List users |
+| /api/v1/catalog/modules | GET | operator, admin | List catalog modules |
+| /api/v1/policies | GET | operator, admin | List policies |
+| /api/v1/workflows | GET | operator, admin | List workflows |
+| /api/v1/workflows/{id} | GET | operator, admin | Get workflow |
+| /api/v1/workflows/{id}/approve | POST | admin | Approve workflow |
+| /api/v1/container/scan | GET | operator, admin | Scan container |
+| /api/v1/container/admission | GET | operator, admin | Check admission |
+| /api/v1/secrets | GET | operator, admin | List secrets |
+| /api/v1/secrets/scan | GET | operator, admin | Scan for secrets |
+| /api/v1/secrets/{path} | GET | operator, admin | Get secret |
+| /api/v1/waf/templates | GET | operator, admin | List WAF templates |
+| /api/v1/waf/compliance/{templateId} | GET | operator, admin | Validate WAF compliance |
+| /api/v1/identity/users | GET | operator, admin | List identity users |
+| /api/v1/identity/users/{id}/risk | GET | operator, admin | Get user risk score |
 
 ---
 
@@ -319,8 +486,9 @@ See [Technical Runbooks](../runbooks/README.md) for detailed operational procedu
 
 | Category | Technology |
 | --- | --- |
-| Language | Go 1.22 |
-| API Framework | Chi / Gin |
+| Language | Go 1.25 |
+| API Framework | gorilla/mux |
+| Frontend | React 19 / Vite 7 / Tailwind CSS v4 / shadcn/ui |
 | Database | PostgreSQL 16 |
 | Cache | Redis |
 | Orchestration | Temporal |
@@ -328,6 +496,9 @@ See [Technical Runbooks](../runbooks/README.md) for detailed operational procedu
 | AI | Anthropic Claude Opus 4.6, OpenAI GPT-4 |
 | IaC | Terraform |
 | Container Runtime | Kubernetes (EKS/AKS/GKE) |
+| Observability | OpenTelemetry, Prometheus, zap |
+| Identity | Okta, Microsoft Entra ID (OIDC) |
+| Deployment | Cloudflare Pages (frontend), Docker (backend) |
 
 ---
 
@@ -340,3 +511,13 @@ See [Technical Runbooks](../runbooks/README.md) for detailed operational procedu
 3. **Alternative**: Use PlantUML with LucidChart import extension
 
 Architecture diagrams in this document use Mermaid for GitHub rendering and can be recreated in LucidChart for presentation purposes.
+
+---
+
+## Document History
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
+| 3.0 | March 2026 | L. Vo-Nguyen | Updated tech stack (Go 1.25, gorilla/mux, React 19), added remediation/attack path/FinOps/CSPM sections, full API reference from routes.go, corrected RBAC model, added ADR cross-references |
+| 2.0 | January 2026 | L. Vo-Nguyen | Architecture overview, compliance engine, CI/CD, identity, deployment |
+| 1.0 | January 2026 | L. Vo-Nguyen | Initial HLD |

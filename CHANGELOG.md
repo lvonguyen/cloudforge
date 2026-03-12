@@ -10,8 +10,100 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Documentation review: HLD v3.0, 4 new ADRs (009-012), 3 new runbooks (07-09), cross-cutting fixes
 - Frontend planning doc — 18-screen React/Vite UI across Admin, Operator, and Requester role views with phased build plan and TypeScript type alignment (`docs/frontend-planning.md`)
 - IaC planning doc — Terraform module catalog, Rego policy expansion, two-track OPA architecture, Cloud Run + CF Pages deployment design (`docs/iac-planning.md`)
+
+---
+
+## [0.9.0] — 2026-03-12
+
+### Added
+
+- Landing page rebranded: "Portfolio" to "Platform", focused on 2 core modules (CloudForge + CSPM Aggregator)
+- Catalog CSP filter: horizontal buttons replaced with shadcn Select dropdown
+- Benchmark tests: 5 tests for server startup, finding retrieval, and attack path computation
+- Whitelabel design document (`docs/whitelabel-exploration.md`) — 4-phase strategy
+- Environment-variable-driven branding parameterization (`frontend/src/lib/branding.ts`)
+
+### Fixed
+
+- Attack path pagination: default 20/page, max 100/page (prevents browser timeout)
+- Factory functions: removed 4 panics (NewEngine, NewScanner, NewLifecycle, NewTemplateManager) — now return (T, error)
+- Audit log React key: Fragment key pattern for .map() with sibling rows
+- QA findings from quality-review and bug-discovery agents
+
+### Changed
+
+- README roadmap audit: 41/41 items checked (100% complete)
+
+---
+
+## [0.8.0] — 2026-03-12
+
+### Added
+
+- Okta/Entra ID auth wired: config-driven provider selection (OKTA_DOMAIN / ENTRA_TENANT_ID env vars, mock fallback)
+- Server.identityProviders map for runtime provider lookup
+- Handler-level unit tests: 31 coverage tests across all endpoints
+- Integration test suite: 12-step server lifecycle + 34-subtest RBAC authorization matrix (`go test -tags=integration`)
+- GreyNoise integration: HTTP client with 12h cache, IP classification enrichment (`internal/cspm/threatintel/greynoise.go`)
+
+### Fixed
+
+- TestGetCostSummary nil pointer: added finopsSvc to testServer and benchServer
+- All golangci-lint CI failures resolved
+
+---
+
+## [0.7.0] — 2026-03-04
+
+### Added
+
+- Self-service portal: React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui — 21 route pages across Admin, Operator, and Requester role views
+- Dark mode with CSS variable overrides and anti-flash script
+- Cloudflare Pages deployment (cloudforge-demo.lvonguyen.com)
+- Terraform networking module (`deploy/terraform/modules/network/`) — AWS VPC, Azure VNet, GCP VPC
+- Staging and production Terraform environments
+- Temporal workflow testing: 23 tests (concurrent + lifecycle + error cases)
+- Attack path computation engine: in-memory BFS graph + ReactFlow DAG visualization (ADR-008)
+- EPSS scoring integration (FIRST API, batch fetching, 12h cache)
+- CISA KEV catalog integration (auto-refresh, known exploit lookup)
+- Toxic combination detection: 4 patterns in `internal/cspm/scoring/toxic_combos.go`
+- Blast radius computation: account/VPC/transit reachability in `blast_radius.go`
+- False-severity detection: 3 FP suppression + 3 FN escalation rules
+- Cost estimation: 21-resource lookup table in `internal/finops/estimation.go`
+- Budget alerting: Slack Block Kit + PagerDuty Events API v2 + BudgetMonitor
+- Multi-cloud Terraform modules: compute, database, redis
+- Rego policy gate: 5 policies, 25 rules (security, cost, naming, network, AI)
+- Container Dockerfiles: frontend (nginx) + backend (Go)
+
+### Changed
+
+- Architecture documentation reorganized: archived v1 HLD and impl plan, added diagram references
+
+---
+
+## [0.6.0] — 2026-03-04
+
+### Added
+
+- JWT authentication middleware: HS256/RS256 validation, JWKS caching
+- RBAC authorization middleware: role-based endpoint access (admin, operator, requester)
+- 12 frontend test files: 6 hook tests + 6 component tests
+- v8 coverage thresholds: lines 70%, functions 75%, branches 65%
+- GetExceptionsByRequestor: GRC provider interface + all implementations
+- GET /exceptions/mine endpoint (RBAC: requester+)
+- useExecuteRemediation mutation hook
+- useMyExceptions query hook
+- Execute/Retry button wiring in RemediationQueue and RemediationDetail
+
+### Fixed
+
+- useCostAnomalies queryKey cache sharing with useCostSummary
+- ADR-006: roles claim corrected to groups
+- ADR-007: header corrected from ADR-003 to ADR-007
+- MyRequests.tsx migrated to use useMyExceptions API hook
 
 ---
 

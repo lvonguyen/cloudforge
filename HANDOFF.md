@@ -1,97 +1,88 @@
-# Handoff: CloudForge Sprint 2 Complete
+# Handoff: CloudForge Sprint 4 Complete + Documentation Review
 
 ## Current State (2026-03-12)
 
-[+] Project: 85% complete, QA score 4.0/5 (target: 4.5)
-[+] Sprint 2 deliverables committed: 01967fb (tests) + 999f224 (hooks/API)
-[!] Open P0: Secrets leak (.env.development with admin JWT committed to git)
-[*] Next: Sprint 3 hook migration (5 remaining hooks) + Chrome QA iteration 2
+[+] Project: 85% complete (reference implementation, not production software)
+[+] Sprint 4 complete: 9 commits (rebrand, catalog UX, benchmarks, whitelabel, branding)
+[+] QA scores: quality-review 4.55/5, bug-discovery 3.8/5, security-audit 4.1/5
+[+] Testing: 30 Go packages (595 tests), 33 frontend files (297 tests), 5 benchmarks
+[+] Chrome QA: 16/16 routes passing
+[+] Documentation review complete: HLD v3.0, 4 new ADRs, 3 new runbooks
 
-## Sprint 2 Summary
+## Sprint 4 Summary
 
-### Workstream B — Tests (01967fb)
-- 12 new test files: 6 hook tests (useAuditLog, useCosts, useCatalog, useUsers, useExceptions, useAttackPaths) + 6 component tests (DryRunPreview, CostSummaryCard, AnomalyAlertCard, ExceptionCard, FindingCard, ProtectedRoute)
-- Added renderWithAuth helper to test/utils.tsx
-- Added v8 coverage thresholds to vitest.config.ts (lines: 70, functions: 75, branches: 65)
-- Fixed ADR-006: roles → groups claim, removed analyst role
-- Fixed ADR-007: header ADR-003 → ADR-007
-- Total: 33 test files, 298 tests passing
+### Commits (9 total)
+- `b728b33` fix(frontend): rebrand "Portfolio" to "Platform" and focus landing on 2 core modules
+- `56a571b` fix(frontend): improve catalog icon readability and add CSP provider dropdown
+- `2563431` docs: fix architecture diagram sizing and remove redundant mermaid block
+- `0278305` test: add benchmark tests for server performance baseline
+- `c377c5b` docs: update README roadmap status and known limitations
+- `5de8ff0` docs: add whitelabel exploration design document
+- `994acd3` feat(frontend): add env-var-driven branding parameterization
+- `4a2ae00` fix(frontend): update attack paths test for pagination query params
+- `29d9eb9` fix: address QA findings from quality-review and bug-discovery agents
 
-### Workstream C — API + Hooks (999f224)
-- Added GetExceptionsByRequestor to GRC provider interface + all implementations
-- Added GET /exceptions/mine endpoint (RBAC: requester+)
-- Fixed useCostAnomalies queryKey to share cache with useCostSummary
-- Added useExecuteRemediation mutation hook
-- Added useMyExceptions query hook
-- Wired Execute/Retry buttons in RemediationQueue and RemediationDetail
-- Migrated MyRequests.tsx to use useMyExceptions API hook
+### Documentation Review Findings
+- HLD updated to v3.0: Go 1.25 (was 1.22), gorilla/mux (was Chi/Gin), React 19 (was Backstage), full API reference from routes.go, new sections for Remediation/AttackPath/FinOps
+- ADR-001 cross-references fixed (ADR-002 is Database, not API Framework)
+- ADR-006 RBAC table corrected (3 backend roles, not 4)
+- 4 new ADRs: ADR-009 (Remediation), ADR-010 (FinOps), ADR-011 (Toxic Combos), ADR-012 (Whitelabel)
+- 3 new runbooks: 07 (Secrets Rotation), 08 (FinOps Budget Alerts), 09 (Identity Provider Setup)
+- CHANGELOG updated with Sprint 3-4 entries (was missing v0.6.0-v0.9.0)
+- README GreyNoise status inconsistency fixed
 
-### Workstream E — Chrome QA (in progress, ~54% coverage)
-- CRITICAL (pre-existing): Some lazy-loaded pages throw context errors (useAuth, useTracePanel) in Playwright — likely React 19 + lazy() edge case
-- HIGH: Mobile horizontal overflow at 375px on /ops CommandCenter
-- MEDIUM: Role switcher dropdown doesn't open on click
-- PASS: /admin dashboard, /admin/ai-agents list, /ops CommandCenter (desktop), /ops/findings (desktop), /portal/catalog, /portal/requests
+## What's Working
 
-## What's Already Done
-- `make dev` starts backend (:8080) + frontend (:5173) — single command
-- Redis rate limiter fixed (nil-check, no Redis needed locally)
-- All list pages (Users, Policies, AI Agents, Findings) load correctly
-- Dev auth working: `.env.development` has `VITE_DEV_TOKEN` (sourced from 1Password `cloudforge-dev-jwt-secret` vault item)
-- Known test failure: TestGetCostSummary nil pointer in handlers_finops.go:47 (pre-existing, not Sprint 2 regression)
+| Component | Status | Details |
+|-----------|--------|---------|
+| Go backend | Healthy | `go build ./...` clean, `go vet ./...` clean, 595 tests passing |
+| Frontend | Healthy | `tsc` clean, 297 tests passing, Cloudflare Pages deployed |
+| Benchmarks | Passing | 5/5 (GetFinding ~125us, ListAttackPaths ~181us, ServerStartup ~2.2s) |
+| CI | Green | golangci-lint clean, all GitHub Actions passing |
+| Dev mode | Working | `make dev` starts backend (:8080) + frontend (:5173) |
 
-## Known Issues
+## Known Limitations
 
-### P0 — SEC-001: Secrets Leak
-- `.env.development` with admin JWT committed to git
-- Action: `git rm --cached frontend/.env.development`, rotate secret, add to .gitignore
+1. [LOW] React 19 lazy() context errors under Playwright (pre-existing, not prod)
+2. [P2] CSP style-src still allows 'unsafe-inline' (Tailwind/Radix requirement)
+3. [KNOWN] Frontend has 4 roles (incl viewer); backend has 3 (no RoleViewer constant)
+4. [KNOWN] FinOps cloud API clients are interface-only (not wired to production credentials)
+5. [KNOWN] Container, secrets, waf, identity modules have interfaces + mock implementations only
 
-### Pre-existing Backend Issues
-- `TestGetCostSummary` nil pointer at handlers_finops.go:47 — not Sprint 2 regression
-- Frontend has 4 roles (admin, operator, requester, viewer); backend has 3 (no RoleViewer constant)
+## Key Paths
 
-### Chrome QA Edge Cases (React 19 + Playwright)
-- Lazy-loaded pages throw context errors (useAuth, useTracePanel) in Playwright
-- Likely React 19 context propagation with lazy() — not production issue
-- Workaround: test eager-loaded routes first
-
-## Next Steps (Sprint 3)
-
-### Hook Migration (5 remaining hooks)
-Migrate to real API calls (mock JSON → apiClient):
-- useFindings.ts
-- useCompliance.ts
-- useAgents.ts
-- useCosts.ts
-- useRemediations.ts
-
-Keep as-is (already correct):
-- useExceptions.ts (already uses apiClient)
-- useMyExceptions.ts (already uses apiClient)
-- useDeployPreview.ts (client-side simulation, no backend)
-
-### Chrome QA Iteration 2
-- Complete remaining route coverage (~46% routes untested)
-- Fix mobile overflow on /ops CommandCenter
-- Fix role switcher dropdown click handler
-- Document React 19 lazy() edge case for future reference
-
-### QA Threshold Target
-- Current: 4.0/5
-- Target: 4.5/5
-- Max iterations: 3
-- Run quality-review + bug-discovery + security-audit agents after Sprint 3 commits
-
-## Key Files
-- `frontend/src/lib/mock/findings.json` — current synthetic findings
-- `cmd/server/main.go` — `loadMockData()`, `computeAttackPaths()`
-- `frontend/src/hooks/useFindings.ts` — frontend findings hook
-- `frontend/src/pages/ops/Findings.tsx` — findings list page
-- `frontend/src/pages/ops/FindingDetail.tsx` — finding detail page
-- `testdata/export-scripts/` — HAEA export + scrub scripts (from P37)
+| Purpose | Path |
+|---------|------|
+| Server entry | `cmd/server/main.go` (314L) + routes.go, handlers_grc.go, middleware.go, helpers.go |
+| Attack paths | `cmd/server/attackpath.go` + `handlers_attackpath.go` |
+| CSPM scoring | `internal/cspm/scoring/` (toxic_combos, blast_radius, fp_rules, fn_rules) |
+| Threat intel | `internal/cspm/threatintel/` (epss, kev, greynoise) |
+| Remediation | `pkg/remediation/` (executor) + `internal/remediation/` (8 domain handlers) |
+| FinOps | `internal/finops/` (aggregator, alerting, anomaly, chargeback, estimation) |
+| Identity | `internal/identity/` (provider, okta, entra_id, mock, zero_trust) |
+| Frontend | `frontend/src/` (21 route pages, shadcn components, hooks, lib) |
+| Docs | `docs/architecture/HLD.md`, `docs/adr/`, `docs/runbooks/` |
 
 ## Dev Server
+
 ```bash
-cd ~/repos/remote/gh/portfolio/tier1-flagship/cloudforge
+cd ~/repos/gh/cloudforge
 make dev
 # Backend: :8080, Frontend: :5173
+```
+
+## Running Tests
+
+```bash
+# Go tests
+go test ./... -count=1
+
+# Integration tests
+go test ./cmd/server/ -tags=integration -count=1
+
+# Benchmarks
+go test ./cmd/server/ -bench=. -benchmem
+
+# Frontend tests
+cd frontend && npm test
 ```
