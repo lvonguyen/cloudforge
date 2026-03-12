@@ -159,56 +159,7 @@ CloudForge bridges these needs with a unified platform that provides:
 
 ## [/] Architecture
 
-![CloudForge Architecture](docs/diagrams/architecture.svg)
-
-```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia'}}}%%
-flowchart LR
-    subgraph Portal["[Portal] React 19/Vite 7"]
-        style Portal fill:#3b82f6,stroke:#1e3a8a,color:#fff
-        A1["App Registration"]
-        A2["Infra Catalog"]
-        A3["Exception Request"]
-        A4["Dashboard"]
-    end
-
-    subgraph Orch["[Orchestration] Temporal"]
-        style Orch fill:#f59e0b,stroke:#b45309,color:#fff
-        B1["Registration"]
-        B2["Approval"]
-        B3["Provisioning"]
-        B4["Compliance Scan"]
-    end
-
-    subgraph AI["[AI Governance] Embedded OPA"]
-        style AI fill:#7c3aed,stroke:#4c1d95,color:#fff
-        E1["Agent Registry"]
-        E2["OPA Engine"]
-        E3["STRIDE+ATLAS"]
-        E4["Maturity"]
-    end
-
-    subgraph Policy["[Policy] OPA/Rego"]
-        style Policy fill:#1e40af,stroke:#1e3a8a,color:#fff
-        C1["Region"]
-        C2["Cost"]
-        C3["Network"]
-        C4["Exception"]
-    end
-
-    subgraph Integrate["[Integration] External"]
-        style Integrate fill:#22c55e,stroke:#166534,color:#fff
-        D1["ServiceNow"]
-        D2["Archer"]
-        D3["Terraform"]
-        D4["Cloud APIs"]
-    end
-
-    Portal --> Orch
-    Orch --> Policy
-    AI -.->|governs| Policy
-    Policy --> Integrate
-```
+<img src="docs/diagrams/architecture.svg" alt="CloudForge Architecture" width="720">
 
 ---
 
@@ -331,7 +282,7 @@ Pluggable providers for enterprise GRC platforms:
 - **Deploy scripts** — dry-run-by-default deployment with policy violation gate and human-readable remediation guidance
 - **Container images** — multi-stage Dockerfiles for frontend (nginx + SPA routing) and backend (Go + healthcheck)
 
-![Dual-OPA Architecture](docs/diagrams/dual-opa-architecture.svg)
+<img src="docs/diagrams/dual-opa-architecture.svg" alt="Dual-OPA Architecture" width="720">
 
 ### Risk Intelligence
 
