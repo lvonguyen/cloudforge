@@ -62,6 +62,20 @@ func NewArcherGRCProvider(config ArcherConfig) (*ArcherGRCProvider, error) {
 	}, nil
 }
 
+// newArcherProviderForTest creates an Archer provider for testing,
+// bypassing env-var loading. Unexported — test-only.
+func newArcherProviderForTest() *ArcherGRCProvider {
+	return &ArcherGRCProvider{
+		config: ArcherConfig{
+			BaseURL:      "https://archer.test",
+			InstanceName: "test",
+			Username:     "test",
+		},
+		httpClient: &http.Client{},
+		password:   "test",
+	}
+}
+
 // CreateException creates a new exception request in Archer.
 func (a *ArcherGRCProvider) CreateException(
 	ctx context.Context,

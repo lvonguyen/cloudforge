@@ -110,6 +110,23 @@ func NewServiceNowGRCProvider(config ServiceNowConfig) (*ServiceNowGRCProvider, 
 	}, nil
 }
 
+// newServiceNowProviderForTest creates a ServiceNow provider for testing,
+// bypassing env-var loading. Unexported — test-only.
+func newServiceNowProviderForTest(instanceURL string, httpClient *http.Client) *ServiceNowGRCProvider {
+	return &ServiceNowGRCProvider{
+		config: ServiceNowConfig{
+			InstanceURL:    instanceURL,
+			Username:       "test-user",
+			ClientID:       "test-client-id",
+			ExceptionTable: "sn_grc_policy_exception",
+			ApprovalTable:  "sysapproval_approver",
+		},
+		httpClient:   httpClient,
+		password:     "test-password",
+		clientSecret: "test-secret",
+	}
+}
+
 // ServiceNow API response wrapper
 type snowResponse struct {
 	Result json.RawMessage `json:"result"`

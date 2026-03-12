@@ -15,6 +15,13 @@ import (
 	"cloudforge/pkg/remediation"
 )
 
+// iamAPI is the subset of IAM operations needed by this remediator.
+// Unexported — implementation detail for testability.
+type iamAPI interface {
+	ListAccessKeys(ctx context.Context, params *iam.ListAccessKeysInput, optFns ...func(*iam.Options)) (*iam.ListAccessKeysOutput, error)
+	UpdateAccessKey(ctx context.Context, params *iam.UpdateAccessKeyInput, optFns ...func(*iam.Options)) (*iam.UpdateAccessKeyOutput, error)
+}
+
 // RotateIAMKeysRemediator deactivates IAM access keys older than 90 days.
 //
 // Finding Type: IAM_OLD_ACCESS_KEY
@@ -22,13 +29,30 @@ import (
 // Impact: Deactivates stale access keys; applications using them will fail
 // CSPs: AWS
 type RotateIAMKeysRemediator struct {
-	tier       int
-	maxAgeDays int
+	tier          int
+	maxAgeDays    int
+	clientFactory func(ctx context.Context, region string) (iamAPI, error)
 }
 
 // NewRotateIAMKeysRemediator creates a new handler for IAM key rotation.
 func NewRotateIAMKeysRemediator() *RotateIAMKeysRemediator {
-	return &RotateIAMKeysRemediator{tier: 2, maxAgeDays: 90}
+	return &RotateIAMKeysRemediator{
+		tier:       2,
+		maxAgeDays: 90,
+		clientFactory: func(ctx context.Context, region string) (iamAPI, error) {
+			cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+			if err != nil {
+				return nil, err
+			}
+			return iam.NewFromConfig(cfg), nil
+		},
+	}
+}
+
+// newRotateIAMKeysRemediatorForTest creates a remediator with an injected
+// IAM client factory. Unexported — test-only.
+func newRotateIAMKeysRemediatorForTest(factory func(ctx context.Context, region string) (iamAPI, error)) *RotateIAMKeysRemediator {
+	return &RotateIAMKeysRemediator{tier: 2, maxAgeDays: 90, clientFactory: factory}
 }
 
 // Tier returns the complexity tier (2 = requires verification before PROD).
@@ -47,12 +71,10 @@ func (r *RotateIAMKeysRemediator) Remediate(ctx context.Context, finding *cspmsc
 		Actions:    []string{},
 	}
 
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(finding.Finding.Region))
+	client, err := r.clientFactory(ctx, finding.Finding.Region)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+		return nil, fmt.Errorf("failed to create IAM client: %w", err)
 	}
-
-	client := iam.NewFromConfig(cfg)
 
 	// Extract IAM user name from resource ID
 	userName := finding.Finding.ResourceID
@@ -119,12 +141,11 @@ func (r *RotateIAMKeysRemediator) Validate(ctx context.Context, finding *cspmsco
 		Evidence:    []string{},
 	}
 
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(finding.Finding.Region))
+	client, err := r.clientFactory(ctx, finding.Finding.Region)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+		return nil, fmt.Errorf("failed to create IAM client: %w", err)
 	}
 
-	client := iam.NewFromConfig(cfg)
 	userName := finding.Finding.ResourceID
 
 	listOutput, err := client.ListAccessKeys(ctx, &iam.ListAccessKeysInput{
