@@ -1,4 +1,4 @@
-# ADR-003: GRC Integration Pattern
+# ADR-007: GRC Integration Pattern
 
 ## Status
 Accepted

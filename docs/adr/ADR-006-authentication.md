@@ -52,10 +52,9 @@ We will implement **OIDC/SAML federation** for human users and **API keys with s
 | Role | Description | Findings | Reports | Config | Users |
 |------|-------------|----------|---------|--------|-------|
 | viewer | Read-only access | Read | Read | - | - |
-| analyst | Security analyst | Read/Update | Create | - | - |
+| requester | Request resources | Read | Read | - | - |
 | operator | SecOps team | Read/Update | Create | Read | - |
 | admin | Tenant admin | Full | Full | Full | Manage |
-| super_admin | Platform admin | Full | Full | Full | Full |
 
 ### Permissions
 
@@ -100,7 +99,7 @@ Beyond roles, support ABAC for:
   "aud": "cloudforge-api",
   "exp": 1704456789,
   "iat": 1704453189,
-  "roles": ["analyst"],
+  "groups": ["cloudforge-operator"],
   "tenant_id": "tenant456",
   "permissions": ["findings:read", "findings:write"],
   "lob": ["engineering", "security"],
