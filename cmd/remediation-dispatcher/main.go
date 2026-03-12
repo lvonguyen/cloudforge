@@ -51,7 +51,11 @@ type RemediationState struct {
 func main() {
 	flag.Parse()
 
-	logger, _ := zap.NewProduction()
+	logger, err := zap.NewProduction()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
+		os.Exit(1)
+	}
 	defer logger.Sync()
 
 	ctx := context.Background()

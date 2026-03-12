@@ -4,6 +4,8 @@ import (
 	"compress/gzip"
 	"net/http"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 // gzipMiddleware compresses responses for clients that accept gzip encoding.
@@ -18,8 +20,10 @@ func (s *Server) gzipMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Vary", "Accept-Encoding")
 		w.Header().Del("Content-Length")
 		gz := gzip.NewWriter(w)
-		defer gz.Close()
 		next.ServeHTTP(&gzipResponseWriter{ResponseWriter: w, gw: gz}, r)
+		if err := gz.Close(); err != nil {
+			s.logger.Warn("gzip close failed", zap.Error(err))
+		}
 	})
 }
 
