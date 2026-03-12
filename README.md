@@ -495,16 +495,16 @@ Built-in support for 20+ frameworks:
 - [x] Remediation dispatcher with 10 handlers across 8 domains
 - [x] Tiered execution model (auto-safe / verify / change window)
 - [x] 48-hour rollback state engine
-- [x] Unit tests — 26 packages, 415 functions (cspm, grc, remediation, ai, compliance, server benchmarks)
+- [x] Unit tests — 26 packages, 449 functions (cspm, grc, remediation, ai, compliance, finops, server benchmarks)
 - [x] AI governance module — embedded OPA engine, agent registry, STRIDE/ATLAS threat models
 - [x] Security audit fixes (SEC-001 through SEC-012)
 - [x] Architecture hardening — BOLA fix, N+1 queries, CI pinning
 - [x] JWT authentication middleware (HS256/RS256, JWKS caching)
-- [ ] Wire Okta/Entra ID providers into auth flow
+- [ ] Wire Okta/Entra ID providers into auth flow (implementations exist, mock-only wiring)
 - [x] RBAC authorization middleware (role-based endpoint access)
-- [ ] Handler-level unit tests (target: 80% coverage)
+- [ ] Handler-level unit tests (target: 80% coverage — 6 test files, partial)
 - [ ] Integration test suite
-- [ ] Merge cspm-aggregator into monorepo
+- [x] Merge cspm-aggregator into monorepo (cmd/cspm-aggregator)
 
 ### Phase 3: IaC, Portal & Workflows
 
@@ -529,10 +529,10 @@ Built-in support for 20+ frameworks:
 
 ### Phase 5: FinOps & Reporting
 
-- [ ] Cloud cost API integration (AWS/Azure/GCP)
+- [ ] Cloud cost API integration (AWS/Azure/GCP) — interfaces defined, MemoryAggregator only
 - [ ] Cost estimation integration
-- [ ] Chargeback report generation
-- [ ] Compliance reporting dashboard
+- [x] Chargeback report generation (GenerateReport + CSV export in finops/chargeback)
+- [x] Compliance reporting dashboard (React frontend at /ops/compliance)
 - [ ] Budget alerting (Slack/PagerDuty)
 
 ---
