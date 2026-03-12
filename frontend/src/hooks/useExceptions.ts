@@ -26,3 +26,10 @@ export function useApproveException() {
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ['exceptions'] }) },
   })
 }
+
+export function useMyExceptions() {
+  return useQuery({
+    queryKey: ['exceptions', 'mine'],
+    queryFn: () => apiClient.get<ExceptionRequest[]>('/exceptions/mine'),
+  })
+}

@@ -136,3 +136,9 @@ func (a *ArcherGRCProvider) GetExpiringExceptions(ctx context.Context, withinDay
 	// POST /api/core/search with date range filter on expiration field
 	return nil, fmt.Errorf("archer GetExpiringExceptions not implemented")
 }
+
+// GetExceptionsByRequestor returns all exceptions created by the given user.
+func (a *ArcherGRCProvider) GetExceptionsByRequestor(ctx context.Context, email string) ([]ExceptionRequest, error) {
+	// POST /api/core/search with requestor email filter
+	return nil, fmt.Errorf("archer GetExceptionsByRequestor not implemented")
+}

@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator'
 import { RemediationTierBadge } from '@/components/remediation/RemediationTierBadge'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { CheckCircle2, Play, Eye, RotateCcw } from 'lucide-react'
-import { useRemediations } from '@/hooks/useRemediations'
+import { useRemediations, useExecuteRemediation } from '@/hooks/useRemediations'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
 import type { RemediationRecord } from '@/types/remediation'
@@ -47,6 +47,7 @@ function toQueueItem(r: RemediationRecord): QueueItem {
 function QueueItemCard({ item }: { item: QueueItem }) {
   const navigate = useNavigate()
   const { openStreaming, openDryRun } = useTracePanel()
+  const executeMutation = useExecuteRemediation()
   const executeCooldown = useActionCooldown({ key: `execute-${item.id}`, cooldownMs: 30_000 })
   const dryRunCooldown = useActionCooldown({ key: `dryrun-${item.id}`, cooldownMs: 15_000 })
   const retryCooldown = useActionCooldown({ key: `retry-${item.id}`, cooldownMs: 30_000 })
@@ -56,6 +57,7 @@ function QueueItemCard({ item }: { item: QueueItem }) {
     if (!executeCooldown.canFire) return
     openStreaming('Executing: ' + item.handler)
     executeCooldown.fire()
+    executeMutation.mutate(item.id)
   }
 
   function handleDryRun() {
@@ -70,6 +72,13 @@ function QueueItemCard({ item }: { item: QueueItem }) {
     })
     dryRunCooldown.fire()
     setDryRunPassed(true)
+  }
+
+  function handleRetry() {
+    if (!retryCooldown.canFire) return
+    openStreaming('Retrying: ' + item.handler)
+    retryCooldown.fire()
+    executeMutation.mutate(item.id)
   }
 
   return (
@@ -125,11 +134,7 @@ function QueueItemCard({ item }: { item: QueueItem }) {
                 variant="outline"
                 className="text-xs h-7 gap-1"
                 disabled={!retryCooldown.canFire}
-                onClick={() => {
-                  if (!retryCooldown.canFire) return
-                  openStreaming('Retrying: ' + item.handler)
-                  retryCooldown.fire()
-                }}
+                onClick={handleRetry}
               >
                 <RotateCcw className="h-3 w-3" />{!retryCooldown.canFire ? 'Retrying\u2026' : 'Retry'}
               </Button>

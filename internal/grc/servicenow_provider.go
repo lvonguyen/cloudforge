@@ -650,3 +650,58 @@ func (s *ServiceNowGRCProvider) GetExpiringExceptions(ctx context.Context, withi
 
 	return results, nil
 }
+
+// GetExceptionsByRequestor returns all exceptions created by the given user.
+func (s *ServiceNowGRCProvider) GetExceptionsByRequestor(ctx context.Context, email string) ([]ExceptionRequest, error) {
+	if err := validateSNOWInput("email", email); err != nil {
+		return nil, fmt.Errorf("querying exceptions by requestor: %w", err)
+	}
+
+	if err := s.authenticate(ctx); err != nil {
+		return nil, err
+	}
+
+	// URL-encode user input to prevent query injection attacks
+	query := fmt.Sprintf("requested_for=%s", url.QueryEscape(email))
+	reqURL := fmt.Sprintf(
+		"%s/api/now/table/%s?sysparm_query=%s&sysparm_limit=200",
+		s.config.InstanceURL,
+		s.config.ExceptionTable,
+		query,
+	)
+
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq.Header.Set("Authorization", "Bearer "+s.getAuthToken())
+	httpReq.Header.Set("Accept", "application/json")
+
+	resp, err := s.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var snowResp struct {
+		Result []snowExceptionRecord `json:"result"`
+	}
+
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&snowResp); err != nil {
+		return nil, err
+	}
+
+	var results []ExceptionRequest
+	for _, record := range snowResp.Result {
+		results = append(results, ExceptionRequest{
+			ID:             record.SysID,
+			PolicyViolated: record.PolicyReference,
+			BusinessCase:   record.BusinessCase,
+			RequestorEmail: record.RequestedFor,
+			Status:         StatusPending,
+		})
+	}
+
+	return results, nil
+}

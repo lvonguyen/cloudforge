@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient, ApiError } from '@/lib/api'
 import type { RemediationRecord } from '@/types/remediation'
 
@@ -36,5 +36,14 @@ export function useRemediation(id: string) {
       }
     },
     enabled: Boolean(id),
+  })
+}
+
+export function useExecuteRemediation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient.post<RemediationRecord>(`/remediations/${id}/execute`, {}),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['remediations'] }) },
   })
 }

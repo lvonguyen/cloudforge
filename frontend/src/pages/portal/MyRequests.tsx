@@ -8,6 +8,8 @@ import {
 } from '@/components/ui/table'
 import { Plus, Clock, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
+import { useMyExceptions } from '@/hooks/useExceptions'
+import type { ExceptionRequest } from '@/types/grc'
 
 interface RequestRow {
   id: string
@@ -21,13 +23,28 @@ interface RequestRow {
   expiry?: string
 }
 
-const REQUESTS: RequestRow[] = [
+const MOCK_REQUESTS: RequestRow[] = [
   { id: 'EXC-002', resource: 'EC2 m5.24xlarge in us-east-1', type: 'OVERSIZED_INSTANCE', provider: 'aws', status: 'PENDING', created: '2026-02-24', updated: '2026-02-24', approver: '—' },
   { id: 'EXC-006', resource: 'S3 bucket in ap-southeast-1', type: 'UNAPPROVED_REGION', provider: 'aws', status: 'APPROVED', created: '2026-02-18', updated: '2026-02-19', approver: 'admin1@contoso.dev', expiry: '2026-05-19' },
   { id: 'EXC-007', resource: 'RDS db.r5.2xlarge prod', type: 'OVERSIZED_INSTANCE', provider: 'aws', status: 'REJECTED', created: '2026-02-10', updated: '2026-02-11', approver: 'admin1@contoso.dev' },
   { id: 'EXC-009', resource: 'AKS private cluster eastus', type: 'RESTRICTED_SERVICE', provider: 'azure', status: 'APPROVED', created: '2026-01-15', updated: '2026-01-16', approver: 'operator1@contoso.dev', expiry: '2026-04-15' },
   { id: 'EXC-011', resource: 'GKE node pool us-central1-a', type: 'OVERSIZED_INSTANCE', provider: 'gcp', status: 'EXPIRED', created: '2025-11-01', updated: '2026-02-01', approver: 'operator1@contoso.dev' },
 ]
+
+function mapExceptionToRow(exc: ExceptionRequest): RequestRow {
+  const approver = exc.approver_chain?.find(a => a.decision)?.email
+  return {
+    id: exc.id,
+    resource: exc.resource_requested,
+    type: exc.request_type,
+    provider: 'aws',
+    status: exc.status as 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED',
+    created: new Date(exc.created_at).toISOString().split('T')[0],
+    updated: new Date(exc.updated_at).toISOString().split('T')[0],
+    approver,
+    expiry: exc.expiration_date ? new Date(exc.expiration_date).toISOString().split('T')[0] : undefined,
+  }
+}
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; className: string; badge: string }> = {
   PENDING: { icon: Clock, className: 'text-yellow-600 dark:text-yellow-400', badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
@@ -38,6 +55,9 @@ const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; className: stri
 
 export default function MyRequests() {
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const { data: exceptions, isLoading } = useMyExceptions()
+
+  const REQUESTS = exceptions?.map(mapExceptionToRow) ?? MOCK_REQUESTS
 
   const filtered = statusFilter === 'ALL' ? REQUESTS : REQUESTS.filter(r => r.status === statusFilter)
 

@@ -97,6 +97,7 @@ type GRCProvider interface {
 	// Approval workflow
 	SubmitApproval(ctx context.Context, exceptionID string, approver Approver) error
 	GetPendingApprovals(ctx context.Context, approverEmail string) ([]ExceptionRequest, error)
+	GetExceptionsByRequestor(ctx context.Context, email string) ([]ExceptionRequest, error)
 
 	// Validation - called by policy engine before provisioning
 	ValidateException(ctx context.Context, applicationID, policyCode string) (*ExceptionValidation, error)

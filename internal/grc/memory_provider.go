@@ -182,6 +182,24 @@ func (m *MemoryGRCProvider) GetPendingApprovals(
 	return pending, nil
 }
 
+// GetExceptionsByRequestor returns all exceptions created by the given user.
+func (m *MemoryGRCProvider) GetExceptionsByRequestor(
+	ctx context.Context,
+	email string,
+) ([]ExceptionRequest, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var results []ExceptionRequest
+	for _, exc := range m.exceptions {
+		if exc.RequestorEmail == email {
+			results = append(results, *exc)
+		}
+	}
+
+	return results, nil
+}
+
 // GetExceptionsByApplication returns all exceptions for an application.
 func (m *MemoryGRCProvider) GetExceptionsByApplication(
 	ctx context.Context,

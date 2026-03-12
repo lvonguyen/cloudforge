@@ -1,5 +1,5 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useRemediation } from '@/hooks/useRemediations'
+import { useRemediation, useExecuteRemediation } from '@/hooks/useRemediations'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,6 +31,7 @@ export default function RemediationDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: rem, isLoading } = useRemediation(id ?? '')
+  const executeMutation = useExecuteRemediation()
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground p-6">Loading remediation…</div>
@@ -212,8 +213,14 @@ export default function RemediationDetail() {
             <div className="flex-1 min-w-0 space-y-2">
               <p className="text-sm font-medium text-red-700 dark:text-red-400">Execution Failed</p>
               <code className="text-xs font-mono block text-red-600 dark:text-red-300">{rem.result.error}</code>
-              <Button size="sm" variant="outline" className="text-xs h-7 border-red-300 dark:border-red-700">
-                Retry
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs h-7 border-red-300 dark:border-red-700"
+                disabled={executeMutation.isPending}
+                onClick={() => executeMutation.mutate(rem.id)}
+              >
+                {executeMutation.isPending ? 'Retrying...' : 'Retry'}
               </Button>
             </div>
           </CardContent>

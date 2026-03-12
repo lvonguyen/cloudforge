@@ -20,7 +20,7 @@ export function useCostSummary() {
 
 export function useCostAnomalies() {
   return useQuery({
-    queryKey: ['costs', 'anomalies'],
+    queryKey: ['costs', 'summary'],
     queryFn: async () => {
       try {
         return await apiClient.get<CostSummary>('/costs/summary')

@@ -358,6 +358,9 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/exceptions/expiring", // operator, admin
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getExpiringExceptions)),
 	).Methods("GET")
+	apiRouter.Handle("/exceptions/mine", // requester, operator, admin
+		s.roles.Require(api.RoleRequester, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getMyExceptions)),
+	).Methods("GET")
 	apiRouter.Handle("/exceptions/{id}", // operator, admin
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getException)),
 	).Methods("GET")
@@ -694,6 +697,28 @@ func (s *Server) getPendingApprovals(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(pending)
+}
+
+func (s *Server) getMyExceptions(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getMyExceptions")
+	defer span.End()
+	r = r.WithContext(ctx)
+
+	// Extract email from JWT context
+	claims, ok := api.GetClaimsFromContext(r.Context())
+	if !ok {
+		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	exceptions, err := s.grcProvider.GetExceptionsByRequestor(r.Context(), claims.Email)
+	if err != nil {
+		s.writeInternalError(w, err, "get exceptions by requestor")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(exceptions)
 }
 
 func (s *Server) getExpiringExceptions(w http.ResponseWriter, r *http.Request) {

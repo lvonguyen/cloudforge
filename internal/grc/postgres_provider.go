@@ -602,3 +602,36 @@ func (p *PostgresGRCProvider) GetExpiringExceptions(
 
 	return p.batchGetExceptions(ctx, ids)
 }
+
+// GetExceptionsByRequestor returns all exceptions created by the given user.
+// Uses a batch query to avoid N+1 queries when loading exception details.
+func (p *PostgresGRCProvider) GetExceptionsByRequestor(
+	ctx context.Context,
+	email string,
+) ([]ExceptionRequest, error) {
+	query := `
+		SELECT id FROM exception_requests
+		WHERE requestor_email = $1
+		ORDER BY created_at DESC
+	`
+
+	rows, err := p.db.QueryContext(ctx, query, email)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query exceptions by requestor: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("failed to scan id: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
+	}
+
+	return p.batchGetExceptions(ctx, ids)
+}
