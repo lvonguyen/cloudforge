@@ -10,8 +10,8 @@ export const PROVIDER_COLORS: Record<string, string> = {
 
 export function ProviderBadge({ provider, className }: { provider: string; className?: string }) {
   return (
-    <Badge variant="secondary" className={cn('text-[10px]', PROVIDER_COLORS[provider], className)}>
-      <ProviderIcon provider={provider} className="h-3 w-3" />
+    <Badge variant="secondary" className={cn('text-xs', PROVIDER_COLORS[provider], className)}>
+      <ProviderIcon provider={provider} className="h-4 w-4" />
       {provider.toUpperCase()}
     </Badge>
   )

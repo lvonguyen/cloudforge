@@ -11,8 +11,10 @@ import {
   Shield, Cpu, Activity, GitBranch,
   type LucideIcon,
 } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCatalog } from '@/hooks/useCatalog'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
+import { ProviderIcon } from '@/components/ui/ProviderIcon'
 import type { CatalogModule } from '@/types/catalog'
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -100,19 +102,22 @@ export default function Catalog() {
         />
       </div>
 
-      {/* Provider filter */}
-      <div className="flex gap-1 flex-wrap">
-        {PROVIDER_FILTER.map(p => (
-          <button
-            key={p}
-            onClick={() => setProviderFilter(p)}
-            className={`px-3 py-1 text-xs rounded-none font-medium transition-colors ${
-              providerFilter === p ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
-          >
-            {p === 'ALL' ? 'All Providers' : p.toUpperCase()} ({p === 'ALL' ? modules.length : modules.filter(m => m.provider === p).length})
-          </button>
-        ))}
+      {/* CSP provider dropdown */}
+      <div className="flex items-center gap-3">
+        <Select value={providerFilter} onValueChange={setProviderFilter}>
+          <SelectTrigger size="sm" className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All Providers ({modules.length})</SelectItem>
+            {(['aws', 'azure', 'gcp'] as const).map(p => (
+              <SelectItem key={p} value={p}>
+                <ProviderIcon provider={p} className="h-4 w-4" />
+                {p.toUpperCase()} ({modules.filter(m => m.provider === p).length})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Category tabs */}
