@@ -44,7 +44,7 @@ func (s *Server) getCostSummaryComputed(w http.ResponseWriter, r *http.Request) 
 	end := time.Now().UTC()
 	start := end.AddDate(0, 0, -30)
 
-	records, err := svc.aggregator.FetchCosts(nil, start, end)
+	records, err := svc.aggregator.FetchCosts(r.Context(), start, end)
 	if err != nil {
 		s.writeInternalError(w, err, "cost summary")
 		return

@@ -98,14 +98,6 @@ func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
 	writeErrorResponse(w, "agent not found", http.StatusNotFound)
 }
 
-func (s *Server) getCostSummary(w http.ResponseWriter, r *http.Request) {
-	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getCostSummary")
-	defer span.End()
-
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(s.mockData.Costs)
-}
-
 func (s *Server) getRemediation(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getRemediation")
 	defer span.End()

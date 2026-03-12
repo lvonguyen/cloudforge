@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const statusFailed = "failed"
+
 // trivyResult mirrors the top-level JSON structure emitted by `trivy image --format json`.
 type trivyResult struct {
 	Results []trivyTarget `json:"Results"`
@@ -263,15 +265,15 @@ func (t *trivyScanner) calcCompliance(result *ImageScanResult) ComplianceResult 
 func (t *trivyScanner) determineStatus(result *ImageScanResult) string {
 	for _, v := range result.Vulnerabilities {
 		if strings.EqualFold(v.Severity, "critical") {
-			return "failed"
+			return statusFailed
 		}
 	}
 	if len(result.Secrets) > 0 {
-		return "failed"
+		return statusFailed
 	}
 	for _, mc := range result.Misconfigurations {
 		if strings.EqualFold(mc.Severity, "high") || strings.EqualFold(mc.Severity, "critical") {
-			return "failed"
+			return statusFailed
 		}
 	}
 	if result.Compliance.Score < 70 {

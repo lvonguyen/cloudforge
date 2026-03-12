@@ -45,9 +45,9 @@ func (a *MemoryAggregator) NormalizeCosts(records []CostRecord) []CostRecord {
 	for i, r := range records {
 		switch r.Currency {
 		case "EUR":
-			r.Cost = r.Cost * 1.08
+			r.Cost *= 1.08
 		case "GBP":
-			r.Cost = r.Cost * 1.27
+			r.Cost *= 1.27
 		}
 		r.Currency = "USD"
 		out[i] = r

@@ -198,7 +198,7 @@ func copySecret(s *Secret) *Secret {
 // and returns the string form. Defaults to "2" on parse failure.
 func incrementVersion(v string) string {
 	var n int
-	fmt.Sscanf(v, "%d", &n)
+	_, _ = fmt.Sscanf(v, "%d", &n)
 	return fmt.Sprintf("%d", n+1)
 }
 
