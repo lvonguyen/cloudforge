@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode, createElement } from 'react'
+import { branding } from '@/lib/branding'
 
 export type Role = 'admin' | 'operator' | 'requester' | 'viewer'
 
@@ -11,7 +12,7 @@ export interface User {
 
 const DEFAULT_USER: User = {
   name: 'Admin One',
-  email: 'admin1@contoso.dev',
+  email: `admin1@${branding.emailDomain}`,
   role: 'admin',
   groups: ['cloudforge-admin'],
 }

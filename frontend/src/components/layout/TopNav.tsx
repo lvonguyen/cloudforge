@@ -1,6 +1,7 @@
 import { RoleSwitcher } from './RoleSwitcher'
 import { ThemeToggle } from './ThemeToggle'
 import { useAuth } from '@/lib/auth'
+import { branding } from '@/lib/branding'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,7 +34,7 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
           <circle cx="12" cy="12" r="3" />
           <path d="M12 7v2M12 15v2M7 12h2M15 12h2" />
         </svg>
-        <span className="font-semibold text-sm tracking-tight text-foreground">CloudForge</span>
+        <span className="font-semibold text-sm tracking-tight text-foreground">{branding.productName}</span>
       </div>
 
       {/* Search — command palette placeholder */}

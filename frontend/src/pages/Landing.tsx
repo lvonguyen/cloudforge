@@ -5,6 +5,7 @@ import {
   Shield, Cloud, Activity,
   ArrowRight, GitBranch, Server,
 } from 'lucide-react'
+import { branding } from '@/lib/branding'
 
 interface ProjectCard {
   name: string
@@ -39,7 +40,7 @@ const PROJECTS: ProjectCard[] = [
       { label: 'Test Coverage', value: '85%' },
     ],
     link: '/admin',
-    repo: 'github.com/contoso/cloudforge',
+    repo: `${branding.repoPrefix}/cloudforge`,
   },
   {
     name: 'CSPM Aggregator',
@@ -58,7 +59,7 @@ const PROJECTS: ProjectCard[] = [
       { label: 'Edge Cases', value: '52' },
     ],
     link: '/ops/findings',
-    repo: 'github.com/contoso/cspm-aggregator',
+    repo: `${branding.repoPrefix}/cspm-aggregator`,
   },
 ]
 
@@ -77,10 +78,10 @@ export default function Landing() {
       <div className="space-y-1">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-none overflow-hidden">
-            <img src="/icons/cloudforge-logo.svg" alt="CloudForge" className="h-10 w-10" />
+            <img src={branding.logoPath} alt={branding.productName} className="h-10 w-10" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold tracking-tight">CloudForge Platform</h1>
+            <h1 className="text-xl font-semibold tracking-tight">{branding.productName} Platform</h1>
             <p className="text-sm text-muted-foreground">
               Enterprise cloud security platform — 2 integrated modules
             </p>
