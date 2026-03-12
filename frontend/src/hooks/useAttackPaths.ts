@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api'
-import type { AttackPath, AttackPathStats } from '@/types/attack-path'
+import type { AttackPath, AttackPathStats, PaginatedResponse } from '@/types/attack-path'
 
-export function useAttackPaths() {
+export function useAttackPaths(page = 1, perPage = 20) {
   return useQuery({
-    queryKey: ['attack-paths'],
-    queryFn: () => apiClient.get<AttackPath[]>('/attack-paths'),
+    queryKey: ['attack-paths', page, perPage],
+    queryFn: () => apiClient.get<PaginatedResponse<AttackPath>>(`/attack-paths?page=${page}&per_page=${perPage}`),
   })
 }
 

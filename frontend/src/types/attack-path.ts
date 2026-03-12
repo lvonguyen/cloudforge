@@ -41,6 +41,14 @@ export interface AttackPath {
   ai_enriched: boolean
 }
 
+export interface PaginatedResponse<T> {
+  data: T[]
+  page: number
+  per_page: number
+  total: number
+  total_pages: number
+}
+
 export interface AttackPathStats {
   total_findings: number
   findings_in_paths: number

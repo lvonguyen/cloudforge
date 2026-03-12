@@ -14,13 +14,41 @@ func (s *Server) listAttackPaths(w http.ResponseWriter, r *http.Request) {
 	defer span.End()
 
 	s.attackPathMu.RLock()
-	paths := s.attackPaths
+	all := s.attackPaths
 	s.attackPathMu.RUnlock()
 
-	span.SetAttributes(attribute.Int("attack_paths.count", len(paths)))
+	page, perPage := parsePagination(r, 20)
+	total := len(all)
+	totalPages := (total + perPage - 1) / perPage
+	if totalPages == 0 {
+		totalPages = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+
+	start := (page - 1) * perPage
+	end := start + perPage
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+
+	span.SetAttributes(
+		attribute.Int("attack_paths.total", total),
+		attribute.Int("attack_paths.page", page),
+	)
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(paths)
+	_ = json.NewEncoder(w).Encode(paginatedResponse{
+		Data:       all[start:end],
+		Page:       page,
+		PerPage:    perPage,
+		Total:      total,
+		TotalPages: totalPages,
+	})
 }
 
 func (s *Server) getAttackPath(w http.ResponseWriter, r *http.Request) {

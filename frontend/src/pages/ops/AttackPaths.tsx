@@ -304,9 +304,14 @@ function PathGraphView({ path, onBack }: { path: AttackPath; onBack: () => void 
 }
 
 export default function AttackPaths() {
-  const { data: paths = [], isLoading } = useAttackPaths()
+  const [page, setPage] = useState(1)
+  const { data: response, isLoading } = useAttackPaths(page, 20)
   const { data: stats } = useAttackPathStats()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  const paths = response?.data ?? []
+  const totalPages = response?.total_pages ?? 1
+  const total = response?.total ?? 0
 
   const selectedPath = useMemo(
     () => paths.find(p => p.id === selectedId) ?? null,
@@ -332,7 +337,7 @@ export default function AttackPaths() {
       <div>
         <h1 className="text-xl font-semibold">Attack Paths</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {paths.length} paths computed from {stats?.total_findings ?? 0} findings
+          {total} paths computed from {stats?.total_findings ?? 0} findings
           {stats ? ` · ${stats.coverage_percent.toFixed(0)}% coverage · ${stats.isolated_findings} isolated` : ''}
         </p>
       </div>
@@ -368,6 +373,33 @@ export default function AttackPaths() {
         <div className="text-center py-12 text-muted-foreground">
           <Shield className="h-8 w-8 mx-auto mb-2 opacity-40" />
           <p className="text-sm">No attack paths detected.</p>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            disabled={page <= 1}
+            onClick={() => setPage(p => p - 1)}
+          >
+            <ArrowLeft className="h-3 w-3" />Previous
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            Page {page} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            disabled={page >= totalPages}
+            onClick={() => setPage(p => p + 1)}
+          >
+            Next<ArrowRight className="h-3 w-3" />
+          </Button>
         </div>
       )}
     </div>

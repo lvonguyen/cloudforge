@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"go.uber.org/zap"
@@ -56,4 +57,30 @@ func writeErrorResponse(w http.ResponseWriter, msg string, statusCode int) {
 func (s *Server) writeInternalError(w http.ResponseWriter, err error, operation string) {
 	s.logger.Error("operation failed", zap.String("operation", operation), zap.Error(err))
 	writeErrorResponse(w, "internal server error", http.StatusInternalServerError)
+}
+
+// paginatedResponse wraps a paginated JSON response.
+type paginatedResponse struct {
+	Data       any `json:"data"`
+	Page       int `json:"page"`
+	PerPage    int `json:"per_page"`
+	Total      int `json:"total"`
+	TotalPages int `json:"total_pages"`
+}
+
+// parsePagination extracts page and per_page from query params with defaults.
+func parsePagination(r *http.Request, defaultPerPage int) (page, perPage int) {
+	page = 1
+	perPage = defaultPerPage
+	if v := r.URL.Query().Get("page"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			page = n
+		}
+	}
+	if v := r.URL.Query().Get("per_page"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 100 {
+			perPage = n
+		}
+	}
+	return page, perPage
 }
