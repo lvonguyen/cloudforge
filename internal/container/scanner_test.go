@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"strings"
 	"testing"
 )
 
@@ -122,5 +123,15 @@ func TestMockScanner_CheckAdmission_CriticalVulnDenied(t *testing.T) {
 	}
 	if decision.Allowed {
 		t.Error("expected image with critical CVE to be denied admission")
+	}
+}
+
+func TestNewScanner_InvalidProvider(t *testing.T) {
+	_, err := NewScanner("invalid-provider")
+	if err == nil {
+		t.Fatal("expected error for invalid provider, got nil")
+	}
+	if !strings.Contains(err.Error(), "unsupported") {
+		t.Errorf("expected error message to contain 'unsupported', got: %v", err)
 	}
 }

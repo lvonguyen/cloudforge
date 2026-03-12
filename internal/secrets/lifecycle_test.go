@@ -3,6 +3,7 @@ package secrets
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -157,5 +158,15 @@ func TestMemoryLifecycle_CheckExpiry_ExcludesNonExpiring(t *testing.T) {
 		if s.Key == "jwt-signing-key" {
 			t.Errorf("secret %q should not appear in expiry list (no expiry set)", s.Key)
 		}
+	}
+}
+
+func TestNewLifecycle_InvalidProvider(t *testing.T) {
+	_, err := NewLifecycle("invalid-provider")
+	if err == nil {
+		t.Fatal("expected error for invalid provider, got nil")
+	}
+	if !strings.Contains(err.Error(), "unsupported") {
+		t.Errorf("expected error message to contain 'unsupported', got: %v", err)
 	}
 }

@@ -3,6 +3,7 @@ package waf
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -117,5 +118,15 @@ func TestMockTemplateManager_ValidateCompliance_FindingsHaveRequiredFields(t *te
 		if f.Description == "" {
 			t.Errorf("finding[%d] has empty Description", i)
 		}
+	}
+}
+
+func TestNewTemplateManager_InvalidProvider(t *testing.T) {
+	_, err := NewTemplateManager("invalid-provider")
+	if err == nil {
+		t.Fatal("expected error for invalid provider, got nil")
+	}
+	if !strings.Contains(err.Error(), "unsupported") {
+		t.Errorf("expected error message to contain 'unsupported', got: %v", err)
 	}
 }

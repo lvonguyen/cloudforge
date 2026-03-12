@@ -3,6 +3,7 @@ package workflow
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -185,5 +186,15 @@ func TestMemoryEngine_ApproveWorkflow_NotPending_Error(t *testing.T) {
 		if err == nil {
 			t.Errorf("expected error approving workflow %q in non-pending state, got nil", id)
 		}
+	}
+}
+
+func TestNewEngine_InvalidProvider(t *testing.T) {
+	_, err := NewEngine("invalid-provider")
+	if err == nil {
+		t.Fatal("expected error for invalid provider, got nil")
+	}
+	if !strings.Contains(err.Error(), "unsupported") {
+		t.Errorf("expected error message to contain 'unsupported', got: %v", err)
 	}
 }
