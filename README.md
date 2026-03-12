@@ -91,8 +91,8 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | CISA KEV catalog | Done | In-memory catalog with auto-refresh from CISA feed |
 | GreyNoise integration | Done | HTTP client with 12h cache, classification enrichment |
 | **Testing** | | |
-| Unit tests | Partial | 33 test files, 298 tests passing (frontend hooks/components + Go backend), v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
-| Integration tests | 0% | |
+| Unit tests | 595 passing | 30 Go packages, 297 frontend tests, 5 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
+| Integration tests | Done | 12-step server lifecycle + 34-subtest RBAC authorization matrix (`go test -tags=integration`) |
 
 ### Package Maturity
 
