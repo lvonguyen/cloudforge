@@ -24,6 +24,8 @@ import (
 	"cloudforge/internal/remediation/security_services"
 	"cloudforge/internal/remediation/storage"
 	"cloudforge/pkg/remediation"
+
+	"go.uber.org/zap"
 )
 
 var (
@@ -49,31 +51,34 @@ type RemediationState struct {
 func main() {
 	flag.Parse()
 
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+
 	ctx := context.Background()
 
 	// Handle rollback mode
 	if *rollbackID != "" || *rollbackAll {
-		if err := authorizeRollback(); err != nil {
+		if err := authorizeRollback(logger); err != nil {
 			fmt.Fprintf(os.Stderr, "Authorization failed: %v\n", err)
 			os.Exit(1)
 		}
 	}
 
 	if *rollbackID != "" {
-		if err := rollbackRemediation(ctx, *rollbackID); err != nil {
+		if err := rollbackRemediation(ctx, logger, *rollbackID); err != nil {
 			fmt.Fprintf(os.Stderr, "Rollback failed: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("Rollback successful: %s\n", *rollbackID)
+		logger.Info("rollback successful", zap.String("rollback_id", *rollbackID))
 		return
 	}
 
 	if *rollbackAll {
-		if err := rollbackLastRun(ctx); err != nil {
+		if err := rollbackLastRun(ctx, logger); err != nil {
 			fmt.Fprintf(os.Stderr, "Rollback all failed: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Println("Rollback all successful")
+		logger.Info("rollback all successful")
 		return
 	}
 
@@ -81,23 +86,23 @@ func main() {
 	executor := remediation.NewExecutor(!*execute) // dryRun = !execute
 
 	// Register all handlers
-	registerHandlers(executor)
+	registerHandlers(logger, executor)
 
 	// Load findings
-	findings, err := loadFindings(*findingsDir)
+	findings, err := loadFindings(logger, *findingsDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load findings: %v\n", err)
 		os.Exit(1)
 	}
 
 	if len(findings) == 0 {
-		fmt.Println("No auto-remediation findings to process")
+		logger.Info("no auto-remediation findings to process")
 		return
 	}
 
-	fmt.Printf("Loaded %d findings for remediation\n", len(findings))
+	logger.Info("loaded findings for remediation", zap.Int("count", len(findings)))
 	if !*execute {
-		fmt.Println("[DRY-RUN MODE] No changes will be made")
+		logger.Info("dry-run mode enabled - no changes will be made")
 	}
 
 	// Execute batch with concurrency limit
@@ -109,24 +114,24 @@ func main() {
 
 	// Capture rollback state (only in execute mode)
 	if *execute {
-		if err := captureRollbackState(ctx, findings, results); err != nil {
+		if err := captureRollbackState(ctx, logger, findings, results); err != nil {
 			fmt.Fprintf(os.Stderr, "WARNING: Failed to capture rollback state: %v\n", err)
 			// Don't fail - remediation already happened
 		}
 	}
 
 	// Print summary
-	printSummary(results)
+	printSummary(logger, results)
 
 	// Write results for Asana integration (future)
-	if err := writeResults(results); err != nil {
+	if err := writeResults(logger, results); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to write results: %v\n", err)
 		os.Exit(1)
 	}
 }
 
 // registerHandlers registers all available remediation handlers.
-func registerHandlers(executor *remediation.Executor) {
+func registerHandlers(logger *zap.Logger, executor *remediation.Executor) {
 	// Security services
 	executor.Register("GuardDuty.1", security_services.NewGuardDutyRemediator())
 	executor.Register("Defender.Storage", security_services.NewAzureDefenderStorageRemediator())
@@ -151,11 +156,11 @@ func registerHandlers(executor *remediation.Executor) {
 	// Patching (query-only — requires change window for actual patching)
 	executor.Register("OS_PATCH_MISSING", patching.NewOSPatchRemediator())
 
-	fmt.Printf("Registered %d remediation handlers\n", len(executor.ListHandlers()))
+	logger.Info("registered remediation handlers", zap.Int("handler_count", len(executor.ListHandlers())))
 }
 
 // loadFindings reads all JSON files from the findings directory.
-func loadFindings(dir string) ([]*cspmscoring.PrioritizedFinding, error) {
+func loadFindings(logger *zap.Logger, dir string) ([]*cspmscoring.PrioritizedFinding, error) {
 	files, err := filepath.Glob(filepath.Join(dir, "*.json"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to glob findings: %w", err)
@@ -165,13 +170,13 @@ func loadFindings(dir string) ([]*cspmscoring.PrioritizedFinding, error) {
 	for _, file := range files {
 		data, err := os.ReadFile(file)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "WARNING: Failed to read %s: %v\n", file, err)
+			logger.Warn("failed to read finding file", zap.String("file", file), zap.Error(err))
 			continue
 		}
 
 		var finding cspmscoring.PrioritizedFinding
 		if err := json.Unmarshal(data, &finding); err != nil {
-			fmt.Fprintf(os.Stderr, "WARNING: Failed to parse %s: %v\n", file, err)
+			logger.Warn("failed to parse finding file", zap.String("file", file), zap.Error(err))
 			continue
 		}
 
@@ -188,7 +193,7 @@ func loadFindings(dir string) ([]*cspmscoring.PrioritizedFinding, error) {
 }
 
 // captureRollbackState saves pre-remediation state for rollback capability.
-func captureRollbackState(ctx context.Context, findingsList []*cspmscoring.PrioritizedFinding, results []*remediation.RemediationResult) error {
+func captureRollbackState(ctx context.Context, logger *zap.Logger, findingsList []*cspmscoring.PrioritizedFinding, results []*remediation.RemediationResult) error {
 	if err := os.MkdirAll(*stateDir, 0700); err != nil {
 		return fmt.Errorf("failed to create state dir: %w", err)
 	}
@@ -210,7 +215,7 @@ func captureRollbackState(ctx context.Context, findingsList []*cspmscoring.Prior
 
 		finding, ok := findingsByID[result.FindingID]
 		if !ok {
-			fmt.Fprintf(os.Stderr, "WARNING: No matching finding for result ID %s\n", result.FindingID)
+			logger.Warn("no matching finding for result", zap.String("result_id", result.FindingID))
 			continue
 		}
 		state := RemediationState{
@@ -242,7 +247,9 @@ func captureRollbackState(ctx context.Context, findingsList []*cspmscoring.Prior
 			successCount++
 		}
 	}
-	fmt.Printf("Captured rollback state for %d successful remediations (expires in 48h)\n", successCount)
+	logger.Info("captured rollback state",
+		zap.Int("success_count", successCount),
+		zap.String("expiry", "48h"))
 	return nil
 }
 
@@ -266,7 +273,7 @@ func generateRollbackScript(finding *cspmscoring.PrioritizedFinding, result *rem
 }
 
 // rollbackRemediation undoes a specific remediation by ID.
-func rollbackRemediation(ctx context.Context, rollbackID string) error {
+func rollbackRemediation(ctx context.Context, logger *zap.Logger, rollbackID string) error {
 	stateFile := filepath.Join(*stateDir, rollbackID+".json")
 
 	// Guard against path traversal: resolved path must stay within stateDir.
@@ -291,12 +298,13 @@ func rollbackRemediation(ctx context.Context, rollbackID string) error {
 		return fmt.Errorf("rollback window expired (expired at %s)", state.ExpiresAt)
 	}
 
-	fmt.Printf("Rolling back: %s\n", state.FindingID)
-	fmt.Printf("Handler: %s\n", state.Handler)
-	fmt.Printf("Timestamp: %s\n", state.Timestamp)
-	fmt.Printf("\nRollback commands:\n%s\n", state.RollbackScript)
-	fmt.Println("\nExecute these commands manually to rollback.")
-	fmt.Println("Automated rollback execution coming soon...")
+	logger.Info("rolling back remediation",
+		zap.String("finding_id", state.FindingID),
+		zap.String("handler", state.Handler),
+		zap.Time("timestamp", state.Timestamp),
+		zap.String("rollback_commands", state.RollbackScript))
+	logger.Info("execute these commands manually to rollback")
+	logger.Info("automated rollback execution coming soon")
 
 	// TODO: Actually execute rollback commands via cloud SDKs
 	// For now, just print the commands for manual execution
@@ -305,7 +313,7 @@ func rollbackRemediation(ctx context.Context, rollbackID string) error {
 }
 
 // rollbackLastRun rolls back all remediations from the most recent run.
-func rollbackLastRun(ctx context.Context) error {
+func rollbackLastRun(ctx context.Context, logger *zap.Logger) error {
 	files, err := filepath.Glob(filepath.Join(*stateDir, "*.json"))
 	if err != nil {
 		return fmt.Errorf("failed to find rollback files: %w", err)
@@ -328,7 +336,7 @@ func rollbackLastRun(ctx context.Context) error {
 		}
 	}
 
-	fmt.Printf("Rolling back all remediations from run: %s\n", latestRun)
+	logger.Info("rolling back all remediations from run", zap.String("run_id", latestRun))
 
 	// Rollback all findings from that run
 	count := 0
@@ -338,19 +346,19 @@ func rollbackLastRun(ctx context.Context) error {
 			continue
 		}
 		rollbackID := strings.TrimSuffix(base, ".json")
-		if err := rollbackRemediation(ctx, rollbackID); err != nil {
-			fmt.Fprintf(os.Stderr, "WARNING: Failed to rollback %s: %v\n", rollbackID, err)
+		if err := rollbackRemediation(ctx, logger, rollbackID); err != nil {
+			logger.Warn("failed to rollback", zap.String("rollback_id", rollbackID), zap.Error(err))
 		} else {
 			count++
 		}
 	}
 
-	fmt.Printf("Rolled back %d remediations\n", count)
+	logger.Info("completed rollback", zap.Int("count", count))
 	return nil
 }
 
 // printSummary displays remediation results summary.
-func printSummary(results []*remediation.RemediationResult) {
+func printSummary(logger *zap.Logger, results []*remediation.RemediationResult) {
 	success := 0
 	failed := 0
 
@@ -362,16 +370,18 @@ func printSummary(results []*remediation.RemediationResult) {
 		}
 	}
 
-	fmt.Println("\n=== Remediation Summary ===")
-	fmt.Printf("Total:    %d\n", len(results))
-	fmt.Printf("Success:  %d\n", success)
-	fmt.Printf("Failed:   %d\n", failed)
+	logger.Info("remediation summary",
+		zap.Int("total", len(results)),
+		zap.Int("success", success),
+		zap.Int("failed", failed))
 
 	if failed > 0 {
-		fmt.Println("\nFailed Remediations:")
+		logger.Info("failed remediations")
 		for _, result := range results {
 			if !result.Success {
-				fmt.Printf("  - %s: %s\n", result.FindingID, result.Error)
+				logger.Info("failed remediation",
+					zap.String("finding_id", result.FindingID),
+					zap.String("error", result.Error))
 			}
 		}
 	}
@@ -380,7 +390,7 @@ func printSummary(results []*remediation.RemediationResult) {
 // authorizeRollback verifies the caller has permission to perform rollback operations.
 // Rollbacks re-open security remediations, so they require explicit authorization via
 // the CLOUDFORGE_ROLLBACK_TOKEN environment variable set by the deployment pipeline.
-func authorizeRollback() error {
+func authorizeRollback(logger *zap.Logger) error {
 	token := os.Getenv("CLOUDFORGE_ROLLBACK_TOKEN")
 	if token == "" {
 		return fmt.Errorf("CLOUDFORGE_ROLLBACK_TOKEN environment variable is required for rollback operations")
@@ -388,12 +398,12 @@ func authorizeRollback() error {
 	if len(token) < 16 {
 		return fmt.Errorf("CLOUDFORGE_ROLLBACK_TOKEN is too short (minimum 16 characters)")
 	}
-	fmt.Println("Rollback authorization verified")
+	logger.Info("rollback authorization verified")
 	return nil
 }
 
 // writeResults writes remediation results to JSON for Asana integration.
-func writeResults(results []*remediation.RemediationResult) error {
+func writeResults(logger *zap.Logger, results []*remediation.RemediationResult) error {
 	resultsDir := "./results/remediation"
 	if err := os.MkdirAll(resultsDir, 0700); err != nil {
 		return fmt.Errorf("failed to create results dir: %w", err)
@@ -411,6 +421,6 @@ func writeResults(results []*remediation.RemediationResult) error {
 		return fmt.Errorf("failed to write results: %w", err)
 	}
 
-	fmt.Printf("Results written to: %s\n", resultsFile)
+	logger.Info("results written", zap.String("file", resultsFile))
 	return nil
 }

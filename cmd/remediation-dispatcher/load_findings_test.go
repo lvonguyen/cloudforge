@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	cspmscoring "cloudforge/internal/cspm/scoring"
+
+	"go.uber.org/zap"
 )
 
 // writeFindingJSON writes a single PrioritizedFinding JSON file to dir.
@@ -51,7 +53,10 @@ func TestLoadFindings_NoPointerAliasing(t *testing.T) {
 		AutoRemediationReady: false,
 	})
 
-	findings, err := loadFindings(dir)
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+
+	findings, err := loadFindings(logger, dir)
 	if err != nil {
 		t.Fatalf("loadFindings: %v", err)
 	}
@@ -96,7 +101,10 @@ func TestLoadFindings_SkipsNonAutoRemediation(t *testing.T) {
 		AutoRemediationReady: false,
 	})
 
-	findings, err := loadFindings(dir)
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+
+	findings, err := loadFindings(logger, dir)
 	if err != nil {
 		t.Fatalf("loadFindings: %v", err)
 	}
