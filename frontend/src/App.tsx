@@ -59,7 +59,7 @@ export default function App() {
               {/* OAuth callback — outside AppShell */}
               <Route path="/callback" element={<Suspense fallback={<PageFallback />}><Callback /></Suspense>} />
               <Route element={<AppShell />}>
-                {/* Portfolio landing page */}
+                {/* Platform landing page */}
                 <Route index element={<Landing />} />
 
                 {/* Admin routes */}

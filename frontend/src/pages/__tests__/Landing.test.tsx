@@ -9,9 +9,9 @@ describe('Landing', () => {
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
   })
 
-  it('shows the CloudForge Portfolio heading', () => {
+  it('shows the CloudForge Platform heading', () => {
     renderWithProviders(<Landing />)
-    expect(screen.getByText(/CloudForge Portfolio/i)).toBeInTheDocument()
+    expect(screen.getByText(/CloudForge Platform/i)).toBeInTheDocument()
   })
 
   it('shows the Tier 1 — Flagship section heading', () => {
@@ -19,7 +19,7 @@ describe('Landing', () => {
     expect(screen.getByText(/Tier 1.*Flagship/i)).toBeInTheDocument()
   })
 
-  it('shows the Tier 2 — Supporting Modules section heading', () => {
+  it('shows the Tier 2 — Supporting section heading', () => {
     renderWithProviders(<Landing />)
     expect(screen.getByText(/Tier 2.*Supporting/i)).toBeInTheDocument()
   })
@@ -34,14 +34,10 @@ describe('Landing', () => {
     expect(screen.getByText(/^Language$/i)).toBeInTheDocument()
   })
 
-  it('renders all 6 project tiles', () => {
+  it('renders the 2 core project tiles', () => {
     renderWithProviders(<Landing />)
     expect(screen.getByText('CloudForge')).toBeInTheDocument()
-    expect(screen.getByText('ThreatForge')).toBeInTheDocument()
     expect(screen.getByText('CSPM Aggregator')).toBeInTheDocument()
-    expect(screen.getByText('Multicloud Observability')).toBeInTheDocument()
-    expect(screen.getByText('AI Governance')).toBeInTheDocument()
-    expect(screen.getByText('FinOps Platform')).toBeInTheDocument()
   })
 
   it('displays flagship and supporting tier badges', () => {
@@ -50,11 +46,6 @@ describe('Landing', () => {
     const supportingBadges = screen.getAllByText('supporting')
     expect(flagshipBadges.length).toBeGreaterThan(0)
     expect(supportingBadges.length).toBeGreaterThan(0)
-  })
-
-  it('shows "Coming Soon" for ThreatForge (link is #)', () => {
-    renderWithProviders(<Landing />)
-    expect(screen.getByText('Coming Soon')).toBeInTheDocument()
   })
 
   it('displays project description text', () => {

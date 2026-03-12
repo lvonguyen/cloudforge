@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
-  Shield, Cloud, Activity, Search, Bot, BarChart3,
+  Shield, Cloud, Activity,
   ArrowRight, GitBranch, Server,
 } from 'lucide-react'
 
@@ -42,25 +42,6 @@ const PROJECTS: ProjectCard[] = [
     repo: 'github.com/contoso/cloudforge',
   },
   {
-    name: 'ThreatForge',
-    slug: 'threatforge',
-    tier: 'flagship',
-    description:
-      'Threat intelligence platform — MITRE ATT&CK mapping, real-time feed aggregation (OTX, MISP, VirusTotal), IoC correlation, and STIX/TAXII distribution.',
-    icon: Search,
-    iconSvg: '/icons/threatforge-logo.svg',
-    color: 'text-red-600 dark:text-red-400',
-    bg: 'bg-red-50 dark:bg-red-900/30',
-    tags: ['Go', 'MITRE ATT&CK', 'STIX/TAXII', 'gRPC'],
-    stats: [
-      { label: 'TI Feeds', value: '4' },
-      { label: 'ATT&CK Coverage', value: '78%' },
-      { label: 'IoC Types', value: '12' },
-    ],
-    link: '#',
-    repo: 'github.com/contoso/threatforge',
-  },
-  {
     name: 'CSPM Aggregator',
     slug: 'cspm-aggregator',
     tier: 'supporting',
@@ -78,63 +59,6 @@ const PROJECTS: ProjectCard[] = [
     ],
     link: '/ops/findings',
     repo: 'github.com/contoso/cspm-aggregator',
-  },
-  {
-    name: 'Multicloud Observability',
-    slug: 'multicloud-observability',
-    tier: 'supporting',
-    description:
-      'Unified observability pipeline — collects metrics, logs, and alerts from AWS CloudWatch, Azure Monitor, and GCP Cloud Monitoring with cross-cloud alert correlation.',
-    icon: Activity,
-    iconSvg: '/icons/mco-logo.svg',
-    color: 'text-purple-600 dark:text-purple-400',
-    bg: 'bg-purple-50 dark:bg-purple-900/30',
-    tags: ['Go', 'Prometheus', 'OpsGenie', 'CloudWatch', 'Stackdriver'],
-    stats: [
-      { label: 'Providers', value: '3' },
-      { label: 'Alert Rules', value: '24' },
-      { label: 'Correlation', value: 'ML' },
-    ],
-    link: '/ops',
-    repo: 'github.com/contoso/multicloud-observability',
-  },
-  {
-    name: 'AI Governance',
-    slug: 'ai-governance',
-    tier: 'supporting',
-    description:
-      'AI agent governance framework — STRIDE+ATLAS threat modeling, embedded OPA policy engine, agent registry, maturity assessment, and observability hooks.',
-    icon: Bot,
-    iconSvg: '/icons/ai-governance-logo.svg',
-    color: 'text-indigo-600 dark:text-indigo-400',
-    bg: 'bg-indigo-50 dark:bg-indigo-900/30',
-    tags: ['Go', 'OPA', 'STRIDE', 'ATLAS', 'LLM Security'],
-    stats: [
-      { label: 'Threat Models', value: '2' },
-      { label: 'Policy Engine', value: 'Embedded' },
-      { label: 'Status', value: 'Merged to CF' },
-    ],
-    link: '/admin/ai-agents',
-    repo: 'github.com/contoso/cloudforge',
-  },
-  {
-    name: 'FinOps Platform',
-    slug: 'finops',
-    tier: 'supporting',
-    description:
-      'Multi-cloud cost optimization — chargeback allocation, anomaly detection, spend forecasting, and budget alerts across AWS, Azure, and GCP billing APIs.',
-    icon: BarChart3,
-    iconSvg: '/icons/finops-logo.svg',
-    color: 'text-amber-600 dark:text-amber-400',
-    bg: 'bg-amber-50 dark:bg-amber-900/30',
-    tags: ['Go', 'Cost Explorer', 'Billing API', 'Forecasting'],
-    stats: [
-      { label: 'Cloud Accounts', value: '12' },
-      { label: 'Anomaly Detection', value: 'Active' },
-      { label: 'Savings Found', value: '$47K/yr' },
-    ],
-    link: '/ops/costs',
-    repo: 'github.com/contoso/cloudforge',
   },
 ]
 
@@ -156,9 +80,9 @@ export default function Landing() {
             <img src="/icons/cloudforge-logo.svg" alt="CloudForge" className="h-10 w-10" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold tracking-tight">CloudForge Portfolio</h1>
+            <h1 className="text-xl font-semibold tracking-tight">CloudForge Platform</h1>
             <p className="text-sm text-muted-foreground">
-              Enterprise cloud security platform — {PROJECTS.length} integrated modules
+              Enterprise cloud security platform — 2 integrated modules
             </p>
           </div>
         </div>
@@ -196,7 +120,7 @@ export default function Landing() {
 
       {/* Supporting projects */}
       <section>
-        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Tier 2 — Supporting Modules</h2>
+        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Tier 2 — Supporting</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {supporting.map(project => (
             <ProjectTile key={project.slug} project={project} />

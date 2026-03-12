@@ -2,7 +2,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* Portfolio design tokens — light mode */
+  /* Platform design tokens — light mode */
   --color-background: #E7E7E6;
   --color-foreground: #1F2822;
   --color-card: #CFCBBF;

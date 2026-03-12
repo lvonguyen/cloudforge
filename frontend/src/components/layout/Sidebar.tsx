@@ -17,7 +17,7 @@ interface NavItem {
   icon: LucideIcon
 }
 
-const PORTFOLIO_ITEM: NavItem = { to: '/', label: 'Portfolio', icon: Home }
+const PORTFOLIO_ITEM: NavItem = { to: '/', label: 'Platform', icon: Home }
 
 const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
   admin: [
