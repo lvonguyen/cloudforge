@@ -119,15 +119,15 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 ## [!] Known Limitations
 
-This is a **portfolio reference implementation**, not production software:
+This is a **platform reference implementation**, not production software:
 
-1. **Test Coverage Gap** - 33 test files (298 tests passing: hooks, components, backend), v8 coverage thresholds active; integration tests pending
+1. **Test Coverage Gap** - 26 packages, 415 tests passing (hooks, components, backend, benchmarks), v8 coverage thresholds active; integration tests pending
 2. **OIDC Provider Stub** - JWT auth middleware is production-ready (HS256/RS256, JWKS), but Okta/Entra ID providers not wired into auth flow
 3. **Temporal Workflows** — Workflow definitions exist, orchestration layer not wired into request flow
 4. **FinOps Module** — Cost aggregation interfaces defined, no cloud API integration yet
 5. **Stub Packages** — container, secrets, waf, identity modules have interfaces and mock implementations but no production wiring
 6. **Frontend/Backend Role Mismatch** — Frontend has 4 roles (admin, operator, requester, viewer); backend has 3 (RoleAdmin, RoleOperator, RoleRequester, no RoleViewer constant)
-7. **Chrome QA Findings** — Partial route coverage (~54%), React 19 lazy() context propagation edge case under Playwright, mobile overflow at 375px on /ops CommandCenter
+7. **Chrome QA Findings** — 19/19 routes passing, React 19 lazy() context propagation edge case under Playwright (pre-existing, not prod), mobile overflow at 375px on /ops CommandCenter
 
 **Production Requirements:**
 
@@ -521,7 +521,7 @@ Built-in support for 20+ frameworks:
 - [x] Contextual severity validation engine (environment-aware re-scoring)
 - [x] EPSS scoring integration (FIRST API, batch fetching, 12h cache)
 - [x] CISA KEV catalog integration (auto-refresh, known exploit lookup)
-- [ ] GreyNoise integration (API client for IP classification)
+- [x] GreyNoise integration (API client for IP classification)
 - [x] Attack path computation engine (in-memory BFS + ReactFlow DAG)
 - [ ] Toxic combination detection (multi-finding chain analysis)
 - [ ] Blast radius computation (IAM + network reachability)
@@ -541,6 +541,9 @@ Built-in support for 20+ frameworks:
 
 | Date | Author | Change |
 | ---- | ------ | ------ |
+| 2026-03-12 | Liem Vo-Nguyen | Sprint 4: rebrand to "Platform", focus landing on 2 core modules, catalog CSP dropdown, benchmark tests, roadmap audit, whitelabel design doc |
+| 2026-03-12 | Liem Vo-Nguyen | Sprint 3: paginate attack paths, factory error tests, audit log key fix |
+| 2026-03-12 | Liem Vo-Nguyen | Sprint 2.5 QA: quality-review 4.48/5, bug-discovery 4.5/5, security-audit 4.2/5, Chrome QA 19/19 routes |
 | 2026-03-12 | Liem Vo-Nguyen | Sprint 2 deliverables: 12 hook/component tests, GRC GetExceptionsByRequestor, useCostAnomalies cache fix, Execute/Retry wiring, MyRequests API migration, Chrome QA audit (54% routes) |
 | 2026-03-11 | Liem Vo-Nguyen | Close gaps: honest badges, package maturity table, doc accuracy pass |
 | 2026-03-04 | Liem Vo-Nguyen | Build and deploy self-service portal — React 19, Vite 7, 18 pages, 3 role views, dark mode, Cloudflare Pages |
@@ -577,4 +580,4 @@ Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
 
 ---
 
-**Note:** This is a reference architecture and portfolio project demonstrating enterprise cloud governance patterns. Production deployments require additional hardening, testing, and customization for your organization's specific requirements.
+**Note:** This is a reference architecture demonstrating enterprise cloud governance patterns. Production deployments require additional hardening, testing, and customization for your organization's specific requirements.
