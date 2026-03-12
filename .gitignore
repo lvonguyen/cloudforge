@@ -93,3 +93,7 @@ export-outputs/
 
 # Claude Code worktrees
 .claude/worktrees/
+
+# Playwright MCP screenshots
+*.png
+.playwright-mcp/

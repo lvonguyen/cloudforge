@@ -133,11 +133,12 @@ Depends on Sprint 0 (RBAC middleware + trace infra).
 
 ---
 
-## Sprint 2 — Hook Migration + P1/P2 Buttons (PARTIAL COMPLETE)
+## Sprint 2 — Hook Migration + P1/P2 Buttons (PARTIAL — hooks done, buttons deferred)
 
 Depends on Sprint 1 (API endpoints live, P0 buttons functional).
+Commits: `01967fb` (tests), `999f224` (API + hooks), `a9c48af` (docs)
 
-### Agent HookMigration [F] — PARTIAL (1/6 hooks done)
+### Agent HookMigration [F] — PARTIAL (3 hooks + 1 fix done, 5 remaining)
 
 | Detail | Value |
 |--------|-------|
