@@ -83,9 +83,11 @@ func benchServer(b *testing.B) (*Server, *mux.Router) {
 	return srv, srv.router
 }
 
-// makeJWTForBench creates a minimal HS256 JWT without requiring *testing.T.
-// Used in benchmark setup where testing.T is not available.
-func makeJWTForBench(claims api.Claims) string {
+// makeJWTForBench creates a minimal HS256 JWT for use in benchmarks.
+// Accepts *testing.B to allow proper error reporting instead of panic.
+func makeJWTForBench(b *testing.B, claims api.Claims) string {
+	b.Helper()
+
 	if claims.ExpiresAt == 0 {
 		claims.ExpiresAt = time.Now().Add(time.Hour).Unix()
 	}
@@ -97,7 +99,7 @@ func makeJWTForBench(claims api.Claims) string {
 
 	payload, err := json.Marshal(claims)
 	if err != nil {
-		panic("marshal claims: " + err.Error())
+		b.Fatalf("marshal claims: %v", err)
 	}
 	payloadB64 := base64.RawURLEncoding.EncodeToString(payload)
 
@@ -132,7 +134,7 @@ func BenchmarkServerStartup(b *testing.B) {
 // BenchmarkListFindings measures GET /api/v1/findings throughput.
 func BenchmarkListFindings(b *testing.B) {
 	_, router := benchServer(b)
-	jwt := makeJWTForBench(adminClaims())
+	jwt := makeJWTForBench(b, adminClaims())
 
 	req, _ := http.NewRequest("GET", "/api/v1/findings", nil)
 	req.Header.Set("Authorization", "Bearer "+jwt)
@@ -151,7 +153,7 @@ func BenchmarkListFindings(b *testing.B) {
 // BenchmarkListAttackPaths measures paginated GET /api/v1/attack-paths throughput.
 func BenchmarkListAttackPaths(b *testing.B) {
 	_, router := benchServer(b)
-	jwt := makeJWTForBench(adminClaims())
+	jwt := makeJWTForBench(b, adminClaims())
 
 	req, _ := http.NewRequest("GET", "/api/v1/attack-paths?page=1&per_page=20", nil)
 	req.Header.Set("Authorization", "Bearer "+jwt)
@@ -170,7 +172,7 @@ func BenchmarkListAttackPaths(b *testing.B) {
 // BenchmarkGetFinding measures GET /api/v1/findings/:id throughput.
 func BenchmarkGetFinding(b *testing.B) {
 	srv, router := benchServer(b)
-	jwt := makeJWTForBench(adminClaims())
+	jwt := makeJWTForBench(b, adminClaims())
 
 	if len(srv.mockData.Findings) == 0 {
 		b.Fatal("no mock findings loaded")

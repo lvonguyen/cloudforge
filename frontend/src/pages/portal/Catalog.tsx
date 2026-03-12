@@ -72,6 +72,14 @@ export default function Catalog() {
     return result
   }, [modules, categoryFilter, debouncedSearch])
 
+  const providerCounts = useMemo(() => {
+    const counts: Record<string, number> = { ALL: modules.length }
+    for (const m of modules) {
+      counts[m.provider] = (counts[m.provider] ?? 0) + 1
+    }
+    return counts
+  }, [modules])
+
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { All: modules.length }
     for (const m of modules) {
@@ -109,11 +117,11 @@ export default function Catalog() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All Providers ({modules.length})</SelectItem>
+            <SelectItem value="ALL">All Providers ({providerCounts.ALL})</SelectItem>
             {(['aws', 'azure', 'gcp'] as const).map(p => (
               <SelectItem key={p} value={p}>
                 <ProviderIcon provider={p} className="h-4 w-4" />
-                {p.toUpperCase()} ({modules.filter(m => m.provider === p).length})
+                {p.toUpperCase()} ({providerCounts[p] ?? 0})
               </SelectItem>
             ))}
           </SelectContent>
