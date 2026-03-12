@@ -121,7 +121,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 This is a **platform reference implementation**, not production software:
 
-1. **Test Coverage Gap** - 26 packages, 415 tests passing (hooks, components, backend, benchmarks), v8 coverage thresholds active; integration tests pending
+1. **Test Coverage Gap** - 26 packages, 449 tests passing (hooks, components, backend, benchmarks, finops), v8 coverage thresholds active; integration tests pending
 2. **OIDC Provider Stub** - JWT auth middleware is production-ready (HS256/RS256, JWKS), but Okta/Entra ID providers not wired into auth flow
 3. **Temporal Workflows** — Workflow definitions exist, orchestration layer not wired into request flow
 4. **FinOps Module** — Cost aggregation interfaces defined, no cloud API integration yet
@@ -495,7 +495,7 @@ Built-in support for 20+ frameworks:
 - [x] Remediation dispatcher with 10 handlers across 8 domains
 - [x] Tiered execution model (auto-safe / verify / change window)
 - [x] 48-hour rollback state engine
-- [x] Unit tests — 24 files, 369 functions (cspm, grc, remediation, ai, compliance)
+- [x] Unit tests — 26 packages, 415 functions (cspm, grc, remediation, ai, compliance, server benchmarks)
 - [x] AI governance module — embedded OPA engine, agent registry, STRIDE/ATLAS threat models
 - [x] Security audit fixes (SEC-001 through SEC-012)
 - [x] Architecture hardening — BOLA fix, N+1 queries, CI pinning

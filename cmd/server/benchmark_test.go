@@ -59,6 +59,7 @@ func benchServer(b *testing.B) (*Server, *mux.Router) {
 		attackPathStats:   attackPathStats,
 		findingEnrichment: make(map[string]*FindingEnrichment),
 		roles:             &api.RoleEnforcer{DevMode: false},
+		finopsSvc:         newFinopsService(),
 	}
 
 	srv.findingsByID = make(map[string]*Finding, len(mockData.Findings))

@@ -67,6 +67,7 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		attackPathStats:   attackPathStats,
 		findingEnrichment: make(map[string]*FindingEnrichment),
 		roles:             &api.RoleEnforcer{DevMode: false},
+		finopsSvc:         newFinopsService(),
 	}
 
 	// Build O(1) lookup maps (matches main.go init logic)
