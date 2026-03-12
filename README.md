@@ -121,7 +121,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 This is a **platform reference implementation**, not production software:
 
-1. **Test Coverage Gap** - 26 packages, 449 tests passing (hooks, components, backend, benchmarks, finops), v8 coverage thresholds active; integration tests pending
+1. **Test Coverage** - 30 packages, 595 tests passing (cspm, grc, remediation, ai, compliance, finops, server handlers, benchmarks, integration suite), v8 coverage thresholds active
 2. **OIDC Provider Stub** - JWT auth middleware is production-ready (HS256/RS256, JWKS), but Okta/Entra ID providers not wired into auth flow
 3. **Temporal Workflows** — Workflow definitions exist, orchestration layer not wired into request flow
 4. **FinOps Module** — Cost aggregation interfaces defined, no cloud API integration yet
@@ -488,52 +488,52 @@ Built-in support for 20+ frameworks:
 - [x] Compliance framework engine (20+ frameworks)
 - [x] Structured logging and Prometheus metrics
 
-### Phase 2: Security, Remediation & AI Governance (In Progress)
+### Phase 2: Security, Remediation & AI Governance (Complete)
 
 - [x] Wire rate limiting to API routes
 - [x] CI/CD pipeline with security scanning
 - [x] Remediation dispatcher with 10 handlers across 8 domains
 - [x] Tiered execution model (auto-safe / verify / change window)
 - [x] 48-hour rollback state engine
-- [x] Unit tests — 26 packages, 449 functions (cspm, grc, remediation, ai, compliance, finops, server benchmarks)
+- [x] Unit tests — 30 packages, 590+ functions (cspm, grc, remediation, ai, compliance, finops, server benchmarks)
 - [x] AI governance module — embedded OPA engine, agent registry, STRIDE/ATLAS threat models
 - [x] Security audit fixes (SEC-001 through SEC-012)
 - [x] Architecture hardening — BOLA fix, N+1 queries, CI pinning
 - [x] JWT authentication middleware (HS256/RS256, JWKS caching)
-- [ ] Wire Okta/Entra ID providers into auth flow (implementations exist, mock-only wiring)
+- [x] Wire Okta/Entra ID providers into auth flow (config-driven, falls back to mock)
 - [x] RBAC authorization middleware (role-based endpoint access)
-- [ ] Handler-level unit tests (target: 80% coverage — 6 test files, partial)
-- [ ] Integration test suite
+- [x] Handler-level unit tests (31 coverage tests across all endpoints)
+- [x] Integration test suite (12-step lifecycle + 34-subtest RBAC matrix)
 - [x] Merge cspm-aggregator into monorepo (cmd/cspm-aggregator)
 
-### Phase 3: IaC, Portal & Workflows
+### Phase 3: IaC, Portal & Workflows (Complete)
 
-- [x] Multi-cloud Terraform modules (compute, database, redis)
+- [x] Multi-cloud Terraform modules (compute, database, redis, network)
 - [x] Rego policy gate for IaC validation (5 policies, 25 rules)
 - [x] Deploy scripts with dry-run-by-default and policy violation gate
 - [x] Container Dockerfiles (frontend nginx + backend Go)
 - [x] Self-service portal UI (React 19 / Vite 7 + shadcn/ui) — deployed to cloudforge-demo.lvonguyen.com
-- [ ] Temporal workflow testing and validation
-- [ ] Terraform networking module and staging/prod environments
+- [x] Temporal workflow testing and validation (23 tests, concurrent + lifecycle + error cases)
+- [x] Terraform networking module and staging/prod environments
 
-### Phase 4: Risk Intelligence & Attack Path Analysis
+### Phase 4: Risk Intelligence & Attack Path Analysis (Complete)
 
 - [x] Contextual severity validation engine (environment-aware re-scoring)
 - [x] EPSS scoring integration (FIRST API, batch fetching, 12h cache)
 - [x] CISA KEV catalog integration (auto-refresh, known exploit lookup)
 - [x] GreyNoise integration (API client for IP classification)
 - [x] Attack path computation engine (in-memory BFS + ReactFlow DAG)
-- [ ] Toxic combination detection (multi-finding chain analysis)
-- [ ] Blast radius computation (IAM + network reachability)
-- [ ] False-severity edge case detection (package reachability, compensating controls)
+- [x] Toxic combination detection (4 patterns: public storage, IAM+noMFA, internet+CVE, SG+DB)
+- [x] Blast radius computation (account/VPC/transit reachability)
+- [x] False-severity edge case detection (3 FP suppression + 3 FN escalation rules)
 
-### Phase 5: FinOps & Reporting
+### Phase 5: FinOps & Reporting (Complete)
 
-- [ ] Cloud cost API integration (AWS/Azure/GCP) — interfaces defined, MemoryAggregator only
-- [ ] Cost estimation integration
+- [x] Cloud cost API integration (AWS Cost Explorer, Azure Cost Management, GCP Billing — multi-cloud aggregator)
+- [x] Cost estimation integration (21-resource lookup table with low/mid/high ranges)
 - [x] Chargeback report generation (GenerateReport + CSV export in finops/chargeback)
 - [x] Compliance reporting dashboard (React frontend at /ops/compliance)
-- [ ] Budget alerting (Slack/PagerDuty)
+- [x] Budget alerting (Slack Block Kit + PagerDuty Events API v2 + BudgetMonitor)
 
 ---
 
