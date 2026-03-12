@@ -245,13 +245,11 @@ func TestTrivyScanner_ScanImage_SecretFindingMarkedFailed(t *testing.T) {
 }
 
 func TestNewScanner_TrivyProvider(t *testing.T) {
-	// NewScanner("trivy") must not panic and must return a non-nil Scanner.
-	defer func() {
-		if r := recover(); r != nil {
-			t.Fatalf("NewScanner(\"trivy\") panicked: %v", r)
-		}
-	}()
-	s := NewScanner("trivy")
+	// NewScanner("trivy") must not return error and must return a non-nil Scanner.
+	s, err := NewScanner("trivy")
+	if err != nil {
+		t.Fatalf("NewScanner(\"trivy\") returned error: %v", err)
+	}
 	if s == nil {
 		t.Fatal("expected non-nil Scanner for provider=trivy")
 	}

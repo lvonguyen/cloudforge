@@ -6,7 +6,10 @@ import (
 )
 
 func TestMockScanner_ScanImage_ReturnsStructure(t *testing.T) {
-	s := NewScanner("memory")
+	s, err := NewScanner("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	result, err := s.ScanImage(ctx, "gcr.io/example/app", "v1.2.3")
@@ -31,17 +34,23 @@ func TestMockScanner_ScanImage_ReturnsStructure(t *testing.T) {
 }
 
 func TestMockScanner_ScanImage_EmptyImageError(t *testing.T) {
-	s := NewScanner("memory")
+	s, err := NewScanner("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
-	_, err := s.ScanImage(ctx, "", "latest")
+	_, err = s.ScanImage(ctx, "", "latest")
 	if err == nil {
 		t.Fatal("expected error for empty image, got nil")
 	}
 }
 
 func TestMockScanner_ScanImage_NginxHasCriticalCVE(t *testing.T) {
-	s := NewScanner("memory")
+	s, err := NewScanner("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	result, err := s.ScanImage(ctx, "nginx", "1.24.0")
@@ -65,7 +74,10 @@ func TestMockScanner_ScanImage_NginxHasCriticalCVE(t *testing.T) {
 }
 
 func TestMockScanner_CheckAdmission_LatestTagDenied(t *testing.T) {
-	s := NewScanner("memory")
+	s, err := NewScanner("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	decision, err := s.CheckAdmission(ctx, "gcr.io/example/app", "latest", "production")
@@ -81,7 +93,10 @@ func TestMockScanner_CheckAdmission_LatestTagDenied(t *testing.T) {
 }
 
 func TestMockScanner_CheckAdmission_KnownGoodImageAllowed(t *testing.T) {
-	s := NewScanner("memory")
+	s, err := NewScanner("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	decision, err := s.CheckAdmission(ctx, "gcr.io/distroless/static", "nonroot", "production")
@@ -94,7 +109,10 @@ func TestMockScanner_CheckAdmission_KnownGoodImageAllowed(t *testing.T) {
 }
 
 func TestMockScanner_CheckAdmission_CriticalVulnDenied(t *testing.T) {
-	s := NewScanner("memory")
+	s, err := NewScanner("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	// nginx:1.24.0 has a critical CVE (CVE-2023-38545) in the mock.

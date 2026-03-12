@@ -41,11 +41,11 @@ type Lifecycle interface {
 
 // NewLifecycle returns a Lifecycle implementation for the given provider name.
 // Supports "memory" (in-process mock). Extend the switch for real backends.
-func NewLifecycle(provider string) Lifecycle {
+func NewLifecycle(provider string) (Lifecycle, error) {
 	switch provider {
 	case "memory", "":
-		return newMemoryLifecycle()
+		return newMemoryLifecycle(), nil
 	default:
-		panic(fmt.Sprintf("unsupported secrets lifecycle provider: %q", provider))
+		return nil, fmt.Errorf("unsupported secrets lifecycle provider: %q", provider)
 	}
 }

@@ -7,7 +7,10 @@ import (
 )
 
 func TestMockTemplateManager_ListTemplates_ReturnsTemplates(t *testing.T) {
-	mgr := NewTemplateManager("memory")
+	mgr, err := NewTemplateManager("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	templates, err := mgr.ListTemplates(ctx)
@@ -31,7 +34,10 @@ func TestMockTemplateManager_ListTemplates_ReturnsTemplates(t *testing.T) {
 }
 
 func TestMockTemplateManager_ValidateCompliance_NonCompliantResource(t *testing.T) {
-	mgr := NewTemplateManager("memory")
+	mgr, err := NewTemplateManager("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	// waf-prod-external has many required rules; empty resource config should yield findings.
@@ -54,7 +60,10 @@ func TestMockTemplateManager_ValidateCompliance_NonCompliantResource(t *testing.
 }
 
 func TestMockTemplateManager_ValidateCompliance_DevTemplateHasFewerFindings(t *testing.T) {
-	mgr := NewTemplateManager("memory")
+	mgr, err := NewTemplateManager("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	// waf-dev-external has fewer required rules; partial config should be more compliant.
@@ -71,10 +80,13 @@ func TestMockTemplateManager_ValidateCompliance_DevTemplateHasFewerFindings(t *t
 }
 
 func TestMockTemplateManager_ValidateCompliance_UnknownTemplateReturnsError(t *testing.T) {
-	mgr := NewTemplateManager("memory")
+	mgr, err := NewTemplateManager("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
-	_, err := mgr.ValidateCompliance(ctx, "nonexistent-template", "some-resource")
+	_, err = mgr.ValidateCompliance(ctx, "nonexistent-template", "some-resource")
 	if err == nil {
 		t.Fatal("expected error for unknown template ID, got nil")
 	}
@@ -84,7 +96,10 @@ func TestMockTemplateManager_ValidateCompliance_UnknownTemplateReturnsError(t *t
 }
 
 func TestMockTemplateManager_ValidateCompliance_FindingsHaveRequiredFields(t *testing.T) {
-	mgr := NewTemplateManager("memory")
+	mgr, err := NewTemplateManager("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	result, err := mgr.ValidateCompliance(ctx, "waf-prod-external", "resource-001")

@@ -20,11 +20,11 @@ type TemplateManager interface {
 
 // NewTemplateManager returns a TemplateManager for the given provider name.
 // Supports "memory" (in-process mock). Extend the switch for cloud-backed stores.
-func NewTemplateManager(provider string) TemplateManager {
+func NewTemplateManager(provider string) (TemplateManager, error) {
 	switch provider {
 	case "memory", "":
-		return newMockTemplateManager()
+		return newMockTemplateManager(), nil
 	default:
-		panic(fmt.Sprintf("unsupported WAF template manager provider: %q", provider))
+		return nil, fmt.Errorf("unsupported WAF template manager provider: %q", provider)
 	}
 }

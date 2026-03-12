@@ -7,7 +7,10 @@ import (
 )
 
 func TestMemoryLifecycle_GetSecret_ReturnsExpectedSecret(t *testing.T) {
-	lc := NewLifecycle("memory")
+	lc, err := NewLifecycle("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	s, err := lc.GetSecret(ctx, "db-password")
@@ -26,10 +29,13 @@ func TestMemoryLifecycle_GetSecret_ReturnsExpectedSecret(t *testing.T) {
 }
 
 func TestMemoryLifecycle_GetSecret_NotFound(t *testing.T) {
-	lc := NewLifecycle("memory")
+	lc, err := NewLifecycle("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
-	_, err := lc.GetSecret(ctx, "nonexistent-key")
+	_, err = lc.GetSecret(ctx, "nonexistent-key")
 	if err == nil {
 		t.Fatal("expected error for missing key, got nil")
 	}
@@ -39,7 +45,10 @@ func TestMemoryLifecycle_GetSecret_NotFound(t *testing.T) {
 }
 
 func TestMemoryLifecycle_RotateSecret_IncrementsVersion(t *testing.T) {
-	lc := NewLifecycle("memory")
+	lc, err := NewLifecycle("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	before, err := lc.GetSecret(ctx, "jwt-signing-key")
@@ -73,10 +82,13 @@ func TestMemoryLifecycle_RotateSecret_IncrementsVersion(t *testing.T) {
 }
 
 func TestMemoryLifecycle_RotateSecret_NotFound(t *testing.T) {
-	lc := NewLifecycle("memory")
+	lc, err := NewLifecycle("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
-	_, err := lc.RotateSecret(ctx, "nonexistent-key")
+	_, err = lc.RotateSecret(ctx, "nonexistent-key")
 	if err == nil {
 		t.Fatal("expected error rotating missing key, got nil")
 	}
@@ -86,7 +98,10 @@ func TestMemoryLifecycle_RotateSecret_NotFound(t *testing.T) {
 }
 
 func TestMemoryLifecycle_ListSecrets_ReturnsSeedData(t *testing.T) {
-	lc := NewLifecycle("memory")
+	lc, err := NewLifecycle("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	secrets, err := lc.ListSecrets(ctx)
@@ -99,7 +114,10 @@ func TestMemoryLifecycle_ListSecrets_ReturnsSeedData(t *testing.T) {
 }
 
 func TestMemoryLifecycle_CheckExpiry_FindsExpiringSoon(t *testing.T) {
-	lc := NewLifecycle("memory")
+	lc, err := NewLifecycle("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	expiring, err := lc.CheckExpiry(ctx)
@@ -121,7 +139,10 @@ func TestMemoryLifecycle_CheckExpiry_FindsExpiringSoon(t *testing.T) {
 }
 
 func TestMemoryLifecycle_CheckExpiry_ExcludesNonExpiring(t *testing.T) {
-	lc := NewLifecycle("memory")
+	lc, err := NewLifecycle("memory")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	expiring, err := lc.CheckExpiry(ctx)

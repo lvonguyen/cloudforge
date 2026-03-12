@@ -68,11 +68,11 @@ type Engine interface {
 }
 
 // NewEngine creates a workflow engine for the given provider.
-func NewEngine(provider string) Engine {
+func NewEngine(provider string) (Engine, error) {
 	switch provider {
 	case "memory", "":
-		return newMemoryEngine()
+		return newMemoryEngine(), nil
 	default:
-		panic(fmt.Sprintf("unsupported workflow engine provider: %q", provider))
+		return nil, fmt.Errorf("unsupported workflow engine provider: %q", provider)
 	}
 }

@@ -10,7 +10,11 @@ import (
 )
 
 func (s *Server) listWorkflows(w http.ResponseWriter, r *http.Request) {
-	engine := workflow.NewEngine("memory")
+	engine, err := workflow.NewEngine("memory")
+	if err != nil {
+		s.writeInternalError(w, err, "create workflow engine")
+		return
+	}
 	workflows, err := engine.ListWorkflows(r.Context())
 	if err != nil {
 		s.writeInternalError(w, err, "list workflows")
@@ -28,7 +32,11 @@ func (s *Server) getWorkflow(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	engine := workflow.NewEngine("memory")
+	engine, err := workflow.NewEngine("memory")
+	if err != nil {
+		s.writeInternalError(w, err, "create workflow engine")
+		return
+	}
 	wf, err := engine.GetWorkflow(r.Context(), id)
 	if err != nil {
 		writeErrorResponse(w, "workflow not found", http.StatusNotFound)
@@ -54,7 +62,11 @@ func (s *Server) approveWorkflow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	engine := workflow.NewEngine("memory")
+	engine, err := workflow.NewEngine("memory")
+	if err != nil {
+		s.writeInternalError(w, err, "create workflow engine")
+		return
+	}
 	wf, err := engine.ApproveWorkflow(r.Context(), id, body.Approver)
 	if err != nil {
 		writeErrorResponse(w, err.Error(), http.StatusBadRequest)
