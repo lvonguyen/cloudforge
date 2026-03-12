@@ -15,13 +15,8 @@ func (s *Server) listIdentityUsers(w http.ResponseWriter, r *http.Request) {
 		provider = "okta"
 	}
 
-	var p identity.Provider
-	switch provider {
-	case "okta":
-		p = identity.NewMockOktaProvider()
-	case "entra_id":
-		p = identity.NewMockEntraIDProvider()
-	default:
+	p, ok := s.identityProviders[provider]
+	if !ok {
 		writeErrorResponse(w, "unsupported provider: use okta or entra_id", http.StatusBadRequest)
 		return
 	}
@@ -49,13 +44,8 @@ func (s *Server) getIdentityUserRisk(w http.ResponseWriter, r *http.Request) {
 		provider = "okta"
 	}
 
-	var p identity.Provider
-	switch provider {
-	case "okta":
-		p = identity.NewMockOktaProvider()
-	case "entra_id":
-		p = identity.NewMockEntraIDProvider()
-	default:
+	p, ok := s.identityProviders[provider]
+	if !ok {
 		writeErrorResponse(w, "unsupported provider", http.StatusBadRequest)
 		return
 	}

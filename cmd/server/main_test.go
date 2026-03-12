@@ -13,6 +13,7 @@ import (
 
 	"cloudforge/internal/api"
 	"cloudforge/internal/grc"
+	"cloudforge/internal/identity"
 	"cloudforge/internal/observability"
 
 	"github.com/gorilla/mux"
@@ -68,6 +69,10 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		findingEnrichment: make(map[string]*FindingEnrichment),
 		roles:             &api.RoleEnforcer{DevMode: false},
 		finopsSvc:         newFinopsService(),
+		identityProviders: map[string]identity.Provider{
+			"okta":     identity.NewMockOktaProvider(),
+			"entra_id": identity.NewMockEntraIDProvider(),
+		},
 	}
 
 	// Build O(1) lookup maps (matches main.go init logic)

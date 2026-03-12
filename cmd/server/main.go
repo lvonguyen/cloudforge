@@ -16,6 +16,7 @@ import (
 	"cloudforge/internal/api"
 	"cloudforge/internal/api/gateway"
 	"cloudforge/internal/grc"
+	"cloudforge/internal/identity"
 	"cloudforge/internal/observability"
 
 	"github.com/gorilla/mux"
@@ -61,8 +62,9 @@ type Server struct {
 	aiProvider        ai.Provider // nil when AI is disabled (graceful degradation)
 	findingEnrichment map[string]*FindingEnrichment
 	enrichMu          sync.Mutex
-	roles             *api.RoleEnforcer
-	finopsSvc         *finopsService
+	roles              *api.RoleEnforcer
+	finopsSvc          *finopsService
+	identityProviders  map[string]identity.Provider
 }
 
 func main() {
@@ -177,6 +179,43 @@ func main() {
 		}
 	}
 
+	// Initialize identity providers — use real providers when env vars are set,
+	// otherwise fall back to in-memory mocks for local development.
+	idProviders := make(map[string]identity.Provider, 2)
+	if oktaDomain := os.Getenv("OKTA_DOMAIN"); oktaDomain != "" {
+		op, err := identity.NewOktaProvider(identity.OktaConfig{
+			Domain:      oktaDomain,
+			APITokenEnv: "OKTA_API_TOKEN",
+		}, logger)
+		if err != nil {
+			logger.Warn("Okta provider init failed, falling back to mock", zap.Error(err))
+			idProviders["okta"] = identity.NewMockOktaProvider()
+		} else {
+			idProviders["okta"] = op
+			logger.Info("Okta identity provider initialized", zap.String("domain", oktaDomain))
+		}
+	} else {
+		idProviders["okta"] = identity.NewMockOktaProvider()
+		logger.Info("Using mock Okta identity provider (OKTA_DOMAIN not set)")
+	}
+	if entraTenantID := os.Getenv("ENTRA_TENANT_ID"); entraTenantID != "" {
+		ep, err := identity.NewEntraIDProvider(identity.EntraIDConfig{
+			TenantIDEnv:     "ENTRA_TENANT_ID",
+			ClientIDEnv:     "ENTRA_CLIENT_ID",
+			ClientSecretEnv: "ENTRA_CLIENT_SECRET",
+		}, logger)
+		if err != nil {
+			logger.Warn("Entra ID provider init failed, falling back to mock", zap.Error(err))
+			idProviders["entra_id"] = identity.NewMockEntraIDProvider()
+		} else {
+			idProviders["entra_id"] = ep
+			logger.Info("Entra ID identity provider initialized", zap.String("tenant_id", entraTenantID))
+		}
+	} else {
+		idProviders["entra_id"] = identity.NewMockEntraIDProvider()
+		logger.Info("Using mock Entra ID identity provider (ENTRA_TENANT_ID not set)")
+	}
+
 	// Create server
 	srv := &Server{
 		config:            cfg,
@@ -190,6 +229,7 @@ func main() {
 		findingEnrichment: make(map[string]*FindingEnrichment),
 		roles:             &api.RoleEnforcer{DevMode: os.Getenv("APP_ENV") == "development"},
 		finopsSvc:         newFinopsService(),
+		identityProviders: idProviders,
 	}
 
 	// Load mock data from frontend JSON files
