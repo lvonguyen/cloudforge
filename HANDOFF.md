@@ -7,7 +7,7 @@ CloudForge uses synthetic mock findings (80 records) for the demo. Real-world an
 - `make dev` starts backend (:8080) + frontend (:5173) — single command
 - Redis rate limiter fixed (nil-check, no Redis needed locally)
 - All list pages (Users, Policies, AI Agents, Findings) load correctly
-- Dev auth working: `.env.development` has `VITE_DEV_TOKEN`
+- Dev auth working: `.env.development` has `VITE_DEV_TOKEN` (sourced from 1Password `cloudforge-dev-jwt-secret` vault item)
 - Uncommitted changes: Redis fix + Makefile `dev` target — commit these first
 
 ## Step 0: Commit Pending Changes

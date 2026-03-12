@@ -5,6 +5,9 @@ BINARY_NAME=cloudforge
 GO=go
 DOCKER_COMPOSE=docker-compose
 
+# Secret management — pulls from 1Password, falls back for CI/offline dev
+CF_JWT_SECRET ?= $(shell op read "op://Development/cloudforge-dev-jwt-secret/password" 2>/dev/null || echo "dev-secret-fallback")
+
 # Default target
 help:
 	@echo "CloudForge - Enterprise Cloud Governance Platform"
@@ -42,7 +45,7 @@ run:
 # Run backend + frontend dev servers (Ctrl-C kills both)
 dev:
 	@trap 'kill 0' EXIT; \
-	CLOUDFORGE_JWT_SECRET=dev-secret-do-not-use GRC_PROVIDER=memory $(GO) run ./cmd/server & \
+	CLOUDFORGE_JWT_SECRET=$(CF_JWT_SECRET) GRC_PROVIDER=memory $(GO) run ./cmd/server & \
 	cd frontend && npm run dev & \
 	wait
 
@@ -143,7 +146,7 @@ dev-ai:
 	AWS_PROFILE=$${AWS_PROFILE:-lvn-personal} \
 	CLOUDFORGE_AI_ENABLED=true \
 	CLOUDFORGE_AI_REGION=$${CLOUDFORGE_AI_REGION:-us-east-1} \
-	CLOUDFORGE_JWT_SECRET=dev-secret-do-not-use \
+	CLOUDFORGE_JWT_SECRET=$(CF_JWT_SECRET) \
 	GRC_PROVIDER=memory \
 	$(GO) run ./cmd/server & \
 	cd frontend && npm run dev & \
@@ -154,7 +157,7 @@ health:  ## Check backend health
 
 smoke: build  ## Start backend, verify health, stop
 	@echo "Starting backend for smoke test..."
-	@CLOUDFORGE_JWT_SECRET=smoke-test GRC_PROVIDER=memory ./bin/cloudforge &
+	@CLOUDFORGE_JWT_SECRET=$(CF_JWT_SECRET) GRC_PROVIDER=memory ./bin/cloudforge &
 	@sleep 2
 	@curl -sf http://localhost:8080/healthz && echo "Liveness: OK" || echo "Liveness: FAIL"
 	@curl -sf http://localhost:8080/ready && echo "Readiness: OK" || echo "Readiness: FAIL"

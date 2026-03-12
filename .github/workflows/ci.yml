@@ -140,6 +140,11 @@ jobs:
         with:
           sarif_file: trivy-results.sarif
 
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
   opa:
     name: OPA Policy Test
     runs-on: ubuntu-latest
