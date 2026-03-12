@@ -1,3 +1,4 @@
+import { branding } from '@/lib/branding'
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAgent, useAgentTraces } from '@/hooks/useAgents'
@@ -32,7 +33,7 @@ import type {
 const MOCK_THREAT_MODEL: ThreatModel = {
   id: 'tm-001',
   name: 'Cloud Agent Threat Model',
-  description: 'STRIDE analysis for autonomous cloud-acting agents within CloudForge.',
+  description: `STRIDE analysis for autonomous cloud-acting agents within ${branding.productName}.`,
   scope: 'All agent interactions with cloud APIs, LLM providers, and internal policy engine.',
   target_agent_id: '550e8400-e29b-41d4-a716-446655440002',
   trust_boundaries: [

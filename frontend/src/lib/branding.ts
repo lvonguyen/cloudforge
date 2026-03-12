@@ -2,6 +2,8 @@
  * Centralized branding configuration.
  * All tenant-specific strings are read from Vite env vars with sensible defaults.
  * Override via .env.development or per-tenant .env files (e.g. .env.haea).
+ *
+ * Phase 2: Added enabledModules, storagePrefix, and theme color vars.
  */
 export const branding = {
   /** Display name of the deploying organization (e.g. "Contoso", "HAEA"). */
@@ -18,4 +20,32 @@ export const branding = {
 
   /** GitHub org/user prefix for repo links on landing page. */
   repoPrefix: import.meta.env.VITE_REPO_PREFIX || 'github.com/contoso',
+
+  /**
+   * Comma-separated list of enabled module slugs.
+   * Controls which project cards appear on the landing page.
+   * Default shows both core modules.
+   */
+  enabledModules: (import.meta.env.VITE_ENABLED_MODULES || 'cloudforge,cspm-aggregator')
+    .split(',')
+    .map((s: string) => s.trim()),
+
+  /**
+   * Prefix for localStorage/sessionStorage keys.
+   * Prevents key collisions when multiple tenants share a browser in dev.
+   */
+  storagePrefix: import.meta.env.VITE_STORAGE_PREFIX || 'cloudforge',
+
+  /**
+   * Brand theme colors (CSS hex values).
+   * Applied as CSS custom properties at :root for per-tenant visual identity.
+   * See theme.ts for the full theming pipeline.
+   */
+  themeColors: {
+    primary: import.meta.env.VITE_BRAND_PRIMARY || '',
+    secondary: import.meta.env.VITE_BRAND_SECONDARY || '',
+    accent: import.meta.env.VITE_BRAND_ACCENT || '',
+  },
 } as const
+
+export type Branding = typeof branding

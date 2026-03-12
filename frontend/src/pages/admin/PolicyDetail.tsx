@@ -1,3 +1,4 @@
+import { brandMockData, brandEmail, brandRegistryRefs } from '@/lib/mock-data-utils'
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import policiesData from '@/lib/mock/policies.json'
@@ -582,7 +583,7 @@ deny[msg] {
   const rego = regoTemplates[summary.category] ?? `package ${packagePath}\n\ndefault allow := false\n\ndeny[msg] {\n  msg := "Policy evaluation pending configuration"\n}`
 
   const resources = ['ec2-web-prod-05', 'rds-analytics-stg', 'lambda-etl-prod', 'ecs-api-gateway', 's3-data-lake-prod', 'aks-platform-stg', 'gke-ml-prod', 'vm-batch-dev']
-  const actors = ['operator1@contoso.dev', 'user1@contoso.dev', 'user2@contoso.dev', 'operator2@contoso.dev', 'admin1@contoso.dev']
+  const actors = [brandEmail('operator1'), brandEmail('user1'), brandEmail('user2'), brandEmail('operator2'), brandEmail('admin1')]
 
   const recentEvals: PolicyEvaluation[] = summary.evaluations > 0 ? Array.from({ length: 5 }, (_, i) => ({
     timestamp: `2026-02-${String(27 - i).padStart(2, '0')}T${String(14 - i).padStart(2, '0')}:${String(30 + i * 7).padStart(2, '0')}:00Z`,
@@ -625,7 +626,7 @@ export default function PolicyDetail() {
 
   const policy = (() => {
     if (!id) return undefined
-    if (POLICY_DETAILS[id]) return POLICY_DETAILS[id]
+    if (POLICY_DETAILS[id]) return brandMockData(POLICY_DETAILS[id])
     const summary = policiesData.find((p: { id: string }) => p.id === id)
     if (!summary) return undefined
     return generatePolicyDetail(summary)
@@ -643,9 +644,9 @@ export default function PolicyDetail() {
   }
 
   const { icon: StatusIcon, className: statusIconClass } = STATUS_CONFIG[policy.status] ?? STATUS_CONFIG.inactive
-  const lines = policy.rego.split('\n')
+  const lines = rego.split('\n')
 
-  const rego = policy.rego
+  const rego = brandRegistryRefs(policy.rego)
 
   function handleCopy() {
     navigator.clipboard.writeText(rego).then(() => {

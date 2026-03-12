@@ -1,3 +1,4 @@
+import { brandEmail } from '@/lib/mock-data-utils'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,10 +26,10 @@ interface RequestRow {
 
 const MOCK_REQUESTS: RequestRow[] = [
   { id: 'EXC-002', resource: 'EC2 m5.24xlarge in us-east-1', type: 'OVERSIZED_INSTANCE', provider: 'aws', status: 'PENDING', created: '2026-02-24', updated: '2026-02-24', approver: '—' },
-  { id: 'EXC-006', resource: 'S3 bucket in ap-southeast-1', type: 'UNAPPROVED_REGION', provider: 'aws', status: 'APPROVED', created: '2026-02-18', updated: '2026-02-19', approver: 'admin1@contoso.dev', expiry: '2026-05-19' },
-  { id: 'EXC-007', resource: 'RDS db.r5.2xlarge prod', type: 'OVERSIZED_INSTANCE', provider: 'aws', status: 'REJECTED', created: '2026-02-10', updated: '2026-02-11', approver: 'admin1@contoso.dev' },
-  { id: 'EXC-009', resource: 'AKS private cluster eastus', type: 'RESTRICTED_SERVICE', provider: 'azure', status: 'APPROVED', created: '2026-01-15', updated: '2026-01-16', approver: 'operator1@contoso.dev', expiry: '2026-04-15' },
-  { id: 'EXC-011', resource: 'GKE node pool us-central1-a', type: 'OVERSIZED_INSTANCE', provider: 'gcp', status: 'EXPIRED', created: '2025-11-01', updated: '2026-02-01', approver: 'operator1@contoso.dev' },
+  { id: 'EXC-006', resource: 'S3 bucket in ap-southeast-1', type: 'UNAPPROVED_REGION', provider: 'aws', status: 'APPROVED', created: '2026-02-18', updated: '2026-02-19', approver: brandEmail('admin1'), expiry: '2026-05-19' },
+  { id: 'EXC-007', resource: 'RDS db.r5.2xlarge prod', type: 'OVERSIZED_INSTANCE', provider: 'aws', status: 'REJECTED', created: '2026-02-10', updated: '2026-02-11', approver: brandEmail('admin1') },
+  { id: 'EXC-009', resource: 'AKS private cluster eastus', type: 'RESTRICTED_SERVICE', provider: 'azure', status: 'APPROVED', created: '2026-01-15', updated: '2026-01-16', approver: brandEmail('operator1'), expiry: '2026-04-15' },
+  { id: 'EXC-011', resource: 'GKE node pool us-central1-a', type: 'OVERSIZED_INSTANCE', provider: 'gcp', status: 'EXPIRED', created: '2025-11-01', updated: '2026-02-01', approver: brandEmail('operator1') },
 ]
 
 function mapExceptionToRow(exc: ExceptionRequest): RequestRow {

@@ -1,3 +1,4 @@
+import { brandMockData } from '@/lib/mock-data-utils'
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -136,7 +137,7 @@ export default function RequestDetail() {
   const [withdrawn, setWithdrawn] = useState(false)
   const [withdrawing, setWithdrawing] = useState(false)
 
-  const exc = id ? MOCK_DETAILS[id] : undefined
+  const exc = id ? brandMockData(MOCK_DETAILS[id]) : undefined
 
   if (!exc) {
     return (

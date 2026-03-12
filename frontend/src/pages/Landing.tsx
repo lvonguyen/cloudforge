@@ -24,13 +24,13 @@ interface ProjectCard {
 
 const PROJECTS: ProjectCard[] = [
   {
-    name: 'CloudForge',
+    name: branding.productName,
     slug: 'cloudforge',
     tier: 'flagship',
     description:
       'Enterprise cloud security platform — policy-as-code provisioning, AI-powered risk scoring, automated remediation, and multi-cloud compliance across AWS, Azure, and GCP.',
     icon: Shield,
-    iconSvg: '/icons/cloudforge-logo.svg',
+    iconSvg: branding.logoPath,
     color: 'text-blue-600 dark:text-blue-400',
     bg: 'bg-blue-50 dark:bg-blue-900/30',
     tags: ['Go', 'OPA/Rego', 'React', 'Terraform', 'Multi-Cloud'],
@@ -69,8 +69,10 @@ const TIER_BADGE: Record<string, string> = {
 }
 
 export default function Landing() {
-  const flagship = PROJECTS.filter(p => p.tier === 'flagship')
-  const supporting = PROJECTS.filter(p => p.tier === 'supporting')
+  // Filter projects by enabled modules from branding config
+  const visibleProjects = PROJECTS.filter(p => branding.enabledModules.includes(p.slug))
+  const flagship = visibleProjects.filter(p => p.tier === 'flagship')
+  const supporting = visibleProjects.filter(p => p.tier === 'supporting')
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -83,7 +85,7 @@ export default function Landing() {
           <div>
             <h1 className="text-xl font-semibold tracking-tight">{branding.productName} Platform</h1>
             <p className="text-sm text-muted-foreground">
-              Enterprise cloud security platform — 2 integrated modules
+              Enterprise cloud security platform — {visibleProjects.length} integrated module{visibleProjects.length !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
@@ -110,24 +112,28 @@ export default function Landing() {
       </div>
 
       {/* Flagship projects */}
-      <section>
-        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Tier 1 — Flagship</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {flagship.map(project => (
-            <ProjectTile key={project.slug} project={project} />
-          ))}
-        </div>
-      </section>
+      {flagship.length > 0 && (
+        <section>
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Tier 1 — Flagship</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {flagship.map(project => (
+              <ProjectTile key={project.slug} project={project} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Supporting projects */}
-      <section>
-        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Tier 2 — Supporting</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {supporting.map(project => (
-            <ProjectTile key={project.slug} project={project} />
-          ))}
-        </div>
-      </section>
+      {supporting.length > 0 && (
+        <section>
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Tier 2 — Supporting</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {supporting.map(project => (
+              <ProjectTile key={project.slug} project={project} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }

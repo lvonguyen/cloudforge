@@ -20,13 +20,14 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
+import { brandEmail } from '@/lib/mock-data-utils'
 import type { Approver, ExceptionRequest } from '@/types/grc'
 
 const MOCK_EXCEPTIONS: ExceptionRequest[] = [
   {
     id: 'EXC-001',
     application_id: 'payments-api',
-    requestor_email: 'dev1@contoso.dev',
+    requestor_email: brandEmail('dev1'),
     request_type: 'UNAPPROVED_REGION',
     policy_violated: 'REGION-001',
     resource_requested: 'RDS in ap-southeast-3',
@@ -39,7 +40,7 @@ const MOCK_EXCEPTIONS: ExceptionRequest[] = [
   {
     id: 'EXC-002',
     application_id: 'data-pipeline',
-    requestor_email: 'dev2@contoso.dev',
+    requestor_email: brandEmail('dev2'),
     request_type: 'OVERSIZED_INSTANCE',
     policy_violated: 'COST-002',
     resource_requested: 'EC2 m5.24xlarge in us-east-1',
@@ -52,20 +53,20 @@ const MOCK_EXCEPTIONS: ExceptionRequest[] = [
   {
     id: 'EXC-003',
     application_id: 'ml-training',
-    requestor_email: 'ml-team@contoso.dev',
+    requestor_email: brandEmail('ml-team'),
     request_type: 'RESTRICTED_SERVICE',
     policy_violated: 'SVC-003',
     resource_requested: 'Bedrock us-gov-west-1',
     business_case: 'FedRAMP-compliant model inference',
     status: 'APPROVED',
-    approver_chain: [{ email: 'admin1@contoso.dev', role: 'admin', decision: 'APPROVED', decided_at: '2026-02-23T16:00:00Z' }],
+    approver_chain: [{ email: brandEmail('admin1'), role: 'admin', decision: 'APPROVED', decided_at: '2026-02-23T16:00:00Z' }],
     created_at: '2026-02-23T09:00:00Z',
     updated_at: '2026-02-23T16:00:00Z',
   },
   {
     id: 'EXC-004',
     application_id: 'auth-service',
-    requestor_email: 'secops@contoso.dev',
+    requestor_email: brandEmail('secops'),
     request_type: 'NETWORK_EXPOSURE',
     policy_violated: 'NET-001',
     resource_requested: 'SG sg-0abc1234 port 22',
@@ -109,7 +110,7 @@ export default function CommandCenter() {
   function handleApprove(id: string) {
     if (!approveCooldown.canFire) return
     const approver: Approver = {
-      email: 'operator1@contoso.dev',
+      email: brandEmail('operator1'),
       role: 'ops',
       decision: 'APPROVED',
     }

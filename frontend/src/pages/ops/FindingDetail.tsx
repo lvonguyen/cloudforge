@@ -1,3 +1,4 @@
+import { brandEmail } from '@/lib/mock-data-utils'
 import { useState } from 'react'
 import { useAuth } from '@/lib/auth'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -112,7 +113,7 @@ export default function FindingDetail() {
               createException.mutate(
                 {
                   application_id: finding.account_id ?? 'unknown',
-                  requestor_email: user?.email || 'operator@contoso.dev',
+                  requestor_email: user?.email || brandEmail('operator'),
                   request_type: 'OTHER',
                   policy_violated: finding.id,
                   resource_requested: finding.resource_name,

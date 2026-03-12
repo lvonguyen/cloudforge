@@ -1,3 +1,4 @@
+import { branding } from '@/lib/branding'
 import type { TerraformPlan, DeployPreviewConfig } from '@/types/deploy'
 
 function planForS3(config: DeployPreviewConfig): TerraformPlan {
@@ -99,7 +100,7 @@ function planForEC2(config: DeployPreviewConfig): TerraformPlan {
               before: null,
               after: {
                 name: `cf-demo-${config.appId}-sg`,
-                description: 'CloudForge demo security group',
+                description: `${branding.productName} demo security group`,
                 ingress: [],
                 egress: [{ from_port: 0, to_port: 0, protocol: '-1', cidr_blocks: ['0.0.0.0/0'] }],
               },

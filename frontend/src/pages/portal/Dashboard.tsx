@@ -1,3 +1,4 @@
+import { brandEmail } from '@/lib/mock-data-utils'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,8 +14,8 @@ const MY_REQUESTS = [
 ]
 
 const PENDING_APPROVALS = [
-  { id: 'EXC-001', app: 'payments-api', resource: 'RDS in ap-southeast-3', requestor: 'operator1@contoso.dev', since: '2h ago' },
-  { id: 'EXC-004', app: 'auth-service', resource: 'SG port 22 open', requestor: 'operator2@contoso.dev', since: '4h ago' },
+  { id: 'EXC-001', app: 'payments-api', resource: 'RDS in ap-southeast-3', requestor: brandEmail('operator1'), since: '2h ago' },
+  { id: 'EXC-004', app: 'auth-service', resource: 'SG port 22 open', requestor: brandEmail('operator2'), since: '4h ago' },
 ]
 
 

@@ -14,7 +14,7 @@ const DEFAULT_USER: User = {
   name: 'Admin One',
   email: `admin1@${branding.emailDomain}`,
   role: 'admin',
-  groups: ['cloudforge-admin'],
+  groups: [`${branding.storagePrefix}-admin`],
 }
 
 const ANONYMOUS_USER: User = {
@@ -24,16 +24,20 @@ const ANONYMOUS_USER: User = {
   groups: [],
 }
 
-const ROLE_KEY = 'cloudforge_role'
-export const TOKEN_KEY = 'cloudforge_access_token'
-const ID_TOKEN_KEY = 'cloudforge_id_token'
-const VERIFIER_KEY = 'cloudforge_pkce_verifier'
-export const STATE_KEY = 'cloudforge_oauth_state'
-const NONCE_KEY = 'cloudforge_oauth_nonce'
-export const LOGIN_RETURN_KEY = 'cloudforge_login_return'
+// Storage keys use the tenant's storagePrefix to avoid collisions
+const ROLE_KEY = `${branding.storagePrefix}_role`
+export const TOKEN_KEY = `${branding.storagePrefix}_access_token`
+const ID_TOKEN_KEY = `${branding.storagePrefix}_id_token`
+const VERIFIER_KEY = `${branding.storagePrefix}_pkce_verifier`
+export const STATE_KEY = `${branding.storagePrefix}_oauth_state`
+const NONCE_KEY = `${branding.storagePrefix}_oauth_nonce`
+export const LOGIN_RETURN_KEY = `${branding.storagePrefix}_login_return`
 
 const OKTA_ISSUER = import.meta.env.VITE_OKTA_ISSUER as string | undefined
 const OKTA_CLIENT_ID = import.meta.env.VITE_OKTA_CLIENT_ID as string | undefined
+
+// Group name prefix for RBAC group matching
+const GROUP_PREFIX = branding.storagePrefix
 
 // --- PKCE helpers ---
 
@@ -89,8 +93,8 @@ function userFromToken(token: string, savedRole: Role | null): User {
 
   let role: Role = savedRole ?? 'requester'
   if (!savedRole) {
-    if (groups.includes('cloudforge-admin')) role = 'admin'
-    else if (groups.includes('cloudforge-operator')) role = 'operator'
+    if (groups.includes(`${GROUP_PREFIX}-admin`)) role = 'admin'
+    else if (groups.includes(`${GROUP_PREFIX}-operator`)) role = 'operator'
   }
 
   return { name, email, role }

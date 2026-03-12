@@ -1,0 +1,20 @@
+{
+  "_comment": "Runtime configuration for CloudForge. This file is fetched at app startup. In Phase 3+ deployments, this can be served per-tenant via CDN edge rules or backend middleware. Delete this file to use build-time env var branding only (Phase 2 mode).",
+  "companyName": "Contoso",
+  "productName": "CloudForge",
+  "logoPath": "/icons/cloudforge-logo.svg",
+  "emailDomain": "contoso.dev",
+  "repoPrefix": "github.com/contoso",
+  "enabledModules": ["cloudforge", "cspm-aggregator"],
+  "storagePrefix": "cloudforge",
+  "theme": {
+    "primaryColor": "",
+    "secondaryColor": "",
+    "accentColor": ""
+  },
+  "features": {
+    "aiEnrichment": true,
+    "attackPaths": true,
+    "finops": true
+  }
+}
