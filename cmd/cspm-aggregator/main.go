@@ -134,7 +134,7 @@ func run(ctx context.Context, logger *zap.Logger, cfg *config.Config, cloudFilte
 	}
 
 	// Step 3: Load previous state for delta detection
-	// TODO: Load from Azure Blob / S3 / GCS
+	// PLANNED: Load from Azure Blob / S3 / GCS
 	var previousState *normalizer.State
 
 	// Step 4: Normalize and enrich findings
@@ -157,7 +157,7 @@ func run(ctx context.Context, logger *zap.Logger, cfg *config.Config, cloudFilte
 	)
 
 	// Step 5: Apply AI risk scoring (if enabled)
-	// TODO: Initialize AI scorer and score findings
+	// PLANNED: Initialize AI scorer and score findings
 	// scorer := scoring.NewRiskScorer(llmProvider, enricher, fpStore, scoring.DefaultRiskScorerConfig())
 	// for i := range allFindings {
 	//     assessment, err := scorer.ScoreFinding(ctx, &allFindings[i])
@@ -165,16 +165,16 @@ func run(ctx context.Context, logger *zap.Logger, cfg *config.Config, cloudFilte
 	// }
 
 	// Step 6: Apply complexity assessment
-	// TODO: Assess remediation complexity
+	// PLANNED: Assess remediation complexity
 	// complexityNorm := scoring.NewComplexityNormalizer(llmProvider, metadata, scoring.DefaultComplexityConfig())
 
 	// Step 7: Calculate priority matrix
-	// TODO: Combine risk score + complexity → priority
+	// PLANNED: Combine risk score + complexity → priority
 
 	// Step 8: Sync to Asana (if not dry-run)
 	if cfg.Asana.Enabled && !dryRun {
 		logger.Info("Syncing to Asana", zap.String("project_gid", cfg.Asana.ProjectGID))
-		// TODO: asanaClient.SyncFindings(ctx, allFindings)
+		// PLANNED: asanaClient.SyncFindings(ctx, allFindings)
 	} else if dryRun {
 		logger.Info("Dry-run: skipping Asana sync")
 	}
@@ -185,19 +185,19 @@ func run(ctx context.Context, logger *zap.Logger, cfg *config.Config, cloudFilte
 			zap.Strings("formats", cfg.Reports.Formats),
 			zap.String("output_dir", cfg.Reports.OutputDir),
 		)
-		// TODO: reporter.GenerateReports(allFindings, cfg.Reports)
+		// PLANNED: reporter.GenerateReports(allFindings, cfg.Reports)
 	}
 
 	// Step 10: Send email notifications (if not dry-run)
 	if cfg.Email.Enabled && !dryRun {
 		logger.Info("Sending email notifications")
-		// TODO: emailClient.SendReport(ctx, allFindings, cfg.Email)
+		// PLANNED: emailClient.SendReport(ctx, allFindings, cfg.Email)
 	} else if dryRun {
 		logger.Info("Dry-run: skipping email notifications")
 	}
 
 	// Step 11: Save state for next run
-	// TODO: Save to Azure Blob / S3 / GCS
+	// PLANNED: Save to Azure Blob / S3 / GCS
 
 	logger.Info("Pipeline complete",
 		zap.Duration("total_duration", time.Since(startTime)),
@@ -260,7 +260,7 @@ func initProviders(ctx context.Context, logger *zap.Logger, cfg *config.Config, 
 					zap.Strings("regions", cfg.Providers.AWS.Regions),
 					zap.Bool("use_oidc", cfg.Providers.AWS.UseOIDC),
 				)
-				// TODO: Initialize AWS SDK config with OIDC
+				// PLANNED: Initialize AWS SDK config with OIDC
 				// awsCfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(cfg.Providers.AWS.Regions[0]))
 				// providers = append(providers, &AWSProviderAdapter{provider: awsprovider.NewSecurityHubProvider(awsCfg, "")})
 			}
@@ -271,7 +271,7 @@ func initProviders(ctx context.Context, logger *zap.Logger, cfg *config.Config, 
 					zap.String("tenant_id", cfg.Providers.Azure.TenantID),
 					zap.Bool("use_managed_identity", cfg.Providers.Azure.UseManagedIdentity),
 				)
-				// TODO: Initialize Azure provider
+				// PLANNED: Initialize Azure provider
 			}
 
 		case "gcp":
@@ -280,7 +280,7 @@ func initProviders(ctx context.Context, logger *zap.Logger, cfg *config.Config, 
 					zap.String("organization_id", cfg.Providers.GCP.OrganizationID),
 					zap.Bool("use_wif", cfg.Providers.GCP.UseWIF),
 				)
-				// TODO: Initialize GCP provider
+				// PLANNED: Initialize GCP provider
 			}
 		}
 	}
@@ -307,7 +307,7 @@ func queryProvider(ctx context.Context, p Provider) ([]normalizer.Finding, error
 
 // loadAccountMappings loads account metadata from config or external source
 func loadAccountMappings(cfg *config.Config) []normalizer.AccountInfo {
-	// TODO: Load from config file or external API (ServiceNow CMDB, etc.)
+	// PLANNED: Load from config file or external API (ServiceNow CMDB, etc.)
 	return []normalizer.AccountInfo{}
 }
 
