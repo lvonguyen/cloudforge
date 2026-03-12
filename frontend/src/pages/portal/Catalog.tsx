@@ -42,7 +42,6 @@ const COMPLIANCE_COLORS: Record<string, string> = {
   FedRAMP: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300',
 }
 
-const PROVIDER_FILTER = ['ALL', 'aws', 'azure', 'gcp'] as const
 const CATEGORIES = ['All', 'compute', 'storage', 'database', 'network', 'serverless', 'container', 'messaging', 'analytics', 'security', 'observability', 'ai-ml', 'cicd'] as const
 
 export default function Catalog() {

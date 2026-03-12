@@ -55,7 +55,7 @@ const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; className: stri
 
 export default function MyRequests() {
   const [statusFilter, setStatusFilter] = useState('ALL')
-  const { data: exceptions, isLoading } = useMyExceptions()
+  const { data: exceptions } = useMyExceptions()
 
   const REQUESTS = exceptions?.map(mapExceptionToRow) ?? MOCK_REQUESTS
 
