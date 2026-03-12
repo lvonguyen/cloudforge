@@ -1,0 +1,66 @@
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#3b82f6', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+
+flowchart LR
+    subgraph Portal["Portal — React 19 / Vite 7"]
+        style Portal fill:#3b82f6,stroke:#1e3a8a,color:#fff
+        A1["Self-Service<br/>Catalog"]
+        A2["Findings &<br/>Attack Paths"]
+        A3["Compliance<br/>Dashboard"]
+        A4["Cost &<br/>Spend Mgmt"]
+    end
+
+    subgraph API["API Server — Go 1.25"]
+        style API fill:#1e40af,stroke:#1e3a8a,color:#fff
+        B1["JWT Auth<br/>+ RBAC"]
+        B2["Rate Limiting<br/>+ CORS"]
+        B3["REST Handlers<br/>(30+ endpoints)"]
+        B4["Health &<br/>Observability"]
+    end
+
+    subgraph Core["Core Engines"]
+        style Core fill:#7c3aed,stroke:#4c1d95,color:#fff
+        C1["CSPM Risk<br/>Scorer"]
+        C2["Remediation<br/>Dispatcher"]
+        C3["Attack Path<br/>BFS Engine"]
+        C4["AI Governance<br/>OPA Engine"]
+    end
+
+    subgraph Intel["Risk Intelligence"]
+        style Intel fill:#dc2626,stroke:#991b1b,color:#fff
+        D1["EPSS +<br/>CISA KEV"]
+        D2["GreyNoise<br/>IP Intel"]
+        D3["Toxic Combo<br/>Detection"]
+        D4["Blast Radius<br/>Computation"]
+    end
+
+    subgraph Policy["Policy — OPA / Rego"]
+        style Policy fill:#f59e0b,stroke:#b45309,color:#fff
+        E1["Region &<br/>Cost Policies"]
+        E2["Network &<br/>Exception Rules"]
+        E3["AI Agent<br/>Guardrails"]
+        E4["IaC Validation<br/>(conftest)"]
+    end
+
+    subgraph FinOps["FinOps Platform"]
+        style FinOps fill:#22c55e,stroke:#166534,color:#fff
+        F1["Multi-Cloud<br/>Cost Aggregator"]
+        F2["Anomaly<br/>Detection"]
+        F3["Chargeback<br/>Engine"]
+        F4["Budget Alerts<br/>Slack/PagerDuty"]
+    end
+
+    subgraph Infra["Infrastructure"]
+        style Infra fill:#64748b,stroke:#334155,color:#fff
+        G1["Terraform<br/>Modules"]
+        G2["Temporal<br/>Workflows"]
+        G3["PostgreSQL<br/>+ Redis"]
+        G4["AWS / Azure<br/>/ GCP APIs"]
+    end
+
+    Portal --> API
+    API --> Core
+    Core --> Intel
+    Core --> Policy
+    Core --> FinOps
+    Policy --> Infra
+    FinOps --> Infra
