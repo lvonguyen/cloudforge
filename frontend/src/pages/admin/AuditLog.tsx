@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -119,9 +119,8 @@ export default function AuditLog() {
                 const isExpanded = expandedId === evt.id
                 const [actionNs, actionVerb] = evt.action.split('.')
                 return (
-                  <>
+                  <Fragment key={evt.id}>
                     <TableRow
-                      key={evt.id}
                       className="hover:bg-muted/30 cursor-pointer"
                       onClick={() => setExpandedId(prev => prev === evt.id ? null : evt.id)}
                     >
@@ -176,7 +175,7 @@ export default function AuditLog() {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 )
               })}
             </TableBody>
