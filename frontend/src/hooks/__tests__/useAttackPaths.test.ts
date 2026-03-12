@@ -88,7 +88,7 @@ describe('useAttackPaths', () => {
     const { result } = renderHook(() => useAttackPaths(), { wrapper: makeWrapper() })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-    expect(vi.mocked(apiClient.get)).toHaveBeenCalledWith('/attack-paths')
+    expect(vi.mocked(apiClient.get)).toHaveBeenCalledWith('/attack-paths?page=1&per_page=20')
   })
 })
 
