@@ -22,6 +22,8 @@ type EntraIDProvider struct {
 	accessToken  string
 	tokenExpiry  time.Time
 	logger       *zap.Logger
+	graphBaseURL string // default: https://graph.microsoft.com/v1.0
+	authBaseURL  string // default: https://login.microsoftonline.com/{tenantID}/oauth2/v2.0
 }
 
 // EntraIDConfig configures the Entra ID provider
@@ -52,13 +54,41 @@ func NewEntraIDProvider(cfg EntraIDConfig, logger *zap.Logger) (*EntraIDProvider
 
 func (p *EntraIDProvider) Name() string { return "entra_id" }
 
+// graphURL constructs the full URL for a Microsoft Graph API path.
+func (p *EntraIDProvider) graphURL(path string) string {
+	if p.graphBaseURL != "" {
+		return p.graphBaseURL + path
+	}
+	return "https://graph.microsoft.com/v1.0" + path
+}
+
+// tokenURL returns the OAuth2 token endpoint URL.
+func (p *EntraIDProvider) tokenURL() string {
+	if p.authBaseURL != "" {
+		return p.authBaseURL + "/token"
+	}
+	return fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/token", p.tenantID)
+}
+
+// newEntraIDProviderForTest creates a provider with custom base URLs for testing.
+func newEntraIDProviderForTest(graphURL, authURL string) *EntraIDProvider {
+	return &EntraIDProvider{
+		graphBaseURL: graphURL,
+		authBaseURL:  authURL,
+		httpClient:   &http.Client{Timeout: 5 * time.Second},
+		accessToken:  "test-token",
+		tokenExpiry:  time.Now().Add(1 * time.Hour),
+		logger:       zap.NewNop(),
+	}
+}
+
 // GetUser retrieves a user by ID
 func (p *EntraIDProvider) GetUser(ctx context.Context, userID string) (*User, error) {
 	if err := p.ensureToken(ctx); err != nil {
 		return nil, fmt.Errorf("authenticating: %w", err)
 	}
 
-	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s", userID)
+	url := p.graphURL(fmt.Sprintf("/users/%s", userID))
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
@@ -114,7 +144,7 @@ func (p *EntraIDProvider) ListUsers(ctx context.Context, filter UserFilter) ([]*
 		return nil, fmt.Errorf("authenticating: %w", err)
 	}
 
-	url := "https://graph.microsoft.com/v1.0/users?$select=id,mail,displayName,department,jobTitle,accountEnabled"
+	url := p.graphURL("/users?$select=id,mail,displayName,department,jobTitle,accountEnabled")
 
 	if filter.Limit > 0 {
 		url += fmt.Sprintf("&$top=%d", filter.Limit)
@@ -189,7 +219,7 @@ func (p *EntraIDProvider) DisableUser(ctx context.Context, userID string) error 
 		return fmt.Errorf("authenticating: %w", err)
 	}
 
-	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s", userID)
+	url := p.graphURL(fmt.Sprintf("/users/%s", userID))
 	body := []byte(`{"accountEnabled": false}`)
 
 	req, err := http.NewRequestWithContext(ctx, "PATCH", url, bytes.NewBuffer(body))
@@ -223,7 +253,7 @@ func (p *EntraIDProvider) GetGroup(ctx context.Context, groupID string) (*Group,
 		return nil, fmt.Errorf("authenticating: %w", err)
 	}
 
-	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/groups/%s", groupID)
+	url := p.graphURL(fmt.Sprintf("/groups/%s", groupID))
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
@@ -274,7 +304,7 @@ func (p *EntraIDProvider) ListGroups(ctx context.Context, filter GroupFilter) ([
 		return nil, fmt.Errorf("authenticating: %w", err)
 	}
 
-	url := "https://graph.microsoft.com/v1.0/groups?$select=id,displayName,description,groupTypes"
+	url := p.graphURL("/groups?$select=id,displayName,description,groupTypes")
 
 	if filter.Limit > 0 {
 		url += fmt.Sprintf("&$top=%d", filter.Limit)
@@ -336,7 +366,7 @@ func (p *EntraIDProvider) GetGroupMembers(ctx context.Context, groupID string) (
 		return nil, fmt.Errorf("authenticating: %w", err)
 	}
 
-	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/groups/%s/members", groupID)
+	url := p.graphURL(fmt.Sprintf("/groups/%s/members", groupID))
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
@@ -387,8 +417,8 @@ func (p *EntraIDProvider) AddUserToGroup(ctx context.Context, userID, groupID st
 		return fmt.Errorf("authenticating: %w", err)
 	}
 
-	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/groups/%s/members/$ref", groupID)
-	body := fmt.Sprintf(`{"@odata.id": "https://graph.microsoft.com/v1.0/directoryObjects/%s"}`, userID)
+	url := p.graphURL(fmt.Sprintf("/groups/%s/members/$ref", groupID))
+	body := fmt.Sprintf(`{"@odata.id": "%s/directoryObjects/%s"}`, p.graphURL(""), userID)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBufferString(body))
 	if err != nil {
@@ -422,7 +452,7 @@ func (p *EntraIDProvider) RemoveUserFromGroup(ctx context.Context, userID, group
 		return fmt.Errorf("authenticating: %w", err)
 	}
 
-	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/groups/%s/members/%s/$ref", groupID, userID)
+	url := p.graphURL(fmt.Sprintf("/groups/%s/members/%s/$ref", groupID, userID))
 
 	req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
 	if err != nil {
@@ -498,7 +528,7 @@ func (p *EntraIDProvider) GetUserRiskScore(ctx context.Context, userID string) (
 	}
 
 	// Query Identity Protection riskyUsers API
-	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/identityProtection/riskyUsers/%s", userID)
+	url := p.graphURL(fmt.Sprintf("/identityProtection/riskyUsers/%s", userID))
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
@@ -564,7 +594,7 @@ func (p *EntraIDProvider) ensureToken(ctx context.Context) error {
 		return nil
 	}
 
-	url := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/token", p.tenantID)
+	url := p.tokenURL()
 	body := fmt.Sprintf(
 		"client_id=%s&client_secret=%s&scope=https://graph.microsoft.com/.default&grant_type=client_credentials",
 		p.clientID, p.clientSecret,

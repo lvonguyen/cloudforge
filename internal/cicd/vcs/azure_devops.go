@@ -16,12 +16,13 @@ import (
 
 // AzureDevOpsProvider implements the Provider interface for Azure DevOps
 type AzureDevOpsProvider struct {
-	organization string
-	project      string
-	token        string
-	httpClient   *http.Client
-	logger       *zap.Logger
-	config       AzureDevOpsConfig
+	organization    string
+	project         string
+	token           string
+	httpClient      *http.Client
+	logger          *zap.Logger
+	config          AzureDevOpsConfig
+	baseURLOverride string // If set, used instead of constructing from org/project
 }
 
 // AzureDevOpsConfig configures the Azure DevOps provider
@@ -51,7 +52,22 @@ func NewAzureDevOpsProvider(cfg AzureDevOpsConfig, logger *zap.Logger) (*AzureDe
 func (p *AzureDevOpsProvider) Name() string { return "azure-devops" }
 
 func (p *AzureDevOpsProvider) baseURL() string {
+	if p.baseURLOverride != "" {
+		return p.baseURLOverride
+	}
 	return fmt.Sprintf("https://dev.azure.com/%s/%s/_apis", p.organization, p.project)
+}
+
+// newAzureDevOpsProviderForTest creates a provider with a custom base URL for testing.
+func newAzureDevOpsProviderForTest(baseURL, token, project string) *AzureDevOpsProvider {
+	return &AzureDevOpsProvider{
+		organization:    "test-org",
+		project:         project,
+		token:           token,
+		httpClient:      &http.Client{Timeout: 5 * time.Second},
+		logger:          zap.NewNop(),
+		baseURLOverride: baseURL,
+	}
 }
 
 func (p *AzureDevOpsProvider) doRequest(ctx context.Context, method, url string, body interface{}, result interface{}) error {
@@ -303,8 +319,7 @@ func (p *AzureDevOpsProvider) GetPullRequests(ctx context.Context, _, repo strin
 
 // GetPipelines gets pipeline runs
 func (p *AzureDevOpsProvider) GetPipelines(ctx context.Context, _, _ string) ([]*Pipeline, error) {
-	url := fmt.Sprintf("https://dev.azure.com/%s/%s/_apis/pipelines/runs?api-version=7.0",
-		p.organization, p.project)
+	url := fmt.Sprintf("%s/pipelines/runs?api-version=7.0", p.baseURL())
 
 	var result struct {
 		Value []struct {
@@ -359,8 +374,8 @@ func (p *AzureDevOpsProvider) GetPipelines(ctx context.Context, _, _ string) ([]
 // GetSecurityAlerts gets security alerts (requires Advanced Security)
 func (p *AzureDevOpsProvider) GetSecurityAlerts(ctx context.Context, _, repo string) ([]*SecurityAlert, error) {
 	// Azure DevOps Advanced Security API
-	url := fmt.Sprintf("https://advsec.dev.azure.com/%s/%s/_apis/alert/repositories/%s/alerts?api-version=7.0-preview.1",
-		p.organization, p.project, repo)
+	url := fmt.Sprintf("%s/alert/repositories/%s/alerts?api-version=7.0-preview.1",
+		p.baseURL(), repo)
 
 	var result struct {
 		Value []struct {

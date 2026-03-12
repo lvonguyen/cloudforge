@@ -51,6 +51,17 @@ func NewGitHubProvider(cfg GitHubConfig, logger *zap.Logger) (*GitHubProvider, e
 	}, nil
 }
 
+// newGitHubProviderForTest creates a provider with a custom base URL for testing.
+func newGitHubProviderForTest(baseURL, token, org string) *GitHubProvider {
+	return &GitHubProvider{
+		baseURL:    baseURL,
+		token:      token,
+		httpClient: &http.Client{Timeout: 5 * time.Second},
+		logger:     zap.NewNop(),
+		config:     GitHubConfig{Org: org, BaseURL: baseURL},
+	}
+}
+
 func (p *GitHubProvider) Name() string {
 	if p.config.Enterprise {
 		return "github-enterprise"

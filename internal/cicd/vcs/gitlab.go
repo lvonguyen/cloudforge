@@ -51,6 +51,17 @@ func NewGitLabProvider(cfg GitLabConfig, logger *zap.Logger) (*GitLabProvider, e
 	}, nil
 }
 
+// newGitLabProviderForTest creates a provider with a custom base URL for testing.
+func newGitLabProviderForTest(baseURL, token, groupID string) *GitLabProvider {
+	return &GitLabProvider{
+		baseURL:    baseURL, // already includes /api/v4 suffix if needed
+		token:      token,
+		httpClient: &http.Client{Timeout: 5 * time.Second},
+		logger:     zap.NewNop(),
+		config:     GitLabConfig{GroupID: groupID},
+	}
+}
+
 func (p *GitLabProvider) Name() string { return "gitlab" }
 
 func (p *GitLabProvider) doRequest(ctx context.Context, method, requestURL string, body interface{}, result interface{}) error {

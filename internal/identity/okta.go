@@ -19,6 +19,7 @@ type OktaProvider struct {
 	apiToken   string
 	httpClient *http.Client
 	logger     *zap.Logger
+	baseURL    string // If set, used instead of constructing from domain
 }
 
 // OktaConfig configures the Okta provider
@@ -45,9 +46,28 @@ func NewOktaProvider(cfg OktaConfig, logger *zap.Logger) (*OktaProvider, error) 
 
 func (p *OktaProvider) Name() string { return "okta" }
 
+// apiURL constructs the full URL for an Okta API path.
+// If baseURL is set (for testing), it is used as prefix; otherwise the domain is used.
+func (p *OktaProvider) apiURL(path string) string {
+	if p.baseURL != "" {
+		return p.baseURL + path
+	}
+	return fmt.Sprintf("https://%s%s", p.domain, path)
+}
+
+// newOktaProviderForTest creates a provider with a custom base URL for testing.
+func newOktaProviderForTest(baseURL, apiToken string) *OktaProvider {
+	return &OktaProvider{
+		baseURL:    baseURL,
+		apiToken:   apiToken,
+		httpClient: &http.Client{Timeout: 5 * time.Second},
+		logger:     zap.NewNop(),
+	}
+}
+
 // GetUser retrieves a user by ID
 func (p *OktaProvider) GetUser(ctx context.Context, userID string) (*User, error) {
-	url := fmt.Sprintf("https://%s/api/v1/users/%s", p.domain, userID)
+	url := p.apiURL(fmt.Sprintf("/api/v1/users/%s", userID))
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
@@ -111,7 +131,7 @@ func (p *OktaProvider) GetUser(ctx context.Context, userID string) (*User, error
 
 // ListUsers lists users with optional filter
 func (p *OktaProvider) ListUsers(ctx context.Context, filter UserFilter) ([]*User, error) {
-	url := fmt.Sprintf("https://%s/api/v1/users", p.domain)
+	url := p.apiURL("/api/v1/users")
 
 	if filter.Limit > 0 {
 		url += fmt.Sprintf("?limit=%d", filter.Limit)
@@ -188,7 +208,7 @@ func (p *OktaProvider) ListUsers(ctx context.Context, filter UserFilter) ([]*Use
 
 // CreateUser creates a new user
 func (p *OktaProvider) CreateUser(ctx context.Context, user *User) error {
-	url := fmt.Sprintf("https://%s/api/v1/users?activate=true", p.domain)
+	url := p.apiURL("/api/v1/users?activate=true")
 
 	oktaUser := map[string]interface{}{
 		"profile": map[string]string{
@@ -234,7 +254,7 @@ func (p *OktaProvider) CreateUser(ctx context.Context, user *User) error {
 
 // UpdateUser updates a user
 func (p *OktaProvider) UpdateUser(ctx context.Context, user *User) error {
-	url := fmt.Sprintf("https://%s/api/v1/users/%s", p.domain, user.ID)
+	url := p.apiURL(fmt.Sprintf("/api/v1/users/%s", user.ID))
 
 	profile := map[string]interface{}{
 		"profile": map[string]string{
@@ -272,7 +292,7 @@ func (p *OktaProvider) UpdateUser(ctx context.Context, user *User) error {
 
 // DisableUser disables a user
 func (p *OktaProvider) DisableUser(ctx context.Context, userID string) error {
-	url := fmt.Sprintf("https://%s/api/v1/users/%s/lifecycle/suspend", p.domain, userID)
+	url := p.apiURL(fmt.Sprintf("/api/v1/users/%s/lifecycle/suspend", userID))
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, nil)
 	if err != nil {
@@ -300,7 +320,7 @@ func (p *OktaProvider) DisableUser(ctx context.Context, userID string) error {
 
 // GetGroup retrieves a group by ID
 func (p *OktaProvider) GetGroup(ctx context.Context, groupID string) (*Group, error) {
-	url := fmt.Sprintf("https://%s/api/v1/groups/%s", p.domain, groupID)
+	url := p.apiURL(fmt.Sprintf("/api/v1/groups/%s", groupID))
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
@@ -342,7 +362,7 @@ func (p *OktaProvider) GetGroup(ctx context.Context, groupID string) (*Group, er
 
 // ListGroups lists groups with optional filter
 func (p *OktaProvider) ListGroups(ctx context.Context, filter GroupFilter) ([]*Group, error) {
-	url := fmt.Sprintf("https://%s/api/v1/groups", p.domain)
+	url := p.apiURL("/api/v1/groups")
 
 	if filter.Limit > 0 {
 		url += fmt.Sprintf("?limit=%d", filter.Limit)
@@ -394,7 +414,7 @@ func (p *OktaProvider) ListGroups(ctx context.Context, filter GroupFilter) ([]*G
 
 // GetGroupMembers retrieves members of a group
 func (p *OktaProvider) GetGroupMembers(ctx context.Context, groupID string) ([]*User, error) {
-	url := fmt.Sprintf("https://%s/api/v1/groups/%s/users", p.domain, groupID)
+	url := p.apiURL(fmt.Sprintf("/api/v1/groups/%s/users", groupID))
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
@@ -440,7 +460,7 @@ func (p *OktaProvider) GetGroupMembers(ctx context.Context, groupID string) ([]*
 
 // AddUserToGroup adds a user to a group
 func (p *OktaProvider) AddUserToGroup(ctx context.Context, userID, groupID string) error {
-	url := fmt.Sprintf("https://%s/api/v1/groups/%s/users/%s", p.domain, groupID, userID)
+	url := p.apiURL(fmt.Sprintf("/api/v1/groups/%s/users/%s", groupID, userID))
 
 	req, err := http.NewRequestWithContext(ctx, "PUT", url, nil)
 	if err != nil {
@@ -469,7 +489,7 @@ func (p *OktaProvider) AddUserToGroup(ctx context.Context, userID, groupID strin
 
 // RemoveUserFromGroup removes a user from a group
 func (p *OktaProvider) RemoveUserFromGroup(ctx context.Context, userID, groupID string) error {
-	url := fmt.Sprintf("https://%s/api/v1/groups/%s/users/%s", p.domain, groupID, userID)
+	url := p.apiURL(fmt.Sprintf("/api/v1/groups/%s/users/%s", groupID, userID))
 
 	req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
 	if err != nil {
@@ -498,7 +518,7 @@ func (p *OktaProvider) RemoveUserFromGroup(ctx context.Context, userID, groupID 
 
 // GetUserRoles gets roles assigned to a user (via group memberships)
 func (p *OktaProvider) GetUserRoles(ctx context.Context, userID string) ([]*Role, error) {
-	url := fmt.Sprintf("https://%s/api/v1/users/%s/roles", p.domain, userID)
+	url := p.apiURL(fmt.Sprintf("/api/v1/users/%s/roles", userID))
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
@@ -541,7 +561,7 @@ func (p *OktaProvider) GetUserRoles(ctx context.Context, userID string) ([]*Role
 
 // AssignRole assigns a role to a user
 func (p *OktaProvider) AssignRole(ctx context.Context, userID, roleID string, scope string) error {
-	url := fmt.Sprintf("https://%s/api/v1/users/%s/roles", p.domain, userID)
+	url := p.apiURL(fmt.Sprintf("/api/v1/users/%s/roles", userID))
 
 	body := map[string]string{"type": roleID}
 	jsonBody, _ := json.Marshal(body)
@@ -569,7 +589,7 @@ func (p *OktaProvider) AssignRole(ctx context.Context, userID, roleID string, sc
 
 // RevokeRole revokes a role from a user
 func (p *OktaProvider) RevokeRole(ctx context.Context, userID, roleID string, scope string) error {
-	url := fmt.Sprintf("https://%s/api/v1/users/%s/roles/%s", p.domain, userID, roleID)
+	url := p.apiURL(fmt.Sprintf("/api/v1/users/%s/roles/%s", userID, roleID))
 
 	req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
 	if err != nil {
