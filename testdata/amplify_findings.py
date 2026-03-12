@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 PROJECT_ROOT = Path(__file__).parent.parent
-FINDINGS_PATH = PROJECT_ROOT / "frontend" / "src" / "lib" / "mock" / "findings.json"
+FINDINGS_PATH = PROJECT_ROOT / "frontend" / "public" / "mock" / "findings.json"
 
 TARGET_COUNT = 5000
 SEED = 42

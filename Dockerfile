@@ -31,6 +31,11 @@ RUN addgroup -g 1000 cloudforge && \
 # Install runtime dependencies
 RUN apk add --no-cache ca-certificates tzdata
 
+# Install Trivy for container scanning (optional — only used when CONTAINER_SCANNER=trivy)
+RUN apk add --no-cache curl && \
+    curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin && \
+    apk del curl
+
 WORKDIR /app
 
 # Copy binary from builder
@@ -38,6 +43,7 @@ COPY --from=builder /cloudforge /app/cloudforge
 
 # Copy mock data files required by the in-memory GRC provider
 COPY --from=builder /app/frontend/src/lib/mock /app/frontend/src/lib/mock
+COPY --from=builder /app/frontend/public/mock /app/frontend/public/mock
 
 # Copy config template
 COPY configs/config.example.yaml /app/config.example.yaml

@@ -6,6 +6,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import { ChevronDown } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 
 const RESULT_CONFIG: Record<string, string> = {
@@ -32,6 +33,7 @@ function actionColor(action: string): string {
 export default function AuditLog() {
   const [resultFilter, setResultFilter] = useState('all')
   const [actorFilter, setActorFilter] = useState('all')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const { data: EVENTS = [] } = useAuditLog()
   const actors = ['all', ...Array.from(new Set(EVENTS.map(e => e.actor)))]
@@ -113,23 +115,70 @@ export default function AuditLog() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map(evt => (
-                <TableRow key={evt.id} className="hover:bg-muted/30">
-                  <TableCell className="text-[10px] font-mono text-muted-foreground pl-4 whitespace-nowrap">{evt.timestamp}</TableCell>
-                  <TableCell>
-                    <p className="text-xs">{evt.actor}</p>
-                    <p className="text-[10px] text-muted-foreground">{evt.actor_role}</p>
-                  </TableCell>
-                  <TableCell className={`text-xs font-mono font-medium ${actionColor(evt.action)}`}>{evt.action}</TableCell>
-                  <TableCell className="text-xs font-mono">{evt.resource}</TableCell>
-                  <TableCell>
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${RESULT_CONFIG[evt.result]}`}>
-                      {evt.result}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-[10px] font-mono text-muted-foreground">{evt.ip}</TableCell>
-                </TableRow>
-              ))}
+              {filtered.map(evt => {
+                const isExpanded = expandedId === evt.id
+                const [actionNs, actionVerb] = evt.action.split('.')
+                return (
+                  <>
+                    <TableRow
+                      key={evt.id}
+                      className="hover:bg-muted/30 cursor-pointer"
+                      onClick={() => setExpandedId(prev => prev === evt.id ? null : evt.id)}
+                    >
+                      <TableCell className="text-[10px] font-mono text-muted-foreground pl-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <ChevronDown className={`h-3 w-3 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          {evt.timestamp}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-xs">{evt.actor}</p>
+                        <p className="text-[10px] text-muted-foreground">{evt.actor_role}</p>
+                      </TableCell>
+                      <TableCell className={`text-xs font-mono font-medium ${actionColor(evt.action)}`}>{evt.action}</TableCell>
+                      <TableCell className="text-xs font-mono">{evt.resource}</TableCell>
+                      <TableCell>
+                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${RESULT_CONFIG[evt.result]}`}>
+                          {evt.result}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-[10px] font-mono text-muted-foreground">{evt.ip}</TableCell>
+                    </TableRow>
+                    {isExpanded && (
+                      <TableRow key={`${evt.id}-detail`} className="bg-muted/20 hover:bg-muted/20">
+                        <TableCell colSpan={6} className="pl-4 pr-4 pb-3 pt-2">
+                          <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-[10px]">
+                            <div>
+                              <span className="text-muted-foreground uppercase tracking-wide">Action Namespace</span>
+                              <p className="font-mono font-medium mt-0.5">{actionNs ?? '—'}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground uppercase tracking-wide">Action Verb</span>
+                              <p className={`font-mono font-medium mt-0.5 ${actionColor(evt.action)}`}>{actionVerb ?? '—'}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground uppercase tracking-wide">Actor Role</span>
+                              <p className="font-medium mt-0.5 capitalize">{evt.actor_role}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground uppercase tracking-wide">IP Address</span>
+                              <p className="font-mono font-medium mt-0.5">{evt.ip}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground uppercase tracking-wide">Full Timestamp</span>
+                              <p className="font-mono font-medium mt-0.5">{evt.timestamp}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground uppercase tracking-wide">Event ID</span>
+                              <p className="font-mono font-medium mt-0.5">{evt.id}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                )
+              })}
             </TableBody>
           </Table>
         </CardContent>

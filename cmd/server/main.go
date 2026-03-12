@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -72,6 +73,7 @@ type Server struct {
 	findingEnrichment map[string]*FindingEnrichment
 	enrichMu          sync.Mutex
 	roles             *api.RoleEnforcer
+	finopsSvc         *finopsService
 }
 
 func main() {
@@ -198,6 +200,7 @@ func main() {
 		aiProvider:        aiProvider,
 		findingEnrichment: make(map[string]*FindingEnrichment),
 		roles:             &api.RoleEnforcer{DevMode: os.Getenv("APP_ENV") == "development"},
+		finopsSvc:         newFinopsService(),
 	}
 
 	// Load mock data from frontend JSON files
@@ -268,7 +271,7 @@ func main() {
 	// Create HTTP server with security middleware
 	httpServer := &http.Server{
 		Addr:              fmt.Sprintf(":%s", cfg.Port),
-		Handler:           srv.securityHeadersMiddleware(srv.router),
+		Handler:           srv.gzipMiddleware(srv.securityHeadersMiddleware(srv.router)),
 		ReadTimeout:       15 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      35 * time.Second, // must exceed AI enrichment's 30s context
@@ -401,7 +404,7 @@ func (s *Server) setupRoutes() {
 
 	// Costs
 	apiRouter.Handle("/costs/summary",
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getCostSummary)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getCostSummaryComputed)),
 	).Methods("GET")
 
 	// Remediations
@@ -450,6 +453,52 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/attack-paths/{id}",
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAttackPath)),
 	).Methods("GET")
+
+	// Container security
+	apiRouter.Handle("/container/scan",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.scanContainer)),
+	).Methods("GET")
+	apiRouter.Handle("/container/admission",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.checkAdmission)),
+	).Methods("GET")
+
+	// Secrets management
+	apiRouter.Handle("/secrets",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listSecrets)),
+	).Methods("GET")
+	apiRouter.Handle("/secrets/scan",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.scanSecrets)),
+	).Methods("GET")
+	apiRouter.Handle("/secrets/{path:.*}",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getSecret)),
+	).Methods("GET")
+
+	// WAF templates
+	apiRouter.Handle("/waf/templates",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listWAFTemplates)),
+	).Methods("GET")
+	apiRouter.Handle("/waf/compliance/{templateId}",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.validateWAFCompliance)),
+	).Methods("GET")
+
+	// Identity & Zero Trust
+	apiRouter.Handle("/identity/users",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listIdentityUsers)),
+	).Methods("GET")
+	apiRouter.Handle("/identity/users/{id}/risk",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getIdentityUserRisk)),
+	).Methods("GET")
+
+	// Workflow orchestration
+	apiRouter.Handle("/workflows",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listWorkflows)),
+	).Methods("GET")
+	apiRouter.Handle("/workflows/{id}",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getWorkflow)),
+	).Methods("GET")
+	apiRouter.Handle("/workflows/{id}/approve",
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.approveWorkflow)),
+	).Methods("POST")
 }
 
 // getTierFromRequest extracts the API tier from the request.
@@ -712,6 +761,32 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// gzipMiddleware compresses responses for clients that accept gzip encoding.
+// Applied at the http.Server level so all routes benefit (44MB findings -> ~4MB).
+func (s *Server) gzipMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			next.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Vary", "Accept-Encoding")
+		w.Header().Del("Content-Length")
+		gz := gzip.NewWriter(w)
+		defer gz.Close()
+		next.ServeHTTP(&gzipResponseWriter{ResponseWriter: w, gw: gz}, r)
+	})
+}
+
+type gzipResponseWriter struct {
+	http.ResponseWriter
+	gw *gzip.Writer
+}
+
+func (w *gzipResponseWriter) Write(b []byte) (int, error) {
+	return w.gw.Write(b)
 }
 
 // securityHeadersMiddleware adds security headers.

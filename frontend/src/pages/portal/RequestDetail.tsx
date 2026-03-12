@@ -61,6 +61,55 @@ const MOCK_DETAILS: Record<string, ExceptionLifecycle> = {
     ],
     compensating_controls: ['Encryption at rest with KMS', 'Bucket policy restricts to VPC endpoint', 'Versioning enabled', '90-day access review'],
   },
+  'EXC-007': {
+    id: 'EXC-007', resource: 'RDS db.r5.2xlarge prod', type: 'OVERSIZED_INSTANCE', provider: 'aws', region: 'us-east-1',
+    app_id: 'analytics-platform', requestor: 'user2@contoso.dev', team: 'Analytics',
+    business_case: 'Production analytics database requires db.r5.2xlarge to handle peak query load during end-of-quarter reporting. Downsize to db.r5.large caused query timeouts affecting SLA.',
+    status: 'REJECTED', created: '2026-02-10 08:45', updated: '2026-02-11 14:20', expiry: undefined,
+    approver_chain: [
+      { role: 'operator', email: 'operator1@contoso.dev', decision: 'REJECTED', decided_at: '2026-02-11 14:20', comments: 'Rightsizing analysis shows db.r5.large sufficient outside peak windows. Use Aurora Auto Scaling instead.' },
+    ],
+    timeline: [
+      { event: 'Request created', actor: 'user2@contoso.dev', timestamp: '2026-02-10 08:45', note: 'Policy check: OVERSIZED_INSTANCE' },
+      { event: 'Notified approvers', actor: 'system', timestamp: '2026-02-10 08:46', note: 'Email sent to operator queue' },
+      { event: 'Rejected by operator', actor: 'operator1@contoso.dev', timestamp: '2026-02-11 14:20', note: 'Rightsizing analysis shows db.r5.large sufficient outside peak windows.' },
+    ],
+    compensating_controls: ['CloudWatch alarms on CPU/connections', 'Read replica for reporting queries'],
+  },
+  'EXC-009': {
+    id: 'EXC-009', resource: 'AKS private cluster eastus', type: 'RESTRICTED_SERVICE', provider: 'azure', region: 'eastus',
+    app_id: 'k8s-platform', requestor: 'operator1@contoso.dev', team: 'Platform Engineering',
+    business_case: 'Private AKS cluster required for PCI-DSS workload isolation. Public AKS endpoint cannot be used for cardholder data environment per compliance mandate.',
+    status: 'APPROVED', created: '2026-01-15 11:00', updated: '2026-01-17 09:30', expiry: '2026-04-15',
+    approver_chain: [
+      { role: 'operator', email: 'operator2@contoso.dev', decision: 'APPROVED', decided_at: '2026-01-16 10:00', comments: 'PCI scope confirmed. Private cluster architecture reviewed.' },
+      { role: 'admin', email: 'admin1@contoso.dev', decision: 'APPROVED', decided_at: '2026-01-17 09:30', comments: 'Approved for 90 days. Re-evaluate at expiry for permanent policy exception.' },
+    ],
+    timeline: [
+      { event: 'Request created', actor: 'operator1@contoso.dev', timestamp: '2026-01-15 11:00', note: 'Policy check: RESTRICTED_SERVICE' },
+      { event: 'Notified approvers', actor: 'system', timestamp: '2026-01-15 11:01', note: 'Email sent to operator queue' },
+      { event: 'Approved by operator', actor: 'operator2@contoso.dev', timestamp: '2026-01-16 10:00', note: 'PCI scope confirmed. Private cluster architecture reviewed.' },
+      { event: 'Approved by admin', actor: 'admin1@contoso.dev', timestamp: '2026-01-17 09:30', note: 'Approved for 90 days.' },
+    ],
+    compensating_controls: ['Private endpoint with no public API server', 'Azure Policy enforcing node pool taints', 'Network policy (Calico) between namespaces', 'Defender for Containers enabled'],
+  },
+  'EXC-011': {
+    id: 'EXC-011', resource: 'GKE node pool us-central1-a', type: 'OVERSIZED_INSTANCE', provider: 'gcp', region: 'us-central1',
+    app_id: 'ml-training', requestor: 'user1@contoso.dev', team: 'ML Platform',
+    business_case: 'GPU node pool (n1-standard-96) required for distributed ML training. Exception granted for model training sprint Nov–Dec 2025.',
+    status: 'EXPIRED', created: '2025-11-01 09:00', updated: '2026-01-01 00:00', expiry: '2026-01-01',
+    approver_chain: [
+      { role: 'operator', email: 'operator1@contoso.dev', decision: 'APPROVED', decided_at: '2025-11-02 10:15', comments: 'Approved for 60-day training sprint.' },
+      { role: 'admin', email: 'admin1@contoso.dev', decision: 'APPROVED', decided_at: '2025-11-03 08:00', comments: 'Approved. Node pool must be deleted at expiry.' },
+    ],
+    timeline: [
+      { event: 'Request created', actor: 'user1@contoso.dev', timestamp: '2025-11-01 09:00', note: 'Policy check: OVERSIZED_INSTANCE' },
+      { event: 'Approved by operator', actor: 'operator1@contoso.dev', timestamp: '2025-11-02 10:15', note: 'Approved for 60-day training sprint.' },
+      { event: 'Approved by admin', actor: 'admin1@contoso.dev', timestamp: '2025-11-03 08:00', note: 'Node pool must be deleted at expiry.' },
+      { event: 'Exception expired', actor: 'system', timestamp: '2026-01-01 00:00', note: 'Automatic expiry — node pool decommissioned.' },
+    ],
+    compensating_controls: ['Node pool auto-deleted via Terraform TTL', 'No persistent storage attached', 'Workload Identity for GCS access only'],
+  },
 }
 
 const DECISION_ICON: Record<string, typeof CheckCircle2> = {
