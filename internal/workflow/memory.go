@@ -59,8 +59,9 @@ func (e *memoryEngine) StartWorkflow(_ context.Context, wf *Workflow) (*Workflow
 
 func (e *memoryEngine) GetWorkflow(_ context.Context, id string) (*Workflow, error) {
 	e.mu.RLock()
+	defer e.mu.RUnlock()
+
 	wf, ok := e.workflows[id]
-	e.mu.RUnlock()
 	if !ok {
 		return nil, ErrNotFound
 	}
