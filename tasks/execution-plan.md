@@ -93,59 +93,72 @@ All items independent. No cross-dependencies.
 
 ---
 
-## Sprint 1 — API Endpoints + P0 Buttons (3 parallel agents)
+## Sprint 1 — API Endpoints + P0 Buttons (PARTIAL COMPLETE)
 
 Depends on Sprint 0 (RBAC middleware + trace infra).
 
-### Agent HandlerTests [B]
+### Agent HandlerTests [B] — PARTIAL (frontend tests only)
 
 | Detail | Value |
 |--------|-------|
 | Create | `cmd/server/main_test.go` — test helpers, mock providers, JWT factory |
 | Create | `cmd/server/handlers_test.go` — tests for all exception endpoints + /health |
+| Status | Frontend tests complete (12 new files: 6 hooks, 6 components), backend handler tests pending |
+| Completed | renderWithAuth helper, v8 coverage thresholds, ADR-006/007 fixes |
+| Commits | 01967fb (B workstream: tests) |
 | Deps | [A] must land first |
 | Acceptance | `go test ./cmd/server/...` passes. >= 80% handler coverage. |
 
-### Agent BackendAPI [C]
+### Agent BackendAPI [C] — PARTIAL (1 new endpoint)
 
 | Detail | Value |
 |--------|-------|
 | Modify | `cmd/server/main.go` — add routes + handlers |
 | New routes | `GET /api/v1/findings`, `GET /api/v1/findings/{id}`, `GET /api/v1/compliance/frameworks`, `GET /api/v1/agents`, `GET /api/v1/agents/{id}`, `GET /api/v1/costs/summary`, `GET /api/v1/remediations`, `POST /api/v1/remediations/{id}/execute` |
+| Completed | `GET /api/v1/exceptions/mine` (RBAC: requester+), GetExceptionsByRequestor in GRC providers |
+| Commits | 999f224 (C workstream: API + hooks) |
 | Deps | [A] must land first (endpoints need role guards) |
 | Acceptance | All endpoints return valid JSON. RBAC enforced. |
 
-### Agent P0Buttons [L1]
+### Agent P0Buttons [L1] — PARTIAL (Execute/Retry wired)
 
 | Detail | Value |
 |--------|-------|
 | Modify | `frontend/src/pages/ops/RemediationQueue.tsx` — Execute button (30s cooldown, streaming) |
 | Modify | `frontend/src/pages/ops/FindingDetail.tsx` — Remediate button (10s cooldown, timeline) |
+| Completed | Execute/Retry buttons wired in RemediationQueue + RemediationDetail via useExecuteRemediation hook |
+| Commits | 999f224 (C workstream: API + hooks) |
 | Deps | [L0] must land first |
 | Acceptance | Clicking Execute/Remediate opens bottom panel with trace output. Cooldown active. |
 
 ---
 
-## Sprint 2 — Hook Migration + P1/P2 Buttons (2-3 agents)
+## Sprint 2 — Hook Migration + P1/P2 Buttons (PARTIAL COMPLETE)
 
 Depends on Sprint 1 (API endpoints live, P0 buttons functional).
 
-### Agent HookMigration [F]
+### Agent HookMigration [F] — PARTIAL (1/6 hooks done)
 
 | Detail | Value |
 |--------|-------|
 | Modify | 5 hooks: `useFindings.ts`, `useCompliance.ts`, `useAgents.ts`, `useCosts.ts`, `useRemediations.ts` |
 | Keep | `useExceptions.ts` (already uses apiClient), `useDeployPreview.ts` (client-side sim) |
+| Completed | `useMyExceptions.ts` (MyRequests.tsx now uses real API) |
+| Completed | `useCostAnomalies` queryKey fix (cache sharing with useCostSummary) |
+| Completed | `useExecuteRemediation` mutation hook (Execute/Retry buttons) |
+| Remaining | 5 hooks to migrate from mock JSON to apiClient |
 | Deps | [C] endpoints must return compatible JSON shapes |
 | Acceptance | Network tab shows real `/api/v1/*` requests. Zero static mock imports in hooks. |
+| Commits | 999f224 (C workstream: API + hooks), 01967fb (B workstream: tests) |
 
-### Agent P1P2Buttons [L2/L3]
+### Agent P1P2Buttons [L2/L3] — NOT STARTED
 
 | Detail | Value |
 |--------|-------|
 | P1 | Dry Run (15s), Approve (1s), Policy Validation (5s), Exception Submit (30s) |
 | P2 | Retry (exp backoff), Suppress (1s), Invite User (5s), New Policy (3s) |
 | Deps | [L1] + [F] both landed |
+| Status | Deferred to Sprint 3 |
 | Acceptance | All 12 action buttons from WS2 spec functional with correct cooldowns and panel modes. |
 
 ---

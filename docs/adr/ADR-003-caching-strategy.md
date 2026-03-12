@@ -90,5 +90,5 @@ We will use **Redis 7** for caching and coordination.
 ## Related Decisions
 
 - ADR-002: Database Selection
-- ADR-004: Rate Limiting Implementation
+- ADR-005: Rate Limiting Implementation
 

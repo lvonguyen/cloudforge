@@ -29,6 +29,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | ServiceNow GRC | Done | Native integration |
 | PostgreSQL provider | Done | Lightweight option |
 | In-Memory provider | Done | For testing |
+| GetExceptionsByRequestor | Done | Endpoint: GET /exceptions/mine (RBAC: requester+) |
 | **Compliance** | | |
 | Framework engine | Done | 20+ frameworks supported |
 | Finding deduplication | Done | Cross-framework dedup |
@@ -48,7 +49,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | **Observability** | | |
 | Structured logging (zap) | Done | JSON format |
 | Prometheus metrics | Done | `/metrics` endpoint |
-| OpenTelemetry tracing | Partial | Basic spans only |
+| OpenTelemetry tracing | Partial | Basic spans, handler-level instrumentation |
 | **Remediation Dispatcher** | | |
 | Executor engine | Done | Concurrent batch execution with semaphore |
 | Handler interface | Done | Remediate, Validate, DryRun, Tier |
@@ -61,6 +62,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | Patching handlers | Done | SSM patch compliance (query-only, Tier 3) |
 | Rollback engine | Done | 48h rollback window, state snapshots |
 | Findings bridge | Done | Temporary bridge to cspm-aggregator types |
+| Execute/Retry UI | Done | useExecuteRemediation mutation hook, button wiring in RemediationQueue + RemediationDetail |
 | **Security** | | |
 | Rate limiting | Done | Redis-backed, tier-based, wired into `/api/v1` routes |
 | JWT authentication | Done | HS256/RS256 validation, JWKS caching, wired into router |
@@ -79,6 +81,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | 21 route pages | Done | Admin, Operator, Requester role views + attack paths |
 | Dark mode | Done | CSS variable overrides, anti-flash script |
 | Cloudflare Pages deploy | Done | cloudforge-demo.lvonguyen.com |
+| API hook migration | Partial | MyRequests.tsx uses useMyExceptions (real API), useCostAnomalies cache fix, Execute/Retry mutations wired |
 | **Risk Intelligence** | | |
 | Contextual risk schema | Done | AttackPathContext, ToxicComboDetails, MITRE fields |
 | LLM severity re-scoring | Done | Claude-powered with blast radius + EPSS + KEV inputs |
@@ -88,7 +91,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | CISA KEV catalog | Done | In-memory catalog with auto-refresh from CISA feed |
 | GreyNoise integration | Done | HTTP client with 12h cache, classification enrichment |
 | **Testing** | | |
-| Unit tests | Partial | 24+ test files, 400+ test functions incl. 36 handler tests (httptest) |
+| Unit tests | Partial | 33 test files, 298 tests passing (frontend hooks/components + Go backend), v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
 | Integration tests | 0% | |
 
 ### Package Maturity
@@ -118,11 +121,13 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 This is a **portfolio reference implementation**, not production software:
 
-1. **Test Coverage Gap** - 24+ test files (400+ functions including handler tests) cover cspm, grc, remediation, ai, compliance; integration tests pending
+1. **Test Coverage Gap** - 33 test files (298 tests passing: hooks, components, backend), v8 coverage thresholds active; integration tests pending
 2. **OIDC Provider Stub** - JWT auth middleware is production-ready (HS256/RS256, JWKS), but Okta/Entra ID providers not wired into auth flow
 3. **Temporal Workflows** — Workflow definitions exist, orchestration layer not wired into request flow
 4. **FinOps Module** — Cost aggregation interfaces defined, no cloud API integration yet
 5. **Stub Packages** — container, secrets, waf, identity modules have interfaces and mock implementations but no production wiring
+6. **Frontend/Backend Role Mismatch** — Frontend has 4 roles (admin, operator, requester, viewer); backend has 3 (RoleAdmin, RoleOperator, RoleRequester, no RoleViewer constant)
+7. **Chrome QA Findings** — Partial route coverage (~54%), React 19 lazy() context propagation edge case under Playwright, mobile overflow at 375px on /ops CommandCenter
 
 **Production Requirements:**
 
@@ -585,6 +590,7 @@ Built-in support for 20+ frameworks:
 
 | Date | Author | Change |
 | ---- | ------ | ------ |
+| 2026-03-12 | Liem Vo-Nguyen | Sprint 2 deliverables: 12 hook/component tests, GRC GetExceptionsByRequestor, useCostAnomalies cache fix, Execute/Retry wiring, MyRequests API migration, Chrome QA audit (54% routes) |
 | 2026-03-11 | Liem Vo-Nguyen | Close gaps: honest badges, package maturity table, doc accuracy pass |
 | 2026-03-04 | Liem Vo-Nguyen | Build and deploy self-service portal — React 19, Vite 7, 18 pages, 3 role views, dark mode, Cloudflare Pages |
 | 2026-03-04 | Liem Vo-Nguyen | Documentation reorg — archive superseded docs, add diagram refs, fix stale README |

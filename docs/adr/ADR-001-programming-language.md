@@ -26,7 +26,7 @@ We need to select a primary programming language for CloudForge that supports:
 
 ## Decision
 
-We will use **Go 1.22** as the primary language.
+We will use **Go 1.25** as the primary language.
 
 ## Rationale
 

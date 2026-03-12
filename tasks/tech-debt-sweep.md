@@ -118,10 +118,33 @@
 - [x] Promote 4 stub packages (container, secrets, waf, identity) — 31 tests
 - [x] Compliance page enhancement (framework details table)
 - [x] QA iteration 1 fixes: factory panic, honest error toasts, auth email, pointer aliasing, atomic CAS
-- [ ] Architecture diagrams: verify Mermaid diagrams match current state
-- [ ] ADR updates: check ADR-001..008 for accuracy
+- [x] Architecture diagrams: verify Mermaid diagrams match current state (no SVGs in docs/diagrams/)
+- [x] ADR updates: check ADR-001..008 for accuracy (ADR-006/007 fixed in 01967fb)
 - [ ] API documentation: OpenAPI spec or handler-level docs for 27 endpoints
 - [ ] Deployment docs: consolidate Fly.io + CF Pages setup into single operations guide
+
+### Sprint 2 Deliverables (main branch — 01967fb + 999f224)
+- [x] 12 new test files: 6 hooks (useAuditLog, useCosts, useCatalog, useUsers, useExceptions, useAttackPaths) + 6 components (DryRunPreview, CostSummaryCard, AnomalyAlertCard, ExceptionCard, FindingCard, ProtectedRoute)
+- [x] renderWithAuth helper + v8 coverage thresholds (lines: 70, functions: 75, branches: 65)
+- [x] ADR-006 fix: roles → groups claim, removed analyst role
+- [x] ADR-007 fix: header ADR-003 → ADR-007
+- [x] GetExceptionsByRequestor in GRC providers + GET /exceptions/mine endpoint (RBAC: requester+)
+- [x] useCostAnomalies queryKey fix (cache sharing)
+- [x] useExecuteRemediation mutation hook + Execute/Retry button wiring
+- [x] useMyExceptions hook + MyRequests.tsx API migration
+- [x] Total: 33 test files, 298 tests passing
+
+### Chrome QA Audit (Workstream E — in progress, ~54% coverage)
+- [x] /admin dashboard — PASS
+- [x] /admin/ai-agents list — PASS
+- [x] /ops CommandCenter (desktop) — PASS
+- [x] /ops/findings (desktop) — PASS
+- [x] /portal/catalog — PASS
+- [x] /portal/requests — PASS
+- [!] CRITICAL: React 19 lazy() context errors in Playwright (useAuth, useTracePanel) — pre-existing edge case, not production issue
+- [!] HIGH: Mobile horizontal overflow at 375px on /ops CommandCenter
+- [!] MEDIUM: Role switcher dropdown doesn't open on click
+- [ ] Remaining routes: ~46% uncovered (compliance, finops, attack paths, remediation details, admin users/audit/policies/system)
 
 ### QA Iteration 2 (next session)
 - Regenerate diff: `git diff main...feat/close-gaps > /tmp/cloudforge-close-gaps.diff`

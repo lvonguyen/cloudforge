@@ -1,92 +1,85 @@
-# Handoff: Integrate HAEA Findings Test Data
+# Handoff: CloudForge Sprint 2 Complete
 
-## Context
-CloudForge uses synthetic mock findings (80 records) for the demo. Real-world anonymized findings exports from HAEA (Project 37) need to replace or supplement the synthetic data. Export scripts live in a GitLab repo and are pulled via `git show` (no merge needed).
+## Current State (2026-03-12)
+
+[+] Project: 85% complete, QA score 4.0/5 (target: 4.5)
+[+] Sprint 2 deliverables committed: 01967fb (tests) + 999f224 (hooks/API)
+[!] Open P0: Secrets leak (.env.development with admin JWT committed to git)
+[*] Next: Sprint 3 hook migration (5 remaining hooks) + Chrome QA iteration 2
+
+## Sprint 2 Summary
+
+### Workstream B — Tests (01967fb)
+- 12 new test files: 6 hook tests (useAuditLog, useCosts, useCatalog, useUsers, useExceptions, useAttackPaths) + 6 component tests (DryRunPreview, CostSummaryCard, AnomalyAlertCard, ExceptionCard, FindingCard, ProtectedRoute)
+- Added renderWithAuth helper to test/utils.tsx
+- Added v8 coverage thresholds to vitest.config.ts (lines: 70, functions: 75, branches: 65)
+- Fixed ADR-006: roles → groups claim, removed analyst role
+- Fixed ADR-007: header ADR-003 → ADR-007
+- Total: 33 test files, 298 tests passing
+
+### Workstream C — API + Hooks (999f224)
+- Added GetExceptionsByRequestor to GRC provider interface + all implementations
+- Added GET /exceptions/mine endpoint (RBAC: requester+)
+- Fixed useCostAnomalies queryKey to share cache with useCostSummary
+- Added useExecuteRemediation mutation hook
+- Added useMyExceptions query hook
+- Wired Execute/Retry buttons in RemediationQueue and RemediationDetail
+- Migrated MyRequests.tsx to use useMyExceptions API hook
+
+### Workstream E — Chrome QA (in progress, ~54% coverage)
+- CRITICAL (pre-existing): Some lazy-loaded pages throw context errors (useAuth, useTracePanel) in Playwright — likely React 19 + lazy() edge case
+- HIGH: Mobile horizontal overflow at 375px on /ops CommandCenter
+- MEDIUM: Role switcher dropdown doesn't open on click
+- PASS: /admin dashboard, /admin/ai-agents list, /ops CommandCenter (desktop), /ops/findings (desktop), /portal/catalog, /portal/requests
 
 ## What's Already Done
 - `make dev` starts backend (:8080) + frontend (:5173) — single command
 - Redis rate limiter fixed (nil-check, no Redis needed locally)
 - All list pages (Users, Policies, AI Agents, Findings) load correctly
 - Dev auth working: `.env.development` has `VITE_DEV_TOKEN` (sourced from 1Password `cloudforge-dev-jwt-secret` vault item)
-- Uncommitted changes: Redis fix + Makefile `dev` target — commit these first
+- Known test failure: TestGetCostSummary nil pointer in handlers_finops.go:47 (pre-existing, not Sprint 2 regression)
 
-## Step 0: Commit Pending Changes
-```bash
-cd ~/repos/remote/gh/portfolio/tier1-flagship/cloudforge
-git add internal/api/gateway/ratelimit.go cmd/server/main.go Makefile
-git commit -m "fix: skip Redis rate limiting when unavailable, add make dev target"
-```
+## Known Issues
 
-## Step 1: Pull Export Scripts from GitLab
-```bash
-cd ~/repos/remote/gh/portfolio/tier1-flagship/cloudforge
+### P0 — SEC-001: Secrets Leak
+- `.env.development` with admin JWT committed to git
+- Action: `git rm --cached frontend/.env.development`, rotate secret, add to .gitignore
 
-# Add GitLab remote (skip if already exists)
-git remote add gl-p37 https://gitlab.com/haea-security-tft/project-37.git 2>/dev/null || echo "remote gl-p37 already exists"
+### Pre-existing Backend Issues
+- `TestGetCostSummary` nil pointer at handlers_finops.go:47 — not Sprint 2 regression
+- Frontend has 4 roles (admin, operator, requester, viewer); backend has 3 (no RoleViewer constant)
 
-# Fetch (no merge)
-git fetch gl-p37 main
+### Chrome QA Edge Cases (React 19 + Playwright)
+- Lazy-loaded pages throw context errors (useAuth, useTracePanel) in Playwright
+- Likely React 19 context propagation with lazy() — not production issue
+- Workaround: test eager-loaded routes first
 
-# Export scripts to testdata/
-mkdir -p testdata/export-scripts
-git show gl-p37/main:utils/findings-utils/export-scripts/findings_export_utils.py > testdata/export-scripts/findings_export_utils.py
-git show gl-p37/main:utils/findings-utils/export-scripts/query_aws_all_findings.py > testdata/export-scripts/query_aws_all_findings.py
-git show gl-p37/main:utils/findings-utils/export-scripts/query_azure_all_findings.py > testdata/export-scripts/query_azure_all_findings.py
-git show gl-p37/main:utils/findings-utils/export-scripts/query_gcp_all_findings.py > testdata/export-scripts/query_gcp_all_findings.py
-git show gl-p37/main:utils/findings-utils/export-scripts/query_all_findings.sh > testdata/export-scripts/query_all_findings.sh
-git show gl-p37/main:utils/findings-utils/export-scripts/scrub_findings.py > testdata/export-scripts/scrub_findings.py
+## Next Steps (Sprint 3)
 
-echo "[+] Done — scripts exported to testdata/export-scripts/"
-```
+### Hook Migration (5 remaining hooks)
+Migrate to real API calls (mock JSON → apiClient):
+- useFindings.ts
+- useCompliance.ts
+- useAgents.ts
+- useCosts.ts
+- useRemediations.ts
 
-This uses `git show` from the remote ref so P37 history stays out of cloudforge — just cherry-picks the files cleanly.
+Keep as-is (already correct):
+- useExceptions.ts (already uses apiClient)
+- useMyExceptions.ts (already uses apiClient)
+- useDeployPreview.ts (client-side simulation, no backend)
 
-## Step 2: Inspect & Understand Export Format
-- Read the export scripts to understand the output schema (SecurityHub ASFF, Azure Defender alerts, GCP SCC findings)
-- Check if `scrub_findings.py` already handles anonymization or if additional PII scrubbing is needed
-- Determine output format: per-provider JSON files or unified format
+### Chrome QA Iteration 2
+- Complete remaining route coverage (~46% routes untested)
+- Fix mobile overflow on /ops CommandCenter
+- Fix role switcher dropdown click handler
+- Document React 19 lazy() edge case for future reference
 
-## Step 3: Transform to CloudForge Finding Schema
-Current findings schema (check `frontend/src/lib/mock/findings.json` for structure):
-```json
-{
-  "id": "finding-xxx",
-  "title": "...",
-  "severity": "critical|high|medium|low",
-  "status": "open|in_progress|resolved|suppressed",
-  "source": "aws-securityhub|azure-defender|gcp-scc",
-  "resource_type": "...",
-  "resource_id": "...",
-  "account_id": "...",
-  "region": "...",
-  "first_seen": "...",
-  "last_seen": "...",
-  "description": "...",
-  "remediation": "...",
-  "compliance_frameworks": ["CIS", "SOC2", ...]
-}
-```
-
-Write a transformer script (Python, use `uv`) that:
-1. Reads the raw provider exports
-2. Normalizes to CloudForge schema
-3. Applies PII scrub (see rules below)
-4. Outputs to `frontend/src/lib/mock/findings.json`
-
-## PII/Identity Rules
-- All emails -> @contoso.dev (use existing mock identity map)
-- All account IDs -> contoso-{aws|azure|gcp}-{prod|staging|dev}
-- All ARNs -> arn:aws:...:123456789012:... (placeholder account)
-- All real IPs -> 10.x.x.x or 172.16.x.x ranges
-- Resource names -> generic (e.g., `web-server-01` not `haea-prod-api-3`)
-- No real org names, project names, or internal hostnames
-
-## Step 4: Load & Verify
-- Backend loads mock data in `cmd/server/main.go` via `loadMockData()`
-- Mock JSON files live in `frontend/src/lib/mock/`
-- Current: 80 findings — new data should be comparable size or larger
-- Attack paths are computed from findings (`computeAttackPaths()`)
-- Run `make dev` and verify Findings, FindingDetail, AttackPaths pages render correctly
+### QA Threshold Target
+- Current: 4.0/5
+- Target: 4.5/5
+- Max iterations: 3
+- Run quality-review + bug-discovery + security-audit agents after Sprint 3 commits
 
 ## Key Files
 - `frontend/src/lib/mock/findings.json` — current synthetic findings
