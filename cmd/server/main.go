@@ -62,9 +62,9 @@ type Server struct {
 	aiProvider        ai.Provider // nil when AI is disabled (graceful degradation)
 	findingEnrichment map[string]*FindingEnrichment
 	enrichMu          sync.Mutex
-	roles              *api.RoleEnforcer
-	finopsSvc          *finopsService
-	identityProviders  map[string]identity.Provider
+	roles             *api.RoleEnforcer
+	finopsSvc         *finopsService
+	identityProviders map[string]identity.Provider
 }
 
 func main() {

@@ -718,7 +718,10 @@ func TestOauth2Transport_TokenError(t *testing.T) {
 	}
 
 	client := &http.Client{Transport: transport}
-	_, err := client.Get("http://127.0.0.1:1")
+	resp, err := client.Get("http://127.0.0.1:1")
+	if resp != nil {
+		resp.Body.Close()
+	}
 	if err == nil {
 		t.Fatal("expected error from failing token source")
 	}

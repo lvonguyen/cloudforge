@@ -644,9 +644,8 @@ export default function PolicyDetail() {
   }
 
   const { icon: StatusIcon, className: statusIconClass } = STATUS_CONFIG[policy.status] ?? STATUS_CONFIG.inactive
-  const lines = rego.split('\n')
-
   const rego = brandRegistryRefs(policy.rego)
+  const lines = rego.split('\n')
 
   function handleCopy() {
     navigator.clipboard.writeText(rego).then(() => {

@@ -13,6 +13,12 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	entraProviderName = "entra_id"
+	statusActive      = "active"
+	statusDisabled    = "disabled"
+)
+
 // EntraIDProvider implements the Provider interface for Microsoft Entra ID (Azure AD)
 type EntraIDProvider struct {
 	tenantID     string
@@ -52,7 +58,7 @@ func NewEntraIDProvider(cfg EntraIDConfig, logger *zap.Logger) (*EntraIDProvider
 	}, nil
 }
 
-func (p *EntraIDProvider) Name() string { return "entra_id" }
+func (p *EntraIDProvider) Name() string { return entraProviderName }
 
 // graphURL constructs the full URL for a Microsoft Graph API path.
 func (p *EntraIDProvider) graphURL(path string) string {
@@ -128,11 +134,11 @@ func (p *EntraIDProvider) GetUser(ctx context.Context, userID string) (*User, er
 		DisplayName: graphUser.DisplayName,
 		Department:  graphUser.Department,
 		JobTitle:    graphUser.JobTitle,
-		Status:      "active",
+		Status:      statusActive,
 	}
 
 	if !graphUser.AccountEnabled {
-		user.Status = "disabled"
+		user.Status = statusDisabled
 	}
 
 	return user, nil
@@ -184,9 +190,9 @@ func (p *EntraIDProvider) ListUsers(ctx context.Context, filter UserFilter) ([]*
 
 	users := make([]*User, 0, len(result.Value))
 	for _, u := range result.Value {
-		status := "active"
+		status := statusActive
 		if !u.AccountEnabled {
-			status = "disabled"
+			status = statusDisabled
 		}
 		users = append(users, &User{
 			ID:          u.ID,

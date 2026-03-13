@@ -79,7 +79,7 @@ func (c *AzureCostManagementClient) NormalizeCosts(records []finops.CostRecord) 
 		r.Provider = "azure"
 		// Azure sometimes reports in EUR for European subscriptions.
 		if r.Currency == "EUR" {
-			r.Cost = r.Cost * 1.08
+			r.Cost *= 1.08
 		}
 		r.Currency = "USD"
 		if cc, ok := r.Tags["cost_center"]; ok {
