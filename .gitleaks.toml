@@ -1,0 +1,8 @@
+# Gitleaks configuration
+# Allowlist test fixtures that contain intentional credential patterns
+# (used for CSPM false-positive / false-negative validation)
+
+[allowlist]
+paths = [
+  '''testdata/''',
+]
