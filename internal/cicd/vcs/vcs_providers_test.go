@@ -26,7 +26,7 @@ func newGitHubTestServer(t *testing.T) *httptest.Server {
 				"description": "Test repo", "default_branch": "main",
 				"private": false, "html_url": "https://github.com/test-org/repo1",
 				"clone_url": "https://github.com/test-org/repo1.git",
-				"language": "Go", "created_at": "2025-01-01T00:00:00Z", "updated_at": "2025-06-01T00:00:00Z",
+				"language":  "Go", "created_at": "2025-01-01T00:00:00Z", "updated_at": "2025-06-01T00:00:00Z",
 			},
 			{
 				"id": 2, "name": "repo2", "full_name": "test-org/repo2",
@@ -72,8 +72,8 @@ func newGitHubTestServer(t *testing.T) *httptest.Server {
 			{
 				"id": 100, "number": 1, "title": "Add feature", "body": "Description",
 				"state": "open", "user": map[string]string{"login": "testuser"},
-				"head": map[string]string{"ref": "feature-branch"},
-				"base": map[string]string{"ref": "main"},
+				"head":       map[string]string{"ref": "feature-branch"},
+				"base":       map[string]string{"ref": "main"},
 				"html_url":   "https://github.com/owner/repo/pull/1",
 				"created_at": "2025-06-01T00:00:00Z", "updated_at": "2025-06-02T00:00:00Z",
 			},
@@ -86,9 +86,9 @@ func newGitHubTestServer(t *testing.T) *httptest.Server {
 				{
 					"id": 1001, "name": "CI", "status": "completed", "conclusion": "success",
 					"head_branch": "main", "head_sha": "abc123",
-					"html_url":      "https://github.com/owner/repo/actions/runs/1001",
-					"created_at":    "2025-06-01T00:00:00Z",
-					"updated_at":    "2025-06-01T00:05:00Z",
+					"html_url":       "https://github.com/owner/repo/actions/runs/1001",
+					"created_at":     "2025-06-01T00:00:00Z",
+					"updated_at":     "2025-06-01T00:05:00Z",
 					"run_started_at": "2025-06-01T00:00:30Z",
 				},
 			},
@@ -369,7 +369,7 @@ func newGitLabTestServer(t *testing.T) *httptest.Server {
 					"description": "Test project", "default_branch": "main",
 					"visibility": "private", "web_url": "https://gitlab.com/group/project1",
 					"http_url_to_repo": "https://gitlab.com/group/project1.git",
-					"created_at": "2025-01-01T00:00:00Z", "last_activity_at": "2025-06-01T00:00:00Z",
+					"created_at":       "2025-01-01T00:00:00Z", "last_activity_at": "2025-06-01T00:00:00Z",
 				},
 			})
 		case strings.HasSuffix(path, "/repository/branches"):
@@ -397,7 +397,7 @@ func newGitLabTestServer(t *testing.T) *httptest.Server {
 					"id": 200, "iid": 1, "title": "MR Title", "description": "MR Desc",
 					"state": "opened", "author": map[string]string{"username": "dev"},
 					"source_branch": "feature", "target_branch": "main",
-					"web_url": "https://gitlab.com/group/project1/-/merge_requests/1",
+					"web_url":    "https://gitlab.com/group/project1/-/merge_requests/1",
 					"created_at": "2025-06-01T00:00:00Z", "updated_at": "2025-06-02T00:00:00Z",
 				},
 			})
@@ -405,7 +405,7 @@ func newGitLabTestServer(t *testing.T) *httptest.Server {
 			json.NewEncoder(w).Encode([]map[string]interface{}{
 				{
 					"id": 301, "status": "success", "ref": "main", "sha": "sha-pipeline",
-					"web_url": "https://gitlab.com/group/project1/-/pipelines/301",
+					"web_url":    "https://gitlab.com/group/project1/-/pipelines/301",
 					"created_at": "2025-06-01T00:00:00Z", "finished_at": "2025-06-01T00:05:00Z",
 					"duration": 300,
 				},
@@ -719,7 +719,7 @@ func newAzureDevOpsTestServer(t *testing.T) *httptest.Server {
 				"value": []map[string]interface{}{
 					{
 						"pullRequestId": 42, "title": "ADO PR", "description": "ADO PR desc",
-						"status": "active",
+						"status":        "active",
 						"createdBy":     map[string]string{"displayName": "Dev"},
 						"sourceRefName": "refs/heads/feature", "targetRefName": "refs/heads/main",
 						"creationDate": "2025-06-01T00:00:00Z",

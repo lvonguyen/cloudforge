@@ -320,7 +320,7 @@ func TestCovMemoryProvider_GetExpiringExceptions(t *testing.T) {
 	}
 
 	// Very short window
-	expiring, err = p.GetExpiringExceptions(ctx, 0)
+	expiring, err = p.GetExpiringExceptions(ctx, 0) //nolint:ineffassign // final use, asserted below
 	if err != nil {
 		t.Fatalf("GetExpiringExceptions: %v", err)
 	}

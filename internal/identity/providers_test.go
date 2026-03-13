@@ -698,12 +698,12 @@ func newEntraIDTestServer(t *testing.T) *httptest.Server {
 				"value": []map[string]interface{}{
 					{
 						"@odata.type": "#microsoft.graph.user",
-						"id": "user-entra-1", "displayName": "Carol White",
+						"id":          "user-entra-1", "displayName": "Carol White",
 						"mail": "carol@example.com",
 					},
 					{
 						"@odata.type": "#microsoft.graph.group",
-						"id": "nested-grp", "displayName": "Nested Group",
+						"id":          "nested-grp", "displayName": "Nested Group",
 					},
 				},
 			})
@@ -1135,11 +1135,11 @@ func TestEntraID_EnsureToken_CachesValid(t *testing.T) {
 	defer authSrv.Close()
 
 	p := &EntraIDProvider{
-		authBaseURL:  authSrv.URL,
-		httpClient:   &http.Client{Timeout: 5 * time.Second},
-		accessToken:  "valid-token",
-		tokenExpiry:  time.Now().Add(1 * time.Hour), // still valid
-		logger:       zap.NewNop(),
+		authBaseURL: authSrv.URL,
+		httpClient:  &http.Client{Timeout: 5 * time.Second},
+		accessToken: "valid-token",
+		tokenExpiry: time.Now().Add(1 * time.Hour), // still valid
+		logger:      zap.NewNop(),
 	}
 
 	err := p.ensureToken(context.Background())
@@ -1161,11 +1161,11 @@ func TestEntraID_EnsureToken_Failure(t *testing.T) {
 	defer authSrv.Close()
 
 	p := &EntraIDProvider{
-		authBaseURL:  authSrv.URL,
-		httpClient:   &http.Client{Timeout: 5 * time.Second},
-		accessToken:  "",
-		tokenExpiry:  time.Time{}, // forces refresh
-		logger:       zap.NewNop(),
+		authBaseURL: authSrv.URL,
+		httpClient:  &http.Client{Timeout: 5 * time.Second},
+		accessToken: "",
+		tokenExpiry: time.Time{}, // forces refresh
+		logger:      zap.NewNop(),
 	}
 
 	err := p.ensureToken(context.Background())

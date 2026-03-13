@@ -28,8 +28,8 @@ type slackPayload struct {
 }
 
 type slackBlock struct {
-	Type string      `json:"type"`
-	Text *slackText  `json:"text,omitempty"`
+	Type   string      `json:"type"`
+	Text   *slackText  `json:"text,omitempty"`
 	Fields []slackText `json:"fields,omitempty"`
 }
 

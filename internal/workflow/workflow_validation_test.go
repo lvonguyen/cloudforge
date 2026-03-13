@@ -59,8 +59,8 @@ func TestLifecycle_PendingToCompleted(t *testing.T) {
 	if approved.CompletedAt == nil {
 		t.Error("CompletedAt must be set after completion")
 	}
-	if !approved.UpdatedAt.After(created.UpdatedAt) || approved.UpdatedAt.Equal(created.UpdatedAt) {
-		// UpdatedAt should have advanced (or at minimum be equal if the clock is fast).
+	if approved.UpdatedAt.Before(created.UpdatedAt) {
+		t.Error("UpdatedAt should not go backwards after completion")
 	}
 
 	// Phase 3: Verify the stored state matches.

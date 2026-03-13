@@ -4,17 +4,6 @@ import (
 	"testing"
 )
 
-// --- Helper constructors for toxic combo tests ---
-
-func newStorageFinding(id, accountID, findingType, resourceType string) Finding {
-	return Finding{
-		ID:           id,
-		AccountID:    accountID,
-		FindingType:  findingType,
-		ResourceType: resourceType,
-	}
-}
-
 // --- Tests for DetectToxicCombinations: Public Storage + Sensitive Data ---
 
 func TestToxicCombo_PublicStorage_SensitiveData_Detected(t *testing.T) {

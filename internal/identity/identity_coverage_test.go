@@ -334,12 +334,12 @@ func TestCovZeroTrustEngine_Exception(t *testing.T) {
 
 	// Add policy with exception
 	e.AddPolicy(&ZeroTrustPolicy{
-		ID:       "test-deny-all",
-		Name:     "Deny All",
-		Enabled:  true,
-		Priority: 5,
+		ID:         "test-deny-all",
+		Name:       "Deny All",
+		Enabled:    true,
+		Priority:   5,
 		Conditions: []PolicyCondition{},
-		Actions:  []PolicyAction{{Type: "deny"}},
+		Actions:    []PolicyAction{{Type: "deny"}},
 		Exceptions: []PolicyException{
 			{Type: "user", Values: []string{"admin-user"}},
 		},

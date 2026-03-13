@@ -3,6 +3,7 @@ package main
 import (
 	"cloudforge/internal/api"
 	"cloudforge/internal/audit"
+	"context"
 	"net/http"
 	"testing"
 )
@@ -627,7 +628,7 @@ func TestAuditLog_IncludesRealEvents(t *testing.T) {
 	}
 
 	// Also check via AuditLogger directly
-	realEvents, _ := srv.auditLogger.List(nil, audit.ListOpts{})
+	realEvents, _ := srv.auditLogger.List(context.Background(), audit.ListOpts{})
 	if len(realEvents) != 1 {
 		t.Errorf("real audit events = %d, want 1", len(realEvents))
 	}

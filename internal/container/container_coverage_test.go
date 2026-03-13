@@ -102,12 +102,12 @@ func TestCovSecurityScanner_DetermineStatus(t *testing.T) {
 	logger := covContLogger()
 
 	tests := []struct {
-		name      string
-		threshold string
-		vulns     []Vulnerability
-		secrets   []SecretFinding
+		name       string
+		threshold  string
+		vulns      []Vulnerability
+		secrets    []SecretFinding
 		misconfigs []Misconfiguration
-		score     float64
+		score      float64
 		wantStatus string
 	}{
 		{"critical vuln with critical threshold", "critical",
@@ -163,9 +163,9 @@ func TestCovSecurityScanner_ValidateAdmission(t *testing.T) {
 
 	policies := []AdmissionPolicy{
 		{
-			Name:            "default",
-			Enabled:         true,
-			BlockOnFailure:  true,
+			Name:              "default",
+			Enabled:           true,
+			BlockOnFailure:    true,
 			AllowedRegistries: []string{"gcr.io"},
 		},
 	}

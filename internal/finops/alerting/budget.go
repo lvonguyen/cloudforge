@@ -8,10 +8,10 @@ import (
 
 // BudgetRule defines a budget and the thresholds that trigger alerts.
 type BudgetRule struct {
-	Name       string   // Human-readable budget name
-	Provider   string   // Empty means all providers
-	CostCenter string   // Empty means all cost centers
-	MonthlyUSD float64  // Monthly budget in USD
+	Name       string    // Human-readable budget name
+	Provider   string    // Empty means all providers
+	CostCenter string    // Empty means all cost centers
+	MonthlyUSD float64   // Monthly budget in USD
 	Thresholds []float64 // Percentage thresholds, e.g. [80, 100, 120]
 }
 

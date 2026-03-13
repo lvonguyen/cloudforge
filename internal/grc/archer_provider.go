@@ -32,7 +32,7 @@ type ArcherConfig struct {
 type ArcherGRCProvider struct {
 	config     ArcherConfig
 	httpClient *http.Client
-	password string // loaded from env at initialization
+	password   string // loaded from env at initialization
 }
 
 // NewArcherGRCProvider creates a new RSA Archer GRC provider.
