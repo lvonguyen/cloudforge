@@ -58,9 +58,7 @@ type Server struct {
 	agentsByID        map[string]*Agent
 	tracesByAgentID   map[string][]AgentTrace
 	remediationsByID  map[string]*RemediationRecord
-	attackPaths       []AttackPath
-	attackPathStats   *AttackPathStats
-	attackPathMu      sync.RWMutex
+	attackPathSvc     *AttackPathService
 	aiProvider        ai.Provider // nil when AI is disabled (graceful degradation)
 	findingEnrichment map[string]*FindingEnrichment
 	enrichMu          sync.Mutex
@@ -285,20 +283,22 @@ func main() {
 	// Compute attack paths from findings
 	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings)
 
-	srv.attackPaths = attackPaths
-	srv.attackPathStats = attackPathStats
+	srv.attackPathSvc = &AttackPathService{
+		Paths: attackPaths,
+		Stats: attackPathStats,
+	}
 
 	// Server-scoped context: cancelled on SIGINT/SIGTERM to stop background work.
 	serverCtx, serverCancel := context.WithCancel(context.Background())
 	defer serverCancel()
 
 	// Enrich attack paths with AI in the background to avoid blocking startup.
-	// Assign srv.attackPaths before spawning so HTTP handlers always see the slice.
+	// Assign attackPathSvc before spawning so HTTP handlers always see the slice.
 	if srv.aiProvider != nil {
 		go func() {
 			enrichCtx, enrichCancel := context.WithTimeout(serverCtx, 5*time.Minute)
 			defer enrichCancel()
-			enrichAttackPaths(enrichCtx, srv.aiProvider, attackPaths, &srv.attackPathMu, logger)
+			enrichAttackPaths(enrichCtx, srv.aiProvider, srv.attackPathSvc.Paths, &srv.attackPathSvc.Mu, logger)
 		}()
 	}
 	logger.Info("Attack paths computed",

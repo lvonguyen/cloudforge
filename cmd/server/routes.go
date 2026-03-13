@@ -129,15 +129,15 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listPolicies)),
 	).Methods("GET")
 
-	// Attack paths
+	// Attack paths (delegated to AttackPathService)
 	apiRouter.Handle("/attack-paths",
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAttackPaths)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.attackPathSvc.listAttackPaths)),
 	).Methods("GET")
 	apiRouter.Handle("/attack-paths/stats",
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAttackPathStats)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.attackPathSvc.getAttackPathStats)),
 	).Methods("GET")
 	apiRouter.Handle("/attack-paths/{id}",
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAttackPath)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.attackPathSvc.getAttackPath)),
 	).Methods("GET")
 
 	// Container security

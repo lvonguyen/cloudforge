@@ -49,15 +49,17 @@ func benchServer(b *testing.B) (*Server, *mux.Router) {
 	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings)
 
 	srv := &Server{
-		config:            Config{Port: "0"},
-		grcProvider:       grcProvider,
-		router:            mux.NewRouter(),
-		authMiddleware:    authMiddleware,
-		healthChecker:     observability.NewHealthChecker(logger, nil),
-		logger:            logger,
-		mockData:          mockData,
-		attackPaths:       attackPaths,
-		attackPathStats:   attackPathStats,
+		config:         Config{Port: "0"},
+		grcProvider:    grcProvider,
+		router:         mux.NewRouter(),
+		authMiddleware: authMiddleware,
+		healthChecker:  observability.NewHealthChecker(logger, nil),
+		logger:         logger,
+		mockData:       mockData,
+		attackPathSvc: &AttackPathService{
+			Paths: attackPaths,
+			Stats: attackPathStats,
+		},
 		findingEnrichment: make(map[string]*FindingEnrichment),
 		roles:             &api.RoleEnforcer{DevMode: false},
 		finopsSvc:         newFinopsService(),

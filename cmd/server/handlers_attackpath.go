@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"sync"
 
 	"cloudforge/internal/api"
 
@@ -10,6 +11,14 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 )
+
+// AttackPathService encapsulates attack path data and the mutex protecting it.
+// Extracted from Server to reduce the God Object surface area.
+type AttackPathService struct {
+	Paths []AttackPath
+	Stats *AttackPathStats
+	Mu    sync.RWMutex
+}
 
 // attackPathInScope returns true if all nodes in the path fall within the scope.
 func attackPathInScope(scope *api.ResourceScope, path *AttackPath) bool {
@@ -26,16 +35,16 @@ func attackPathInScope(scope *api.ResourceScope, path *AttackPath) bool {
 	return true
 }
 
-func (s *Server) listAttackPaths(w http.ResponseWriter, r *http.Request) {
+func (svc *AttackPathService) listAttackPaths(w http.ResponseWriter, r *http.Request) {
 	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAttackPaths")
 	defer span.End()
 
 	claims, _ := api.GetClaimsFromContext(r.Context())
 	scope := api.ScopeFromContext(claims)
 
-	s.attackPathMu.RLock()
-	src := s.attackPaths
-	s.attackPathMu.RUnlock()
+	svc.Mu.RLock()
+	src := svc.Paths
+	svc.Mu.RUnlock()
 
 	// Apply scope filter
 	all := make([]AttackPath, 0, len(src))
@@ -79,7 +88,7 @@ func (s *Server) listAttackPaths(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Server) getAttackPath(w http.ResponseWriter, r *http.Request) {
+func (svc *AttackPathService) getAttackPath(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getAttackPath")
 	defer span.End()
 	r = r.WithContext(ctx)
@@ -87,16 +96,16 @@ func (s *Server) getAttackPath(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("attack_path.id", id))
 
-	s.attackPathMu.RLock()
+	svc.Mu.RLock()
 	var found *AttackPath
-	for i := range s.attackPaths {
-		if s.attackPaths[i].ID == id {
-			p := s.attackPaths[i]
+	for i := range svc.Paths {
+		if svc.Paths[i].ID == id {
+			p := svc.Paths[i]
 			found = &p
 			break
 		}
 	}
-	s.attackPathMu.RUnlock()
+	svc.Mu.RUnlock()
 
 	if found != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -107,13 +116,13 @@ func (s *Server) getAttackPath(w http.ResponseWriter, r *http.Request) {
 	writeErrorResponse(w, "attack path not found", http.StatusNotFound)
 }
 
-func (s *Server) getAttackPathStats(w http.ResponseWriter, r *http.Request) {
+func (svc *AttackPathService) getAttackPathStats(w http.ResponseWriter, r *http.Request) {
 	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getAttackPathStats")
 	defer span.End()
 
-	s.attackPathMu.RLock()
-	stats := s.attackPathStats
-	s.attackPathMu.RUnlock()
+	svc.Mu.RLock()
+	stats := svc.Stats
+	svc.Mu.RUnlock()
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(stats)
