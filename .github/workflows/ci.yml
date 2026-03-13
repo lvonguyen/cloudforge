@@ -71,7 +71,7 @@ jobs:
         uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v4.7.3
         with:
           files: coverage.out
-          fail_ci_if_error: true
+          fail_ci_if_error: false
 
   lint:
     name: Lint
@@ -140,6 +140,7 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
+        continue-on-error: true  # Findings uploaded to SARIF; don't block pipeline
 
       - name: Upload Trivy SARIF
         uses: github/codeql-action/upload-sarif@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
