@@ -55,35 +55,21 @@ func benchServer(b *testing.B) (*Server, *mux.Router) {
 		authMiddleware: authMiddleware,
 		healthChecker:  observability.NewHealthChecker(logger, nil),
 		logger:         logger,
-		mockData:       mockData,
+		data:           NewDataStore(mockData),
 		attackPathSvc: &AttackPathService{
 			Paths: attackPaths,
 			Stats: attackPathStats,
 		},
-		findingEnrichment: make(map[string]*FindingEnrichment),
-		roles:             &api.RoleEnforcer{DevMode: false},
-		finopsSvc:         newFinopsService(),
+		enrichmentSvc: &EnrichmentService{
+			Cache:  make(map[string]*FindingEnrichment),
+			Logger: logger,
+		},
+		roles:     &api.RoleEnforcer{DevMode: false},
+		finopsSvc: newFinopsService(),
 		identityProviders: map[string]identity.Provider{
 			"okta":     identity.NewMockOktaProvider(),
 			"entra_id": identity.NewMockEntraIDProvider(),
 		},
-	}
-
-	srv.findingsByID = make(map[string]*Finding, len(mockData.Findings))
-	for i := range mockData.Findings {
-		srv.findingsByID[mockData.Findings[i].ID] = &mockData.Findings[i]
-	}
-	srv.agentsByID = make(map[string]*Agent, len(mockData.Agents))
-	for i := range mockData.Agents {
-		srv.agentsByID[mockData.Agents[i].ID] = &mockData.Agents[i]
-	}
-	srv.remediationsByID = make(map[string]*RemediationRecord, len(mockData.Remediations))
-	for i := range mockData.Remediations {
-		srv.remediationsByID[mockData.Remediations[i].ID] = &mockData.Remediations[i]
-	}
-	srv.tracesByAgentID = make(map[string][]AgentTrace, len(mockData.Agents))
-	for _, tr := range mockData.Traces {
-		srv.tracesByAgentID[tr.AgentID] = append(srv.tracesByAgentID[tr.AgentID], tr)
 	}
 
 	srv.setupRoutes()
@@ -182,10 +168,10 @@ func BenchmarkGetFinding(b *testing.B) {
 	srv, router := benchServer(b)
 	jwt := makeJWTForBench(b, adminClaims())
 
-	if len(srv.mockData.Findings) == 0 {
+	if len(srv.data.Findings) == 0 {
 		b.Fatal("no mock findings loaded")
 	}
-	findingID := srv.mockData.Findings[0].ID
+	findingID := srv.data.Findings[0].ID
 
 	req, _ := http.NewRequest("GET", "/api/v1/findings/"+findingID, nil)
 	req.Header.Set("Authorization", "Bearer "+jwt)

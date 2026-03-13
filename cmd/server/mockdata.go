@@ -85,6 +85,41 @@ func loadMockData(basePath string) (*MockData, error) {
 	return data, nil
 }
 
+// DataStore wraps MockData with O(1) lookup maps for hot-path handlers.
+// Extracted from Server to decouple data access from HTTP wiring.
+type DataStore struct {
+	*MockData
+	FindingsByID     map[string]*Finding
+	AgentsByID       map[string]*Agent
+	TracesByAgentID  map[string][]AgentTrace
+	RemediationsByID map[string]*RemediationRecord
+}
+
+// NewDataStore builds a DataStore from loaded mock data, constructing all
+// O(1) lookup maps and computing integrity hashes.
+func NewDataStore(md *MockData) *DataStore {
+	ds := &DataStore{MockData: md}
+
+	ds.FindingsByID = make(map[string]*Finding, len(md.Findings))
+	for i := range md.Findings {
+		ds.FindingsByID[md.Findings[i].ID] = &md.Findings[i]
+	}
+	ds.AgentsByID = make(map[string]*Agent, len(md.Agents))
+	for i := range md.Agents {
+		ds.AgentsByID[md.Agents[i].ID] = &md.Agents[i]
+	}
+	ds.RemediationsByID = make(map[string]*RemediationRecord, len(md.Remediations))
+	for i := range md.Remediations {
+		ds.RemediationsByID[md.Remediations[i].ID] = &md.Remediations[i]
+	}
+	ds.TracesByAgentID = make(map[string][]AgentTrace, len(md.Agents))
+	for _, tr := range md.Traces {
+		ds.TracesByAgentID[tr.AgentID] = append(ds.TracesByAgentID[tr.AgentID], tr)
+	}
+
+	return ds
+}
+
 // loadJSON reads a JSON file from disk and unmarshals it into dst.
 func loadJSON(path string, dst interface{}) error {
 	raw, err := os.ReadFile(path)

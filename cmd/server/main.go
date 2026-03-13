@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -44,29 +43,28 @@ type Config struct {
 	CORSOrigins      string // Comma-separated allowed CORS origins
 }
 
-// Server holds the application state
+// Server holds application state and wires domain services to HTTP routes.
+// Domain logic lives in dedicated services; Server is the composition root.
 type Server struct {
-	config            Config
-	grcProvider       grc.GRCProvider
-	router            *mux.Router
-	authMiddleware    *api.AuthMiddleware
-	rateLimiter       *gateway.RateLimiter
-	healthChecker     *observability.HealthChecker
-	logger            *zap.Logger
-	mockData          *MockData
-	findingsByID      map[string]*Finding
-	agentsByID        map[string]*Agent
-	tracesByAgentID   map[string][]AgentTrace
-	remediationsByID  map[string]*RemediationRecord
-	attackPathSvc     *AttackPathService
-	aiProvider        ai.Provider // nil when AI is disabled (graceful degradation)
-	findingEnrichment map[string]*FindingEnrichment
-	enrichMu          sync.Mutex
-	roles             *api.RoleEnforcer
+	config         Config
+	grcProvider    grc.GRCProvider
+	router         *mux.Router
+	authMiddleware *api.AuthMiddleware
+	rateLimiter    *gateway.RateLimiter
+	healthChecker  *observability.HealthChecker
+	logger         *zap.Logger
+	roles          *api.RoleEnforcer
+	auditLogger    audit.AuditLogger
+
+	// Domain services (extracted from God Object)
+	data          *DataStore         // findings, agents, traces, remediations, etc.
+	attackPathSvc *AttackPathService // attack path queries + mutex
+	enrichmentSvc *EnrichmentService // AI enrichment + cache
+
+	// Already-isolated services
 	finopsSvc         *finopsService
 	identityProviders map[string]identity.Provider
 	dedupCache        *ingestion.DedupCache
-	auditLogger       audit.AuditLogger
 }
 
 func main() {
@@ -226,47 +224,33 @@ func main() {
 		logger.Info("Using mock Entra ID identity provider (ENTRA_TENANT_ID not set)")
 	}
 
-	// Create server
-	srv := &Server{
-		config:            cfg,
-		grcProvider:       grcProvider,
-		router:            mux.NewRouter(),
-		authMiddleware:    authMiddleware,
-		rateLimiter:       rateLimiter,
-		healthChecker:     healthChecker,
-		logger:            logger,
-		aiProvider:        aiProvider,
-		findingEnrichment: make(map[string]*FindingEnrichment),
-		roles:             &api.RoleEnforcer{DevMode: os.Getenv("APP_ENV") == "development"},
-		finopsSvc:         newFinopsService(),
-		identityProviders: idProviders,
-		dedupCache:        ingestion.NewDedupCache(24 * time.Hour),
-		auditLogger:       audit.NewZapAuditLogger(logger.Named("audit"), audit.NewMemoryAuditLogger()),
-	}
-
-	// Load mock data from frontend JSON files
+	// Load mock data and build O(1) lookup maps via DataStore
 	mockData, err := loadMockData(mockDataDir())
 	if err != nil {
 		logger.Fatal("Failed to load mock data", zap.Error(err))
 	}
-	srv.mockData = mockData
+	dataStore := NewDataStore(mockData)
 
-	// Build O(1) lookup maps for hot-path single-item handlers
-	srv.findingsByID = make(map[string]*Finding, len(mockData.Findings))
-	for i := range mockData.Findings {
-		srv.findingsByID[mockData.Findings[i].ID] = &mockData.Findings[i]
-	}
-	srv.agentsByID = make(map[string]*Agent, len(mockData.Agents))
-	for i := range mockData.Agents {
-		srv.agentsByID[mockData.Agents[i].ID] = &mockData.Agents[i]
-	}
-	srv.remediationsByID = make(map[string]*RemediationRecord, len(mockData.Remediations))
-	for i := range mockData.Remediations {
-		srv.remediationsByID[mockData.Remediations[i].ID] = &mockData.Remediations[i]
-	}
-	srv.tracesByAgentID = make(map[string][]AgentTrace, len(mockData.Agents))
-	for _, tr := range mockData.Traces {
-		srv.tracesByAgentID[tr.AgentID] = append(srv.tracesByAgentID[tr.AgentID], tr)
+	// Create server
+	srv := &Server{
+		config:         cfg,
+		grcProvider:    grcProvider,
+		router:         mux.NewRouter(),
+		authMiddleware: authMiddleware,
+		rateLimiter:    rateLimiter,
+		healthChecker:  healthChecker,
+		logger:         logger,
+		roles:          &api.RoleEnforcer{DevMode: os.Getenv("APP_ENV") == "development"},
+		auditLogger:    audit.NewZapAuditLogger(logger.Named("audit"), audit.NewMemoryAuditLogger()),
+		data:           dataStore,
+		enrichmentSvc: &EnrichmentService{
+			AI:     aiProvider,
+			Cache:  make(map[string]*FindingEnrichment),
+			Logger: logger.Named("enrichment"),
+		},
+		finopsSvc:         newFinopsService(),
+		identityProviders: idProviders,
+		dedupCache:        ingestion.NewDedupCache(24 * time.Hour),
 	}
 
 	logger.Info("Mock data loaded",
@@ -294,11 +278,11 @@ func main() {
 
 	// Enrich attack paths with AI in the background to avoid blocking startup.
 	// Assign attackPathSvc before spawning so HTTP handlers always see the slice.
-	if srv.aiProvider != nil {
+	if srv.enrichmentSvc.Enabled() {
 		go func() {
 			enrichCtx, enrichCancel := context.WithTimeout(serverCtx, 5*time.Minute)
 			defer enrichCancel()
-			enrichAttackPaths(enrichCtx, srv.aiProvider, srv.attackPathSvc.Paths, &srv.attackPathSvc.Mu, logger)
+			enrichAttackPaths(enrichCtx, srv.enrichmentSvc.AI, srv.attackPathSvc.Paths, &srv.attackPathSvc.Mu, logger)
 		}()
 	}
 	logger.Info("Attack paths computed",

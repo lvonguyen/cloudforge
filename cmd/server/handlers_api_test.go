@@ -639,7 +639,7 @@ func TestAuditLog_IncludesRealEvents(t *testing.T) {
 func TestFinding_IntegrityHashDeterministic(t *testing.T) {
 	srv, _ := testServer(t)
 
-	f := srv.findingsByID["f-aws-0001"]
+	f := srv.data.FindingsByID["f-aws-0001"]
 	if f == nil {
 		t.Fatal("f-aws-0001 not found")
 	}

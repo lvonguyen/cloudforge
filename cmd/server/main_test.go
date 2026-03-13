@@ -88,38 +88,23 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		authMiddleware: authMiddleware,
 		healthChecker:  observability.NewHealthChecker(logger, nil),
 		logger:         logger,
-		mockData:       &mockData,
+		data:           NewDataStore(&mockData),
 		attackPathSvc: &AttackPathService{
 			Paths: sharedTestPaths,
 			Stats: sharedTestPathStats,
 		},
-		findingEnrichment: make(map[string]*FindingEnrichment),
-		roles:             &api.RoleEnforcer{DevMode: false},
-		finopsSvc:         newFinopsService(),
-		dedupCache:        ingestion.NewDedupCache(24 * time.Hour),
-		auditLogger:       audit.NewMemoryAuditLogger(),
+		enrichmentSvc: &EnrichmentService{
+			Cache:  make(map[string]*FindingEnrichment),
+			Logger: logger,
+		},
+		roles:       &api.RoleEnforcer{DevMode: false},
+		finopsSvc:   newFinopsService(),
+		dedupCache:  ingestion.NewDedupCache(24 * time.Hour),
+		auditLogger: audit.NewMemoryAuditLogger(),
 		identityProviders: map[string]identity.Provider{
 			"okta":     identity.NewMockOktaProvider(),
 			"entra_id": identity.NewMockEntraIDProvider(),
 		},
-	}
-
-	// Build O(1) lookup maps (matches main.go init logic)
-	srv.findingsByID = make(map[string]*Finding, len(mockData.Findings))
-	for i := range mockData.Findings {
-		srv.findingsByID[mockData.Findings[i].ID] = &mockData.Findings[i]
-	}
-	srv.agentsByID = make(map[string]*Agent, len(mockData.Agents))
-	for i := range mockData.Agents {
-		srv.agentsByID[mockData.Agents[i].ID] = &mockData.Agents[i]
-	}
-	srv.remediationsByID = make(map[string]*RemediationRecord, len(mockData.Remediations))
-	for i := range mockData.Remediations {
-		srv.remediationsByID[mockData.Remediations[i].ID] = &mockData.Remediations[i]
-	}
-	srv.tracesByAgentID = make(map[string][]AgentTrace, len(mockData.Agents))
-	for _, tr := range mockData.Traces {
-		srv.tracesByAgentID[tr.AgentID] = append(srv.tracesByAgentID[tr.AgentID], tr)
 	}
 
 	srv.setupRoutes()

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -30,9 +29,9 @@ func (s *Server) listFindings(w http.ResponseWriter, r *http.Request) {
 	claims, _ := api.GetClaimsFromContext(r.Context())
 	scope := api.ScopeFromContext(claims)
 
-	results := make([]Finding, 0, len(s.mockData.Findings))
-	for i := range s.mockData.Findings {
-		f := &s.mockData.Findings[i]
+	results := make([]Finding, 0, len(s.data.Findings))
+	for i := range s.data.Findings {
+		f := &s.data.Findings[i]
 		if severity != "" && !strings.EqualFold(f.Severity, severity) {
 			continue
 		}
@@ -62,7 +61,7 @@ func (s *Server) getFinding(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("finding.id", id))
 
-	f, ok := s.findingsByID[id]
+	f, ok := s.data.FindingsByID[id]
 	if !ok {
 		writeErrorResponse(w, "finding not found", http.StatusNotFound)
 		return
@@ -84,20 +83,20 @@ func (s *Server) listFrameworks(w http.ResponseWriter, r *http.Request) {
 	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listFrameworks")
 	defer span.End()
 
-	span.SetAttributes(attribute.Int("frameworks.count", len(s.mockData.Frameworks)))
+	span.SetAttributes(attribute.Int("frameworks.count", len(s.data.Frameworks)))
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(s.mockData.Frameworks)
+	_ = json.NewEncoder(w).Encode(s.data.Frameworks)
 }
 
 func (s *Server) listAgents(w http.ResponseWriter, r *http.Request) {
 	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAgents")
 	defer span.End()
 
-	span.SetAttributes(attribute.Int("agents.count", len(s.mockData.Agents)))
+	span.SetAttributes(attribute.Int("agents.count", len(s.data.Agents)))
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(s.mockData.Agents)
+	_ = json.NewEncoder(w).Encode(s.data.Agents)
 }
 
 func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
@@ -108,7 +107,7 @@ func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("agent.id", id))
 
-	if a, ok := s.agentsByID[id]; ok {
+	if a, ok := s.data.AgentsByID[id]; ok {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(a)
 		return
@@ -125,7 +124,7 @@ func (s *Server) getRemediation(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("remediation.id", id))
 
-	if rem, ok := s.remediationsByID[id]; ok {
+	if rem, ok := s.data.RemediationsByID[id]; ok {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(rem)
 		return
@@ -156,8 +155,8 @@ func (s *Server) listRemediations(w http.ResponseWriter, r *http.Request) {
 		hasTier = true
 	}
 
-	results := make([]RemediationRecord, 0, len(s.mockData.Remediations))
-	for _, rem := range s.mockData.Remediations {
+	results := make([]RemediationRecord, 0, len(s.data.Remediations))
+	for _, rem := range s.data.Remediations {
 		if statusFilter != "" && !strings.EqualFold(rem.Status, statusFilter) {
 			continue
 		}
@@ -181,7 +180,7 @@ func (s *Server) executeRemediation(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("remediation.id", id))
 
-	if _, ok := s.remediationsByID[id]; ok {
+	if _, ok := s.data.RemediationsByID[id]; ok {
 		s.logAuditEvent(r, "remediation.execute", "remediation", id, "success")
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]string{
@@ -202,7 +201,7 @@ func (s *Server) listAgentTraces(w http.ResponseWriter, r *http.Request) {
 	agentID := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("agent.id", agentID))
 
-	results := s.tracesByAgentID[agentID]
+	results := s.data.TracesByAgentID[agentID]
 	if results == nil {
 		results = []AgentTrace{}
 	}
@@ -222,8 +221,8 @@ func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
 	actorFilter := r.URL.Query().Get("actor")
 
 	// Start with mock data (historical events loaded from JSON)
-	results := make([]AuditEvent, 0, len(s.mockData.AuditEvents))
-	for _, evt := range s.mockData.AuditEvents {
+	results := make([]AuditEvent, 0, len(s.data.AuditEvents))
+	for _, evt := range s.data.AuditEvents {
 		if resultFilter != "" && !strings.EqualFold(evt.Result, resultFilter) {
 			continue
 		}
@@ -271,8 +270,8 @@ func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
 
 	roleFilter := strings.ToLower(r.URL.Query().Get("role"))
 
-	results := make([]UserRow, 0, len(s.mockData.Users))
-	for _, u := range s.mockData.Users {
+	results := make([]UserRow, 0, len(s.data.Users))
+	for _, u := range s.data.Users {
 		if roleFilter != "" && !strings.EqualFold(u.Role, roleFilter) {
 			continue
 		}
@@ -294,8 +293,8 @@ func (s *Server) listCatalogModules(w http.ResponseWriter, r *http.Request) {
 	categoryFilter := strings.ToLower(r.URL.Query().Get("category"))
 	searchFilter := strings.ToLower(r.URL.Query().Get("search"))
 
-	results := make([]CatalogModule, 0, len(s.mockData.CatalogModules))
-	for _, m := range s.mockData.CatalogModules {
+	results := make([]CatalogModule, 0, len(s.data.CatalogModules))
+	for _, m := range s.data.CatalogModules {
 		if providerFilter != "" && !strings.EqualFold(m.Provider, providerFilter) {
 			continue
 		}
@@ -334,8 +333,8 @@ func (s *Server) listPolicies(w http.ResponseWriter, r *http.Request) {
 	statusFilter := strings.ToLower(r.URL.Query().Get("status"))
 	categoryFilter := strings.ToLower(r.URL.Query().Get("category"))
 
-	results := make([]Policy, 0, len(s.mockData.Policies))
-	for _, p := range s.mockData.Policies {
+	results := make([]Policy, 0, len(s.data.Policies))
+	for _, p := range s.data.Policies {
 		if statusFilter != "" && !strings.EqualFold(p.Status, statusFilter) {
 			continue
 		}
@@ -378,62 +377,25 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("finding.id", id))
 
-	if s.aiProvider == nil {
+	if !s.enrichmentSvc.Enabled() {
 		writeErrorResponse(w, "AI enrichment is not enabled", http.StatusServiceUnavailable)
 		return
 	}
 
-	// Check cache first
-	s.enrichMu.Lock()
-	if cached, ok := s.findingEnrichment[id]; ok {
-		s.enrichMu.Unlock()
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(cached)
-		return
-	}
-	s.enrichMu.Unlock()
-
-	// Find the finding
-	finding, ok := s.findingsByID[id]
+	// Find the finding in the DataStore
+	finding, ok := s.data.FindingsByID[id]
 	if !ok {
 		writeErrorResponse(w, "finding not found", http.StatusNotFound)
 		return
 	}
 
-	// Call AI provider
-	callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	prompt := fmt.Sprintf(`Finding: %s
-Severity: %s | Category: %s | Provider: %s
-Resource: %s (%s) in %s
-Status: %s
-Description: %s`,
-		finding.Title,
-		finding.Severity, finding.Category, finding.CloudProvider,
-		finding.ResourceName, finding.ResourceType, finding.Region,
-		finding.Status,
-		finding.Remediation,
-	)
-
-	response, err := s.aiProvider.CompleteWithSystem(callCtx, findingEnrichSystemPrompt, prompt)
+	// Delegate to EnrichmentService (handles cache + AI call)
+	enrichment, err := s.enrichmentSvc.Enrich(ctx, finding)
 	if err != nil {
 		s.logger.Error("AI enrichment failed", zap.String("finding_id", id), zap.Error(err))
 		writeErrorResponse(w, "AI enrichment failed", http.StatusInternalServerError)
 		return
 	}
-
-	enrichment, err := parseFindingEnrichment(id, response)
-	if err != nil {
-		s.logger.Error("Failed to parse enrichment response", zap.String("finding_id", id), zap.Error(err))
-		writeErrorResponse(w, "failed to parse AI response", http.StatusInternalServerError)
-		return
-	}
-
-	// Cache the result
-	s.enrichMu.Lock()
-	s.findingEnrichment[id] = enrichment
-	s.enrichMu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(enrichment)
