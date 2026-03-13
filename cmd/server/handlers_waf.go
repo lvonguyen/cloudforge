@@ -4,17 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"cloudforge/internal/waf"
-
 	"github.com/gorilla/mux"
 )
 
 func (s *Server) listWAFTemplates(w http.ResponseWriter, r *http.Request) {
-	mgr, err := waf.NewTemplateManager("memory")
-	if err != nil {
-		s.writeInternalError(w, err, "create waf template manager")
-		return
-	}
+	mgr := s.wafManager
 	templates, err := mgr.ListTemplates(r.Context())
 	if err != nil {
 		s.writeInternalError(w, err, "list waf templates")
@@ -36,11 +30,7 @@ func (s *Server) validateWAFCompliance(w http.ResponseWriter, r *http.Request) {
 		resourceID = "resource-" + templateID
 	}
 
-	mgr, err := waf.NewTemplateManager("memory")
-	if err != nil {
-		s.writeInternalError(w, err, "create waf template manager")
-		return
-	}
+	mgr := s.wafManager
 	result, err := mgr.ValidateCompliance(r.Context(), templateID, resourceID)
 	if err != nil {
 		writeErrorResponse(w, "template not found", http.StatusNotFound)

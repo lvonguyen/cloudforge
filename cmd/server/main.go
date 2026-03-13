@@ -15,10 +15,14 @@ import (
 	"cloudforge/internal/api"
 	"cloudforge/internal/api/gateway"
 	"cloudforge/internal/audit"
+	"cloudforge/internal/container"
 	"cloudforge/internal/grc"
 	"cloudforge/internal/identity"
 	"cloudforge/internal/ingestion"
 	"cloudforge/internal/observability"
+	"cloudforge/internal/secrets"
+	"cloudforge/internal/waf"
+	"cloudforge/internal/workflow"
 
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
@@ -65,6 +69,13 @@ type Server struct {
 	finopsSvc         *finopsService
 	identityProviders map[string]identity.Provider
 	dedupCache        *ingestion.DedupCache
+
+	// Singleton service instances (avoid per-request allocation)
+	workflowEngine   workflow.Engine
+	wafManager       waf.TemplateManager
+	secretsProvider  *secrets.MemoryProvider
+	secretsManager   *secrets.Manager
+	containerScanner container.Scanner
 }
 
 func main() {
@@ -231,6 +242,20 @@ func main() {
 	}
 	dataStore := NewDataStore(mockData)
 
+	// Initialize singleton service instances (created once, shared across requests)
+	workflowEngine, err := workflow.NewEngine("memory")
+	if err != nil {
+		logger.Fatal("Failed to create workflow engine", zap.Error(err))
+	}
+	wafMgr, err := waf.NewTemplateManager("memory")
+	if err != nil {
+		logger.Fatal("Failed to create WAF template manager", zap.Error(err))
+	}
+	containerScnr, err := container.NewScanner(containerScannerProvider())
+	if err != nil {
+		logger.Fatal("Failed to create container scanner", zap.Error(err))
+	}
+
 	// Create server
 	srv := &Server{
 		config:         cfg,
@@ -251,6 +276,11 @@ func main() {
 		finopsSvc:         newFinopsService(),
 		identityProviders: idProviders,
 		dedupCache:        ingestion.NewDedupCache(24 * time.Hour),
+		workflowEngine:    workflowEngine,
+		wafManager:        wafMgr,
+		secretsProvider:   secrets.NewMemoryProvider("demo"),
+		secretsManager:    secrets.NewManager(logger),
+		containerScanner:  containerScnr,
 	}
 
 	logger.Info("Mock data loaded",
@@ -275,6 +305,9 @@ func main() {
 	// Server-scoped context: cancelled on SIGINT/SIGTERM to stop background work.
 	serverCtx, serverCancel := context.WithCancel(context.Background())
 	defer serverCancel()
+
+	// Start background eviction of expired dedup cache entries.
+	srv.dedupCache.StartEviction(serverCtx, 5*time.Minute)
 
 	// Enrich attack paths with AI in the background to avoid blocking startup.
 	// Assign attackPathSvc before spawning so HTTP handlers always see the slice.

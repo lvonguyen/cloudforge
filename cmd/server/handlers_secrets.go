@@ -4,13 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"cloudforge/internal/secrets"
-
 	"github.com/gorilla/mux"
 )
 
 func (s *Server) listSecrets(w http.ResponseWriter, r *http.Request) {
-	provider := secrets.NewMemoryProvider("demo")
+	provider := s.secretsProvider
 	prefix := r.URL.Query().Get("prefix")
 
 	paths, err := provider.ListSecrets(r.Context(), prefix)
@@ -31,7 +29,7 @@ func (s *Server) getSecret(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	path := vars["path"]
 
-	provider := secrets.NewMemoryProvider("demo")
+	provider := s.secretsProvider
 	secret, err := provider.GetSecret(r.Context(), path)
 	if err != nil {
 		writeErrorResponse(w, "secret not found", http.StatusNotFound)
@@ -50,14 +48,19 @@ func (s *Server) getSecret(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) scanSecrets(w http.ResponseWriter, r *http.Request) {
-	mgr := secrets.NewManager(s.logger)
-	content := r.URL.Query().Get("content")
-	if content == "" {
-		writeErrorResponse(w, "content query parameter is required", http.StatusBadRequest)
+	var body struct {
+		Content string `json:"content"`
+	}
+	if !s.decodeJSONBody(w, r, &body) {
+		return
+	}
+	if body.Content == "" {
+		writeErrorResponse(w, "content field is required", http.StatusBadRequest)
 		return
 	}
 
-	findings := mgr.ScanForSecrets(content)
+	mgr := s.secretsManager
+	findings := mgr.ScanForSecrets(body.Content)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{

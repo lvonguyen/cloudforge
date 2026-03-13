@@ -4,17 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"cloudforge/internal/workflow"
-
 	"github.com/gorilla/mux"
 )
 
 func (s *Server) listWorkflows(w http.ResponseWriter, r *http.Request) {
-	engine, err := workflow.NewEngine("memory")
-	if err != nil {
-		s.writeInternalError(w, err, "create workflow engine")
-		return
-	}
+	engine := s.workflowEngine
 	workflows, err := engine.ListWorkflows(r.Context())
 	if err != nil {
 		s.writeInternalError(w, err, "list workflows")
@@ -32,11 +26,7 @@ func (s *Server) getWorkflow(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	engine, err := workflow.NewEngine("memory")
-	if err != nil {
-		s.writeInternalError(w, err, "create workflow engine")
-		return
-	}
+	engine := s.workflowEngine
 	wf, err := engine.GetWorkflow(r.Context(), id)
 	if err != nil {
 		writeErrorResponse(w, "workflow not found", http.StatusNotFound)
@@ -62,11 +52,7 @@ func (s *Server) approveWorkflow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	engine, err := workflow.NewEngine("memory")
-	if err != nil {
-		s.writeInternalError(w, err, "create workflow engine")
-		return
-	}
+	engine := s.workflowEngine
 	wf, err := engine.ApproveWorkflow(r.Context(), id, body.Approver)
 	if err != nil {
 		writeErrorResponse(w, err.Error(), http.StatusBadRequest)

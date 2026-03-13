@@ -46,6 +46,22 @@ func NewOktaProvider(cfg OktaConfig, logger *zap.Logger) (*OktaProvider, error) 
 
 func (p *OktaProvider) Name() string { return "okta" }
 
+// validOktaStatuses is the set of valid Okta user lifecycle statuses.
+var validOktaStatuses = map[string]bool{
+	"ACTIVE":           true,
+	"PROVISIONED":      true,
+	"DEPROVISIONED":    true,
+	"SUSPENDED":        true,
+	"RECOVERY":         true,
+	"LOCKED_OUT":       true,
+	"PASSWORD_EXPIRED": true,
+	"STAGED":           true,
+}
+
+func isValidOktaStatus(s string) bool {
+	return validOktaStatuses[s]
+}
+
 // apiURL constructs the full URL for an Okta API path.
 // If baseURL is set (for testing), it is used as prefix; otherwise the domain is used.
 func (p *OktaProvider) apiURL(path string) string {
@@ -138,6 +154,9 @@ func (p *OktaProvider) ListUsers(ctx context.Context, filter UserFilter) ([]*Use
 	}
 
 	if filter.Status != "" {
+		if !isValidOktaStatus(filter.Status) {
+			return nil, fmt.Errorf("invalid user status filter: %q", filter.Status)
+		}
 		if filter.Limit > 0 {
 			url += "&"
 		} else {

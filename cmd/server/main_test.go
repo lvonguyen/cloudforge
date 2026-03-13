@@ -14,10 +14,14 @@ import (
 
 	"cloudforge/internal/api"
 	"cloudforge/internal/audit"
+	"cloudforge/internal/container"
 	"cloudforge/internal/grc"
 	"cloudforge/internal/identity"
 	"cloudforge/internal/ingestion"
 	"cloudforge/internal/observability"
+	"cloudforge/internal/secrets"
+	"cloudforge/internal/waf"
+	"cloudforge/internal/workflow"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -79,6 +83,19 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		t.Fatalf("creating auth middleware: %v", err)
 	}
 
+	wfEngine, err := workflow.NewEngine("memory")
+	if err != nil {
+		t.Fatalf("creating workflow engine: %v", err)
+	}
+	wafMgr, err := waf.NewTemplateManager("memory")
+	if err != nil {
+		t.Fatalf("creating WAF template manager: %v", err)
+	}
+	ctrScanner, err := container.NewScanner("memory")
+	if err != nil {
+		t.Fatalf("creating container scanner: %v", err)
+	}
+
 	srv := &Server{
 		config: Config{
 			Port: "0",
@@ -105,6 +122,11 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 			"okta":     identity.NewMockOktaProvider(),
 			"entra_id": identity.NewMockEntraIDProvider(),
 		},
+		workflowEngine:   wfEngine,
+		wafManager:       wafMgr,
+		secretsProvider:  secrets.NewMemoryProvider("demo"),
+		secretsManager:   secrets.NewManager(logger),
+		containerScanner: ctrScanner,
 	}
 
 	srv.setupRoutes()

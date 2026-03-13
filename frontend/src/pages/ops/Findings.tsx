@@ -28,7 +28,7 @@ type SeverityTab = (typeof SEVERITY_TABS)[number]
 const CATEGORY_COLORS: Record<string, string> = {
   VULNERABILITY: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
   MISCONFIGURATION: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
-  DATA_SECURITY: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300',
+  DATA_PROTECTION: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300',
   IDENTITY: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
   NETWORK: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
 }
@@ -36,7 +36,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 const CATEGORY_SHORT: Record<string, string> = {
   VULNERABILITY: 'VULN',
   MISCONFIGURATION: 'MISCONFIG',
-  DATA_SECURITY: 'DATA SEC',
+  DATA_PROTECTION: 'DATA PROT',
   IDENTITY: 'IDENTITY',
   NETWORK: 'NETWORK',
 }
@@ -49,7 +49,7 @@ const WORKFLOW_COLORS: Record<string, string> = {
   resolved: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
 }
 
-const SIDEBAR_CATEGORIES = ['VULNERABILITY', 'MISCONFIGURATION', 'DATA_SECURITY', 'IDENTITY', 'NETWORK'] as const
+const SIDEBAR_CATEGORIES = ['VULNERABILITY', 'MISCONFIGURATION', 'DATA_PROTECTION', 'IDENTITY', 'NETWORK'] as const
 const SIDEBAR_PROVIDERS = ['aws', 'azure', 'gcp'] as const
 const SIDEBAR_STATUSES = ['open', 'in_progress', 'resolved'] as const
 

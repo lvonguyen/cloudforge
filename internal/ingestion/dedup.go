@@ -1,6 +1,7 @@
 package ingestion
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"sync"
@@ -64,4 +65,31 @@ func (c *DedupCache) CheckOrInsert(key, findingID string) (isDuplicate bool, ent
 	}
 	c.entries[key] = e
 	return false, e
+}
+
+// StartEviction runs a background goroutine that periodically removes expired
+// entries from the cache. It stops when ctx is cancelled.
+func (c *DedupCache) StartEviction(ctx context.Context, interval time.Duration) {
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				c.evictExpired()
+			}
+		}
+	}()
+}
+
+func (c *DedupCache) evictExpired() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for key, entry := range c.entries {
+		if time.Since(entry.FirstSeen) >= c.ttl {
+			delete(c.entries, key)
+		}
+	}
 }

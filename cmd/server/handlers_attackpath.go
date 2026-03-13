@@ -44,8 +44,6 @@ func (svc *AttackPathService) listAttackPaths(w http.ResponseWriter, r *http.Req
 
 	svc.Mu.RLock()
 	src := svc.Paths
-	svc.Mu.RUnlock()
-
 	// Apply scope filter
 	all := make([]AttackPath, 0, len(src))
 	for i := range src {
@@ -53,6 +51,7 @@ func (svc *AttackPathService) listAttackPaths(w http.ResponseWriter, r *http.Req
 			all = append(all, src[i])
 		}
 	}
+	svc.Mu.RUnlock()
 
 	page, perPage := parsePagination(r, 20)
 	total := len(all)

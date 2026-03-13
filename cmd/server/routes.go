@@ -154,7 +154,7 @@ func (s *Server) setupRoutes() {
 	).Methods("GET")
 	apiRouter.Handle("/secrets/scan",
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.scanSecrets)),
-	).Methods("GET")
+	).Methods("POST")
 	apiRouter.Handle("/secrets/{path:.*}",
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getSecret)),
 	).Methods("GET")

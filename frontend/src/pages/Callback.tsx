@@ -35,8 +35,9 @@ export default function Callback() {
 
     exchangeCode(code)
       .then(() => {
-        const returnPath = sessionStorage.getItem(LOGIN_RETURN_KEY) ?? '/ops'
+        const raw = sessionStorage.getItem(LOGIN_RETURN_KEY) ?? '/ops'
         sessionStorage.removeItem(LOGIN_RETURN_KEY)
+        const returnPath = (raw.startsWith('/') && !raw.startsWith('//')) ? raw : '/ops'
         navigate(returnPath, { replace: true })
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Token exchange failed'))

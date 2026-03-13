@@ -337,7 +337,7 @@ export default function AttackPaths() {
       <div>
         <h1 className="text-xl font-semibold">Attack Paths</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {total} paths computed from {stats?.total_findings ?? 0} findings
+          {total} paths · {stats?.total_findings ?? 0} findings analyzed
           {stats ? ` · ${stats.coverage_percent.toFixed(0)}% coverage · ${stats.isolated_findings} isolated` : ''}
         </p>
       </div>

@@ -9,6 +9,7 @@ import (
 	"cloudforge/internal/ai"
 
 	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 )
 
 // EnrichmentService encapsulates AI-powered finding enrichment with a
@@ -19,6 +20,7 @@ type EnrichmentService struct {
 	Cache  map[string]*FindingEnrichment
 	Mu     sync.Mutex
 	Logger *zap.Logger
+	group  singleflight.Group
 }
 
 // Enabled returns true when an AI provider is configured.
@@ -35,7 +37,8 @@ func (svc *EnrichmentService) GetCached(id string) (*FindingEnrichment, bool) {
 }
 
 // Enrich calls the AI provider to analyze a finding, caching the result.
-// Returns the cached result if already enriched.
+// Returns the cached result if already enriched. Concurrent calls for the
+// same finding ID are deduplicated via singleflight.
 func (svc *EnrichmentService) Enrich(ctx context.Context, finding *Finding) (*FindingEnrichment, error) {
 	// Check cache first
 	if cached, ok := svc.GetCached(finding.ID); ok {
@@ -46,36 +49,48 @@ func (svc *EnrichmentService) Enrich(ctx context.Context, finding *Finding) (*Fi
 		return nil, fmt.Errorf("AI enrichment is not enabled")
 	}
 
-	// Call AI provider
-	callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
+	// Deduplicate concurrent requests for the same finding
+	result, err, _ := svc.group.Do(finding.ID, func() (interface{}, error) {
+		// Re-check cache inside singleflight (another caller may have populated it)
+		if cached, ok := svc.GetCached(finding.ID); ok {
+			return cached, nil
+		}
 
-	prompt := fmt.Sprintf(`Finding: %s
+		callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+
+		prompt := fmt.Sprintf(`Finding: %s
 Severity: %s | Category: %s | Provider: %s
 Resource: %s (%s) in %s
 Status: %s
 Description: %s`,
-		finding.Title,
-		finding.Severity, finding.Category, finding.CloudProvider,
-		finding.ResourceName, finding.ResourceType, finding.Region,
-		finding.Status,
-		finding.Remediation,
-	)
+			finding.Title,
+			finding.Severity, finding.Category, finding.CloudProvider,
+			finding.ResourceName, finding.ResourceType, finding.Region,
+			finding.Status,
+			finding.Remediation,
+		)
 
-	response, err := svc.AI.CompleteWithSystem(callCtx, findingEnrichSystemPrompt, prompt)
+		response, err := svc.AI.CompleteWithSystem(callCtx, findingEnrichSystemPrompt, prompt)
+		if err != nil {
+			return nil, fmt.Errorf("AI call failed: %w", err)
+		}
+
+		enrichment, err := parseFindingEnrichment(finding.ID, response)
+		if err != nil {
+			return nil, fmt.Errorf("parsing AI response: %w", err)
+		}
+
+		// Cache the result
+		svc.Mu.Lock()
+		svc.Cache[finding.ID] = enrichment
+		svc.Mu.Unlock()
+
+		return enrichment, nil
+	})
+
 	if err != nil {
-		return nil, fmt.Errorf("AI call failed: %w", err)
+		return nil, err
 	}
-
-	enrichment, err := parseFindingEnrichment(finding.ID, response)
-	if err != nil {
-		return nil, fmt.Errorf("parsing AI response: %w", err)
-	}
-
-	// Cache the result
-	svc.Mu.Lock()
-	svc.Cache[finding.ID] = enrichment
-	svc.Mu.Unlock()
-
-	return enrichment, nil
+	return result.(*FindingEnrichment), nil
 }

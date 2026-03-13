@@ -315,7 +315,7 @@ func TestHandlers_ScanSecrets(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)
 
-	rr := doRequest(t, router, "GET", "/api/v1/secrets/scan?content=password123", "", jwt)
+	rr := doRequest(t, router, "POST", "/api/v1/secrets/scan", `{"content":"password123"}`, jwt)
 	assertStatus(t, rr, http.StatusOK)
 
 	var result map[string]interface{}
@@ -326,7 +326,7 @@ func TestHandlers_ScanSecrets_MissingContent(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)
 
-	rr := doRequest(t, router, "GET", "/api/v1/secrets/scan", "", jwt)
+	rr := doRequest(t, router, "POST", "/api/v1/secrets/scan", `{"content":""}`, jwt)
 	assertStatus(t, rr, http.StatusBadRequest)
 }
 

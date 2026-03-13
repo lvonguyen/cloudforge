@@ -215,6 +215,18 @@ func (s *Server) getExceptionsByApp(w http.ResponseWriter, r *http.Request) {
 	appID := vars["appId"]
 	span.SetAttributes(attribute.String("application.id", appID))
 
+	// Authorization: admin sees all; non-admin must match the application identity.
+	claims, ok := api.GetClaimsFromContext(r.Context())
+	if !ok {
+		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
+	role := api.RoleFromClaims(claims)
+	if role != api.RoleAdmin && claims.Subject != appID {
+		writeErrorResponse(w, "forbidden: requires admin role or matching application identity", http.StatusForbidden)
+		return
+	}
+
 	exceptions, err := s.grcProvider.GetExceptionsByApplication(r.Context(), appID)
 	if err != nil {
 		s.writeInternalError(w, err, "get exceptions by app")
