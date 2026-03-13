@@ -503,11 +503,11 @@ Mitigation: Rate limiting + queue monitoring + circuit breaker
 
 ## 7. Security Review Checklist
 
-- [x] All findings validated for source provenance before remediation
+- [ ] All findings validated for source provenance before remediation — PLANNED (see S-01)
 - [x] Tier enforcement prevents unauthorized T3 remediation
-- [x] AI prompts sanitized to prevent injection attacks
-- [x] Audit logs written to immutable storage (S3 Object Lock)
-- [x] Rollback states encrypted at rest (AES-256-GCM)
+- [x] AI prompts sanitized to prevent injection attacks (field truncation in risk scorer)
+- [ ] Audit logs written to immutable storage (S3 Object Lock) — PLANNED (see R-01)
+- [ ] Rollback states encrypted at rest (AES-256-GCM) — PLANNED (see T-02)
 - [ ] Finding integrity checks (SHA-256 hashing) — PLANNED
 - [ ] Short-lived credentials (STS AssumeRole) — PLANNED
 - [ ] Rate limiting per CSPM source (1000/hour) — PLANNED

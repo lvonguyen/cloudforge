@@ -29,10 +29,10 @@ func (s *Server) listAttackPaths(w http.ResponseWriter, r *http.Request) {
 
 	start := (page - 1) * perPage
 	end := start + perPage
-	if start > total {
+	if start >= total {
 		start = total
-	}
-	if end > total {
+		end = total
+	} else if end > total {
 		end = total
 	}
 
@@ -83,6 +83,10 @@ func (s *Server) getAttackPathStats(w http.ResponseWriter, r *http.Request) {
 	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getAttackPathStats")
 	defer span.End()
 
+	s.attackPathMu.RLock()
+	stats := s.attackPathStats
+	s.attackPathMu.RUnlock()
+
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(s.attackPathStats)
+	_ = json.NewEncoder(w).Encode(stats)
 }

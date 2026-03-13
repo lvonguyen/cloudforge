@@ -150,6 +150,14 @@ func main() {
 		}
 		cancel()
 
+		if redisClient != nil {
+			defer func() {
+				if err := redisClient.Close(); err != nil {
+					logger.Warn("Failed to close Redis client", zap.Error(err))
+				}
+			}()
+		}
+
 		rateLimiter = gateway.NewRateLimiter(redisClient, gateway.DefaultConfig(), logger)
 		logger.Info("Rate limiter initialized")
 	}
@@ -274,11 +282,15 @@ func main() {
 	srv.attackPaths = attackPaths
 	srv.attackPathStats = attackPathStats
 
+	// Server-scoped context: cancelled on SIGINT/SIGTERM to stop background work.
+	serverCtx, serverCancel := context.WithCancel(context.Background())
+	defer serverCancel()
+
 	// Enrich attack paths with AI in the background to avoid blocking startup.
 	// Assign srv.attackPaths before spawning so HTTP handlers always see the slice.
 	if srv.aiProvider != nil {
 		go func() {
-			enrichCtx, enrichCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			enrichCtx, enrichCancel := context.WithTimeout(serverCtx, 5*time.Minute)
 			defer enrichCancel()
 			enrichAttackPaths(enrichCtx, srv.aiProvider, attackPaths, &srv.attackPathMu, logger)
 		}()
@@ -341,6 +353,9 @@ func main() {
 	<-quit
 
 	logger.Info("Shutting down server...")
+
+	// Cancel server-scoped context to stop background goroutines (enrichment, etc.)
+	serverCancel()
 
 	// Graceful shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
