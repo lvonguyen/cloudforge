@@ -4,6 +4,7 @@ package identity
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"go.uber.org/zap"
@@ -299,14 +300,9 @@ func (e *ZeroTrustEngine) applyPolicy(request *AccessRequest, policy *ZeroTrustP
 }
 
 func (e *ZeroTrustEngine) sortPoliciesByPriority() {
-	// Simple bubble sort - could use sort.Slice for larger sets
-	for i := 0; i < len(e.policies)-1; i++ {
-		for j := 0; j < len(e.policies)-i-1; j++ {
-			if e.policies[j].Priority > e.policies[j+1].Priority {
-				e.policies[j], e.policies[j+1] = e.policies[j+1], e.policies[j]
-			}
-		}
-	}
+	sort.Slice(e.policies, func(i, j int) bool {
+		return e.policies[i].Priority < e.policies[j].Priority
+	})
 }
 
 func (e *ZeroTrustEngine) loadDefaultPolicies() {

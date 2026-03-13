@@ -352,6 +352,9 @@ func (s *ServiceNowGRCProvider) ValidateException(
 
 // GetException retrieves an exception from ServiceNow by sys_id.
 func (s *ServiceNowGRCProvider) GetException(ctx context.Context, id string) (*ExceptionRequest, error) {
+	if err := validateSNOWInput("id", id); err != nil {
+		return nil, fmt.Errorf("getting exception: %w", err)
+	}
 	if err := s.authenticate(ctx); err != nil {
 		return nil, err
 	}
@@ -410,6 +413,9 @@ func (s *ServiceNowGRCProvider) GetException(ctx context.Context, id string) (*E
 
 // UpdateException updates an exception in ServiceNow.
 func (s *ServiceNowGRCProvider) UpdateException(ctx context.Context, req *ExceptionRequest) error {
+	if err := validateSNOWInput("id", req.ID); err != nil {
+		return fmt.Errorf("updating exception: %w", err)
+	}
 	if err := s.authenticate(ctx); err != nil {
 		return err
 	}
@@ -451,6 +457,9 @@ func (s *ServiceNowGRCProvider) UpdateException(ctx context.Context, req *Except
 
 // SubmitApproval updates an approval record in ServiceNow.
 func (s *ServiceNowGRCProvider) SubmitApproval(ctx context.Context, exceptionID string, approver Approver) error {
+	if err := validateSNOWInput("exceptionID", exceptionID); err != nil {
+		return fmt.Errorf("submitting approval: %w", err)
+	}
 	if err := s.authenticate(ctx); err != nil {
 		return err
 	}

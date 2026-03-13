@@ -236,8 +236,17 @@ func (m *AuthMiddleware) validateToken(token string) (*Claims, error) {
 		return nil, fmt.Errorf("parsing token header: %w", err)
 	}
 
-	// Verify signature based on algorithm
+	// Verify signature based on algorithm.
+	// SEC-010: Explicitly reject "none" and empty algorithms to prevent
+	// signature-bypass attacks. The default case would also reject these,
+	// but an explicit case makes the rejection auditable in code review.
 	switch header.Alg {
+	case "none", "":
+		m.logger.Warn("auth: rejected insecure JWT algorithm",
+			zap.String("alg", header.Alg),
+			zap.String("remote_addr", ""), // populated by caller
+		)
+		return nil, fmt.Errorf("rejected insecure JWT algorithm: %q [SEC-010]", header.Alg)
 	case "HS256":
 		if len(m.jwtSecret) == 0 {
 			return nil, fmt.Errorf("HS256 token received but no JWT secret configured")

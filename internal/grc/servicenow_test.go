@@ -478,6 +478,51 @@ func TestServiceNow_SubmitApproval_Error(t *testing.T) {
 	}
 }
 
+// ---------- GetException input validation ----------
+
+func TestServiceNow_GetException_InputValidation(t *testing.T) {
+	p := newServiceNowProviderForTest("https://unused", &http.Client{})
+
+	_, err := p.GetException(context.Background(), "")
+	if err == nil {
+		t.Error("expected error for empty id")
+	}
+	_, err = p.GetException(context.Background(), "id;inject")
+	if err == nil {
+		t.Error("expected error for injection chars in id")
+	}
+}
+
+// ---------- UpdateException input validation ----------
+
+func TestServiceNow_UpdateException_InputValidation(t *testing.T) {
+	p := newServiceNowProviderForTest("https://unused", &http.Client{})
+
+	err := p.UpdateException(context.Background(), &ExceptionRequest{ID: ""})
+	if err == nil {
+		t.Error("expected error for empty id")
+	}
+	err = p.UpdateException(context.Background(), &ExceptionRequest{ID: "id^inject"})
+	if err == nil {
+		t.Error("expected error for injection chars in id")
+	}
+}
+
+// ---------- SubmitApproval input validation ----------
+
+func TestServiceNow_SubmitApproval_InputValidation(t *testing.T) {
+	p := newServiceNowProviderForTest("https://unused", &http.Client{})
+
+	err := p.SubmitApproval(context.Background(), "", Approver{Decision: StatusApproved})
+	if err == nil {
+		t.Error("expected error for empty exceptionID")
+	}
+	err = p.SubmitApproval(context.Background(), "id;drop", Approver{Decision: StatusApproved})
+	if err == nil {
+		t.Error("expected error for injection chars in exceptionID")
+	}
+}
+
 // ---------- GetPendingApprovals ----------
 
 func TestServiceNow_GetPendingApprovals_Found(t *testing.T) {
