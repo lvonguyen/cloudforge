@@ -506,9 +506,9 @@ Mitigation: Rate limiting + queue monitoring + circuit breaker
 - [ ] All findings validated for source provenance before remediation — PLANNED (see S-01)
 - [x] Tier enforcement prevents unauthorized T3 remediation
 - [x] AI prompts sanitized to prevent injection attacks (field truncation in risk scorer)
-- [ ] Audit logs written to immutable storage (S3 Object Lock) — PLANNED (see R-01)
-- [ ] Rollback states encrypted at rest (AES-256-GCM) — PLANNED (see T-02)
-- [ ] Finding integrity checks (SHA-256 hashing) — PLANNED
+- [x] Audit logs with integrity hashing — IMPLEMENTED (Sprint 10A: internal/audit/logger.go). S3 Object Lock deferred to production.
+- [x] Rollback states encrypted at rest (AES-256-GCM) — IMPLEMENTED (Sprint 10B: internal/remediation/encrypted_state.go)
+- [x] Finding integrity checks (SHA-256 hashing) — IMPLEMENTED (Sprint 9B: Finding.ComputeIntegrityHash)
 - [ ] Short-lived credentials (STS AssumeRole) — PLANNED
 - [ ] Rate limiting per CSPM source (1000/hour) — PLANNED
 - [ ] API key rotation every 90 days — MANUAL

@@ -10,9 +10,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Resource-scoped RBAC (ADR-013 Accepted): `ResourceScope` in JWT claims with `Scopeable` interface — findings and attack paths filtered by account, region, environment, business unit (Sprint 8B)
+- Finding ingestion endpoint: `POST /api/v1/findings/ingest` with SHA-256 dedup cache, 24h TTL, admin-only (Sprint 9A)
+- Finding integrity hashing: tamper-evident SHA-256 hash on all findings at load time (Sprint 9B, STRIDE T-01)
+- Real audit logging: `AuditLogger` interface with `MemoryAuditLogger` + `ZapAuditLogger`, integrity-hashed entries, merged with mock audit data (Sprint 10A)
+- Rollback state encryption: AES-256-GCM `EncryptedStateStore` with env-var key, random nonce (Sprint 10B, STRIDE T-02)
+- CI enforcement: gosec `-severity high`, Trivy `exit-code 1`, Codecov `fail_ci_if_error true`, frontend vitest gate, integration tests, `codecov.yml` (Sprint 8A)
 - Documentation review: HLD v3.0, 4 new ADRs (009-012), 3 new runbooks (07-09), cross-cutting fixes
 - Frontend planning doc — 18-screen React/Vite UI across Admin, Operator, and Requester role views with phased build plan and TypeScript type alignment (`docs/frontend-planning.md`)
 - IaC planning doc — Terraform module catalog, Rego policy expansion, two-track OPA architecture, Cloud Run + CF Pages deployment design (`docs/iac-planning.md`)
+
+### Changed
+
+- ADR-013 status: Proposed to Accepted (resource-scoped RBAC implemented)
+- Threat model checklist: T-01 (integrity hashing) and T-02 (rollback encryption) checked off
+- npm audit CI gate: removed `|| true` fallback — now fails on high-severity advisories
 
 ---
 

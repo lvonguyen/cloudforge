@@ -42,17 +42,28 @@ type AuthConfig struct {
 	SkipPaths []string
 }
 
+// ResourceScope defines ABAC resource-scope restrictions embedded in JWT claims.
+// A nil ResourceScope means unrestricted access (backwards-compatible with existing tokens).
+// Each non-empty dimension is AND'd; an empty slice in any dimension means "allow all" for that dimension.
+type ResourceScope struct {
+	BusinessUnits []string `json:"business_units,omitempty"`
+	Environments  []string `json:"environments,omitempty"`
+	Regions       []string `json:"regions,omitempty"`
+	AccountIDs    []string `json:"account_ids,omitempty"`
+}
+
 // Claims represents the JWT claims we validate.
 type Claims struct {
-	Subject   string   `json:"sub"`
-	Issuer    string   `json:"iss"`
-	Audience  []string `json:"aud"`
-	ExpiresAt int64    `json:"exp"`
-	NotBefore int64    `json:"nbf"`
-	IssuedAt  int64    `json:"iat"`
-	Email     string   `json:"email,omitempty"`
-	Scope     string   `json:"scope,omitempty"`
-	Groups    []string `json:"groups,omitempty"` // CF Access groups or IdP groups
+	Subject       string         `json:"sub"`
+	Issuer        string         `json:"iss"`
+	Audience      []string       `json:"aud"`
+	ExpiresAt     int64          `json:"exp"`
+	NotBefore     int64          `json:"nbf"`
+	IssuedAt      int64          `json:"iat"`
+	Email         string         `json:"email,omitempty"`
+	Scope         string         `json:"scope,omitempty"`
+	Groups        []string       `json:"groups,omitempty"`         // CF Access groups or IdP groups
+	ResourceScope *ResourceScope `json:"resource_scope,omitempty"` // ABAC scope restrictions (nil = unrestricted)
 }
 
 // contextKey is a custom type for context keys to avoid collisions.

@@ -1,6 +1,10 @@
 package main
 
-import "encoding/json"
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+)
 
 // Finding represents a security finding from CSPM scanners.
 type Finding struct {
@@ -48,7 +52,34 @@ type Finding struct {
 	DueDate             string              `json:"due_date"`
 	DeduplicationKey    string              `json:"deduplication_key"`
 	CanonicalRuleID     string              `json:"canonical_rule_id"`
+	IntegrityHash       string              `json:"integrity_hash,omitempty"`
 }
+
+// ComputeIntegrityHash computes a tamper-evident SHA-256 hash over the
+// canonical identity and content fields of the finding.
+func (f *Finding) ComputeIntegrityHash() string {
+	h := sha256.New()
+	for _, s := range []string{
+		f.ID, f.Source, f.SourceFindingID, f.ResourceID,
+		f.AccountID, f.Region, f.Severity, f.Title, f.Status,
+	} {
+		h.Write([]byte(s))
+		h.Write([]byte{0}) // null delimiter
+	}
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// GetAccountID implements api.Scopeable.
+func (f *Finding) GetAccountID() string { return f.AccountID }
+
+// GetRegion implements api.Scopeable.
+func (f *Finding) GetRegion() string { return f.Region }
+
+// GetEnvironmentType implements api.Scopeable.
+func (f *Finding) GetEnvironmentType() string { return f.EnvironmentType }
+
+// GetLineOfBusiness implements api.Scopeable.
+func (f *Finding) GetLineOfBusiness() string { return f.LineOfBusiness }
 
 // CVE holds vulnerability identifiers.
 type CVE struct {

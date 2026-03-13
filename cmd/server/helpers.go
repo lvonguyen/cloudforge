@@ -7,8 +7,35 @@ import (
 	"strconv"
 	"strings"
 
+	"cloudforge/internal/api"
+	"cloudforge/internal/audit"
+
 	"go.uber.org/zap"
 )
+
+// logAuditEvent records an auditable action. Silently drops the event if the
+// audit logger is nil (e.g., in test configurations that don't set it up).
+func (s *Server) logAuditEvent(r *http.Request, action, resource, resourceID, result string) {
+	if s.auditLogger == nil {
+		return
+	}
+	actor := ""
+	actorRole := ""
+	if claims, ok := api.GetClaimsFromContext(r.Context()); ok {
+		actor = claims.Subject
+		actorRole = string(api.RoleFromClaims(claims))
+	}
+	ip := r.RemoteAddr
+	_ = s.auditLogger.Log(r.Context(), audit.AuditEntry{
+		Actor:      actor,
+		ActorRole:  actorRole,
+		Action:     action,
+		Resource:   resource,
+		ResourceID: resourceID,
+		Result:     result,
+		IP:         ip,
+	})
+}
 
 const (
 	// maxRequestBodySize limits request body to 1MB to prevent resource exhaustion

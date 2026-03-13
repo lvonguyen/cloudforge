@@ -9,6 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"cloudforge/internal/api"
+	"cloudforge/internal/audit"
+
 	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -24,8 +27,12 @@ func (s *Server) listFindings(w http.ResponseWriter, r *http.Request) {
 	provider := strings.ToLower(r.URL.Query().Get("provider"))
 	status := strings.ToLower(r.URL.Query().Get("status"))
 
+	claims, _ := api.GetClaimsFromContext(r.Context())
+	scope := api.ScopeFromContext(claims)
+
 	results := make([]Finding, 0, len(s.mockData.Findings))
-	for _, f := range s.mockData.Findings {
+	for i := range s.mockData.Findings {
+		f := &s.mockData.Findings[i]
 		if severity != "" && !strings.EqualFold(f.Severity, severity) {
 			continue
 		}
@@ -35,7 +42,10 @@ func (s *Server) listFindings(w http.ResponseWriter, r *http.Request) {
 		if status != "" && !strings.EqualFold(f.Status, status) {
 			continue
 		}
-		results = append(results, f)
+		if err := api.EnforceScope(scope, f); err != nil {
+			continue // silently skip out-of-scope findings in list
+		}
+		results = append(results, *f)
 	}
 
 	span.SetAttributes(attribute.Int("findings.count", len(results)))
@@ -52,13 +62,22 @@ func (s *Server) getFinding(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("finding.id", id))
 
-	if f, ok := s.findingsByID[id]; ok {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(f)
+	f, ok := s.findingsByID[id]
+	if !ok {
+		writeErrorResponse(w, "finding not found", http.StatusNotFound)
 		return
 	}
 
-	writeErrorResponse(w, "finding not found", http.StatusNotFound)
+	claims, _ := api.GetClaimsFromContext(r.Context())
+	scope := api.ScopeFromContext(claims)
+	if err := api.EnforceScope(scope, f); err != nil {
+		api.LogScopeDenial(s.logger, claims.Subject, f.ID, f.AccountID, f.Region, err.Error())
+		writeErrorResponse(w, "forbidden: resource outside authorized scope", http.StatusForbidden)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(f)
 }
 
 func (s *Server) listFrameworks(w http.ResponseWriter, r *http.Request) {
@@ -163,6 +182,7 @@ func (s *Server) executeRemediation(w http.ResponseWriter, r *http.Request) {
 	span.SetAttributes(attribute.String("remediation.id", id))
 
 	if _, ok := s.remediationsByID[id]; ok {
+		s.logAuditEvent(r, "remediation.execute", "remediation", id, "success")
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"status":         "executing",
@@ -201,6 +221,7 @@ func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
 	resultFilter := strings.ToLower(r.URL.Query().Get("result"))
 	actorFilter := r.URL.Query().Get("actor")
 
+	// Start with mock data (historical events loaded from JSON)
 	results := make([]AuditEvent, 0, len(s.mockData.AuditEvents))
 	for _, evt := range s.mockData.AuditEvents {
 		if resultFilter != "" && !strings.EqualFold(evt.Result, resultFilter) {
@@ -210,6 +231,31 @@ func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		results = append(results, evt)
+	}
+
+	// Merge real audit events from the audit logger (newest first)
+	if s.auditLogger != nil {
+		realEvents, err := s.auditLogger.List(r.Context(), audit.ListOpts{
+			Actor: actorFilter,
+			Limit: 100,
+		})
+		if err == nil {
+			for _, re := range realEvents {
+				if resultFilter != "" && !strings.EqualFold(re.Result, resultFilter) {
+					continue
+				}
+				results = append(results, AuditEvent{
+					ID:        re.ID,
+					Timestamp: re.Timestamp,
+					Actor:     re.Actor,
+					ActorRole: re.ActorRole,
+					Action:    re.Action,
+					Resource:  re.Resource,
+					Result:    re.Result,
+					IP:        re.IP,
+				})
+			}
+		}
 	}
 
 	span.SetAttributes(attribute.Int("audit.count", len(results)))

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -22,6 +23,17 @@ import (
 	"go.uber.org/zap"
 )
 
+// Shared test fixtures: loadMockData + computeAttackPaths are O(n^2) on 20k
+// findings. Caching them in a sync.Once drops the test suite from ~10min to
+// seconds (97 tests each called testServer which re-ran both).
+var (
+	sharedTestOnce      sync.Once
+	sharedTestMockData  *MockData
+	sharedTestPaths     []AttackPath
+	sharedTestPathStats *AttackPathStats
+	sharedTestErr       error
+)
+
 // testJWTSecret is the shared secret for test JWT generation.
 const testJWTSecret = "test-secret-for-unit-tests-only"
 
@@ -33,6 +45,24 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 
 	// Must be set before NewAuthMiddleware — it reads the env var at construction time.
 	t.Setenv("TEST_JWT_SECRET", testJWTSecret)
+
+	// Cache the two expensive operations: loading 42MB mock JSON and computing
+	// O(n^2) attack paths on 20k findings. Each test gets a shallow copy of
+	// MockData so mutations (e.g. ingest appending findings) stay isolated.
+	sharedTestOnce.Do(func() {
+		sharedTestMockData, sharedTestErr = loadMockData(mockDataDir())
+		if sharedTestErr != nil {
+			return
+		}
+		sharedTestPaths, sharedTestPathStats = computeAttackPaths(sharedTestMockData.Findings)
+	})
+	if sharedTestErr != nil {
+		t.Fatalf("loading mock data: %v", sharedTestErr)
+	}
+
+	// Shallow copy — slice headers are copied so append() in ingest tests
+	// won't mutate the shared cache.
+	mockData := *sharedTestMockData
 
 	logger := zap.NewNop()
 
@@ -49,13 +79,6 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		t.Fatalf("creating auth middleware: %v", err)
 	}
 
-	mockData, err := loadMockData(mockDataDir())
-	if err != nil {
-		t.Fatalf("loading mock data: %v", err)
-	}
-
-	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings)
-
 	srv := &Server{
 		config: Config{
 			Port: "0",
@@ -65,9 +88,9 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		authMiddleware:    authMiddleware,
 		healthChecker:     observability.NewHealthChecker(logger, nil),
 		logger:            logger,
-		mockData:          mockData,
-		attackPaths:       attackPaths,
-		attackPathStats:   attackPathStats,
+		mockData:          &mockData,
+		attackPaths:       sharedTestPaths,
+		attackPathStats:   sharedTestPathStats,
 		findingEnrichment: make(map[string]*FindingEnrichment),
 		roles:             &api.RoleEnforcer{DevMode: false},
 		finopsSvc:         newFinopsService(),

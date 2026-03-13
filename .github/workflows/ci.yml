@@ -60,11 +60,16 @@ jobs:
         env:
           REDIS_ADDR: localhost:6379
 
+      - name: Run integration tests
+        run: go test -v -tags=integration -count=1 ./cmd/server/...
+        env:
+          REDIS_ADDR: localhost:6379
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v4.7.3
         with:
           files: coverage.out
-          fail_ci_if_error: false
+          fail_ci_if_error: true
 
   lint:
     name: Lint
@@ -109,7 +114,7 @@ jobs:
       - name: Run Gosec Security Scanner
         uses: securego/gosec@424fc4cd9c82ea0fd6bee9cd49c2db2c3cc0c93f # v2.22.11
         with:
-          args: '-no-fail -fmt sarif -out gosec-results.sarif ./...'
+          args: '-severity high -fmt sarif -out gosec-results.sarif ./...'
 
       - name: Fix Gosec SARIF schema
         if: always() && !cancelled() && hashFiles('gosec-results.sarif') != ''
@@ -131,7 +136,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
-          exit-code: '0'  # Don't fail on vulnerabilities found
+          exit-code: '1'
 
       - name: Upload Trivy SARIF
         uses: github/codeql-action/upload-sarif@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
@@ -217,9 +222,13 @@ jobs:
       - name: Install, type-check, and build
         run: cd frontend && npm ci && npx tsc -b && npm run build
 
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm run test
+
       - name: Frontend security audit
         working-directory: frontend
-        run: npm audit --audit-level=high || true
+        run: npm audit --audit-level=high
 
   docker:
     name: Docker Build

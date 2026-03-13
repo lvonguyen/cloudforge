@@ -77,6 +77,11 @@ func loadMockData(basePath string) (*MockData, error) {
 		return nil, fmt.Errorf("loading catalog: %w", err)
 	}
 
+	// Compute tamper-evident integrity hashes for all findings.
+	for i := range data.Findings {
+		data.Findings[i].IntegrityHash = data.Findings[i].ComputeIntegrityHash()
+	}
+
 	return data, nil
 }
 

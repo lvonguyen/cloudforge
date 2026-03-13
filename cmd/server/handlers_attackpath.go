@@ -4,18 +4,46 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"cloudforge/internal/api"
+
 	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 )
 
+// attackPathInScope returns true if all nodes in the path fall within the scope.
+func attackPathInScope(scope *api.ResourceScope, path *AttackPath) bool {
+	if scope == nil {
+		return true
+	}
+	for i := range path.Nodes {
+		n := &path.Nodes[i]
+		if !api.MatchesDimension(scope.AccountIDs, n.AccountID) ||
+			!api.MatchesDimension(scope.Regions, n.Region) {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *Server) listAttackPaths(w http.ResponseWriter, r *http.Request) {
 	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAttackPaths")
 	defer span.End()
 
+	claims, _ := api.GetClaimsFromContext(r.Context())
+	scope := api.ScopeFromContext(claims)
+
 	s.attackPathMu.RLock()
-	all := s.attackPaths
+	src := s.attackPaths
 	s.attackPathMu.RUnlock()
+
+	// Apply scope filter
+	all := make([]AttackPath, 0, len(src))
+	for i := range src {
+		if attackPathInScope(scope, &src[i]) {
+			all = append(all, src[i])
+		}
+	}
 
 	page, perPage := parsePagination(r, 20)
 	total := len(all)

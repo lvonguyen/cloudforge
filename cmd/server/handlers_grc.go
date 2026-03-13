@@ -57,6 +57,8 @@ func (s *Server) createException(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s.logAuditEvent(r, "exception.create", "exception", created.ID, "success")
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(created)
@@ -129,6 +131,8 @@ func (s *Server) submitApproval(w http.ResponseWriter, r *http.Request) {
 		s.writeInternalError(w, err, "submit approval")
 		return
 	}
+
+	s.logAuditEvent(r, "exception.approve", "exception", id, "success")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

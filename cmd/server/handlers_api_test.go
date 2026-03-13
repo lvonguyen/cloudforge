@@ -1,6 +1,8 @@
 package main
 
 import (
+	"cloudforge/internal/api"
+	"cloudforge/internal/audit"
 	"net/http"
 	"testing"
 )
@@ -471,5 +473,183 @@ func TestAllEndpoints_RequesterForbidden(t *testing.T) {
 			rr := doRequest(t, router, ep.method, ep.path, "", jwt)
 			assertStatus(t, rr, http.StatusForbidden)
 		})
+	}
+}
+
+// --- Resource-scoped RBAC tests (Sprint 8B) ---
+
+// scopedAdminJWT returns a JWT with admin role restricted to the given account IDs.
+func scopedAdminJWT(t *testing.T, accountIDs []string) string {
+	t.Helper()
+	return makeJWT(t, api.Claims{
+		Subject: "scoped-admin",
+		Email:   "scoped@contoso.dev",
+		Groups:  []string{"cloudforge-admin"},
+		Scope:   "admin",
+		ResourceScope: &api.ResourceScope{
+			AccountIDs: accountIDs,
+		},
+	})
+}
+
+func TestListFindings_ScopedByAccount(t *testing.T) {
+	_, router := testServer(t)
+
+	// f-aws-0001 has account_id 100000000315
+	targetAccount := "100000000315"
+	jwt := scopedAdminJWT(t, []string{targetAccount})
+
+	rr := doRequest(t, router, "GET", "/api/v1/findings", "", jwt)
+	assertStatus(t, rr, http.StatusOK)
+
+	var results []Finding
+	assertJSON(t, rr, &results)
+
+	for _, f := range results {
+		if f.AccountID != targetAccount {
+			t.Errorf("finding %s has account %q, scope restricted to %q", f.ID, f.AccountID, targetAccount)
+		}
+	}
+	if len(results) == 0 {
+		t.Error("expected at least one finding in scope")
+	}
+}
+
+func TestListFindings_ScopedAdmin_SeesFewerThanUnscoped(t *testing.T) {
+	_, router := testServer(t)
+
+	// Unscoped admin sees all
+	unscopedJWT := adminJWT(t)
+	rr1 := doRequest(t, router, "GET", "/api/v1/findings", "", unscopedJWT)
+	assertStatus(t, rr1, http.StatusOK)
+	var all []Finding
+	assertJSON(t, rr1, &all)
+
+	// Scoped admin sees subset
+	scopedJWT := scopedAdminJWT(t, []string{"100000000315"})
+	rr2 := doRequest(t, router, "GET", "/api/v1/findings", "", scopedJWT)
+	assertStatus(t, rr2, http.StatusOK)
+	var scoped []Finding
+	assertJSON(t, rr2, &scoped)
+
+	if len(scoped) >= len(all) {
+		t.Errorf("scoped findings (%d) should be fewer than unscoped (%d)", len(scoped), len(all))
+	}
+}
+
+func TestGetFinding_ScopeDenied(t *testing.T) {
+	_, router := testServer(t)
+
+	// f-aws-0001 has account_id 100000000315
+	// Scope to a different account
+	jwt := scopedAdminJWT(t, []string{"999999999999"})
+
+	rr := doRequest(t, router, "GET", "/api/v1/findings/f-aws-0001", "", jwt)
+	assertStatus(t, rr, http.StatusForbidden)
+}
+
+func TestGetFinding_ScopeAllowed(t *testing.T) {
+	_, router := testServer(t)
+
+	// f-aws-0001 has account_id 100000000315
+	jwt := scopedAdminJWT(t, []string{"100000000315"})
+
+	rr := doRequest(t, router, "GET", "/api/v1/findings/f-aws-0001", "", jwt)
+	assertStatus(t, rr, http.StatusOK)
+
+	var result Finding
+	assertJSON(t, rr, &result)
+	if result.ID != "f-aws-0001" {
+		t.Errorf("finding id = %q, want f-aws-0001", result.ID)
+	}
+}
+
+func TestGetFinding_NilScopeAllowsAll(t *testing.T) {
+	_, router := testServer(t)
+
+	// Admin without ResourceScope sees everything (backwards compat)
+	jwt := adminJWT(t)
+
+	rr := doRequest(t, router, "GET", "/api/v1/findings/f-aws-0001", "", jwt)
+	assertStatus(t, rr, http.StatusOK)
+}
+
+// --- Integrity hashing tests (Sprint 9B) ---
+
+func TestFinding_IntegrityHashPopulated(t *testing.T) {
+	_, router := testServer(t)
+	jwt := adminJWT(t)
+
+	rr := doRequest(t, router, "GET", "/api/v1/findings/f-aws-0001", "", jwt)
+	assertStatus(t, rr, http.StatusOK)
+
+	var result Finding
+	assertJSON(t, rr, &result)
+
+	if result.IntegrityHash == "" {
+		t.Error("finding integrity_hash should be non-empty")
+	}
+	if len(result.IntegrityHash) != 64 { // SHA-256 hex = 64 chars
+		t.Errorf("integrity_hash length = %d, want 64", len(result.IntegrityHash))
+	}
+}
+
+func TestAuditLog_IncludesRealEvents(t *testing.T) {
+	srv, router := testServer(t)
+	jwt := adminJWT(t)
+
+	// Execute a remediation (creates an audit event)
+	rr := doRequest(t, router, "POST", "/api/v1/remediations/rem-001/execute", "", jwt)
+	assertStatus(t, rr, http.StatusOK)
+
+	// Fetch audit log — should include the real event merged with mock data
+	rr2 := doRequest(t, router, "GET", "/api/v1/audit-log", "", jwt)
+	assertStatus(t, rr2, http.StatusOK)
+
+	var events []AuditEvent
+	assertJSON(t, rr2, &events)
+
+	// Mock data has 60 events + 1 real
+	if len(events) < 61 {
+		t.Errorf("audit events = %d, want >= 61 (60 mock + 1 real)", len(events))
+	}
+
+	// Verify the real event exists
+	found := false
+	for _, e := range events {
+		if e.Action == "remediation.execute" && e.ID != "" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected a real remediation.execute audit event")
+	}
+
+	// Also check via AuditLogger directly
+	realEvents, _ := srv.auditLogger.List(nil, audit.ListOpts{})
+	if len(realEvents) != 1 {
+		t.Errorf("real audit events = %d, want 1", len(realEvents))
+	}
+	if realEvents[0].IntegrityHash == "" {
+		t.Error("real audit event should have integrity hash")
+	}
+}
+
+func TestFinding_IntegrityHashDeterministic(t *testing.T) {
+	srv, _ := testServer(t)
+
+	f := srv.findingsByID["f-aws-0001"]
+	if f == nil {
+		t.Fatal("f-aws-0001 not found")
+	}
+
+	hash1 := f.ComputeIntegrityHash()
+	hash2 := f.ComputeIntegrityHash()
+	if hash1 != hash2 {
+		t.Errorf("integrity hash not deterministic: %q != %q", hash1, hash2)
+	}
+	if hash1 != f.IntegrityHash {
+		t.Errorf("stored hash %q != computed %q", f.IntegrityHash, hash1)
 	}
 }
