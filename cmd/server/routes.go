@@ -175,6 +175,11 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getIdentityUserRisk)),
 	).Methods("GET")
 
+	// Finding ingestion (admin-only write endpoint with deduplication)
+	apiRouter.Handle("/findings/ingest",
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.ingestFinding)),
+	).Methods("POST")
+
 	// Workflow orchestration
 	apiRouter.Handle("/workflows",
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listWorkflows)),

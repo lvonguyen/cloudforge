@@ -15,8 +15,10 @@ import (
 	"cloudforge/internal/ai"
 	"cloudforge/internal/api"
 	"cloudforge/internal/api/gateway"
+	"cloudforge/internal/audit"
 	"cloudforge/internal/grc"
 	"cloudforge/internal/identity"
+	"cloudforge/internal/ingestion"
 	"cloudforge/internal/observability"
 
 	"github.com/gorilla/mux"
@@ -65,6 +67,8 @@ type Server struct {
 	roles             *api.RoleEnforcer
 	finopsSvc         *finopsService
 	identityProviders map[string]identity.Provider
+	dedupCache        *ingestion.DedupCache
+	auditLogger       audit.AuditLogger
 }
 
 func main() {
@@ -238,6 +242,8 @@ func main() {
 		roles:             &api.RoleEnforcer{DevMode: os.Getenv("APP_ENV") == "development"},
 		finopsSvc:         newFinopsService(),
 		identityProviders: idProviders,
+		dedupCache:        ingestion.NewDedupCache(24 * time.Hour),
+		auditLogger:       audit.NewZapAuditLogger(logger.Named("audit"), audit.NewMemoryAuditLogger()),
 	}
 
 	// Load mock data from frontend JSON files

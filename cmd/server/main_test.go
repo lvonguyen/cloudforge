@@ -12,8 +12,10 @@ import (
 	"time"
 
 	"cloudforge/internal/api"
+	"cloudforge/internal/audit"
 	"cloudforge/internal/grc"
 	"cloudforge/internal/identity"
+	"cloudforge/internal/ingestion"
 	"cloudforge/internal/observability"
 
 	"github.com/gorilla/mux"
@@ -69,6 +71,8 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		findingEnrichment: make(map[string]*FindingEnrichment),
 		roles:             &api.RoleEnforcer{DevMode: false},
 		finopsSvc:         newFinopsService(),
+		dedupCache:        ingestion.NewDedupCache(24 * time.Hour),
+		auditLogger:       audit.NewMemoryAuditLogger(),
 		identityProviders: map[string]identity.Provider{
 			"okta":     identity.NewMockOktaProvider(),
 			"entra_id": identity.NewMockEntraIDProvider(),
