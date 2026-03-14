@@ -2,10 +2,28 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient, ApiError } from '@/lib/api'
 import type { Finding } from '@/types/compliance'
 
-async function fetchMockFindings(): Promise<Finding[]> {
-  const res = await fetch('/mock/findings.json')
-  if (!res.ok) throw new Error(`Failed to load mock findings: ${res.status}`)
+const R2_FINDINGS_URL =
+  'https://pub-878a225fb2464e2ab2e3b08d0603e04b.r2.dev/mock/findings.json'
+
+async function fetchR2Findings(): Promise<Finding[]> {
+  const res = await fetch(R2_FINDINGS_URL)
+  if (!res.ok) throw new Error(`R2 fetch failed: ${res.status}`)
   return res.json()
+}
+
+async function fetchLocalMockFindings(): Promise<Finding[]> {
+  const res = await fetch('/mock/findings.json')
+  if (!res.ok) throw new Error(`Local mock fetch failed: ${res.status}`)
+  return res.json()
+}
+
+async function fetchMockFindings(): Promise<Finding[]> {
+  try {
+    return await fetchR2Findings()
+  } catch {
+    console.warn('[useFindings] R2 unavailable, falling back to local mock')
+    return fetchLocalMockFindings()
+  }
 }
 
 async function fetchFindings(filters?: { severity?: string; provider?: string; status?: string }): Promise<Finding[]> {
