@@ -58,7 +58,7 @@
     "version": "0.8.1",
     "owner": "security@contoso.dev",
     "team": "threat-intel",
-    "environment": "staging",
+    "environment": "prod",
     "capabilities": [
       { "name": "external-api-access", "description": "Access CISA KEV and MITRE APIs", "data_access": ["external:cisa.gov", "external:attack.mitre.org"], "risk_level": "medium" },
       { "name": "findings-read", "description": "Read all security findings", "data_access": ["internal:findings:read:all"], "risk_level": "low" }
@@ -69,10 +69,10 @@
     ],
     "policies": ["pol-001", "pol-005"],
     "risk_level": "medium",
-    "status": "suspended",
-    "last_active_at": "2026-02-24T12:00:00Z",
+    "status": "active",
+    "last_active_at": "2026-03-15T08:45:00Z",
     "created_at": "2026-02-01T11:00:00Z",
-    "updated_at": "2026-02-24T12:30:00Z"
+    "updated_at": "2026-03-15T08:45:00Z"
   },
   {
     "id": "550e8400-e29b-41d4-a716-446655440004",
@@ -200,10 +200,10 @@
     ],
     "policies": ["pol-001", "pol-002", "pol-009"],
     "risk_level": "medium",
-    "status": "inactive",
-    "last_active_at": "2026-02-15T16:00:00Z",
+    "status": "active",
+    "last_active_at": "2026-03-15T07:30:00Z",
     "created_at": "2026-01-25T09:00:00Z",
-    "updated_at": "2026-02-15T16:30:00Z"
+    "updated_at": "2026-03-15T07:30:00Z"
   },
   {
     "id": "550e8400-e29b-41d4-a716-446655440009",
@@ -213,7 +213,7 @@
     "version": "0.9.4",
     "owner": "admin1@contoso.dev",
     "team": "security-platform",
-    "environment": "staging",
+    "environment": "prod",
     "capabilities": [
       { "name": "findings-read-write", "description": "Read and merge security findings across sources", "data_access": ["internal:findings:read:all", "internal:findings:write:merge"], "risk_level": "medium" },
       { "name": "resource-correlation", "description": "Correlate resources across cloud provider inventories", "data_access": ["internal:cmdb:read", "aws:describe:*", "azure:read:*"], "risk_level": "low" }
@@ -225,10 +225,10 @@
     ],
     "policies": ["pol-001", "pol-010"],
     "risk_level": "medium",
-    "status": "suspended",
-    "last_active_at": "2026-02-23T14:20:00Z",
+    "status": "active",
+    "last_active_at": "2026-03-15T09:00:00Z",
     "created_at": "2026-02-08T11:00:00Z",
-    "updated_at": "2026-02-23T14:45:00Z"
+    "updated_at": "2026-03-15T09:00:00Z"
   },
   {
     "id": "550e8400-e29b-41d4-a716-446655440010",

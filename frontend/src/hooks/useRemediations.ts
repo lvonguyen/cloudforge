@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient, ApiError } from '@/lib/api'
 import type { RemediationRecord } from '@/types/remediation'
+import { useToast } from '@/hooks/useToast'
 
 export function useRemediations(filters?: { status?: string; tier?: number }) {
   const params = new URLSearchParams()
@@ -41,9 +42,17 @@ export function useRemediation(id: string) {
 
 export function useExecuteRemediation() {
   const qc = useQueryClient()
+  const { toast } = useToast()
   return useMutation({
     mutationFn: (id: string) =>
       apiClient.post<RemediationRecord>(`/remediations/${id}/execute`, {}),
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ['remediations'] }) },
+    onError: (err: Error) => {
+      if (err instanceof ApiError && err.status === 403) {
+        toast('Remediation execution requires admin role', 'error')
+      } else {
+        toast(`Remediation failed: ${err.message}`, 'error')
+      }
+    },
   })
 }

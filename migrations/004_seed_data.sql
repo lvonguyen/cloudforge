@@ -45,7 +45,7 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO ai_agents (id, name, description, framework, version, owner, team, environment, risk_level, status, last_active_at, total_invocations, avg_latency_ms, error_rate) VALUES
   ('550e8400-e29b-41d4-a716-446655440001', 'CloudAudit Agent', 'Autonomous agent for continuous cloud configuration auditing', 'langchain', '2.1.0', 'admin1@contoso.dev', 'security-platform', 'prod', 'low', 'active', '2026-02-27 08:30:00+00', 12847, 102340, 0.0012),
   ('550e8400-e29b-41d4-a716-446655440002', 'RemediationBot', 'Automated remediation agent with dry-run validation and rollback', 'autogen', '1.4.2', 'ops-team@contoso.dev', 'cloud-ops', 'prod', 'high', 'active', '2026-02-27 09:15:00+00', 3421, 47230, 0.0340),
-  ('550e8400-e29b-41d4-a716-446655440003', 'ThreatIntelAgent', 'Threat intelligence correlation agent using CrewAI', 'crewai', '0.8.1', 'security@contoso.dev', 'threat-intel', 'staging', 'medium', 'suspended', '2026-02-24 12:00:00+00', 891, 85000, 0.0500),
+  ('550e8400-e29b-41d4-a716-446655440003', 'ThreatIntelAgent', 'Threat intelligence correlation agent using CrewAI', 'crewai', '0.8.1', 'security@contoso.dev', 'threat-intel', 'prod', 'medium', 'active', '2026-03-15 08:45:00+00', 891, 85000, 0.0500),
   ('550e8400-e29b-41d4-a716-446655440004', 'CostOptimizer', 'FinOps optimization agent using stateful workflow', 'langgraph', '0.2.5', 'finops@contoso.dev', 'finops', 'prod', 'low', 'active', '2026-02-27 06:00:00+00', 5632, 120000, 0.0080)
 ON CONFLICT (id) DO NOTHING;
 

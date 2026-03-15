@@ -17,7 +17,7 @@ export function AppShell() {
       <TopNav onMenuClick={() => setMobileOpen(o => !o)} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
-        <main className="flex-1 overflow-y-auto bg-background p-6">
+        <main className={`flex-1 bg-background ${pathname === '/ops' ? 'overflow-hidden' : 'overflow-y-auto p-6'}`}>
           <Outlet />
         </main>
       </div>

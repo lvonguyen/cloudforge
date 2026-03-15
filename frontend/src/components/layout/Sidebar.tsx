@@ -147,7 +147,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen: boolean; on
       <aside
         className={cn(
           'relative hidden md:flex flex-col border-r border-border bg-sidebar-background transition-all duration-200',
-          collapsed ? 'w-14' : 'w-56'
+          collapsed ? 'w-14' : 'w-48'
         )}
       >
         <nav className="flex-1 overflow-y-auto py-4 px-2">
