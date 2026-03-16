@@ -5,23 +5,19 @@ import { Badge } from '@/components/ui/badge'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { ShieldCheck, Bot, AlertTriangle, FileText, TrendingUp } from 'lucide-react'
+import { ShieldCheck, Bot, AlertTriangle, FileText, TrendingUp, Loader2 } from 'lucide-react'
 import { EXCEPTION_STATUS_COLORS as STATUS_COLORS } from '@/lib/severity'
+import { usePolicies } from '@/hooks/usePolicies'
+import { useAgents } from '@/hooks/useAgents'
+import { useCompliance } from '@/hooks/useCompliance'
+import { useExceptions } from '@/hooks/useExceptions'
 
-const KPI_CARDS = [
-  { label: 'Active Policies', value: 42, sub: '3 pending review', icon: FileText, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/20', link: '/admin/policies' },
-  { label: 'AI Agents', value: 7, sub: '5 active, 2 idle', icon: Bot, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/20', link: '/admin/ai-agents' },
-  { label: 'Compliance Score', value: '84%', sub: '+2% this week', icon: ShieldCheck, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/20', link: '/ops/compliance' },
-  { label: 'Open Exceptions', value: 12, sub: '3 critical SLA', icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/20', link: '/ops/remediation' },
-]
-
-const EXCEPTION_QUEUE = [
+const FALLBACK_EXCEPTION_QUEUE = [
   { id: 'EXC-001', app: 'payments-api', type: 'UNAPPROVED_REGION', resource: 'RDS in ap-southeast-3', status: 'PENDING', created: '2026-02-25', sla: '1d' },
   { id: 'EXC-002', app: 'data-pipeline', type: 'OVERSIZED_INSTANCE', resource: 'EC2 m5.24xlarge', status: 'PENDING', created: '2026-02-24', sla: '2d' },
   { id: 'EXC-003', app: 'ml-training', type: 'RESTRICTED_SERVICE', resource: 'Bedrock us-gov-west-1', status: 'APPROVED', created: '2026-02-23', sla: '—' },
   { id: 'EXC-004', app: 'auth-service', type: 'NETWORK_EXPOSURE', resource: 'SG sg-0abc1234 port 22', status: 'PENDING', created: '2026-02-22', sla: '4h' },
 ]
-
 
 const TREND = [
   { label: 'Policies Evaluated', value: '18,432', change: '+12%' },
@@ -31,6 +27,49 @@ const TREND = [
 
 export default function AdminDashboard() {
   const [expandedExc, setExpandedExc] = useState<string | null>(null)
+  const { data: policies, isLoading: polLoading } = usePolicies()
+  const { data: agents, isLoading: agentLoading } = useAgents()
+  const { data: frameworks, isLoading: compLoading } = useCompliance()
+  const { data: exceptions, isLoading: excLoading } = useExceptions()
+
+  const isLoading = polLoading || agentLoading || compLoading || excLoading
+
+  const activePolicies = policies?.filter(p => p.status === 'active').length ?? 42
+  const agentCount = agents?.length ?? 7
+  const avgCompliance = frameworks && frameworks.length > 0
+    ? Math.round(frameworks.reduce((s, f) => s + f.score, 0) / frameworks.length)
+    : 84
+  const openExceptions = exceptions?.length ?? 12
+
+  const activeAgents = agents?.filter(a => a.status === 'active').length ?? 5
+  const idleAgents = (agents?.length ?? 7) - activeAgents
+
+  const KPI_CARDS = [
+    { label: 'Active Policies', value: activePolicies, sub: `${(policies?.filter(p => p.status === 'draft').length ?? 3)} pending review`, icon: FileText, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/20', link: '/admin/policies' },
+    { label: 'AI Agents', value: agentCount, sub: `${activeAgents} active, ${idleAgents} idle`, icon: Bot, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/20', link: '/admin/ai-agents' },
+    { label: 'Compliance Score', value: `${avgCompliance}%`, sub: 'avg across frameworks', icon: ShieldCheck, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/20', link: '/ops/compliance' },
+    { label: 'Open Exceptions', value: openExceptions, sub: `${exceptions?.filter(e => e.status === 'PENDING').length ?? 3} pending`, icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/20', link: '/ops/remediation' },
+  ]
+
+  const EXCEPTION_QUEUE = exceptions
+    ? exceptions.slice(0, 4).map(e => ({
+        id: e.id,
+        app: e.application_id,
+        type: e.request_type,
+        resource: e.resource_requested,
+        status: e.status,
+        created: e.created_at.slice(0, 10),
+        sla: e.status === 'PENDING' ? '—' : '—',
+      }))
+    : FALLBACK_EXCEPTION_QUEUE
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground p-4">
+        <Loader2 className="h-4 w-4 animate-spin" />Loading dashboard…
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
