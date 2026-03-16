@@ -378,6 +378,7 @@ export default function Findings() {
           <button
             className={`ml-1 p-0.5 rounded-sm hover:bg-muted ${hasActive ? 'text-foreground' : 'text-muted-foreground/40 hover:text-muted-foreground'}`}
             onClick={e => e.stopPropagation()}
+            aria-label={`Filter by ${col}`}
           >
             <ListFilter className="h-3 w-3" />
           </button>
@@ -403,7 +404,7 @@ export default function Findings() {
   return (
     <div className="flex gap-0 h-full">
       {/* Left sidebar */}
-      <aside className="w-[220px] shrink-0 border-r border-border pr-4 mr-4 space-y-5 overflow-y-auto">
+      <aside className="w-[220px] shrink-0 border-r border-border pr-4 mr-4 space-y-5 overflow-y-auto" aria-label="Findings filters">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Quick Filters</span>
           {hasFilters && (
@@ -418,7 +419,7 @@ export default function Findings() {
 
         {/* Category */}
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground mb-2">Category</h3>
+          <p className="text-xs font-semibold uppercase tracking-wide text-foreground mb-2">Category</p>
           <div className="space-y-1">
             {SIDEBAR_CATEGORIES.map(cat => (
               <label key={cat} className="flex items-center gap-2 text-xs cursor-pointer group">
@@ -437,7 +438,7 @@ export default function Findings() {
 
         {/* Provider */}
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground mb-2">Provider</h3>
+          <p className="text-xs font-semibold uppercase tracking-wide text-foreground mb-2">Provider</p>
           <div className="space-y-1">
             {SIDEBAR_PROVIDERS.map(prov => (
               <label key={prov} className="flex items-center gap-2 text-xs cursor-pointer group">
@@ -456,7 +457,7 @@ export default function Findings() {
 
         {/* Status */}
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground mb-2">Status</h3>
+          <p className="text-xs font-semibold uppercase tracking-wide text-foreground mb-2">Status</p>
           <div className="space-y-1">
             {SIDEBAR_STATUSES.map(st => (
               <label key={st} className="flex items-center gap-2 text-xs cursor-pointer group">
