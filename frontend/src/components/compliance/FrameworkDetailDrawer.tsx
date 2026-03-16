@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react'
+import { CheckCircle2, XCircle, AlertTriangle, ExternalLink } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -67,10 +67,12 @@ export function FrameworkDetailDrawer({
   framework,
   open,
   onOpenChange,
+  docLink,
 }: {
   framework: Framework | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  docLink?: string
 }) {
   const controls = useMemo(
     () => (framework ? generateControls(framework) : []),
@@ -87,6 +89,16 @@ export function FrameworkDetailDrawer({
         <SheetHeader>
           <SheetTitle className="text-base">{framework.name}</SheetTitle>
           <SheetDescription>{framework.description}</SheetDescription>
+          {docLink && (
+            <a
+              href={docLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline mt-1"
+            >
+              <ExternalLink className="h-3 w-3" />View Documentation
+            </a>
+          )}
         </SheetHeader>
 
         <div className="px-4 pb-6 space-y-5">

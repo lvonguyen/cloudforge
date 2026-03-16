@@ -1,8 +1,19 @@
+import { useState } from 'react'
 import { useCompliance } from '@/hooks/useCompliance'
 import { FrameworkGrid } from '@/components/compliance/FrameworkGrid'
+import { FrameworkDetailDrawer } from '@/components/compliance/FrameworkDetailDrawer'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ShieldCheck, ShieldAlert, Shield } from 'lucide-react'
+import { ShieldCheck, ShieldAlert, Shield, ExternalLink } from 'lucide-react'
+
+const FRAMEWORK_DOC_LINKS: Record<string, string> = {
+  'nist-csf':  'https://www.nist.gov/cyberframework',
+  'pci-dss':   'https://www.pcisecuritystandards.org/document_library/',
+  'hipaa':     'https://www.hhs.gov/hipaa/',
+  'iso-27001': 'https://www.iso.org/standard/27001',
+  'iso-42001': 'https://www.iso.org/standard/81230.html',
+  'tisax':     'https://www.enx.com/en-us/tisax/',
+}
 
 // Static last-assessed dates keyed by framework ID — would come from API in production
 const LAST_ASSESSED: Record<string, string> = {
@@ -22,6 +33,7 @@ function scoreClass(score: number): string {
 
 export default function Compliance() {
   const { data: frameworks = [], isLoading } = useCompliance()
+  const [selectedFramework, setSelectedFramework] = useState<typeof frameworks[number] | null>(null)
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground p-4">Loading compliance data…</div>
@@ -89,7 +101,12 @@ export default function Compliance() {
         <CardContent className="p-0">
           <div className="divide-y divide-border">
             {frameworks.map(fw => (
-              <div key={fw.id} className="grid grid-cols-4 gap-4 px-4 py-3 text-sm items-center">
+              <button
+                key={fw.id}
+                type="button"
+                className="w-full grid grid-cols-4 gap-4 px-4 py-3 text-sm items-center cursor-pointer hover:bg-muted/50 transition-colors text-left"
+                onClick={() => setSelectedFramework(fw)}
+              >
                 <div>
                   <p className="font-medium">{fw.name}</p>
                   <p className="text-xs text-muted-foreground capitalize">{fw.category}</p>
@@ -106,7 +123,7 @@ export default function Compliance() {
                   <p className="font-mono text-xs text-muted-foreground">Last Assessed</p>
                   <p className="text-xs">{LAST_ASSESSED[fw.id] ?? '—'}</p>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </CardContent>
@@ -114,6 +131,14 @@ export default function Compliance() {
 
       {/* Framework grid */}
       <FrameworkGrid frameworks={frameworks} />
+
+      {/* Table-row drawer (separate from FrameworkGrid's own drawer) */}
+      <FrameworkDetailDrawer
+        framework={selectedFramework}
+        open={selectedFramework !== null}
+        onOpenChange={(open) => { if (!open) setSelectedFramework(null) }}
+        docLink={selectedFramework ? FRAMEWORK_DOC_LINKS[selectedFramework.id] : undefined}
+      />
     </div>
   )
 }

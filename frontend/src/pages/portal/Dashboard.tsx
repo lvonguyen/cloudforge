@@ -4,20 +4,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth'
-import { FileText, Clock, CheckCircle2, XCircle, Plus } from 'lucide-react'
+import { FileText, Clock, CheckCircle2, XCircle, Plus, Loader2 } from 'lucide-react'
 import { EXCEPTION_STATUS_COLORS as STATUS_COLORS } from '@/lib/severity'
+import { useMyExceptions, useExceptions } from '@/hooks/useExceptions'
 
-const MY_REQUESTS = [
+const FALLBACK_REQUESTS = [
   { id: 'EXC-002', resource: 'EC2 m5.24xlarge in us-east-1', type: 'OVERSIZED_INSTANCE', status: 'PENDING', created: '2026-02-24' },
   { id: 'EXC-006', resource: 'S3 in ap-southeast-1', type: 'UNAPPROVED_REGION', status: 'APPROVED', created: '2026-02-18' },
   { id: 'EXC-007', resource: 'RDS db.r5.2xlarge', type: 'OVERSIZED_INSTANCE', status: 'REJECTED', created: '2026-02-10' },
 ]
 
-const PENDING_APPROVALS = [
+const FALLBACK_APPROVALS = [
   { id: 'EXC-001', app: 'payments-api', resource: 'RDS in ap-southeast-3', requestor: brandEmail('operator1'), since: '2h ago' },
   { id: 'EXC-004', app: 'auth-service', resource: 'SG port 22 open', requestor: brandEmail('operator2'), since: '4h ago' },
 ]
 
+function timeSince(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const hours = Math.floor(diff / 3_600_000)
+  if (hours < 1) return 'just now'
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}d ago`
+}
 
 const STATUS_ICONS: Record<string, typeof CheckCircle2> = {
   PENDING: Clock,
@@ -27,9 +35,40 @@ const STATUS_ICONS: Record<string, typeof CheckCircle2> = {
 
 export default function PortalDashboard() {
   const { user } = useAuth()
+  const { data: myExceptions, isLoading: myLoading } = useMyExceptions()
+  const { data: pendingExceptions, isLoading: pendingLoading } = useExceptions()
+
+  // Map API data to display shape, fallback to hardcoded in dev/error
+  const MY_REQUESTS = myExceptions
+    ? myExceptions.map(e => ({
+        id: e.id,
+        resource: e.resource_requested,
+        type: e.request_type,
+        status: e.status,
+        created: e.created_at.slice(0, 10),
+      }))
+    : FALLBACK_REQUESTS
+
+  const PENDING_APPROVALS = pendingExceptions
+    ? pendingExceptions.map(e => ({
+        id: e.id,
+        app: e.application_id,
+        resource: e.resource_requested,
+        requestor: e.requestor_email,
+        since: timeSince(e.created_at),
+      }))
+    : FALLBACK_APPROVALS
 
   const pending = MY_REQUESTS.filter(r => r.status === 'PENDING').length
   const approved = MY_REQUESTS.filter(r => r.status === 'APPROVED').length
+
+  if (myLoading || pendingLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground p-4">
+        <Loader2 className="h-4 w-4 animate-spin" />Loading dashboard…
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
