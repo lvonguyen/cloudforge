@@ -10,6 +10,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Performance infrastructure: pprof dev endpoint (127.0.0.1:6060, dev-only), enrichment benchmarks (GetCached_Hit/Miss, EvictExpired_5000), `make bench` + `make profile` targets (Sprint A+)
+- Frontend performance: `useDeferredValue` for search inputs in Findings + Catalog, vendor chunk splitting (@xyflow 180KB, recharts 379KB, @tanstack 60KB) (Sprint A+)
+- Lighthouse CI budget: performance >= 90, TTI < 2s, LCP < 2.5s, CLS < 0.1 (Sprint A+)
+
+### Fixed
+
+- **go.mod**: module path `test/example` → `cloudforge` with full dependency resolution (Sprint A)
+- **crypto/rand**: `math/rand` → `crypto/rand` in secrets memory_provider (CSPRNG for UUID generation) (Sprint A)
+- **EnrichmentService**: `sync.Mutex` → `sync.RWMutex` for concurrent cache reads; O(n^2) bubble sort → `sort.Slice` in eviction (Sprint A)
+- **Audit log**: `parsePagination` moved before `auditLogger.List` so Limit uses client-requested perPage (Sprint A)
+- **CORS**: `X-CloudForge-Role` header only allowed in dev mode (was exposed in prod) (Sprint A)
+- **Tenant middleware**: X-Tenant-ID header fallback gated on JWT claims presence (Sprint A)
+- **Entra ID**: `fmt.Sprintf` → `url.Values.Encode()` for token request body (proper percent-encoding) (Sprint A)
+- **redactSecret**: full `***REDACTED***` only — removed partial prefix/suffix reveal (Sprint A)
+- **OPA**: `LoadPolicies` always updates default query key (was stale after first load) (Sprint A)
+- **Attack paths**: `canConnect` gate for cross-region buildChain fallback; outer-loop dedup check for lateral movement (Sprint A)
+- **Identity handler**: `errors.Is(err, ErrNotFound)` → 404, other errors → 500 (was blanket 404) (Sprint A)
+- **Frontend auth**: `localStorage` → `sessionStorage` for role key (prevents cross-session persistence) (Sprint A)
+- **useFindings**: per-query `{ data, usingMockData }` return (was module-level mutable sentinel) (Sprint A)
+
+### Changed
+
 - Resource-scoped RBAC (ADR-013 Accepted): `ResourceScope` in JWT claims with `Scopeable` interface — findings and attack paths filtered by account, region, environment, business unit (Sprint 8B)
 - Finding ingestion endpoint: `POST /api/v1/findings/ingest` with SHA-256 dedup cache, 24h TTL, admin-only (Sprint 9A)
 - Finding integrity hashing: tamper-evident SHA-256 hash on all findings at load time (Sprint 9B, STRIDE T-01)
