@@ -79,3 +79,55 @@ Frontend: `Finding` type already has `ai_risk_score`, `ai_risk_rationale`, `ai_c
 **Why deferred:** Demo/portfolio deployment uses mock data. Live AI enrichment incurs Bedrock API costs and requires credential rotation planning.
 
 **Effort:** ~15 minutes (env vars + redeploy)
+
+---
+
+## D6: [SEC] localStorage Role Escalation (F-02, HIGH)
+
+**File:** `frontend/src/lib/auth.ts` lines 94-98, 118, 185-188
+
+**Issue:** `userFromToken()` reads `savedRole` from `localStorage` and trusts it over the JWT groups claim. Any authenticated user can run `localStorage.setItem('cf_role', 'admin')` and reload to gain admin-tier UI access. The `RoleSwitcher` is DEV-gated, but `localStorage` persistence means a dev-mode role override can leak to a prod-like context.
+
+**Fix:** Always derive role from the JWT groups claim in `userFromToken()`. Remove the `savedRole` fallback. The `RoleSwitcher` (DEV only) should set role transiently in React state, never persisting to `localStorage`.
+
+**Why deferred:** The file is outside the Command Center scope. Server-side RBAC on `/api/v1/*` endpoints is the real authorization gate — this is defense-in-depth.
+
+**Effort:** ~1 hour (auth.ts refactor + test)
+
+---
+
+## D7: Centralize Severity Color Constants
+
+**Issue:** Severity colors (`#ef4444`, `#f97316`, `#eab308`, `#3b82f6`) are defined independently in 5 locations:
+1. `severity.ts` — Tailwind classes
+2. `FindingsSummaryChart.tsx` — `SEV_FILL` hex map
+3. `DataLayersPanel.tsx` — `SEVERITY_DOT` Tailwind classes
+4. `StatusBar.tsx` — inline Tailwind in JSX
+5. `CommandCenter.tsx` — `NODE_BORDER` hex map
+
+**Fix:** Add `SEVERITY_HEX: Record<string, string>` to `severity.ts` and derive all other usages from it.
+
+**Effort:** ~30 minutes (create constant + update 4 files)
+
+---
+
+## D8: Accessibility Pass
+
+**Issues from Sprint 2 code review:**
+- Charts lack `aria-label` / `role="img"` (FindingsSummaryChart)
+- Mobile sidebar lacks `aria-modal`, `role="dialog"`, focus trap (Sidebar.tsx)
+- StatusBar needs `role="status"` or `role="region"` with `aria-label`
+- LayerGroup toggle missing `aria-expanded` (DataLayersPanel)
+- Severity dot indicators missing `aria-hidden="true"` (DataLayersPanel)
+
+**Effort:** ~2 hours frontend
+
+---
+
+## D9: Mock Fallback Production Guard (F-07, MEDIUM)
+
+**Issue:** `useRemediations` / `useFindings` mock fallback catches 5xx errors silently, masking real API failures in production.
+
+**Fix:** Gate mock fallback on `import.meta.env.VITE_ENABLE_MOCK_FALLBACK`. Only enable for demo/dev environments.
+
+**Effort:** ~30 minutes (env var + conditional in each hook)
