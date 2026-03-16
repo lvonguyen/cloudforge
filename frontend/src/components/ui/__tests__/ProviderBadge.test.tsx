@@ -19,33 +19,18 @@ describe('ProviderBadge', () => {
     expect(screen.getByText('GCP')).toBeInTheDocument()
   })
 
-  it('renders AWS SVG icon', () => {
-    renderWithProviders(<ProviderBadge provider="aws" />)
-    expect(screen.getByLabelText('AWS')).toBeInTheDocument()
-  })
-
-  it('renders Azure SVG icon', () => {
-    renderWithProviders(<ProviderBadge provider="azure" />)
-    expect(screen.getByLabelText('Azure')).toBeInTheDocument()
-  })
-
-  it('renders GCP SVG icon', () => {
-    renderWithProviders(<ProviderBadge provider="gcp" />)
-    expect(screen.getByLabelText('GCP')).toBeInTheDocument()
-  })
-
-  it('renders fallback Cloud icon for unknown provider', () => {
+  it('renders text for unknown provider', () => {
     renderWithProviders(<ProviderBadge provider="unknown" />)
     expect(screen.getByText('UNKNOWN')).toBeInTheDocument()
   })
 
-  it('AWS badge has font-semibold for dark mode contrast', () => {
+  it('AWS badge has font-semibold for contrast', () => {
     expect(PROVIDER_COLORS.aws).toContain('font-semibold')
   })
 
-  it('AWS badge uses higher contrast dark mode colors', () => {
-    expect(PROVIDER_COLORS.aws).toContain('dark:bg-orange-500/20')
-    expect(PROVIDER_COLORS.aws).toContain('dark:text-orange-200')
+  it('AWS badge uses tinted background and light text', () => {
+    expect(PROVIDER_COLORS.aws).toContain('bg-orange-500/20')
+    expect(PROVIDER_COLORS.aws).toContain('text-orange-300')
   })
 
   it('applies custom className', () => {
