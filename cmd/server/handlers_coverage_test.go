@@ -18,7 +18,7 @@ func TestHandlers_ListCatalogModules(t *testing.T) {
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []CatalogModule
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	if len(results) == 0 {
 		t.Error("expected at least one catalog module")
@@ -478,7 +478,7 @@ func TestHandlers_ListCatalogModules_FilterByProvider(t *testing.T) {
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []CatalogModule
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	for _, m := range results {
 		if m.Provider != "aws" {
@@ -495,6 +495,6 @@ func TestHandlers_ListCatalogModules_Search(t *testing.T) {
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []json.RawMessage
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 	// Just verify it returns valid JSON, search may or may not match
 }

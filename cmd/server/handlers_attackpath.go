@@ -53,38 +53,16 @@ func (svc *AttackPathService) listAttackPaths(w http.ResponseWriter, r *http.Req
 	}
 	svc.Mu.RUnlock()
 
-	page, perPage := parsePagination(r, 20)
-	total := len(all)
-	totalPages := (total + perPage - 1) / perPage
-	if totalPages == 0 {
-		totalPages = 1
-	}
-	if page > totalPages {
-		page = totalPages
-	}
-
-	start := (page - 1) * perPage
-	end := start + perPage
-	if start >= total {
-		start = total
-		end = total
-	} else if end > total {
-		end = total
-	}
+	page, perPage := parsePagination(r, 20, 100)
+	resp := paginateResult(all, page, perPage)
 
 	span.SetAttributes(
-		attribute.Int("attack_paths.total", total),
-		attribute.Int("attack_paths.page", page),
+		attribute.Int("attack_paths.total", resp.Total),
+		attribute.Int("attack_paths.page", resp.Page),
 	)
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(paginatedResponse{
-		Data:       all[start:end],
-		Page:       page,
-		PerPage:    perPage,
-		Total:      total,
-		TotalPages: totalPages,
-	})
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func (svc *AttackPathService) getAttackPath(w http.ResponseWriter, r *http.Request) {

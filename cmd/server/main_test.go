@@ -234,3 +234,20 @@ func assertJSON(t *testing.T, rr *httptest.ResponseRecorder, dst interface{}) {
 		t.Fatalf("decode response: %v; body: %s", err, rr.Body.String())
 	}
 }
+
+// assertPaginatedJSON decodes a paginatedResponse and unmarshals the .data
+// field into dst. Use this for endpoints that wrap their result in a paginated
+// envelope (page, per_page, total, total_pages, data).
+func assertPaginatedJSON(t *testing.T, rr *httptest.ResponseRecorder, dst interface{}) {
+	t.Helper()
+	var wrapper struct {
+		Data json.RawMessage `json:"data"`
+	}
+	body := rr.Body.String()
+	if err := json.Unmarshal([]byte(body), &wrapper); err != nil {
+		t.Fatalf("decode paginated response: %v; body: %s", err, body)
+	}
+	if err := json.Unmarshal(wrapper.Data, dst); err != nil {
+		t.Fatalf("decode paginated .data: %v; raw: %s", err, string(wrapper.Data))
+	}
+}

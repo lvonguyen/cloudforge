@@ -96,7 +96,8 @@ type paginatedResponse struct {
 }
 
 // parsePagination extracts page and per_page from query params with defaults.
-func parsePagination(r *http.Request, defaultPerPage int) (page, perPage int) {
+// maxPerPage caps the per_page value a client can request.
+func parsePagination(r *http.Request, defaultPerPage, maxPerPage int) (page, perPage int) {
 	page = 1
 	perPage = defaultPerPage
 	if v := r.URL.Query().Get("page"); v != "" {
@@ -105,9 +106,38 @@ func parsePagination(r *http.Request, defaultPerPage int) (page, perPage int) {
 		}
 	}
 	if v := r.URL.Query().Get("per_page"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 100 {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= maxPerPage {
 			perPage = n
 		}
 	}
 	return page, perPage
+}
+
+// paginateResult slices a result set and wraps it in a paginatedResponse.
+func paginateResult[T any](items []T, page, perPage int) paginatedResponse {
+	total := len(items)
+	totalPages := (total + perPage - 1) / perPage
+	if totalPages == 0 {
+		totalPages = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+
+	start := (page - 1) * perPage
+	end := start + perPage
+	if start >= total {
+		start = total
+		end = total
+	} else if end > total {
+		end = total
+	}
+
+	return paginatedResponse{
+		Data:       items[start:end],
+		Page:       page,
+		PerPage:    perPage,
+		Total:      total,
+		TotalPages: totalPages,
+	}
 }

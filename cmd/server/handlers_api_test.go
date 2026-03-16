@@ -12,11 +12,11 @@ func TestListFindings(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)
 
-	rr := doRequest(t, router, "GET", "/api/v1/findings", "", jwt)
+	rr := doRequest(t, router, "GET", "/api/v1/findings?per_page=200", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []Finding
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	if len(results) < 100 {
 		t.Errorf("findings count = %d, want >= 100", len(results))
@@ -27,11 +27,11 @@ func TestListFindings_FilterBySeverity(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)
 
-	rr := doRequest(t, router, "GET", "/api/v1/findings?severity=CRITICAL", "", jwt)
+	rr := doRequest(t, router, "GET", "/api/v1/findings?severity=CRITICAL&per_page=200", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []Finding
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	if len(results) == 0 {
 		t.Errorf("critical findings = %d, want > 0", len(results))
@@ -47,11 +47,11 @@ func TestListFindings_FilterByProvider(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)
 
-	rr := doRequest(t, router, "GET", "/api/v1/findings?provider=aws", "", jwt)
+	rr := doRequest(t, router, "GET", "/api/v1/findings?provider=aws&per_page=200", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []Finding
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	if len(results) == 0 {
 		t.Errorf("aws findings = %d, want > 0", len(results))
@@ -89,7 +89,7 @@ func TestListFrameworks(t *testing.T) {
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []ComplianceFramework
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	if len(results) != 6 {
 		t.Errorf("frameworks count = %d, want 6", len(results))
@@ -157,7 +157,7 @@ func TestListRemediations(t *testing.T) {
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []RemediationRecord
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	if len(results) != 50 {
 		t.Errorf("remediations count = %d, want 50", len(results))
@@ -168,11 +168,11 @@ func TestListRemediations_FilterByStatus(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)
 
-	rr := doRequest(t, router, "GET", "/api/v1/remediations?status=completed", "", jwt)
+	rr := doRequest(t, router, "GET", "/api/v1/remediations?status=completed&per_page=200", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []RemediationRecord
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	for _, rem := range results {
 		if rem.Status != "completed" {
@@ -256,11 +256,11 @@ func TestListAuditLog(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)
 
-	rr := doRequest(t, router, "GET", "/api/v1/audit-log", "", jwt)
+	rr := doRequest(t, router, "GET", "/api/v1/audit-log?per_page=200", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []AuditEvent
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	if len(results) != 60 {
 		t.Errorf("audit events count = %d, want 60", len(results))
@@ -271,11 +271,11 @@ func TestListAuditLog_FilterByResult(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)
 
-	rr := doRequest(t, router, "GET", "/api/v1/audit-log?result=denied", "", jwt)
+	rr := doRequest(t, router, "GET", "/api/v1/audit-log?result=denied&per_page=200", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []AuditEvent
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	for _, evt := range results {
 		if evt.Result != "denied" {
@@ -291,11 +291,11 @@ func TestListAuditLog_FilterByActor(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)
 
-	rr := doRequest(t, router, "GET", "/api/v1/audit-log?actor=admin1@contoso.dev", "", jwt)
+	rr := doRequest(t, router, "GET", "/api/v1/audit-log?actor=admin1@contoso.dev&per_page=200", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []AuditEvent
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	for _, evt := range results {
 		if evt.Actor != "admin1@contoso.dev" {
@@ -323,7 +323,7 @@ func TestListUsers(t *testing.T) {
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []UserRow
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	if len(results) != 18 {
 		t.Errorf("users count = %d, want 18", len(results))
@@ -338,7 +338,7 @@ func TestListUsers_FilterByRole(t *testing.T) {
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []UserRow
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	if len(results) != 6 {
 		t.Errorf("admin users count = %d, want 6", len(results))
@@ -366,7 +366,7 @@ func TestListPolicies(t *testing.T) {
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []Policy
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	if len(results) != 30 {
 		t.Errorf("policies count = %d, want 30", len(results))
@@ -377,11 +377,11 @@ func TestListPolicies_FilterByStatus(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)
 
-	rr := doRequest(t, router, "GET", "/api/v1/policies?status=draft", "", jwt)
+	rr := doRequest(t, router, "GET", "/api/v1/policies?status=draft&per_page=200", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []Policy
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	for _, p := range results {
 		if p.Status != "draft" {
@@ -397,11 +397,11 @@ func TestListPolicies_FilterByCategory(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)
 
-	rr := doRequest(t, router, "GET", "/api/v1/policies?category=security", "", jwt)
+	rr := doRequest(t, router, "GET", "/api/v1/policies?category=security&per_page=200", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []Policy
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	for _, p := range results {
 		if p.Category != "security" {
@@ -500,11 +500,11 @@ func TestListFindings_ScopedByAccount(t *testing.T) {
 	targetAccount := "100000000315"
 	jwt := scopedAdminJWT(t, []string{targetAccount})
 
-	rr := doRequest(t, router, "GET", "/api/v1/findings", "", jwt)
+	rr := doRequest(t, router, "GET", "/api/v1/findings?per_page=200", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []Finding
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	for _, f := range results {
 		if f.AccountID != targetAccount {
@@ -520,21 +520,26 @@ func TestListFindings_ScopedAdmin_SeesFewerThanUnscoped(t *testing.T) {
 	_, router := testServer(t)
 
 	// Unscoped admin sees all
+	type paginatedFindings struct {
+		Data  []Finding `json:"data"`
+		Total int       `json:"total"`
+	}
+
 	unscopedJWT := adminJWT(t)
 	rr1 := doRequest(t, router, "GET", "/api/v1/findings", "", unscopedJWT)
 	assertStatus(t, rr1, http.StatusOK)
-	var all []Finding
-	assertJSON(t, rr1, &all)
+	var allResp paginatedFindings
+	assertJSON(t, rr1, &allResp)
 
 	// Scoped admin sees subset
 	scopedJWT := scopedAdminJWT(t, []string{"100000000315"})
 	rr2 := doRequest(t, router, "GET", "/api/v1/findings", "", scopedJWT)
 	assertStatus(t, rr2, http.StatusOK)
-	var scoped []Finding
-	assertJSON(t, rr2, &scoped)
+	var scopedResp paginatedFindings
+	assertJSON(t, rr2, &scopedResp)
 
-	if len(scoped) >= len(all) {
-		t.Errorf("scoped findings (%d) should be fewer than unscoped (%d)", len(scoped), len(all))
+	if scopedResp.Total >= allResp.Total {
+		t.Errorf("scoped findings total (%d) should be fewer than unscoped (%d)", scopedResp.Total, allResp.Total)
 	}
 }
 
@@ -604,11 +609,11 @@ func TestAuditLog_IncludesRealEvents(t *testing.T) {
 	assertStatus(t, rr, http.StatusOK)
 
 	// Fetch audit log — should include the real event merged with mock data
-	rr2 := doRequest(t, router, "GET", "/api/v1/audit-log", "", jwt)
+	rr2 := doRequest(t, router, "GET", "/api/v1/audit-log?per_page=200", "", jwt)
 	assertStatus(t, rr2, http.StatusOK)
 
 	var events []AuditEvent
-	assertJSON(t, rr2, &events)
+	assertPaginatedJSON(t, rr2, &events)
 
 	// Mock data has 60 events + 1 real
 	if len(events) < 61 {

@@ -33,7 +33,7 @@ func TestIntegration_FullServerLifecycle(t *testing.T) {
 		assertStatus(t, rr, http.StatusOK)
 
 		var results []Finding
-		assertJSON(t, rr, &results)
+		assertPaginatedJSON(t, rr, &results)
 
 		if len(results) == 0 {
 			t.Error("expected at least one finding")
@@ -123,7 +123,7 @@ func TestIntegration_FullServerLifecycle(t *testing.T) {
 		assertStatus(t, rr, http.StatusOK)
 
 		var results []ComplianceFramework
-		assertJSON(t, rr, &results)
+		assertPaginatedJSON(t, rr, &results)
 
 		if len(results) == 0 {
 			t.Error("expected at least one framework")
@@ -158,7 +158,7 @@ func TestIntegration_FullServerLifecycle(t *testing.T) {
 		assertStatus(t, rr, http.StatusOK)
 
 		var results []AuditEvent
-		assertJSON(t, rr, &results)
+		assertPaginatedJSON(t, rr, &results)
 
 		if len(results) == 0 {
 			t.Error("expected at least one audit event")
@@ -171,7 +171,7 @@ func TestIntegration_FullServerLifecycle(t *testing.T) {
 		assertStatus(t, rr, http.StatusOK)
 
 		var results []CatalogModule
-		assertJSON(t, rr, &results)
+		assertPaginatedJSON(t, rr, &results)
 
 		if len(results) == 0 {
 			t.Error("expected at least one catalog module")

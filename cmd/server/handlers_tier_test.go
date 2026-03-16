@@ -37,7 +37,7 @@ func TestListRemediations_ValidTier_Returns200(t *testing.T) {
 	assertStatus(t, rr, http.StatusOK)
 
 	var results []RemediationRecord
-	assertJSON(t, rr, &results)
+	assertPaginatedJSON(t, rr, &results)
 
 	for _, rem := range results {
 		if rem.Tier != 1 {

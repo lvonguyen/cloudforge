@@ -47,10 +47,13 @@ func (s *Server) listFindings(w http.ResponseWriter, r *http.Request) {
 		results = append(results, *f)
 	}
 
-	span.SetAttributes(attribute.Int("findings.count", len(results)))
+	page, perPage := parsePagination(r, 50, 200)
+	resp := paginateResult(results, page, perPage)
+
+	span.SetAttributes(attribute.Int("findings.total", resp.Total))
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(results)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func (s *Server) getFinding(w http.ResponseWriter, r *http.Request) {
@@ -83,10 +86,13 @@ func (s *Server) listFrameworks(w http.ResponseWriter, r *http.Request) {
 	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listFrameworks")
 	defer span.End()
 
-	span.SetAttributes(attribute.Int("frameworks.count", len(s.data.Frameworks)))
+	page, perPage := parsePagination(r, 50, 200)
+	resp := paginateResult(s.data.Frameworks, page, perPage)
+
+	span.SetAttributes(attribute.Int("frameworks.total", resp.Total))
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(s.data.Frameworks)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func (s *Server) listAgents(w http.ResponseWriter, r *http.Request) {
@@ -166,10 +172,13 @@ func (s *Server) listRemediations(w http.ResponseWriter, r *http.Request) {
 		results = append(results, rem)
 	}
 
-	span.SetAttributes(attribute.Int("remediations.count", len(results)))
+	page, perPage := parsePagination(r, 50, 200)
+	resp := paginateResult(results, page, perPage)
+
+	span.SetAttributes(attribute.Int("remediations.total", resp.Total))
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(results)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func (s *Server) executeRemediation(w http.ResponseWriter, r *http.Request) {
@@ -257,10 +266,13 @@ func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	span.SetAttributes(attribute.Int("audit.count", len(results)))
+	page, perPage := parsePagination(r, 50, 200)
+	resp := paginateResult(results, page, perPage)
+
+	span.SetAttributes(attribute.Int("audit.total", resp.Total))
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(results)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
@@ -278,10 +290,13 @@ func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
 		results = append(results, u)
 	}
 
-	span.SetAttributes(attribute.Int("users.count", len(results)))
+	page, perPage := parsePagination(r, 50, 200)
+	resp := paginateResult(results, page, perPage)
+
+	span.SetAttributes(attribute.Int("users.total", resp.Total))
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(results)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func (s *Server) listCatalogModules(w http.ResponseWriter, r *http.Request) {
@@ -319,10 +334,13 @@ func (s *Server) listCatalogModules(w http.ResponseWriter, r *http.Request) {
 		results = append(results, m)
 	}
 
-	span.SetAttributes(attribute.Int("catalog.count", len(results)))
+	page, perPage := parsePagination(r, 50, 200)
+	resp := paginateResult(results, page, perPage)
+
+	span.SetAttributes(attribute.Int("catalog.total", resp.Total))
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(results)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func (s *Server) listPolicies(w http.ResponseWriter, r *http.Request) {
@@ -344,10 +362,13 @@ func (s *Server) listPolicies(w http.ResponseWriter, r *http.Request) {
 		results = append(results, p)
 	}
 
-	span.SetAttributes(attribute.Int("policies.count", len(results)))
+	page, perPage := parsePagination(r, 50, 200)
+	resp := paginateResult(results, page, perPage)
+
+	span.SetAttributes(attribute.Int("policies.total", resp.Total))
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(results)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 // FindingEnrichment holds cached AI analysis for a single finding.
