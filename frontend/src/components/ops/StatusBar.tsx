@@ -6,6 +6,9 @@ interface StatusBarProps {
   totalFindings: number
   attackPathCount: number
   toxicComboCount: number
+  dateRange?: { start: string | null; end: string | null }
+  onDateRangeChange?: (range: { start: string | null; end: string | null }) => void
+  onShowShortcuts?: () => void
 }
 
 export function StatusBar({
@@ -13,6 +16,9 @@ export function StatusBar({
   totalFindings,
   attackPathCount,
   toxicComboCount,
+  dateRange,
+  onDateRangeChange,
+  onShowShortcuts,
 }: StatusBarProps) {
   const counts = useMemo(() => {
     const m: Record<string, number> = {}
@@ -21,6 +27,8 @@ export function StatusBar({
     }
     return m
   }, [filteredFindings])
+
+  const hasDateFilter = dateRange?.start || dateRange?.end
 
   return (
     <div className="flex items-center justify-between px-4 h-10 bg-[#0a0a0f] border-t border-[#1e2330] text-[10px] font-mono select-none">
@@ -32,7 +40,41 @@ export function StatusBar({
         <Indicator color="bg-blue-400" label="LOW" count={counts.LOW ?? 0} />
       </div>
 
-      {/* Right-side summary */}
+      {/* Center — date range filter */}
+      {onDateRangeChange && (
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={dateRange?.start ?? ''}
+            onChange={(e) =>
+              onDateRangeChange({ start: e.target.value || null, end: dateRange?.end ?? null })
+            }
+            className="bg-transparent text-[10px] font-mono text-gray-400 border border-[#1e2330] h-5 px-1 [color-scheme:dark]"
+            aria-label="Start date"
+          />
+          <span className="text-gray-600">–</span>
+          <input
+            type="date"
+            value={dateRange?.end ?? ''}
+            onChange={(e) =>
+              onDateRangeChange({ start: dateRange?.start ?? null, end: e.target.value || null })
+            }
+            className="bg-transparent text-[10px] font-mono text-gray-400 border border-[#1e2330] h-5 px-1 [color-scheme:dark]"
+            aria-label="End date"
+          />
+          {hasDateFilter && (
+            <button
+              onClick={() => onDateRangeChange({ start: null, end: null })}
+              className="text-gray-500 hover:text-gray-300 transition-colors text-xs px-1"
+              aria-label="Clear date filter"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Right-side summary + shortcuts hint */}
       <div className="flex items-center gap-5 text-gray-600">
         <span>
           {filteredFindings.length.toLocaleString()}/{totalFindings.toLocaleString()} findings
@@ -43,6 +85,16 @@ export function StatusBar({
         <span>
           {attackPathCount} path{attackPathCount !== 1 ? 's' : ''}
         </span>
+        {onShowShortcuts && (
+          <button
+            onClick={onShowShortcuts}
+            className="text-gray-600 hover:text-gray-300 transition-colors border border-[#1e2330] px-1.5 py-0 text-[10px]"
+            aria-label="Keyboard shortcuts"
+            title="Keyboard shortcuts (?)"
+          >
+            ?
+          </button>
+        )}
       </div>
     </div>
   )
