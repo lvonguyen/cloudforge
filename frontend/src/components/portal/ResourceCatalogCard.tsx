@@ -21,7 +21,7 @@ export function ResourceCatalogCard({ item, onSelect }: { item: CatalogItem; onS
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        <p className="text-xs text-muted-foreground">{item.description}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
         {item.estimatedMonthlyCost && (
           <p className="text-xs text-muted-foreground">Est. {item.estimatedMonthlyCost}/mo</p>
         )}

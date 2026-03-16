@@ -170,7 +170,7 @@ export default function Catalog() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-xs text-muted-foreground leading-relaxed">{module.description}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{module.description}</p>
 
                   <div className="flex flex-wrap gap-1">
                     {module.tags.map(tag => (
