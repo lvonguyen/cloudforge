@@ -3,7 +3,7 @@ package secrets
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	"crypto/rand"
 	"sort"
 	"strings"
 	"sync"
@@ -205,8 +205,7 @@ func incrementVersion(v string) string {
 // newUUID generates a random UUID-like string for rotated secret values.
 func newUUID() string {
 	b := make([]byte, 16)
-	//nolint:gosec // demo-only: crypto/rand not required for mock values
-	rand.Read(b) //nolint:staticcheck
+	rand.Read(b)
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
 		b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
 }
