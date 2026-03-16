@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useDeferredValue } from 'react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -50,6 +50,7 @@ export default function Catalog() {
   const [categoryFilter, setCategoryFilter] = useState<string>('All')
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearch = useDebounce(searchTerm, 300)
+  const deferredSearch = useDeferredValue(debouncedSearch)
 
   const { data: modules = [], isLoading } = useCatalog(
     providerFilter !== 'ALL' ? { provider: providerFilter } : undefined
@@ -60,8 +61,8 @@ export default function Catalog() {
     if (categoryFilter !== 'All') {
       result = result.filter(m => m.category === categoryFilter)
     }
-    if (debouncedSearch.trim()) {
-      const q = debouncedSearch.toLowerCase()
+    if (deferredSearch.trim()) {
+      const q = deferredSearch.toLowerCase()
       result = result.filter(m =>
         m.name.toLowerCase().includes(q) ||
         m.description.toLowerCase().includes(q) ||
@@ -69,7 +70,7 @@ export default function Catalog() {
       )
     }
     return result
-  }, [modules, categoryFilter, debouncedSearch])
+  }, [modules, categoryFilter, deferredSearch])
 
   const providerCounts = useMemo(() => {
     const counts: Record<string, number> = { ALL: modules.length }

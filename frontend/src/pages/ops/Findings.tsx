@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
+import { useMemo, useState, useCallback, useRef, useEffect, useDeferredValue } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Download, ArrowUp, ArrowDown, X, SlidersHorizontal, ListFilter } from 'lucide-react'
@@ -133,6 +133,7 @@ export default function Findings() {
   // Search
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
+  const deferredSearch = useDeferredValue(debouncedSearch)
 
   // Sort
   const [sortCol, setSortCol] = useState<SortColumn>('severity')
@@ -228,8 +229,8 @@ export default function Findings() {
       result = result.filter(f => selectedStatuses.has(f.status))
     }
     // Text search
-    if (debouncedSearch) {
-      const q = debouncedSearch.toLowerCase()
+    if (deferredSearch) {
+      const q = deferredSearch.toLowerCase()
       result = result.filter(f =>
         f.title.toLowerCase().includes(q) ||
         f.resource_name.toLowerCase().includes(q) ||
@@ -242,7 +243,7 @@ export default function Findings() {
     }
 
     return result
-  }, [allFindings, selectedCategories, selectedProviders, selectedStatuses, debouncedSearch, severityTab])
+  }, [allFindings, selectedCategories, selectedProviders, selectedStatuses, deferredSearch, severityTab])
 
   // Sort
   const sorted = useMemo(() => {

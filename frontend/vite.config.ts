@@ -48,6 +48,17 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src'),
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-xyflow': ['@xyflow/react', '@xyflow/system'],
+            'vendor-recharts': ['recharts'],
+            'vendor-tanstack': ['@tanstack/react-query', '@tanstack/react-virtual'],
+          },
+        },
+      },
+    },
     server: {
       proxy: {
         '/api': {
