@@ -4,7 +4,7 @@ import { FrameworkGrid } from '@/components/compliance/FrameworkGrid'
 import { FrameworkDetailDrawer } from '@/components/compliance/FrameworkDetailDrawer'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ShieldCheck, ShieldAlert, Shield, ExternalLink } from 'lucide-react'
+import { ShieldCheck, ShieldAlert, Shield } from 'lucide-react'
 
 const FRAMEWORK_DOC_LINKS: Record<string, string> = {
   'nist-csf':  'https://www.nist.gov/cyberframework',
