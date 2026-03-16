@@ -1,9 +1,10 @@
-# Handoff: CloudForge Sprint 8-10 Complete — FAANG Hardening Cycle
+# Handoff: CloudForge Sprint 8-10 + A/A+ Complete — FAANG Hardening + QA Cycle
 
-## Current State (2026-03-12)
+## Current State (2026-03-16)
 
 [+] Project: 92% complete (reference implementation with enforcement-backed security)
 [+] Sprint 8-10 complete: 3.5->4.5 hardening cycle (CI enforcement, RBAC scope, ingest, audit, encryption)
+[+] Sprint A + A+ complete: 15 review fixes, performance infra, E2E Chrome QA (21/21 routes)
 [+] CI gates enforced: gosec HIGH+, Trivy exit-code 1, Codecov fail-on-error, frontend vitest, npm audit
 [+] Security: resource-scoped RBAC (ABAC), finding integrity SHA-256, AES-256-GCM rollback encryption
 [+] Audit: real audit logging with integrity hashes (MemoryAuditLogger + ZapAuditLogger)
@@ -38,9 +39,9 @@
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| Go backend | Healthy | `go build ./...` clean, `go vet ./...` clean, 595 tests passing |
-| Frontend | Healthy | `tsc` clean, 297 tests passing, Cloudflare Pages deployed |
-| Benchmarks | Passing | 5/5 (GetFinding ~125us, ListAttackPaths ~181us, ServerStartup ~2.2s) |
+| Go backend | Healthy | `go build ./...` clean, `go vet ./...` clean, 1474 tests passing (34 packages), `-race` clean |
+| Frontend | Healthy | `tsc` clean, 323 tests passing, Cloudflare Pages deployed, Lighthouse CI budgeted |
+| Benchmarks | Passing | 8/8 (GetFinding, ListAttackPaths, ServerStartup, GetCached_Hit/Miss, EvictExpired_5000, AttackPathComputation, ListFindings) |
 | CI | Green | golangci-lint clean, all GitHub Actions passing |
 | Dev mode | Working | `make dev` starts backend (:8080) + frontend (:5173) |
 
@@ -51,6 +52,8 @@
 3. [KNOWN] Frontend has 4 roles (incl viewer); backend has 3 (no RoleViewer constant)
 4. [KNOWN] FinOps cloud API clients are interface-only (not wired to production credentials)
 5. [KNOWN] Container, secrets, waf, identity modules have interfaces + mock implementations only
+6. [UX] Compliance controls not clickable — no drill-down or official doc links (planned)
+7. [LOW] Lighthouse TTI 2s budget may flake in CI — monitor, relax if needed
 
 ## Key Paths
 
@@ -84,7 +87,7 @@ go test ./... -count=1
 go test ./cmd/server/ -tags=integration -count=1
 
 # Benchmarks
-go test ./cmd/server/ -bench=. -benchmem
+make bench  # or: go test ./cmd/server/... -bench=. -benchmem -count=3
 
 # Frontend tests
 cd frontend && npm test

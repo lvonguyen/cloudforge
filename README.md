@@ -3,7 +3,7 @@
 ![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Development Status](https://img.shields.io/badge/status-active%20development-blue)
-![Implementation](https://img.shields.io/badge/implementation-85%25-blue)
+![Implementation](https://img.shields.io/badge/implementation-92%25-blue)
 
 ## Enterprise Cloud Governance Platform with Self-Service Provisioning
 
@@ -19,7 +19,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 ## [/] Implementation Status
 
-> **Current State:** Active development (~85% feature-complete). Core API functional, GRC integration working, remediation dispatcher operational, CI/CD pipeline hardened, IaC deploy layer with multi-cloud Terraform modules and policy-as-code, self-service portal built and deployed.
+> **Current State:** Active development (~92% feature-complete). Core API functional, GRC integration working, remediation dispatcher operational, CI/CD pipeline hardened with Lighthouse CI budgets, IaC deploy layer with multi-cloud Terraform modules and policy-as-code, self-service portal built and deployed with error states, accessibility, and performance optimizations.
 
 | Component | Status | Notes |
 | --------- | ------ | ----- |
@@ -53,7 +53,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | **Observability** | | |
 | Structured logging (zap) | Done | JSON format |
 | Prometheus metrics | Done | `/metrics` endpoint |
-| OpenTelemetry tracing | Partial | Basic spans, handler-level instrumentation |
+| OpenTelemetry tracing | Partial | Basic spans, handler-level instrumentation, pprof dev endpoint (127.0.0.1:6060) |
 | **Remediation Dispatcher** | | |
 | Executor engine | Done | Concurrent batch execution with semaphore |
 | Handler interface | Done | Remediate, Validate, DryRun, Tier |
@@ -85,7 +85,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | 21 route pages | Done | Admin, Operator, Requester role views + attack paths |
 | Dark mode | Done | CSS variable overrides, anti-flash script |
 | Cloudflare Pages deploy | Done | cloudforge-demo.lvonguyen.com |
-| API hook migration | Partial | MyRequests.tsx uses useMyExceptions (real API), useCostAnomalies cache fix, Execute/Retry mutations wired |
+| API hook migration | Partial | MyRequests, useFindings (R2 fallback), useAttackPaths (mock fallback), useCostAnomalies cache fix, Execute/Retry mutations wired; remaining hooks fall back to mock on 401 in dev |
 | **Risk Intelligence** | | |
 | Contextual risk schema | Done | AttackPathContext, ToxicComboDetails, MITRE fields |
 | LLM severity re-scoring | Done | Claude-powered with blast radius + EPSS + KEV inputs |
@@ -95,7 +95,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | CISA KEV catalog | Done | In-memory catalog with auto-refresh from CISA feed |
 | GreyNoise integration | Done | HTTP client with 12h cache, classification enrichment |
 | **Testing** | | |
-| Unit tests | 595 passing | 30 Go packages, 297 frontend tests, 5 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
+| Unit tests | 1797 passing | 34 Go packages (1474 tests), 323 frontend tests, 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
 | Integration tests | Done | 12-step server lifecycle + 34-subtest RBAC authorization matrix (`go test -tags=integration`) |
 
 ### Package Maturity
@@ -125,13 +125,14 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 This is a **platform reference implementation**, not production software:
 
-1. **Test Coverage** - 30 packages, 595 tests passing (cspm, grc, remediation, ai, compliance, finops, server handlers, benchmarks, integration suite), v8 coverage thresholds active
+1. **Test Coverage** - 34 packages, 1474 Go tests + 323 frontend tests passing (cspm, grc, remediation, ai, compliance, finops, server handlers, benchmarks, integration suite), v8 coverage thresholds active
 2. **OIDC Provider Stub** - JWT auth middleware is production-ready (HS256/RS256, JWKS), but Okta/Entra ID providers not wired into auth flow
 3. **Temporal Workflows** — Workflow definitions exist, orchestration layer not wired into request flow
 4. **FinOps Module** — Cost aggregation interfaces defined, no cloud API integration yet
 5. **Stub Packages** — container, secrets, waf, identity modules have interfaces and mock implementations but no production wiring
 6. **Frontend/Backend Role Mismatch** — Frontend has 4 roles (admin, operator, requester, viewer); backend has 3 (RoleAdmin, RoleOperator, RoleRequester, no RoleViewer constant)
-7. **Chrome QA Findings** — 19/19 routes passing, React 19 lazy() context propagation edge case under Playwright (pre-existing, not prod), mobile overflow at 375px on /ops CommandCenter
+7. **Chrome QA Findings** — 21/21 routes passing with error states, focus rings, footer landmark, OG meta tags; React 19 lazy() context edge case under Playwright (pre-existing, not prod)
+8. **Compliance Drill-Down** — Framework rows on `/ops/compliance` are view-only; control-level click-through and official doc links are planned
 
 **Production Requirements:**
 
@@ -552,6 +553,7 @@ Built-in support for 20+ frameworks:
 
 | Date | Author | Change |
 | ---- | ------ | ------ |
+| 2026-03-16 | Liem Vo-Nguyen | Sprint A + A+: 15 review fixes (go.mod, crypto/rand, RWMutex, sort.Slice, CORS dev-gate, tenant JWT, url.Values, full redaction, OPA default, attack path dedup, identity errors, sessionStorage, per-query mock), performance infra (pprof, 8 benchmarks, Makefile, useDeferredValue, vendor chunks, Lighthouse CI), E2E Chrome QA (21 pages, error states, focus rings, footer, OG tags, useAttackPaths fallback). Go: 34 pkgs / 1474 tests, Frontend: 323 tests |
 | 2026-03-12 | Liem Vo-Nguyen | Sprint 4: rebrand to "Platform", focus landing on 2 core modules, catalog CSP dropdown, benchmark tests, roadmap audit, whitelabel design doc |
 | 2026-03-12 | Liem Vo-Nguyen | Sprint 3: paginate attack paths, factory error tests, audit log key fix |
 | 2026-03-12 | Liem Vo-Nguyen | Sprint 2.5 QA: quality-review 4.48/5, bug-discovery 4.5/5, security-audit 4.2/5, Chrome QA 19/19 routes |
