@@ -20,6 +20,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Frontend planning doc — 18-screen React/Vite UI across Admin, Operator, and Requester role views with phased build plan and TypeScript type alignment (`docs/frontend-planning.md`)
 - IaC planning doc — Terraform module catalog, Rego policy expansion, two-track OPA architecture, Cloud Run + CF Pages deployment design (`docs/iac-planning.md`)
 
+### Fixed
+
+- `golang.org/x/sync` promoted from indirect to direct in `go.mod` (directly imported for `singleflight`)
+- Dead `Request` field removed from OPA evaluation input in enrichment handler (never read by `EvaluateToolAccess`)
+- Findings table header now sticky during scroll (fixed intermediate `overflow-x-auto` scroll context)
+- Provider badges switched to text-only for readability (SVG icons illegible at badge size)
+
 ### Changed
 
 - ADR-013 status: Proposed to Accepted (resource-scoped RBAC implemented)

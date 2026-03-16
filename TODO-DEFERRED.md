@@ -190,3 +190,45 @@ ID. Add an `PathsByID map[string]*AttackPath` to `AttackPathService`
 (same pattern as `DataStore.FindingsByID`) for O(1) lookup.
 
 **Effort:** ~30 minutes Go
+
+---
+
+## D15: OPA Fail-Open to Fail-Closed
+
+**File:** `cmd/server/handlers_api.go:423-424`
+
+OPA `EvaluateToolAccess` error currently logs a warning and allows the
+request (fail-open). Consider switching to fail-closed (503 response)
+to prevent policy bypass when the OPA engine is misconfigured.
+
+**Why deferred:** Current fail-open is an accepted design choice for
+graceful degradation. Changing to fail-closed requires an OPA health
+check endpoint so operators can distinguish misconfiguration from
+engine absence.
+
+**Effort:** ~1 hour Go
+
+---
+
+## D16: OPA RequestContext for Future Policy Expressiveness
+
+**File:** `cmd/server/handlers_api.go:410-421`
+
+`EvaluateToolAccess()` only consumes `(agent, tool)`. A future version
+could accept `RequestContext` (UserID, SessionID, IP) to enable
+per-user rate limiting, session anomaly detection, and IP geo-restriction
+policies. No existing Rego policies reference `input.request`.
+
+**Effort:** ~30 minutes Go + Rego
+
+---
+
+## D17: OPA String Literals to Constants
+
+**File:** `cmd/server/handlers_api.go:413-420`
+
+Bare string literals (`"cloudforge-api"`, `"enrichment"`, `"ai_enrich"`,
+`"analysis"`) should be promoted to package-level constants before a
+second OPA gate is added (DRY).
+
+**Effort:** ~15 minutes Go
