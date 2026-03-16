@@ -28,104 +28,100 @@ import type {
   ThreatModel, STRIDECategory, AgentTrace, SignalType
 } from '@/types/ai-governance'
 
-// ── Mock threat model ──────────────────────────────────────────────────────
+// ── Per-framework threat model variants ──────────────────────────────────
 
-const MOCK_THREAT_MODEL: ThreatModel = {
-  id: 'tm-001',
+const BASE_TRUST_BOUNDARIES: ThreatModel['trust_boundaries'] = [
+  { id: 'tb-1', name: 'Agent Runtime', description: 'Sandboxed agent execution environment', components: ['AgentRunner', 'ToolExecutor'] },
+  { id: 'tb-2', name: 'Cloud APIs', description: 'External cloud provider endpoints', components: ['AWS', 'Azure', 'GCP'] },
+  { id: 'tb-3', name: 'Policy Engine', description: 'OPA evaluation service', components: ['PolicyEvaluator', 'PolicyStore'] },
+]
+
+const BASE_MITIGATIONS: ThreatModel['mitigations'] = [
+  { id: 'mit-001', title: 'Prompt Injection Detection', control_type: 'preventive', description: 'Validate and sanitize all tool outputs before feeding into LLM context.', implementation: 'Regex + LLM-as-judge classifier on tool response payloads.', mapped_controls: ['NIST CSF DE.CM-7', 'SOC2 CC6.1'], status: 'implemented' },
+  { id: 'mit-002', title: 'Output Monitoring & Rate Limiting', control_type: 'detective', description: 'Monitor LLM completions for extraction patterns; enforce per-agent token budgets.', implementation: 'Regex rules + sliding window token counter in AgentRunner.', mapped_controls: ['NIST CSF DE.AE-3'], status: 'implemented' },
+  { id: 'mit-003', title: 'Immutable Audit Trail', control_type: 'detective', description: 'All spans written to append-only S3 + CloudWatch Logs; agent cannot modify.', implementation: 'S3 Object Lock + CloudWatch log group with no-delete retention.', mapped_controls: ['SOC2 CC7.2', 'ISO 27001 A.12.4.3'], status: 'implemented' },
+  { id: 'mit-004', title: 'Policy Engine Hardening', control_type: 'preventive', description: 'OPA policy evaluation is mandatory for every tool call; cannot be bypassed by agent.', implementation: 'Policy sidecar enforced at ToolExecutor layer; deny-by-default.', mapped_controls: ['NIST CSF PR.AC-4', 'SOC2 CC6.3'], status: 'planned' },
+]
+
+interface FrameworkProfile {
+  name: string
+  description: string
+  threats: ThreatModel['threats']
+  risk_summary: ThreatModel['risk_summary']
+}
+
+const FRAMEWORK_PROFILES: Record<string, FrameworkProfile> = {
+  langchain: {
+    name: 'LangChain Agent Threat Model',
+    description: `STRIDE analysis for LangChain-based autonomous agents within ${branding.productName}. Focus on chain composition, tool binding, and retrieval-augmented generation attack surface.`,
+    threats: [
+      { id: 'th-001', title: 'Prompt Injection via Retrieved Context', description: 'Adversarial content in vector store documents instructs agent to bypass safety guardrails during RAG retrieval.', category: 'spoofing', affected_components: ['Retriever', 'LLMChain'], trust_boundary: 'Agent Runtime', entry_point: 'Vector store document', likelihood: 'high', impact: 'high', risk_level: 'critical', atlas_techniques: ['AML.T0051', 'AML.T0054'], mitigation_ids: ['mit-001'] },
+      { id: 'th-002', title: 'Chain-of-Thought Manipulation', description: 'Adversary crafts inputs that corrupt intermediate reasoning steps in multi-hop chains.', category: 'tampering', affected_components: ['SequentialChain', 'OutputParser'], trust_boundary: 'Agent Runtime', entry_point: 'Chain input', likelihood: 'medium', impact: 'high', risk_level: 'high', atlas_techniques: ['AML.T0020'], mitigation_ids: ['mit-001', 'mit-003'] },
+      { id: 'th-003', title: 'Tool Abuse via Dynamic Routing', description: 'Agent dynamically selects and invokes tools based on LLM output, enabling unintended tool execution.', category: 'elevation_of_privilege', affected_components: ['AgentExecutor', 'ToolRouter'], trust_boundary: 'Policy Engine', entry_point: 'LLM tool selection', likelihood: 'medium', impact: 'critical', risk_level: 'critical', atlas_techniques: ['AML.T0054'], mitigation_ids: ['mit-004'] },
+      { id: 'th-004', title: 'Callback Data Leakage', description: 'Sensitive intermediate outputs exposed through LangChain callback handlers to external logging.', category: 'information_disclosure', affected_components: ['CallbackManager', 'StdOutHandler'], trust_boundary: 'Agent Runtime', entry_point: 'Callback chain', likelihood: 'low', impact: 'medium', risk_level: 'medium', atlas_techniques: ['AML.T0025'], mitigation_ids: ['mit-002', 'mit-003'] },
+      { id: 'th-005', title: 'Recursive Agent Loop', description: 'Agent enters infinite self-calling loop, exhausting token budget and compute.', category: 'denial_of_service', affected_components: ['AgentExecutor'], trust_boundary: 'Agent Runtime', entry_point: 'Max iterations config', likelihood: 'medium', impact: 'medium', risk_level: 'medium', atlas_techniques: ['AML.T0016'], mitigation_ids: ['mit-002'] },
+      { id: 'th-006', title: 'Trace Omission in Custom Chains', description: 'Custom chain implementations skip span emission, breaking audit continuity.', category: 'repudiation', affected_components: ['CustomChain', 'SpanExporter'], trust_boundary: 'Agent Runtime', entry_point: 'Chain implementation', likelihood: 'low', impact: 'medium', risk_level: 'low', atlas_techniques: ['AML.T0048'], mitigation_ids: ['mit-003'] },
+    ],
+    risk_summary: { total_threats: 6, threats_by_category: { spoofing: 1, tampering: 1, repudiation: 1, information_disclosure: 1, denial_of_service: 1, elevation_of_privilege: 1 }, threats_by_risk: { critical: 2, high: 1, medium: 2, low: 1 }, mitigation_coverage: 83, residual_risk_score: 3.6 },
+  },
+  autogen: {
+    name: 'AutoGen Multi-Agent Threat Model',
+    description: `STRIDE analysis for AutoGen multi-agent orchestration within ${branding.productName}. Focus on inter-agent communication, group chat dynamics, and delegated execution trust.`,
+    threats: [
+      { id: 'th-001', title: 'Agent Impersonation in Group Chat', description: 'Malicious agent injects messages masquerading as trusted orchestrator, redirecting task delegation.', category: 'spoofing', affected_components: ['GroupChatManager', 'MessageRouter'], trust_boundary: 'Agent Runtime', entry_point: 'Group chat message', likelihood: 'medium', impact: 'high', risk_level: 'high', atlas_techniques: ['AML.T0051'], mitigation_ids: ['mit-001'] },
+      { id: 'th-002', title: 'Delegated Code Execution Escape', description: 'Agent generates and executes code that escapes sandbox boundaries through subprocess or import manipulation.', category: 'elevation_of_privilege', affected_components: ['CodeExecutor', 'DockerSandbox'], trust_boundary: 'Agent Runtime', entry_point: 'Generated code block', likelihood: 'medium', impact: 'critical', risk_level: 'critical', atlas_techniques: ['AML.T0054'], mitigation_ids: ['mit-004'] },
+      { id: 'th-003', title: 'Conversation History Poisoning', description: 'Early messages in multi-turn conversation bias later agent decisions toward attacker objectives.', category: 'tampering', affected_components: ['ConversationBuffer', 'AssistantAgent'], trust_boundary: 'Agent Runtime', entry_point: 'Chat history', likelihood: 'medium', impact: 'high', risk_level: 'high', atlas_techniques: ['AML.T0020'], mitigation_ids: ['mit-001', 'mit-002'] },
+      { id: 'th-004', title: 'Cross-Agent Data Leakage', description: 'Sensitive data from one agent context leaks to another agent through shared memory or conversation.', category: 'information_disclosure', affected_components: ['GroupChatManager', 'SharedMemory'], trust_boundary: 'Agent Runtime', entry_point: 'Shared state', likelihood: 'low', impact: 'high', risk_level: 'medium', atlas_techniques: ['AML.T0025'], mitigation_ids: ['mit-003'] },
+      { id: 'th-005', title: 'Consensus Deadlock', description: 'Agents in group chat fail to converge, creating infinite discussion loop that exhausts resources.', category: 'denial_of_service', affected_components: ['GroupChatManager'], trust_boundary: 'Agent Runtime', entry_point: 'Termination condition', likelihood: 'medium', impact: 'medium', risk_level: 'medium', atlas_techniques: ['AML.T0016'], mitigation_ids: ['mit-002'] },
+      { id: 'th-006', title: 'Unattributed Agent Actions', description: 'Actions taken by sub-agents lack proper attribution, preventing forensic analysis.', category: 'repudiation', affected_components: ['AssistantAgent', 'TraceCollector'], trust_boundary: 'Agent Runtime', entry_point: 'Agent action dispatch', likelihood: 'low', impact: 'medium', risk_level: 'low', atlas_techniques: ['AML.T0048'], mitigation_ids: ['mit-003'] },
+    ],
+    risk_summary: { total_threats: 6, threats_by_category: { spoofing: 1, tampering: 1, repudiation: 1, information_disclosure: 1, denial_of_service: 1, elevation_of_privilege: 1 }, threats_by_risk: { critical: 1, high: 2, medium: 2, low: 1 }, mitigation_coverage: 75, residual_risk_score: 3.4 },
+  },
+  crewai: {
+    name: 'CrewAI Role-Based Agent Threat Model',
+    description: `STRIDE analysis for CrewAI role-based agent crews within ${branding.productName}. Focus on role assignment, task delegation chains, and inter-crew trust boundaries.`,
+    threats: [
+      { id: 'th-001', title: 'Role Hijacking via Backstory Injection', description: 'Adversarial content injected into agent backstory/role prompt alters agent behavior beyond intended scope.', category: 'spoofing', affected_components: ['CrewAgent', 'RolePrompt'], trust_boundary: 'Agent Runtime', entry_point: 'Agent backstory field', likelihood: 'medium', impact: 'high', risk_level: 'high', atlas_techniques: ['AML.T0051'], mitigation_ids: ['mit-001'] },
+      { id: 'th-002', title: 'Task Output Corruption in Sequential Crew', description: 'Corrupted output from one task propagates through sequential task chain, compounding errors.', category: 'tampering', affected_components: ['TaskPipeline', 'OutputValidator'], trust_boundary: 'Agent Runtime', entry_point: 'Task output', likelihood: 'medium', impact: 'high', risk_level: 'high', atlas_techniques: ['AML.T0020'], mitigation_ids: ['mit-001', 'mit-003'] },
+      { id: 'th-003', title: 'Cross-Crew Secret Leakage', description: 'Agents in different crews share tool context, exposing credentials across trust boundaries.', category: 'information_disclosure', affected_components: ['ToolContext', 'CrewManager'], trust_boundary: 'Cloud APIs', entry_point: 'Shared tool bindings', likelihood: 'low', impact: 'high', risk_level: 'medium', atlas_techniques: ['AML.T0025'], mitigation_ids: ['mit-003'] },
+      { id: 'th-004', title: 'Delegation Privilege Escalation', description: 'Agent delegates task to sub-agent with higher tool permissions than the delegating agent holds.', category: 'elevation_of_privilege', affected_components: ['DelegationManager', 'ToolExecutor'], trust_boundary: 'Policy Engine', entry_point: 'Task delegation', likelihood: 'medium', impact: 'critical', risk_level: 'critical', atlas_techniques: ['AML.T0054'], mitigation_ids: ['mit-004'] },
+      { id: 'th-005', title: 'Hierarchical Crew Cascade Failure', description: 'Manager agent failure cascades to all worker agents, causing total crew shutdown.', category: 'denial_of_service', affected_components: ['ManagerAgent', 'WorkerAgents'], trust_boundary: 'Agent Runtime', entry_point: 'Manager LLM call', likelihood: 'low', impact: 'high', risk_level: 'medium', atlas_techniques: ['AML.T0016'], mitigation_ids: ['mit-002'] },
+      { id: 'th-006', title: 'Task Attribution Gap', description: 'Delegated sub-tasks lack trace linkage to parent task, breaking audit chain.', category: 'repudiation', affected_components: ['TaskTracker', 'SpanExporter'], trust_boundary: 'Agent Runtime', entry_point: 'Delegation event', likelihood: 'low', impact: 'medium', risk_level: 'low', atlas_techniques: ['AML.T0048'], mitigation_ids: ['mit-003'] },
+    ],
+    risk_summary: { total_threats: 6, threats_by_category: { spoofing: 1, tampering: 1, repudiation: 1, information_disclosure: 1, denial_of_service: 1, elevation_of_privilege: 1 }, threats_by_risk: { critical: 1, high: 2, medium: 2, low: 1 }, mitigation_coverage: 67, residual_risk_score: 3.5 },
+  },
+}
+
+// Default threat model for frameworks not in FRAMEWORK_PROFILES
+const DEFAULT_PROFILE: FrameworkProfile = {
   name: 'Cloud Agent Threat Model',
   description: `STRIDE analysis for autonomous cloud-acting agents within ${branding.productName}.`,
-  scope: 'All agent interactions with cloud APIs, LLM providers, and internal policy engine.',
-  target_agent_id: '550e8400-e29b-41d4-a716-446655440002',
-  trust_boundaries: [
-    { id: 'tb-1', name: 'Agent Runtime', description: 'Sandboxed agent execution environment', components: ['AgentRunner', 'ToolExecutor'] },
-    { id: 'tb-2', name: 'Cloud APIs', description: 'External cloud provider endpoints', components: ['AWS', 'Azure', 'GCP'] },
-    { id: 'tb-3', name: 'Policy Engine', description: 'OPA evaluation service', components: ['PolicyEvaluator', 'PolicyStore'] },
-  ],
   threats: [
-    {
-      id: 'th-001', title: 'Prompt Injection — Admin Impersonation',
-      description: 'Adversarial prompt in tool output instructs agent to act as admin, bypassing authorization checks.',
-      category: 'spoofing', affected_components: ['LLMInvoker', 'ToolExecutor'],
-      trust_boundary: 'Agent Runtime', entry_point: 'Tool response payload',
-      likelihood: 'medium', impact: 'high', risk_level: 'high',
-      atlas_techniques: ['AML.T0051', 'AML.T0054'], mitigation_ids: ['mit-001', 'mit-002'],
-    },
-    {
-      id: 'th-002', title: 'Tool Output Manipulation',
-      description: 'Malicious data in cloud API response alters agent decision-making mid-execution.',
-      category: 'tampering', affected_components: ['ToolExecutor', 'CloudAPIClient'],
-      trust_boundary: 'Cloud APIs', entry_point: 'Cloud API response',
-      likelihood: 'low', impact: 'high', risk_level: 'medium',
-      atlas_techniques: ['AML.T0020'], mitigation_ids: ['mit-003'],
-    },
-    {
-      id: 'th-003', title: 'Training Data Extraction via Probing',
-      description: 'Repeated crafted queries extract memorized training data from the underlying LLM.',
-      category: 'information_disclosure', affected_components: ['LLMInvoker'],
-      trust_boundary: 'Agent Runtime', entry_point: 'LLM prompt',
-      likelihood: 'low', impact: 'medium', risk_level: 'low',
-      atlas_techniques: ['AML.T0025', 'AML.T0035'], mitigation_ids: ['mit-002'],
-    },
-    {
-      id: 'th-004', title: 'Policy Bypass via Prompt Engineering',
-      description: 'Adversary crafts prompts to make agent call privileged tools without triggering policy deny rules.',
-      category: 'elevation_of_privilege', affected_components: ['PolicyEvaluator', 'ToolExecutor'],
-      trust_boundary: 'Policy Engine', entry_point: 'Agent instructions',
-      likelihood: 'medium', impact: 'critical', risk_level: 'critical',
-      atlas_techniques: ['AML.T0054', 'AML.T0051'], mitigation_ids: ['mit-001', 'mit-004'],
-    },
-    {
-      id: 'th-005', title: 'Audit Log Suppression',
-      description: 'Agent or compromised tool omits span data from trace, removing forensic evidence.',
-      category: 'repudiation', affected_components: ['TraceCollector', 'SpanExporter'],
-      trust_boundary: 'Agent Runtime', entry_point: 'Trace export pipeline',
-      likelihood: 'low', impact: 'medium', risk_level: 'low',
-      atlas_techniques: ['AML.T0048'], mitigation_ids: ['mit-003'],
-    },
-    {
-      id: 'th-006', title: 'Token Budget Exhaustion',
-      description: 'Recursive agent loop or adversarial prompt inflates token usage, triggering rate limits and degrading service.',
-      category: 'denial_of_service', affected_components: ['LLMInvoker', 'AgentRunner'],
-      trust_boundary: 'Agent Runtime', entry_point: 'LLM invocation loop',
-      likelihood: 'medium', impact: 'medium', risk_level: 'medium',
-      atlas_techniques: ['AML.T0016'], mitigation_ids: ['mit-004'],
-    },
+    { id: 'th-001', title: 'Prompt Injection — Admin Impersonation', description: 'Adversarial prompt in tool output instructs agent to act as admin, bypassing authorization checks.', category: 'spoofing', affected_components: ['LLMInvoker', 'ToolExecutor'], trust_boundary: 'Agent Runtime', entry_point: 'Tool response payload', likelihood: 'medium', impact: 'high', risk_level: 'high', atlas_techniques: ['AML.T0051', 'AML.T0054'], mitigation_ids: ['mit-001', 'mit-002'] },
+    { id: 'th-002', title: 'Tool Output Manipulation', description: 'Malicious data in cloud API response alters agent decision-making mid-execution.', category: 'tampering', affected_components: ['ToolExecutor', 'CloudAPIClient'], trust_boundary: 'Cloud APIs', entry_point: 'Cloud API response', likelihood: 'low', impact: 'high', risk_level: 'medium', atlas_techniques: ['AML.T0020'], mitigation_ids: ['mit-003'] },
+    { id: 'th-003', title: 'Training Data Extraction via Probing', description: 'Repeated crafted queries extract memorized training data from the underlying LLM.', category: 'information_disclosure', affected_components: ['LLMInvoker'], trust_boundary: 'Agent Runtime', entry_point: 'LLM prompt', likelihood: 'low', impact: 'medium', risk_level: 'low', atlas_techniques: ['AML.T0025', 'AML.T0035'], mitigation_ids: ['mit-002'] },
+    { id: 'th-004', title: 'Policy Bypass via Prompt Engineering', description: 'Adversary crafts prompts to make agent call privileged tools without triggering policy deny rules.', category: 'elevation_of_privilege', affected_components: ['PolicyEvaluator', 'ToolExecutor'], trust_boundary: 'Policy Engine', entry_point: 'Agent instructions', likelihood: 'medium', impact: 'critical', risk_level: 'critical', atlas_techniques: ['AML.T0054', 'AML.T0051'], mitigation_ids: ['mit-001', 'mit-004'] },
+    { id: 'th-005', title: 'Audit Log Suppression', description: 'Agent or compromised tool omits span data from trace, removing forensic evidence.', category: 'repudiation', affected_components: ['TraceCollector', 'SpanExporter'], trust_boundary: 'Agent Runtime', entry_point: 'Trace export pipeline', likelihood: 'low', impact: 'medium', risk_level: 'low', atlas_techniques: ['AML.T0048'], mitigation_ids: ['mit-003'] },
+    { id: 'th-006', title: 'Token Budget Exhaustion', description: 'Recursive agent loop or adversarial prompt inflates token usage, triggering rate limits and degrading service.', category: 'denial_of_service', affected_components: ['LLMInvoker', 'AgentRunner'], trust_boundary: 'Agent Runtime', entry_point: 'LLM invocation loop', likelihood: 'medium', impact: 'medium', risk_level: 'medium', atlas_techniques: ['AML.T0016'], mitigation_ids: ['mit-004'] },
   ],
-  mitigations: [
-    {
-      id: 'mit-001', title: 'Prompt Injection Detection', control_type: 'preventive',
-      description: 'Validate and sanitize all tool outputs before feeding into LLM context.',
-      implementation: 'Regex + LLM-as-judge classifier on tool response payloads.',
-      mapped_controls: ['NIST CSF DE.CM-7', 'SOC2 CC6.1'], status: 'implemented',
-    },
-    {
-      id: 'mit-002', title: 'Output Monitoring & Rate Limiting', control_type: 'detective',
-      description: 'Monitor LLM completions for extraction patterns; enforce per-agent token budgets.',
-      implementation: 'Regex rules + sliding window token counter in AgentRunner.',
-      mapped_controls: ['NIST CSF DE.AE-3'], status: 'implemented',
-    },
-    {
-      id: 'mit-003', title: 'Immutable Audit Trail', control_type: 'detective',
-      description: 'All spans written to append-only S3 + CloudWatch Logs; agent cannot modify.',
-      implementation: 'S3 Object Lock + CloudWatch log group with no-delete retention.',
-      mapped_controls: ['SOC2 CC7.2', 'ISO 27001 A.12.4.3'], status: 'implemented',
-    },
-    {
-      id: 'mit-004', title: 'Policy Engine Hardening', control_type: 'preventive',
-      description: 'OPA policy evaluation is mandatory for every tool call; cannot be bypassed by agent.',
-      implementation: 'Policy sidecar enforced at ToolExecutor layer; deny-by-default.',
-      mapped_controls: ['NIST CSF PR.AC-4', 'SOC2 CC6.3'], status: 'planned',
-    },
-  ],
-  risk_summary: {
-    total_threats: 6,
-    threats_by_category: { spoofing: 1, tampering: 1, repudiation: 1, information_disclosure: 1, denial_of_service: 1, elevation_of_privilege: 1 },
-    threats_by_risk: { critical: 1, high: 1, medium: 2, low: 2 },
-    mitigation_coverage: 75,
-    residual_risk_score: 3.2,
-  },
-  created_at: '2026-01-15T00:00:00Z',
-  updated_at: '2026-02-27T00:00:00Z',
+  risk_summary: { total_threats: 6, threats_by_category: { spoofing: 1, tampering: 1, repudiation: 1, information_disclosure: 1, denial_of_service: 1, elevation_of_privilege: 1 }, threats_by_risk: { critical: 1, high: 1, medium: 2, low: 2 }, mitigation_coverage: 75, residual_risk_score: 3.2 },
+}
+
+function getThreatModelForAgent(agentId: string, framework: string): ThreatModel {
+  const profile = FRAMEWORK_PROFILES[framework] ?? DEFAULT_PROFILE
+  return {
+    id: `tm-${framework}-${agentId.slice(0, 8)}`,
+    name: profile.name,
+    description: profile.description,
+    scope: 'All agent interactions with cloud APIs, LLM providers, and internal policy engine.',
+    target_agent_id: agentId,
+    trust_boundaries: BASE_TRUST_BOUNDARIES,
+    threats: profile.threats,
+    mitigations: BASE_MITIGATIONS,
+    risk_summary: profile.risk_summary,
+    created_at: '2026-01-15T00:00:00Z',
+    updated_at: '2026-02-27T00:00:00Z',
+  }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -238,6 +234,7 @@ export default function AIAgentDetail() {
     return <div className="text-sm text-muted-foreground p-6">Agent not found.</div>
   }
 
+  const threatModel = getThreatModelForAgent(agent.id, agent.framework)
   const riskCfg = RISK_CONFIG[agent.risk_level] ?? RISK_CONFIG.low
   const allSignals = traces.flatMap(t => t.security_signals ?? [])
   const filteredSignals = signalFilter === 'all'
@@ -342,10 +339,10 @@ export default function AIAgentDetail() {
           {/* Risk summary banner */}
           <div className="grid grid-cols-4 gap-4">
             {[
-              { label: 'Total Threats', value: MOCK_THREAT_MODEL.risk_summary.total_threats, color: 'text-foreground' },
-              { label: 'Critical', value: MOCK_THREAT_MODEL.risk_summary.threats_by_risk.critical ?? 0, color: 'text-red-700 dark:text-red-400' },
-              { label: 'Coverage', value: `${MOCK_THREAT_MODEL.risk_summary.mitigation_coverage}%`, color: 'text-green-700 dark:text-green-400' },
-              { label: 'Residual Risk', value: `${MOCK_THREAT_MODEL.risk_summary.residual_risk_score}/5`, color: 'text-orange-700 dark:text-orange-400' },
+              { label: 'Total Threats', value: threatModel.risk_summary.total_threats, color: 'text-foreground' },
+              { label: 'Critical', value: threatModel.risk_summary.threats_by_risk.critical ?? 0, color: 'text-red-700 dark:text-red-400' },
+              { label: 'Coverage', value: `${threatModel.risk_summary.mitigation_coverage}%`, color: 'text-green-700 dark:text-green-400' },
+              { label: 'Residual Risk', value: `${threatModel.risk_summary.residual_risk_score}/5`, color: 'text-orange-700 dark:text-orange-400' },
             ].map(({ label, value, color }) => (
               <Card key={label}>
                 <CardContent className="p-4">
@@ -362,7 +359,7 @@ export default function AIAgentDetail() {
             <div className="grid grid-cols-3 gap-3">
               {(Object.keys(STRIDE_META) as STRIDECategory[]).map(cat => {
                 const meta = STRIDE_META[cat]
-                const threats = MOCK_THREAT_MODEL.threats.filter(t => t.category === cat)
+                const threats = threatModel.threats.filter(t => t.category === cat)
                 const maxRisk = threats.reduce<string>((prev, t) => {
                   const order = ['critical', 'high', 'medium', 'low']
                   return order.indexOf(t.risk_level) < order.indexOf(prev) ? t.risk_level : prev
@@ -414,7 +411,7 @@ export default function AIAgentDetail() {
           <div>
             <h3 className="text-sm font-semibold mb-3">Mitigations</h3>
             <div className="space-y-2">
-              {MOCK_THREAT_MODEL.mitigations.map(m => {
+              {threatModel.mitigations.map(m => {
                 const cfg = MITIGATION_STATUS_CONFIG[m.status] ?? MITIGATION_STATUS_CONFIG['not started']
                 const Icon = cfg.icon
                 return (

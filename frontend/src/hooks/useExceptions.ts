@@ -33,3 +33,11 @@ export function useMyExceptions() {
     queryFn: () => apiClient.get<ExceptionRequest[]>('/exceptions/mine'),
   })
 }
+
+export function useException(id: string) {
+  return useQuery({
+    queryKey: ['exceptions', id],
+    queryFn: () => apiClient.get<ExceptionRequest>(`/exceptions/${id}`),
+    enabled: Boolean(id),
+  })
+}

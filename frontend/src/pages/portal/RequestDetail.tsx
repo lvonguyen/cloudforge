@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, CheckCircle2, XCircle, Clock } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, XCircle, Clock, Loader2 } from 'lucide-react'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
+import { useException } from '@/hooks/useExceptions'
 
 interface ExceptionLifecycle {
   id: string
@@ -136,8 +137,39 @@ export default function RequestDetail() {
   const { toasts, toast, dismiss } = useToast()
   const [withdrawn, setWithdrawn] = useState(false)
   const [withdrawing, setWithdrawing] = useState(false)
+  const { data: apiException, isLoading } = useException(id ?? '')
 
-  const exc = id ? brandMockData(MOCK_DETAILS[id]) : undefined
+  // Try API data first; fall back to inline mock for dev/offline
+  const apiMapped = apiException ? {
+    id: apiException.id,
+    resource: apiException.resource_requested,
+    type: apiException.request_type,
+    provider: (apiException.metadata?.provider ?? 'aws'),
+    region: (apiException.metadata?.region ?? ''),
+    app_id: apiException.application_id,
+    requestor: apiException.requestor_email,
+    team: (apiException.metadata?.team ?? ''),
+    business_case: apiException.business_case,
+    status: apiException.status as ExceptionLifecycle['status'],
+    created: apiException.created_at,
+    updated: apiException.updated_at,
+    expiry: apiException.expiration_date,
+    approver_chain: apiException.approver_chain.map(a => ({
+      role: a.role, email: a.email, decision: a.decision,
+      decided_at: a.decided_at, comments: a.comments,
+    })),
+    timeline: [] as ExceptionLifecycle['timeline'],
+    compensating_controls: apiException.compensating_controls ?? [],
+  } satisfies ExceptionLifecycle : undefined
+  const exc = apiMapped ?? (id ? brandMockData(MOCK_DETAILS[id]) : undefined)
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground p-4">
+        <Loader2 className="h-4 w-4 animate-spin" />Loading request…
+      </div>
+    )
+  }
 
   if (!exc) {
     return (
