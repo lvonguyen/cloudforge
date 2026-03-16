@@ -1,4 +1,4 @@
 package main
 
 func Hello() string { return "hello" }
-func main() { Hello() }
+func main()         { Hello() }

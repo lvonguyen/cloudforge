@@ -2,8 +2,8 @@ package secrets
 
 import (
 	"context"
-	"fmt"
 	"crypto/rand"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"

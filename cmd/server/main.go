@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" //nolint:gosec // G108: pprof is dev-only (APP_ENV==development, loopback:6060)
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -394,7 +394,7 @@ func main() {
 	if os.Getenv("APP_ENV") == "development" {
 		go func() {
 			logger.Info("pprof server starting", zap.String("addr", "127.0.0.1:6060"))
-			if err := http.ListenAndServe("127.0.0.1:6060", nil); err != nil {
+			if err := http.ListenAndServe("127.0.0.1:6060", nil); err != nil { //nolint:gosec // G114: dev-only pprof on loopback
 				logger.Warn("pprof server error", zap.Error(err))
 			}
 		}()

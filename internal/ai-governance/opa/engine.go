@@ -15,9 +15,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/open-policy-agent/opa/rego"
-	"github.com/open-policy-agent/opa/storage"
-	"github.com/open-policy-agent/opa/storage/inmem"
+	"github.com/open-policy-agent/opa/rego"          //nolint:staticcheck // SA1019: OPA v1 migration tracked in Sprint D backlog
+	"github.com/open-policy-agent/opa/storage"       //nolint:staticcheck // SA1019: OPA v1 migration tracked in Sprint D backlog
+	"github.com/open-policy-agent/opa/storage/inmem" //nolint:staticcheck // SA1019: OPA v1 migration tracked in Sprint D backlog
 )
 
 // Engine is the in-process policy evaluation engine powered by OPA.
