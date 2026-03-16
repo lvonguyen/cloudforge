@@ -317,6 +317,9 @@ func main() {
 	// Start background eviction of expired dedup cache entries.
 	srv.dedupCache.StartEviction(serverCtx, 5*time.Minute)
 
+	// Start background eviction of stale enrichment cache entries.
+	srv.enrichmentSvc.StartEviction(serverCtx, 5*time.Minute)
+
 	// Enrich attack paths with AI in the background to avoid blocking startup.
 	// Assign attackPathSvc before spawning so HTTP handlers always see the slice.
 	if srv.enrichmentSvc.Enabled() {

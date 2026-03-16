@@ -12,6 +12,13 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
+const (
+	// enrichmentCacheTTL is how long enrichment results are cached.
+	enrichmentCacheTTL = 30 * time.Minute
+	// enrichmentCacheMaxSize caps the number of cached enrichments to bound memory.
+	enrichmentCacheMaxSize = 5000
+)
+
 // EnrichmentService encapsulates AI-powered finding enrichment with a
 // thread-safe cache. Extracted from Server to isolate the AI provider,
 // cache map, and mutex into a cohesive unit.
@@ -93,4 +100,60 @@ Description: %s`,
 		return nil, err
 	}
 	return result.(*FindingEnrichment), nil
+}
+
+// StartEviction launches a background goroutine that periodically removes
+// stale enrichment cache entries (older than enrichmentCacheTTL) and evicts
+// oldest entries when the cache exceeds enrichmentCacheMaxSize.
+func (svc *EnrichmentService) StartEviction(ctx context.Context, interval time.Duration) {
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				svc.evictExpired()
+			}
+		}
+	}()
+}
+
+func (svc *EnrichmentService) evictExpired() {
+	svc.Mu.Lock()
+	defer svc.Mu.Unlock()
+
+	now := time.Now()
+
+	// Pass 1: remove entries older than TTL
+	for key, entry := range svc.Cache {
+		if now.Sub(entry.CreatedAt) >= enrichmentCacheTTL {
+			delete(svc.Cache, key)
+		}
+	}
+
+	// Pass 2: if still over max size, evict oldest until at cap
+	if len(svc.Cache) > enrichmentCacheMaxSize {
+		type kv struct {
+			key string
+			ts  time.Time
+		}
+		items := make([]kv, 0, len(svc.Cache))
+		for k, v := range svc.Cache {
+			items = append(items, kv{k, v.CreatedAt})
+		}
+		// Sort oldest first (simple selection — only runs when over cap)
+		for i := 0; i < len(items); i++ {
+			for j := i + 1; j < len(items); j++ {
+				if items[j].ts.Before(items[i].ts) {
+					items[i], items[j] = items[j], items[i]
+				}
+			}
+		}
+		excess := len(svc.Cache) - enrichmentCacheMaxSize
+		for i := 0; i < excess; i++ {
+			delete(svc.Cache, items[i].key)
+		}
+	}
 }

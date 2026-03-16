@@ -373,12 +373,13 @@ func (s *Server) listPolicies(w http.ResponseWriter, r *http.Request) {
 
 // FindingEnrichment holds cached AI analysis for a single finding.
 type FindingEnrichment struct {
-	FindingID       string   `json:"finding_id"`
-	RootCause       string   `json:"root_cause"`
-	Impact          string   `json:"impact"`
-	Remediation     string   `json:"remediation"`
-	RelatedControls []string `json:"related_controls"`
-	EnrichedAt      string   `json:"enriched_at"`
+	FindingID       string    `json:"finding_id"`
+	RootCause       string    `json:"root_cause"`
+	Impact          string    `json:"impact"`
+	Remediation     string    `json:"remediation"`
+	RelatedControls []string  `json:"related_controls"`
+	EnrichedAt      string    `json:"enriched_at"`
+	CreatedAt       time.Time `json:"-"` // cache eviction timestamp
 }
 
 const findingEnrichSystemPrompt = `You are a cloud security analyst. Given a security finding, provide:
@@ -449,12 +450,14 @@ func parseFindingEnrichment(findingID, response string) (*FindingEnrichment, err
 		return nil, fmt.Errorf("missing root_cause in response")
 	}
 
+	now := time.Now().UTC()
 	return &FindingEnrichment{
 		FindingID:       findingID,
 		RootCause:       parsed.RootCause,
 		Impact:          parsed.Impact,
 		Remediation:     parsed.Remediation,
 		RelatedControls: parsed.RelatedControls,
-		EnrichedAt:      time.Now().UTC().Format(time.RFC3339),
+		EnrichedAt:      now.Format(time.RFC3339),
+		CreatedAt:       now,
 	}, nil
 }
