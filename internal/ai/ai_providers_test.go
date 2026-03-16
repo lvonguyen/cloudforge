@@ -19,7 +19,7 @@ import (
 
 func newAnthropicTestServer(handler http.HandlerFunc) (*httptest.Server, *AnthropicProvider) {
 	srv := httptest.NewServer(handler)
-	p := NewAnthropicProvider("test-api-key")
+	p, _ := NewAnthropicProvider("test-api-key")
 	p.baseURL = srv.URL
 	return srv, p
 }
@@ -72,7 +72,7 @@ func TestAnthropicProvider_CompleteWithSystem_Success(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := NewAnthropicProvider("test-api-key")
+	p, _ := NewAnthropicProvider("test-api-key")
 	p.baseURL = srv.URL
 
 	result, err := p.CompleteWithSystem(context.Background(), "you are helpful", "hello")
@@ -91,7 +91,7 @@ func TestAnthropicProvider_Non200Status(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := NewAnthropicProvider("test-key")
+	p, _ := NewAnthropicProvider("test-key")
 	p.baseURL = srv.URL
 
 	_, err := p.Complete(context.Background(), "test")
@@ -107,7 +107,7 @@ func TestAnthropicProvider_EmptyContent(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := NewAnthropicProvider("test-key")
+	p, _ := NewAnthropicProvider("test-key")
 	p.baseURL = srv.URL
 
 	_, err := p.Complete(context.Background(), "test")
@@ -127,7 +127,7 @@ func TestAnthropicProvider_APIError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := NewAnthropicProvider("bad-key")
+	p, _ := NewAnthropicProvider("bad-key")
 	p.baseURL = srv.URL
 
 	_, err := p.Complete(context.Background(), "test")
@@ -142,7 +142,7 @@ func TestAnthropicProvider_InvalidJSON(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := NewAnthropicProvider("test-key")
+	p, _ := NewAnthropicProvider("test-key")
 	p.baseURL = srv.URL
 
 	_, err := p.Complete(context.Background(), "test")
@@ -639,7 +639,7 @@ func TestRoutingProvider_CompleteWithSystem(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestAnthropicProvider_ConnectionError(t *testing.T) {
-	p := NewAnthropicProvider("test-key")
+	p, _ := NewAnthropicProvider("test-key")
 	p.baseURL = "http://127.0.0.1:1" // unreachable port
 
 	_, err := p.Complete(context.Background(), "test")

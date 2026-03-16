@@ -28,8 +28,13 @@ type AnthropicProvider struct {
 	httpClient *http.Client
 }
 
-// NewAnthropicProvider creates a new Anthropic provider
-func NewAnthropicProvider(apiKey string) *AnthropicProvider {
+// NewAnthropicProvider creates a new Anthropic provider.
+// Returns an error if apiKey is empty to fail fast at construction time
+// rather than on the first API call.
+func NewAnthropicProvider(apiKey string) (*AnthropicProvider, error) {
+	if apiKey == "" {
+		return nil, fmt.Errorf("anthropic API key is required")
+	}
 	return &AnthropicProvider{
 		apiKey:  apiKey,
 		model:   "claude-opus-4-6",
@@ -37,7 +42,7 @@ func NewAnthropicProvider(apiKey string) *AnthropicProvider {
 		httpClient: &http.Client{
 			Timeout: 120 * time.Second,
 		},
-	}
+	}, nil
 }
 
 // anthropicRequest represents the Anthropic API request

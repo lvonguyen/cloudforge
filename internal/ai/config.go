@@ -61,7 +61,7 @@ func NewProviderFromConfig(cfg ProviderConfig) (Provider, error) {
 
 	switch cfg.Type {
 	case ProviderAnthropic:
-		return NewAnthropicProvider(apiKey), nil
+		return NewAnthropicProvider(apiKey)
 
 	case ProviderBedrock:
 		return NewBedrockProvider(cfg.Region, cfg.Model)
