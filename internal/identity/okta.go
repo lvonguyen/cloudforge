@@ -127,9 +127,9 @@ func (p *OktaProvider) GetUser(ctx context.Context, userID string) (*User, error
 		displayName = fmt.Sprintf("%s %s", oktaUser.Profile.FirstName, oktaUser.Profile.LastName)
 	}
 
-	status := "active"
+	status := statusActive
 	if oktaUser.Status != "ACTIVE" {
-		status = "disabled"
+		status = statusDisabled
 	}
 
 	return &User{

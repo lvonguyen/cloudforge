@@ -45,7 +45,7 @@ func NewMockOktaProvider() *MockOktaProvider {
 				DisplayName: "Alice Chen",
 				Department:  "Platform Engineering",
 				JobTitle:    "Senior Platform Engineer",
-				Status:      "active",
+				Status:      statusActive,
 				MFAEnabled:  true,
 				LastLogin:   &lastLogin,
 				CreatedAt:   now.Add(-365 * 24 * time.Hour),
@@ -60,7 +60,7 @@ func NewMockOktaProvider() *MockOktaProvider {
 				DisplayName: "Bob Martinez",
 				Department:  "Security",
 				JobTitle:    "Security Analyst",
-				Status:      "active",
+				Status:      statusActive,
 				MFAEnabled:  true,
 				LastLogin:   &lastLogin,
 				CreatedAt:   now.Add(-180 * 24 * time.Hour),
@@ -133,7 +133,7 @@ func (p *MockOktaProvider) DisableUser(_ context.Context, userID string) error {
 	if !ok {
 		return fmt.Errorf("disabling user %q in okta: %w", userID, ErrNotFound)
 	}
-	u.Status = "disabled"
+	u.Status = statusDisabled
 	return nil
 }
 
@@ -329,7 +329,7 @@ func NewMockEntraIDProvider() *MockEntraIDProvider {
 				DisplayName: "Carol Zhang",
 				Department:  "Cloud Infrastructure",
 				JobTitle:    "Cloud Security Architect",
-				Status:      "active",
+				Status:      statusActive,
 				MFAEnabled:  true,
 				LastLogin:   &lastLogin,
 				CreatedAt:   now.Add(-400 * 24 * time.Hour),
@@ -344,7 +344,7 @@ func NewMockEntraIDProvider() *MockEntraIDProvider {
 				DisplayName: "Dave Patel",
 				Department:  "DevOps",
 				JobTitle:    "DevOps Engineer",
-				Status:      "active",
+				Status:      statusActive,
 				MFAEnabled:  false,
 				LastLogin:   &lastLogin,
 				CreatedAt:   now.Add(-200 * 24 * time.Hour),
@@ -417,7 +417,7 @@ func (p *MockEntraIDProvider) DisableUser(_ context.Context, userID string) erro
 	if !ok {
 		return fmt.Errorf("disabling user %q in entra_id: %w", userID, ErrNotFound)
 	}
-	u.Status = "disabled"
+	u.Status = statusDisabled
 	return nil
 }
 
