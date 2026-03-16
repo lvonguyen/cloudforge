@@ -101,8 +101,7 @@ type SecretFinding struct {
 	Line        int    `json:"line"`
 	Column      int    `json:"column"`
 	Match       string `json:"match"`   // Redacted match
-	Context     string `json:"context"
-	"errors"` // Surrounding context
+	Context     string `json:"context"` // Surrounding context
 	File        string `json:"file,omitempty"`
 }
 
