@@ -133,8 +133,13 @@ func paginateResult[T any](items []T, page, perPage int) paginatedResponse {
 		end = total
 	}
 
+	data := items[start:end]
+	if data == nil {
+		data = make([]T, 0)
+	}
+
 	return paginatedResponse{
-		Data:       items[start:end],
+		Data:       data,
 		Page:       page,
 		PerPage:    perPage,
 		Total:      total,
