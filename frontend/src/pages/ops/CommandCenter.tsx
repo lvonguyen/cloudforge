@@ -19,6 +19,8 @@ import { DataLayersPanel } from '@/components/ops/DataLayersPanel'
 import { EntityDetailPanel } from '@/components/ops/EntityDetailPanel'
 import { StatusBar } from '@/components/ops/StatusBar'
 import { FindingsSummaryChart } from '@/components/ops/FindingsSummaryChart'
+import { FindingsTreemap } from '@/components/ops/FindingsTreemap'
+import { ShortcutOverlay } from '@/components/ops/ShortcutOverlay'
 import { useFindings } from '@/hooks/useFindings'
 import { useAttackPaths, useAttackPathStats } from '@/hooks/useAttackPaths'
 import { useRemediations } from '@/hooks/useRemediations'
@@ -188,6 +190,13 @@ function CenterPane({
     dispatch({ type: 'SELECT_ENTITY', payload: null })
   }, [dispatch])
 
+  const onSelectFinding = useCallback(
+    (f: Finding) => {
+      dispatch({ type: 'SELECT_ENTITY', payload: { type: 'finding', data: f } })
+    },
+    [dispatch],
+  )
+
   return (
     <div className="flex flex-col h-full bg-[#0a0a0f]">
       {/* Context bar */}
@@ -215,6 +224,22 @@ function CenterPane({
               {attackPaths.length} paths
               {attackPaths.length > 0 && stats?.critical_paths != null ? ` · ${stats.critical_paths} critical` : ''}
             </span>
+            {/* Segmented center view control */}
+            <div className="ml-auto flex border border-[#1e2330]">
+              {(['charts', 'treemap'] as const).map((view, i) => (
+                <button
+                  key={view}
+                  onClick={() => dispatch({ type: 'SET_CENTER_VIEW', payload: view })}
+                  className={`text-[9px] font-mono uppercase px-2 py-0.5 transition-colors ${
+                    state.centerView === view
+                      ? 'bg-[#1e2330] text-gray-200'
+                      : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  {i + 1} {view === 'charts' ? 'Charts' : 'Heatmap'}
+                </button>
+              ))}
+            </div>
           </>
         )}
       </div>
@@ -244,6 +269,9 @@ function CenterPane({
               maskColor="rgba(0,0,0,0.6)"
             />
           </ReactFlow>
+        ) : state.centerView === 'treemap' ? (
+          /* Treemap heatmap view */
+          <FindingsTreemap findings={filteredFindings} onSelect={onSelectFinding} />
         ) : attackPaths.length > 0 ? (
           /* Card grid with findings summary */
           <div className="overflow-y-auto h-full">
@@ -294,38 +322,67 @@ function CommandCenterShell() {
     return map
   }, [state.activeLayers])
 
-  // Filter findings by active layers (severity AND provider AND environment)
+  // Filter findings by active layers (severity AND provider AND environment) + date range
   const filteredFindings = useMemo(() => {
     const sevs = enabledByGroup.severity
     const provs = enabledByGroup.provider
     const envs = enabledByGroup.environment
-    return allFindings.filter(f =>
-      (!sevs || sevs.size === 0 || sevs.has(f.severity)) &&
-      (!provs || provs.size === 0 || provs.has(f.cloud_provider)) &&
-      (!envs || envs.size === 0 || envs.has(f.environment_type)),
-    )
-  }, [allFindings, enabledByGroup])
+    const { start, end } = state.dateRange
+    return allFindings.filter(f => {
+      if (sevs && sevs.size > 0 && !sevs.has(f.severity)) return false
+      if (provs && provs.size > 0 && !provs.has(f.cloud_provider)) return false
+      if (envs && envs.size > 0 && !envs.has(f.environment_type)) return false
+      if (start && f.first_found_at < start) return false
+      if (end && f.first_found_at > end + 'T23:59:59Z') return false
+      return true
+    })
+  }, [allFindings, enabledByGroup, state.dateRange])
 
   const toxicComboCount = useMemo(
     () => filteredFindings.filter(f => f.toxic_combo_details).length,
     [filteredFindings],
   )
 
-  // Keyboard: Escape deselects
+  // Keyboard shortcuts
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
+      // Escape: close overlay first, then deselect
       if (e.key === 'Escape') {
-        dispatch({ type: 'SELECT_PATH', payload: null })
-        dispatch({ type: 'SELECT_ENTITY', payload: null })
+        if (state.showShortcutOverlay) {
+          dispatch({ type: 'TOGGLE_SHORTCUT_OVERLAY' })
+        } else {
+          dispatch({ type: 'SELECT_PATH', payload: null })
+          dispatch({ type: 'SELECT_ENTITY', payload: null })
+        }
+        return
       }
-      if (e.key === 'l' || e.key === 'L') {
-        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-        dispatch({ type: 'TOGGLE_LEFT_PANEL' })
+
+      // Guard: no letter/digit shortcuts while typing
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+
+      switch (e.key) {
+        case 'l':
+        case 'L':
+          dispatch({ type: 'TOGGLE_LEFT_PANEL' })
+          break
+        case 'd':
+        case 'D':
+          dispatch({ type: 'SELECT_ENTITY', payload: null })
+          break
+        case '1':
+          dispatch({ type: 'SET_CENTER_VIEW', payload: 'charts' })
+          break
+        case '2':
+          dispatch({ type: 'SET_CENTER_VIEW', payload: 'treemap' })
+          break
+        case '?':
+          dispatch({ type: 'TOGGLE_SHORTCUT_OVERLAY' })
+          break
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [dispatch])
+  }, [dispatch, state.showShortcutOverlay])
 
   if (findingsLoading) {
     return (
@@ -337,6 +394,7 @@ function CommandCenterShell() {
 
   return (
     <div className="dark flex h-full flex-col bg-[#0a0a0f]">
+      {state.showShortcutOverlay && <ShortcutOverlay />}
       {/* Three-column layout — PaneLayout pattern */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel — data layers */}
@@ -390,6 +448,9 @@ function CommandCenterShell() {
         totalFindings={allFindings.length}
         attackPathCount={attackPaths.length}
         toxicComboCount={toxicComboCount}
+        dateRange={state.dateRange}
+        onDateRangeChange={(dr) => dispatch({ type: 'SET_DATE_RANGE', payload: dr })}
+        onShowShortcuts={() => dispatch({ type: 'TOGGLE_SHORTCUT_OVERLAY' })}
       />
     </div>
   )

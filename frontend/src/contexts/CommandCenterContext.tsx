@@ -18,18 +18,26 @@ export type SelectedEntity =
   | { type: 'attack-path'; data: AttackPath }
   | null
 
+export type CenterView = 'charts' | 'treemap'
+
 type Action =
   | { type: 'SELECT_ENTITY'; payload: SelectedEntity }
   | { type: 'TOGGLE_LAYER'; payload: { layerId: string; enabled: boolean } }
   | { type: 'SET_LAYERS'; payload: Record<string, boolean> }
   | { type: 'SELECT_PATH'; payload: string | null }
   | { type: 'TOGGLE_LEFT_PANEL' }
+  | { type: 'SET_CENTER_VIEW'; payload: CenterView }
+  | { type: 'SET_DATE_RANGE'; payload: { start: string | null; end: string | null } }
+  | { type: 'TOGGLE_SHORTCUT_OVERLAY' }
 
 interface State {
   selectedEntity: SelectedEntity
   activeLayers: Record<string, boolean>
   selectedPathId: string | null
   leftPanelOpen: boolean
+  centerView: CenterView
+  dateRange: { start: string | null; end: string | null }
+  showShortcutOverlay: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -55,6 +63,9 @@ const INITIAL_STATE: State = {
   activeLayers: INITIAL_LAYERS,
   selectedPathId: null,
   leftPanelOpen: true,
+  centerView: 'charts',
+  dateRange: { start: null, end: null },
+  showShortcutOverlay: false,
 }
 
 // ---------------------------------------------------------------------------
@@ -79,6 +90,12 @@ function reducer(state: State, action: Action): State {
       return { ...state, selectedPathId: action.payload }
     case 'TOGGLE_LEFT_PANEL':
       return { ...state, leftPanelOpen: !state.leftPanelOpen }
+    case 'SET_CENTER_VIEW':
+      return { ...state, centerView: action.payload }
+    case 'SET_DATE_RANGE':
+      return { ...state, dateRange: action.payload }
+    case 'TOGGLE_SHORTCUT_OVERLAY':
+      return { ...state, showShortcutOverlay: !state.showShortcutOverlay }
     default:
       return state
   }
