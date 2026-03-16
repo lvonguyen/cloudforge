@@ -3,12 +3,16 @@ package secrets
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"time"
 
 	"go.uber.org/zap"
 )
+
+// ErrNotImplemented is returned by cloud provider stubs that are not yet implemented.
+var ErrNotImplemented = errors.New("not implemented")
 
 // Manager provides secrets management capabilities
 type Manager struct {
@@ -97,7 +101,8 @@ type SecretFinding struct {
 	Line        int    `json:"line"`
 	Column      int    `json:"column"`
 	Match       string `json:"match"`   // Redacted match
-	Context     string `json:"context"` // Surrounding context
+	Context     string `json:"context"
+	"errors"` // Surrounding context
 	File        string `json:"file,omitempty"`
 }
 
@@ -386,27 +391,27 @@ func (p *AWSSecretsProvider) Name() string { return "aws" }
 
 func (p *AWSSecretsProvider) GetSecret(ctx context.Context, path string) (*Secret, error) {
 	// TODO: Implement AWS Secrets Manager integration
-	return nil, fmt.Errorf("not implemented")
+	return nil, fmt.Errorf("not implemented: %w", ErrNotImplemented)
 }
 
 func (p *AWSSecretsProvider) SetSecret(ctx context.Context, path string, value []byte) error {
 	// TODO: Implement AWS Secrets Manager integration
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf("not implemented: %w", ErrNotImplemented)
 }
 
 func (p *AWSSecretsProvider) DeleteSecret(ctx context.Context, path string) error {
 	// TODO: Implement AWS Secrets Manager integration
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf("not implemented: %w", ErrNotImplemented)
 }
 
 func (p *AWSSecretsProvider) ListSecrets(ctx context.Context, prefix string) ([]string, error) {
 	// TODO: Implement AWS Secrets Manager integration
-	return nil, fmt.Errorf("not implemented")
+	return nil, fmt.Errorf("not implemented: %w", ErrNotImplemented)
 }
 
 func (p *AWSSecretsProvider) RotateSecret(ctx context.Context, path string) error {
 	// TODO: Implement AWS Secrets Manager integration
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf("not implemented: %w", ErrNotImplemented)
 }
 
 // AzureKeyVaultProvider implements secrets provider for Azure Key Vault
@@ -427,27 +432,27 @@ func (p *AzureKeyVaultProvider) Name() string { return "azure" }
 
 func (p *AzureKeyVaultProvider) GetSecret(ctx context.Context, path string) (*Secret, error) {
 	// TODO: Implement Azure Key Vault integration
-	return nil, fmt.Errorf("not implemented")
+	return nil, fmt.Errorf("not implemented: %w", ErrNotImplemented)
 }
 
 func (p *AzureKeyVaultProvider) SetSecret(ctx context.Context, path string, value []byte) error {
 	// TODO: Implement Azure Key Vault integration
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf("not implemented: %w", ErrNotImplemented)
 }
 
 func (p *AzureKeyVaultProvider) DeleteSecret(ctx context.Context, path string) error {
 	// TODO: Implement Azure Key Vault integration
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf("not implemented: %w", ErrNotImplemented)
 }
 
 func (p *AzureKeyVaultProvider) ListSecrets(ctx context.Context, prefix string) ([]string, error) {
 	// TODO: Implement Azure Key Vault integration
-	return nil, fmt.Errorf("not implemented")
+	return nil, fmt.Errorf("not implemented: %w", ErrNotImplemented)
 }
 
 func (p *AzureKeyVaultProvider) RotateSecret(ctx context.Context, path string) error {
 	// TODO: Implement Azure Key Vault integration
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf("not implemented: %w", ErrNotImplemented)
 }
 
 // GCPSecretManagerProvider implements secrets provider for GCP Secret Manager
@@ -468,25 +473,25 @@ func (p *GCPSecretManagerProvider) Name() string { return "gcp" }
 
 func (p *GCPSecretManagerProvider) GetSecret(ctx context.Context, path string) (*Secret, error) {
 	// TODO: Implement GCP Secret Manager integration
-	return nil, fmt.Errorf("not implemented")
+	return nil, fmt.Errorf("not implemented: %w", ErrNotImplemented)
 }
 
 func (p *GCPSecretManagerProvider) SetSecret(ctx context.Context, path string, value []byte) error {
 	// TODO: Implement GCP Secret Manager integration
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf("not implemented: %w", ErrNotImplemented)
 }
 
 func (p *GCPSecretManagerProvider) DeleteSecret(ctx context.Context, path string) error {
 	// TODO: Implement GCP Secret Manager integration
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf("not implemented: %w", ErrNotImplemented)
 }
 
 func (p *GCPSecretManagerProvider) ListSecrets(ctx context.Context, prefix string) ([]string, error) {
 	// TODO: Implement GCP Secret Manager integration
-	return nil, fmt.Errorf("not implemented")
+	return nil, fmt.Errorf("not implemented: %w", ErrNotImplemented)
 }
 
 func (p *GCPSecretManagerProvider) RotateSecret(ctx context.Context, path string) error {
 	// TODO: Implement GCP Secret Manager integration
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf("not implemented: %w", ErrNotImplemented)
 }
