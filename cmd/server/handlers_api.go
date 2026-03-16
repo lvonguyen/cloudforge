@@ -408,7 +408,6 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 	// OPA policy gate: evaluate AI tool access if engine is configured.
 	// Nil engine = no policies loaded = allow (graceful degradation).
 	if s.opaEngine != nil {
-		claims, _ := api.GetClaimsFromContext(r.Context())
 		opaInput := &opa.EvaluationInput{
 			Agent: opa.AgentContext{
 				ID:          "cloudforge-api",
@@ -418,12 +417,6 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 			Tool: &opa.ToolContext{
 				Name:     "ai_enrich",
 				Category: "analysis",
-			},
-			Request: &opa.RequestContext{
-				UserID:    claims.Subject,
-				SessionID: id,
-				Timestamp: time.Now(),
-				IP:        r.RemoteAddr,
 			},
 		}
 		decision, err := s.opaEngine.EvaluateToolAccess(ctx, &opaInput.Agent, opaInput.Tool)
