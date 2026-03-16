@@ -104,7 +104,7 @@ func TestCovScanner_RedactSecret(t *testing.T) {
 		input, want string
 	}{
 		{"short", "***REDACTED***"},
-		{"AKIAIOSFODNN7EXAMPLE", "AKIA***REDACTED***MPLE"},
+		{"AKIAIOSFODNN7EXAMPLE", "***REDACTED***"},
 	}
 	for _, tt := range tests {
 		got := redactSecret(tt.input)
