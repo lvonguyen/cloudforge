@@ -1,4 +1,4 @@
-.PHONY: build run dev test clean docker-build docker-up docker-down migrate lint fmt help build-cspm run-cspm test-cspm bedrock-auth bedrock-check bedrock-export dev-ai health smoke
+.PHONY: build run dev test clean docker-build docker-up docker-down migrate lint fmt help build-cspm run-cspm test-cspm bedrock-auth bedrock-check bedrock-export dev-ai health smoke bench profile
 
 # Variables
 BINARY_NAME=cloudforge
@@ -33,6 +33,8 @@ help:
 	@echo "  make dev-ai        Run dev servers with Bedrock AI enabled"
 	@echo "  make health        Check backend health endpoint"
 	@echo "  make smoke         Build, smoke-test health endpoints, stop"
+	@echo "  make bench         Run Go benchmarks"
+	@echo "  make profile       Open pprof heap profile (dev mode only)"
 
 # Build binary
 build:
@@ -151,6 +153,12 @@ dev-ai:
 	$(GO) run ./cmd/server & \
 	cd frontend && npm run dev & \
 	wait
+
+bench:  ## Run Go benchmarks
+	$(GO) test ./cmd/server/... -bench=. -benchmem -count=3 -timeout 5m
+
+profile:  ## Open pprof heap profile (dev server must be running on :6060)
+	$(GO) tool pprof http://localhost:6060/debug/pprof/heap
 
 health:  ## Check backend health
 	@curl -sf http://localhost:8080/health | jq . || echo "Backend not reachable"

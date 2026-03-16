@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -387,6 +388,16 @@ func main() {
 				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 			},
 		}
+	}
+
+	// Start pprof server in dev mode (separate port, default mux)
+	if os.Getenv("APP_ENV") == "development" {
+		go func() {
+			logger.Info("pprof server starting", zap.String("addr", ":6060"))
+			if err := http.ListenAndServe(":6060", nil); err != nil {
+				logger.Warn("pprof server error", zap.Error(err))
+			}
+		}()
 	}
 
 	// Start server in goroutine

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -184,6 +185,74 @@ func BenchmarkGetFinding(b *testing.B) {
 		if rr.Code != http.StatusOK {
 			b.Fatalf("unexpected status %d: %s", rr.Code, rr.Body.String())
 		}
+	}
+}
+
+// BenchmarkGetCached_Hit measures enrichment cache read (RLock path) with a pre-populated entry.
+func BenchmarkGetCached_Hit(b *testing.B) {
+	svc := &EnrichmentService{
+		Cache:  make(map[string]*FindingEnrichment),
+		Logger: zap.NewNop(),
+	}
+	svc.Cache["bench-finding"] = &FindingEnrichment{
+		FindingID: "bench-finding",
+		CreatedAt: time.Now(),
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cached, ok := svc.GetCached("bench-finding")
+		if !ok || cached == nil {
+			b.Fatal("expected cache hit")
+		}
+	}
+}
+
+// BenchmarkGetCached_Miss measures enrichment cache read (RLock path) on empty cache.
+func BenchmarkGetCached_Miss(b *testing.B) {
+	svc := &EnrichmentService{
+		Cache:  make(map[string]*FindingEnrichment),
+		Logger: zap.NewNop(),
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, ok := svc.GetCached("nonexistent")
+		if ok {
+			b.Fatal("expected cache miss")
+		}
+	}
+}
+
+// BenchmarkEvictExpired_5000 fills the enrichment cache to 5000+500 entries and
+// measures eviction performance (sort.Slice on 5500 items + delete loop).
+func BenchmarkEvictExpired_5000(b *testing.B) {
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		svc := &EnrichmentService{
+			Cache:  make(map[string]*FindingEnrichment, 5500),
+			Logger: zap.NewNop(),
+		}
+		// Fill cache: 5000 current + 500 expired
+		now := time.Now()
+		for j := 0; j < 5000; j++ {
+			svc.Cache[fmt.Sprintf("current-%d", j)] = &FindingEnrichment{
+				FindingID: fmt.Sprintf("current-%d", j),
+				CreatedAt: now,
+			}
+		}
+		for j := 0; j < 500; j++ {
+			svc.Cache[fmt.Sprintf("expired-%d", j)] = &FindingEnrichment{
+				FindingID: fmt.Sprintf("expired-%d", j),
+				CreatedAt: now.Add(-2 * enrichmentCacheTTL),
+			}
+		}
+		b.StartTimer()
+		svc.evictExpired()
 	}
 }
 
