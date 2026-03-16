@@ -493,6 +493,7 @@ export default function Findings() {
             <input
               type="text"
               placeholder="Search findings..."
+              aria-label="Search findings"
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="h-8 w-48 px-2 text-xs border border-border bg-background rounded-none focus:outline-none focus:ring-1 focus:ring-ring"

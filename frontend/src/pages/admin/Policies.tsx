@@ -33,11 +33,14 @@ export default function Policies() {
   const navigate = useNavigate()
   const [filter, setFilter] = useState<string>('all')
 
-  const { data: allPolicies = [] } = usePolicies()
+  const { data: allPolicies = [], isLoading, isError } = usePolicies()
   const { openTimeline } = useTracePanel()
   const newPolicyCooldown = useActionCooldown({ key: 'new-policy', cooldownMs: 3_000 })
   const { toasts, toast, dismiss } = useToast()
   const filtered = filter === 'all' ? allPolicies : allPolicies.filter(p => p.status === filter)
+
+  if (isLoading) return <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">Loading policies...</div>
+  if (isError) return <div className="flex items-center justify-center h-64 text-sm text-destructive">Failed to load policies. Check backend connection.</div>
 
   return (
     <div className="space-y-6">

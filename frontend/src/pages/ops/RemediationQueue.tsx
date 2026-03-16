@@ -170,7 +170,7 @@ function TierSection({ tier, items }: { tier: 1 | 2 | 3; items: QueueItem[] }) {
 }
 
 export default function RemediationQueue() {
-  const { data: records = [] } = useRemediations()
+  const { data: records = [], isLoading, isError } = useRemediations()
   const queue = records.map(toQueueItem)
 
   const tier1 = queue.filter(q => q.tier === 1)
@@ -179,6 +179,9 @@ export default function RemediationQueue() {
 
   const pending = queue.filter(q => q.status === 'pending').length
   const inProgress = queue.filter(q => q.status === 'in_progress').length
+
+  if (isLoading) return <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">Loading remediation queue...</div>
+  if (isError) return <div className="flex items-center justify-center h-64 text-sm text-destructive">Failed to load remediations. Check backend connection.</div>
 
   return (
     <div className="space-y-6 max-w-3xl">

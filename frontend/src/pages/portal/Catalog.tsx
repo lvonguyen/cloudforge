@@ -104,6 +104,7 @@ export default function Catalog() {
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search modules..."
+          aria-label="Search modules"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
           className="pl-9"

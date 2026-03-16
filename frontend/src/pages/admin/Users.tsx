@@ -143,7 +143,7 @@ export default function Users() {
             </TableHeader>
             <TableBody>
               {filteredUsers.map(user => (
-                <TableRow key={user.id} className="hover:bg-muted/30 cursor-pointer">
+                <TableRow key={user.id} className="hover:bg-muted/30">
                   <TableCell className="pl-4">
                     <div className="flex items-center gap-2">
                       <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">

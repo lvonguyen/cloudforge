@@ -305,7 +305,7 @@ function PathGraphView({ path, onBack }: { path: AttackPath; onBack: () => void 
 
 export default function AttackPaths() {
   const [page, setPage] = useState(1)
-  const { data: response, isLoading } = useAttackPaths(page, 20)
+  const { data: response, isLoading, isError } = useAttackPaths(page, 20)
   const { data: stats } = useAttackPathStats()
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
@@ -322,6 +322,9 @@ export default function AttackPaths() {
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground p-6">Computing attack paths...</div>
+  }
+  if (isError) {
+    return <div className="text-sm text-destructive p-6">Failed to load attack paths. Check backend connection.</div>
   }
 
   if (selectedPath) {

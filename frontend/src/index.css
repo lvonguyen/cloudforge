@@ -49,6 +49,12 @@
   }
 
   /* Dark mode overrides */
+  /* Focus rings for keyboard accessibility */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
   .dark {
     --color-background: #1A1D1A;
     --color-foreground: #E7E7E6;

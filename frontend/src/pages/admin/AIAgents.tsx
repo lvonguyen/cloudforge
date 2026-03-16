@@ -63,7 +63,9 @@ export default function AIAgents() {
           </div>
         )}
       </div>
-      {view === 'grid' ? (
+      {agents.length === 0 ? (
+        <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">No agents registered.</div>
+      ) : view === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {agents.map(agent => (
             <AgentCard

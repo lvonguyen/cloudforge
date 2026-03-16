@@ -32,13 +32,20 @@ const MOCK_REQUESTS: RequestRow[] = [
   { id: 'EXC-011', resource: 'GKE node pool us-central1-a', type: 'OVERSIZED_INSTANCE', provider: 'gcp', status: 'EXPIRED', created: '2025-11-01', updated: '2026-02-01', approver: brandEmail('operator1') },
 ]
 
+function inferProvider(resource: string): string {
+  const r = resource.toLowerCase()
+  if (r.includes('aks') || r.includes('azure') || r.includes('eastus') || r.includes('westeurope')) return 'azure'
+  if (r.includes('gke') || r.includes('gcp') || r.includes('us-central')) return 'gcp'
+  return 'aws'
+}
+
 function mapExceptionToRow(exc: ExceptionRequest): RequestRow {
   const approver = exc.approver_chain?.find(a => a.decision)?.email
   return {
     id: exc.id,
     resource: exc.resource_requested,
     type: exc.request_type,
-    provider: 'aws',
+    provider: inferProvider(exc.resource_requested),
     status: exc.status as 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED',
     created: new Date(exc.created_at).toISOString().split('T')[0],
     updated: new Date(exc.updated_at).toISOString().split('T')[0],

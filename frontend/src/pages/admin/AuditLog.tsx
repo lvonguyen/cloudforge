@@ -35,11 +35,14 @@ export default function AuditLog() {
   const [actorFilter, setActorFilter] = useState('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const { data: EVENTS = [] } = useAuditLog()
+  const { data: EVENTS = [], isLoading, isError } = useAuditLog()
   const actors = ['all', ...Array.from(new Set(EVENTS.map(e => e.actor)))]
   const filtered = EVENTS
     .filter(e => resultFilter === 'all' || e.result === resultFilter)
     .filter(e => actorFilter === 'all' || e.actor === actorFilter)
+
+  if (isLoading) return <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">Loading audit events...</div>
+  if (isError) return <div className="flex items-center justify-center h-64 text-sm text-destructive">Failed to load audit log. Check backend connection.</div>
 
   return (
     <div className="space-y-6">
