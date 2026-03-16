@@ -340,12 +340,7 @@ func splitLines(content string) []string {
 	return lines
 }
 
-func redactSecret(secret string) string {
-	if len(secret) <= 8 {
-		return "***REDACTED***"
-	}
-	return secret[:4] + "***REDACTED***" + secret[len(secret)-4:]
-}
+func redactSecret(secret string) string { return "***REDACTED***" }
 
 func getContext(lines []string, lineNum int) string {
 	start := lineNum - 1

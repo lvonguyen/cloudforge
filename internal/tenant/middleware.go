@@ -33,9 +33,11 @@ func Middleware(store Store, logger *zap.Logger) func(http.Handler) http.Handler
 				tenantID = claims.TenantID
 			}
 
-			// 2. X-Tenant-ID header fallback
+			// 2. X-Tenant-ID header fallback (only when JWT claims are present)
 			if tenantID == "" {
-				tenantID = r.Header.Get("X-Tenant-ID")
+				if _, hasClaims := api.GetClaimsFromContext(r.Context()); hasClaims {
+					tenantID = r.Header.Get("X-Tenant-ID")
+				}
 			}
 
 			// 3. Subdomain from Host

@@ -7,7 +7,7 @@ import (
 
 // CORSMiddleware returns middleware that handles Cross-Origin Resource Sharing.
 // allowedOrigins is a slice of origins permitted to make cross-origin requests.
-func CORSMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
+func CORSMiddleware(allowedOrigins []string, devMode bool) func(http.Handler) http.Handler {
 	allowed := make(map[string]bool, len(allowedOrigins))
 	for _, o := range allowedOrigins {
 		allowed[strings.TrimSpace(o)] = true
@@ -25,7 +25,11 @@ func CORSMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 			if r.Method == http.MethodOptions {
 				if origin != "" && allowed[origin] {
 					w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-					w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-CloudForge-Role")
+					allowHeaders := "Authorization, Content-Type"
+					if devMode {
+						allowHeaders += ", X-CloudForge-Role"
+					}
+					w.Header().Set("Access-Control-Allow-Headers", allowHeaders)
 					w.Header().Set("Access-Control-Max-Age", "86400")
 				}
 				w.WriteHeader(http.StatusNoContent)

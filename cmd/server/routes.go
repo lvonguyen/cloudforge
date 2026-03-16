@@ -12,7 +12,7 @@ func (s *Server) setupRoutes() {
 	// CORS middleware — applied to all routes (including health for browser fetch).
 	if s.config.CORSOrigins != "" {
 		origins := strings.Split(s.config.CORSOrigins, ",")
-		s.router.Use(api.CORSMiddleware(origins))
+		s.router.Use(api.CORSMiddleware(origins, s.roles.DevMode))
 	}
 
 	// Tenant resolution middleware — resolves tenant from JWT, header, or subdomain.

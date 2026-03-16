@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	neturl "net/url"
 	"os"
 	"time"
 
@@ -600,13 +601,15 @@ func (p *EntraIDProvider) ensureToken(ctx context.Context) error {
 		return nil
 	}
 
-	url := p.tokenURL()
-	body := fmt.Sprintf(
-		"client_id=%s&client_secret=%s&scope=https://graph.microsoft.com/.default&grant_type=client_credentials",
-		p.clientID, p.clientSecret,
-	)
+	tokenURL := p.tokenURL()
+	body := neturl.Values{
+		"client_id":     {p.clientID},
+		"client_secret": {p.clientSecret},
+		"scope":         {"https://graph.microsoft.com/.default"},
+		"grant_type":    {"client_credentials"},
+	}.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBufferString(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", tokenURL, bytes.NewBufferString(body))
 	if err != nil {
 		return fmt.Errorf("creating token request: %w", err)
 	}
