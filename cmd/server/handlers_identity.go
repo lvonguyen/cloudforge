@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"cloudforge/internal/identity"
@@ -52,7 +53,11 @@ func (s *Server) getIdentityUserRisk(w http.ResponseWriter, r *http.Request) {
 
 	risk, err := p.GetUserRiskScore(r.Context(), userID)
 	if err != nil {
-		writeErrorResponse(w, "user not found", http.StatusNotFound)
+		if errors.Is(err, identity.ErrNotFound) {
+			writeErrorResponse(w, "user not found", http.StatusNotFound)
+			return
+		}
+		s.writeInternalError(w, err, "get user risk score")
 		return
 	}
 

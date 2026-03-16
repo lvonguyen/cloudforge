@@ -133,9 +133,7 @@ func (e *Engine) LoadPolicies(ctx context.Context, paths []string) error {
 
 	// Key by the first path so each policy group is independently addressable.
 	e.queries[paths[0]] = &pq
-	if _, exists := e.queries["default"]; !exists {
-		e.queries["default"] = &pq
-	}
+	e.queries["default"] = &pq
 	return nil
 }
 

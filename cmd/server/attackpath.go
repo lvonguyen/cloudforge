@@ -128,6 +128,9 @@ func computeAttackPaths(findings []Finding) ([]AttackPath, *AttackPathStats) {
 
 		// Build lateral movement paths from CRITICAL/HIGH findings
 		for i, f1 := range accountFindings {
+			if findingsInPaths[f1.ID] {
+				continue
+			}
 			if severityRank[f1.Severity] < 3 {
 				continue
 			}
@@ -246,8 +249,11 @@ func buildChain(entry Finding, intermediates []Finding, target Finding) []Findin
 		}
 	}
 
-	// Cross-region but same account: direct link with lower confidence
-	return []Finding{entry, target}
+	// Cross-region but same account: direct link only if connectable
+	if canConnect(entry, target) {
+		return []Finding{entry, target}
+	}
+	return nil
 }
 
 // buildAttackPath constructs an AttackPath from a chain of findings.
