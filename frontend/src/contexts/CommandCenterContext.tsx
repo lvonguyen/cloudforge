@@ -48,10 +48,6 @@ const INITIAL_LAYERS: Record<string, boolean> = {
   'environment:staging': false,
   'environment:development': false,
   'environment:sandbox': false,
-  'remediation:pending': true,
-  'remediation:in_progress': true,
-  'remediation:completed': false,
-  'remediation:failed': false,
 }
 
 const INITIAL_STATE: State = {
@@ -124,6 +120,7 @@ export function useCommandCenter() {
 
 export function parseLayerKey(key: string): { group: string; value: string } {
   const idx = key.indexOf(':')
+  if (idx === -1) return { group: key, value: '' }
   return { group: key.slice(0, idx), value: key.slice(idx + 1) }
 }
 

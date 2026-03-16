@@ -126,7 +126,7 @@ function FindingDetail({
             </span>
           </div>
           <p className="text-xs text-gray-400 leading-relaxed">{finding.ai_risk_rationale}</p>
-          {finding.ai_contextual_factors.length > 0 && (
+          {finding.ai_contextual_factors?.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {finding.ai_contextual_factors.map(f => (
                 <span key={f} className="text-[9px] font-mono bg-[#161b22] text-gray-400 px-1.5 py-0.5">
@@ -215,7 +215,7 @@ function FindingDetail({
         <div className="space-y-1.5">
           <TimelineEntry date={finding.first_found_at} label="Detected" filled />
           {finding.ai_risk_rationale && (
-            <TimelineEntry date={finding.first_found_at} label="AI Enriched" filled />
+            <TimelineEntry label="AI Enriched" filled />
           )}
           {remediation && (
             <TimelineEntry

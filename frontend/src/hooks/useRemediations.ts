@@ -9,7 +9,7 @@ export function useRemediations(filters?: { status?: string; tier?: number }) {
   if (filters?.tier) params.set('tier', String(filters.tier))
   const qs = params.toString()
   return useQuery({
-    queryKey: ['remediations', filters],
+    queryKey: ['remediations', 'list', filters],
     queryFn: async () => {
       try {
         return await apiClient.get<RemediationRecord[]>(`/remediations${qs ? `?${qs}` : ''}`)
@@ -25,7 +25,7 @@ export function useRemediations(filters?: { status?: string; tier?: number }) {
 
 export function useRemediation(id: string) {
   return useQuery({
-    queryKey: ['remediations', id],
+    queryKey: ['remediations', 'detail', id],
     queryFn: async () => {
       try {
         return await apiClient.get<RemediationRecord>(`/remediations/${id}`)

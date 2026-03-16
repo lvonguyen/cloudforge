@@ -215,7 +215,7 @@ function CenterPane({
             </span>
             <span className="text-[10px] text-gray-600 font-mono">
               {attackPaths.length} paths
-              {attackPaths.length > 0 && stats?.critical_paths ? ` · ${stats.critical_paths} critical` : ''}
+              {attackPaths.length > 0 && stats?.critical_paths != null ? ` · ${stats.critical_paths} critical` : ''}
             </span>
           </>
         )}
