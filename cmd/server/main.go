@@ -359,6 +359,26 @@ func main() {
 		zap.Int("isolated", attackPathStats.IsolatedFindings),
 	)
 
+	// Register domain health checks so the /health endpoint reports real status
+	healthChecker.RegisterCheck(observability.HealthCheck{
+		Name:     "workflow",
+		Critical: false,
+		Timeout:  2 * time.Second,
+		Check: func(ctx context.Context) error {
+			_, err := srv.workflowEngine.ListWorkflows(ctx)
+			return err
+		},
+	})
+	healthChecker.RegisterCheck(observability.HealthCheck{
+		Name:     "finops",
+		Critical: false,
+		Timeout:  2 * time.Second,
+		Check: func(ctx context.Context) error {
+			_, err := srv.finopsSvc.aggregator.FetchCosts(ctx, time.Now().Add(-time.Minute), time.Now())
+			return err
+		},
+	})
+
 	// Start periodic health checks
 	healthCtx, healthCancel := context.WithCancel(context.Background())
 	defer healthCancel()

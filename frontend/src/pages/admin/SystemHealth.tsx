@@ -56,6 +56,8 @@ function componentLabel(key: string): string {
     postgres: 'PostgreSQL',
     opa: 'OPA Policy Engine',
     api: 'API Gateway',
+    workflow: 'Remediation Dispatcher',
+    finops: 'Cost Analyzer',
   }
   return labels[key] ?? key.charAt(0).toUpperCase() + key.slice(1)
 }
@@ -66,6 +68,8 @@ function componentDescription(key: string): string {
     postgres: 'Primary data store',
     opa: 'Policy evaluation sidecar',
     api: 'REST API + auth middleware',
+    workflow: 'Async remediation queue',
+    finops: 'FinOps aggregation pipeline',
   }
   return descs[key] ?? 'Backend component'
 }
