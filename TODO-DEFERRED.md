@@ -131,3 +131,62 @@ Frontend: `Finding` type already has `ai_risk_score`, `ai_risk_rationale`, `ai_c
 **Fix:** Gate mock fallback on `import.meta.env.VITE_ENABLE_MOCK_FALLBACK`. Only enable for demo/dev environments.
 
 **Effort:** ~30 minutes (env var + conditional in each hook)
+
+---
+
+## D10: Split Large Frontend Components
+
+**Files:**
+- `PolicyDetail.tsx` (927 lines) — split into PolicyHeader, PolicyRules,
+  PolicyExceptions, PolicyHistory subcomponents
+- `Request.tsx` (725 lines) — split into RequestForm, RequestTimeline,
+  RequestApproval subcomponents
+
+**Effort:** ~1 day frontend
+
+---
+
+## D11: Vite Manual Chunks
+
+**File:** `vite.config.ts`
+
+Add `manualChunks` for large dependencies: `recharts`, `@xyflow/react`,
+`@tanstack/*`. Currently bundled into a single vendor chunk.
+
+**Effort:** ~30 minutes
+
+---
+
+## D12: gzipResponseWriter Missing Interfaces
+
+**File:** `cmd/server/middleware.go`
+
+`gzipResponseWriter` wraps `http.ResponseWriter` but does not implement
+`http.Flusher` or `http.Hijacker`. SSE streams and WebSocket upgrades
+will fail when gzip middleware is active.
+
+**Effort:** ~1 hour Go
+
+---
+
+## D13: pathToFlow JSX in useMemo
+
+**File:** `frontend/src/components/ops/CommandCenter.tsx`
+
+`pathToFlow` creates JSX inside a `useMemo` callback. Extract to a
+custom React Flow node component for cleaner separation and better
+React DevTools readability.
+
+**Effort:** ~1 hour frontend
+
+---
+
+## D14: Attack Path O(n) Linear Scan
+
+**File:** `cmd/server/handlers_attackpath.go:100`
+
+`getAttackPath` does O(n) linear scan over all attack paths to find by
+ID. Add an `PathsByID map[string]*AttackPath` to `AttackPathService`
+(same pattern as `DataStore.FindingsByID`) for O(1) lookup.
+
+**Effort:** ~30 minutes Go
