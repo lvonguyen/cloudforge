@@ -1,0 +1,154 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; node \"$REPO_ROOT/.claude/scripts/hooks/block-coauthored-by.js\""
+          }
+        ],
+        "description": "BLOCK commits with Co-Authored-By trailers"
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; node \"$REPO_ROOT/.claude/scripts/hooks/block-secrets.js\""
+          }
+        ],
+        "description": "Write"
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; node \"$REPO_ROOT/.claude/scripts/hooks/suggest-compact.js\""
+          }
+        ],
+        "description": "Write"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; node \"$REPO_ROOT/.claude/scripts/hooks/audit-contributors.js\""
+          }
+        ],
+        "description": "Audit git contributor list on commits"
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; node \"$REPO_ROOT/.claude/scripts/hooks/verify-committer.js\""
+          }
+        ],
+        "description": "Verify git committer identity"
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; node \"$REPO_ROOT/.claude/scripts/hooks/go-format.js\""
+          }
+        ],
+        "description": "Auto-format Go files with gofmt + goimports"
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; node \"$REPO_ROOT/.claude/scripts/hooks/golangci-lint.js\""
+          }
+        ],
+        "description": "Run golangci-lint on edited Go files"
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; node \"$REPO_ROOT/.claude/scripts/hooks/ts-format.js\""
+          }
+        ],
+        "description": "Auto-format TypeScript/TSX/JS/JSX with ESLint --fix"
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; node \"$REPO_ROOT/.claude/scripts/hooks/ci-gate.js\""
+          }
+        ],
+        "description": "BLOCK progression until GitHub Actions CI passes after git push"
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; node \"$REPO_ROOT/.claude/scripts/hooks/skill-telemetry.js\""
+          }
+        ],
+        "description": "Record skill invocation outcomes to telemetry JSONL"
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; node \"$REPO_ROOT/.claude/scripts/hooks/session-start.js\""
+          }
+        ],
+        "description": "Load previous session context"
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; node \"$REPO_ROOT/.claude/scripts/hooks/codegraph-refresh.js\""
+          }
+        ],
+        "description": "Generate code dependency graph on stale"
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; node \"$REPO_ROOT/.claude/scripts/hooks/session-end.js\""
+          }
+        ],
+        "description": "Save session state"
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; node \"$REPO_ROOT/.claude/scripts/hooks/pre-compact.js\""
+          }
+        ],
+        "description": "Save state before context compaction"
+      }
+    ]
+  }
+}

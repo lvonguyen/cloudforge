@@ -97,3 +97,5 @@ export-outputs/
 # Playwright MCP screenshots
 *.png
 .playwright-mcp/
+
+.claude/codegraph/
