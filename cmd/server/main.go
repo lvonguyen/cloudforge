@@ -21,6 +21,7 @@ import (
 	"cloudforge/internal/ingestion"
 	"cloudforge/internal/observability"
 	"cloudforge/internal/secrets"
+	"cloudforge/internal/tenant"
 	"cloudforge/internal/waf"
 	"cloudforge/internal/workflow"
 
@@ -64,6 +65,9 @@ type Server struct {
 	data          *DataStore         // findings, agents, traces, remediations, etc.
 	attackPathSvc *AttackPathService // attack path queries + mutex
 	enrichmentSvc *EnrichmentService // AI enrichment + cache
+
+	// Multi-tenancy (Phase 3)
+	tenantStore tenant.Store
 
 	// Already-isolated services
 	finopsSvc         *finopsService
@@ -123,7 +127,7 @@ func main() {
 		JWKSURLEnv:   "CLOUDFORGE_JWKS_URL",
 		Issuer:       cfg.JWTIssuer,
 		Audience:     cfg.JWTAudience,
-		SkipPaths:    []string{"/health", "/healthz", "/ready"},
+		SkipPaths:    []string{"/health", "/healthz", "/ready", "/api/v1/config", "/config.json"},
 	}, logger)
 	if err != nil {
 		logger.Fatal("Failed to initialize auth middleware", zap.Error(err))
@@ -256,6 +260,9 @@ func main() {
 		logger.Fatal("Failed to create container scanner", zap.Error(err))
 	}
 
+	// Initialize tenant store with seed data
+	tenantStore := seedTenants(logger)
+
 	// Create server
 	srv := &Server{
 		config:         cfg,
@@ -281,6 +288,7 @@ func main() {
 		secretsProvider:   secrets.NewMemoryProvider("demo"),
 		secretsManager:    secrets.NewManager(logger),
 		containerScanner:  containerScnr,
+		tenantStore:       tenantStore,
 	}
 
 	logger.Info("Mock data loaded",
@@ -389,4 +397,42 @@ func main() {
 	}
 
 	logger.Info("Server stopped")
+}
+
+// seedTenants creates a MemoryStore with default tenants for local dev.
+func seedTenants(logger *zap.Logger) tenant.Store {
+	store := tenant.NewMemoryStore()
+
+	ctx := context.Background()
+
+	_ = store.Upsert(ctx, &tenant.Config{
+		ID:   "contoso",
+		Name: "Contoso Inc.",
+		Branding: tenant.Branding{
+			CompanyName:  "Contoso Inc.",
+			ProductName:  "CloudForge",
+			LogoPath:     "/logo.svg",
+			EmailDomain:  "contoso.com",
+			PrimaryColor: "#f59e0b",
+			AccentColor:  "#f97316",
+		},
+		EnabledModules: []string{"cspm", "grc", "finops", "identity", "attack-paths"},
+	})
+
+	_ = store.Upsert(ctx, &tenant.Config{
+		ID:   "haea",
+		Name: "HAEA Security",
+		Branding: tenant.Branding{
+			CompanyName:  "HAEA Security",
+			ProductName:  "SecureCloud",
+			LogoPath:     "/haea-logo.svg",
+			EmailDomain:  "haea.io",
+			PrimaryColor: "#22c55e",
+			AccentColor:  "#16a34a",
+		},
+		EnabledModules: []string{"cspm", "grc", "identity"},
+	})
+
+	logger.Info("Tenant store seeded", zap.Int("tenants", 2))
+	return store
 }

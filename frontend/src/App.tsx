@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '@/lib/api'
 import { AuthProvider } from '@/lib/auth'
+import { ConfigProvider } from '@/lib/config-context'
 import { TracePanelProvider } from '@/lib/trace-panel-context'
 import { AppShell } from '@/components/layout/AppShell'
 import { ExecutionTracePanel } from '@/components/layout/ExecutionTracePanel'
@@ -51,6 +52,7 @@ function PageFallback() {
 
 export default function App() {
   return (
+    <ConfigProvider>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TracePanelProvider>
@@ -110,5 +112,6 @@ export default function App() {
         </TracePanelProvider>
       </AuthProvider>
     </QueryClientProvider>
+    </ConfigProvider>
   )
 }

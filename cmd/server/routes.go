@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"cloudforge/internal/api"
+	"cloudforge/internal/tenant"
 )
 
 func (s *Server) setupRoutes() {
@@ -14,10 +15,19 @@ func (s *Server) setupRoutes() {
 		s.router.Use(api.CORSMiddleware(origins))
 	}
 
+	// Tenant resolution middleware — resolves tenant from JWT, header, or subdomain.
+	if s.tenantStore != nil {
+		s.router.Use(tenant.Middleware(s.tenantStore, s.logger))
+	}
+
 	// Health check endpoints (unauthenticated - skipped by middleware)
 	s.router.HandleFunc("/health", s.healthChecker.HealthHandler()).Methods("GET")
 	s.router.HandleFunc("/healthz", s.healthChecker.LivenessHandler()).Methods("GET")
 	s.router.HandleFunc("/ready", s.healthChecker.ReadinessHandler()).Methods("GET")
+
+	// Tenant config endpoint (unauthenticated — must load before auth)
+	s.router.HandleFunc("/api/v1/config", s.handleConfig).Methods("GET")
+	s.router.HandleFunc("/config.json", s.handleConfig).Methods("GET")
 
 	// API v1 routes with authentication and rate limiting middleware.
 	// Auth runs first so that:

@@ -64,6 +64,7 @@ type Claims struct {
 	Scope         string         `json:"scope,omitempty"`
 	Groups        []string       `json:"groups,omitempty"`         // CF Access groups or IdP groups
 	ResourceScope *ResourceScope `json:"resource_scope,omitempty"` // ABAC scope restrictions (nil = unrestricted)
+	TenantID      string         `json:"tenant_id,omitempty"`      // Multi-tenant identifier (Phase 3)
 }
 
 // contextKey is a custom type for context keys to avoid collisions.
