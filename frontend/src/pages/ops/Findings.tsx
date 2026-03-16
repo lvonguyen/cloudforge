@@ -567,9 +567,9 @@ export default function Findings() {
         )}
         {!isLoading && sorted.length > 0 && (
           <>
-            <div ref={parentRef} className="overflow-auto" style={{ height: 'calc(100vh - 280px)' }}>
+            <div ref={parentRef} className="overflow-auto [&_[data-slot=table-container]]:overflow-visible" style={{ height: 'calc(100vh - 280px)' }}>
               <Table style={{ tableLayout: 'fixed', width: activeColumns.reduce((sum, c) => sum + columnWidths[c.key], 0) }}>
-                <TableHeader className="sticky top-0 z-10 bg-[#0d0d14]">
+                <TableHeader className="sticky top-0 z-10 bg-background">
                   <TableRow className="bg-muted/30">
                     {activeColumns.map(col => (
                       <TableHead
