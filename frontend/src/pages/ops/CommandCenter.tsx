@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useCallback } from 'react'
-import { Link } from 'react-router-dom'
 import {
   ReactFlow,
   Background,
@@ -31,9 +30,8 @@ import {
   Layers,
   Shield,
   Sparkles,
-  AlertTriangle,
 } from 'lucide-react'
-import type { AttackPath, AttackPathNode as APNode } from '@/types/attack-path'
+import type { AttackPath } from '@/types/attack-path'
 import type { Finding } from '@/types/compliance'
 
 // ---------------------------------------------------------------------------
