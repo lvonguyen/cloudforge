@@ -49,6 +49,15 @@ func (s *Server) ingestFinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate enum fields
+	switch req.Severity {
+	case "CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO":
+		// valid
+	default:
+		writeErrorResponse(w, "severity must be one of: CRITICAL, HIGH, MEDIUM, LOW, INFO", http.StatusBadRequest)
+		return
+	}
+
 	key := ingestion.GenerateDedupKey(req.Source, req.SourceFindingID, req.ResourceID, req.AccountID)
 	findingID := fmt.Sprintf("ING-%s", key[:12])
 
