@@ -23,6 +23,7 @@ interface TreeNode {
   fill?: string
   findingId?: string
   severity?: string
+  [key: string]: unknown
 }
 
 interface Props {
@@ -130,10 +131,6 @@ export function FindingsTreemap({ findings, onSelect }: Props) {
             <Tooltip
               contentStyle={TOOLTIP_STYLE}
               labelStyle={{ color: '#9ca3af' }}
-              formatter={(value: number, _name: string, props: { payload?: Record<string, unknown> }) => {
-                const sev = props.payload?.severity as string | undefined
-                return [`Score: ${value}`, sev ?? 'Finding']
-              }}
             />
           </Treemap>
         </ResponsiveContainer>
