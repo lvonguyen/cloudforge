@@ -86,9 +86,12 @@ function CustomCell(props: Record<string, unknown>) {
         <text
           x={x + 4}
           y={y + 12}
-          fill="#e5e7eb"
+          fill="#ffffff"
           fontSize={9}
           fontFamily="monospace"
+          stroke="#000000"
+          strokeWidth={0.3}
+          paintOrder="stroke"
         >
           {String(name ?? '').length > Math.floor(width / 5)
             ? String(name ?? '').slice(0, Math.floor(width / 5)) + '…'
