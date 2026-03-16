@@ -229,6 +229,7 @@ func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
 
 	resultFilter := strings.ToLower(r.URL.Query().Get("result"))
 	actorFilter := r.URL.Query().Get("actor")
+	page, perPage := parsePagination(r, 50, 200)
 
 	// Start with mock data (historical events loaded from JSON)
 	results := make([]AuditEvent, 0, len(s.data.AuditEvents))
@@ -246,7 +247,7 @@ func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
 	if s.auditLogger != nil {
 		realEvents, err := s.auditLogger.List(r.Context(), audit.ListOpts{
 			Actor: actorFilter,
-			Limit: 100,
+			Limit: perPage,
 		})
 		if err == nil {
 			for _, re := range realEvents {
@@ -267,7 +268,6 @@ func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	page, perPage := parsePagination(r, 50, 200)
 	resp := paginateResult(results, page, perPage)
 
 	span.SetAttributes(attribute.Int("audit.total", resp.Total))

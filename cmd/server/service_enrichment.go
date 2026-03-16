@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -25,7 +26,7 @@ const (
 type EnrichmentService struct {
 	AI     ai.Provider
 	Cache  map[string]*FindingEnrichment
-	Mu     sync.Mutex
+	Mu     sync.RWMutex
 	Logger *zap.Logger
 	group  singleflight.Group
 }
@@ -37,8 +38,8 @@ func (svc *EnrichmentService) Enabled() bool {
 
 // GetCached returns a cached enrichment if available.
 func (svc *EnrichmentService) GetCached(id string) (*FindingEnrichment, bool) {
-	svc.Mu.Lock()
-	defer svc.Mu.Unlock()
+	svc.Mu.RLock()
+	defer svc.Mu.RUnlock()
 	cached, ok := svc.Cache[id]
 	return cached, ok
 }
@@ -143,14 +144,7 @@ func (svc *EnrichmentService) evictExpired() {
 		for k, v := range svc.Cache {
 			items = append(items, kv{k, v.CreatedAt})
 		}
-		// Sort oldest first (simple selection — only runs when over cap)
-		for i := 0; i < len(items); i++ {
-			for j := i + 1; j < len(items); j++ {
-				if items[j].ts.Before(items[i].ts) {
-					items[i], items[j] = items[j], items[i]
-				}
-			}
-		}
+		sort.Slice(items, func(i, j int) bool { return items[i].ts.Before(items[j].ts) })
 		excess := len(svc.Cache) - enrichmentCacheMaxSize
 		for i := 0; i < excess; i++ {
 			delete(svc.Cache, items[i].key)
