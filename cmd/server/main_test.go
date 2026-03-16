@@ -194,6 +194,17 @@ func requesterJWT(t *testing.T) string {
 	})
 }
 
+// viewerJWT returns a JWT with viewer role (cloudforge-viewer group).
+func viewerJWT(t *testing.T) string {
+	t.Helper()
+	return makeJWT(t, api.Claims{
+		Subject: "test-viewer",
+		Email:   "viewer@contoso.dev",
+		Groups:  []string{"cloudforge-viewer"},
+		Scope:   "viewer",
+	})
+}
+
 // doRequest executes an HTTP request against the test router and returns the recorder.
 func doRequest(t *testing.T, router http.Handler, method, path, body, jwt string) *httptest.ResponseRecorder {
 	t.Helper()

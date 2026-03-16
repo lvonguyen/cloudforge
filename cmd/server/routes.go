@@ -74,28 +74,28 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.validateException)),
 	).Methods("POST")
 
-	// Findings — read endpoints
+	// Findings — read endpoints (viewer can see findings read-only)
 	apiRouter.Handle("/findings",
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listFindings)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listFindings)),
 	).Methods("GET")
 	apiRouter.Handle("/findings/{id}/enrich",
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.enrichFinding)),
 	).Methods("POST")
 	apiRouter.Handle("/findings/{id}",
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getFinding)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getFinding)),
 	).Methods("GET")
 
-	// Compliance
+	// Compliance (viewer can see frameworks read-only)
 	apiRouter.Handle("/compliance/frameworks",
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listFrameworks)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listFrameworks)),
 	).Methods("GET")
 
-	// Agents
+	// Agents (viewer can see agents read-only)
 	apiRouter.Handle("/agents",
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAgents)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAgents)),
 	).Methods("GET")
 	apiRouter.Handle("/agents/{id}",
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAgent)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAgent)),
 	).Methods("GET")
 
 	// Costs
@@ -114,9 +114,9 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getRemediation)),
 	).Methods("GET")
 
-	// Agent traces
+	// Agent traces (viewer can see traces read-only)
 	apiRouter.Handle("/agents/{id}/traces",
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAgentTraces)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAgentTraces)),
 	).Methods("GET")
 
 	// Audit log — admin only

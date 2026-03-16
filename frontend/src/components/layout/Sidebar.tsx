@@ -67,7 +67,16 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
       ],
     },
   ],
-  viewer: [],
+  viewer: [
+    {
+      section: 'Read-Only',
+      items: [
+        { to: '/ops/findings', label: 'Findings', icon: AlertTriangle },
+        { to: '/ops/compliance', label: 'Compliance', icon: Shield },
+        { to: '/ops/agents', label: 'AI Agents', icon: Bot },
+      ],
+    },
+  ],
 }
 
 function NavContent({ collapsed }: { collapsed: boolean }) {

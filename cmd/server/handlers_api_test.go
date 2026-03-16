@@ -477,6 +477,57 @@ func TestAllEndpoints_RequesterForbidden(t *testing.T) {
 	}
 }
 
+// --- Viewer role tests (Sprint C P2) ---
+
+func TestViewerAllowed_ReadOnlyEndpoints(t *testing.T) {
+	_, router := testServer(t)
+	jwt := viewerJWT(t)
+
+	allowed := []struct {
+		method string
+		path   string
+	}{
+		{"GET", "/api/v1/findings"},
+		{"GET", "/api/v1/findings/f-aws-0001"},
+		{"GET", "/api/v1/compliance/frameworks"},
+		{"GET", "/api/v1/agents"},
+		{"GET", "/api/v1/agents/550e8400-e29b-41d4-a716-446655440001"},
+		{"GET", "/api/v1/agents/550e8400-e29b-41d4-a716-446655440002/traces"},
+	}
+
+	for _, ep := range allowed {
+		t.Run(ep.method+" "+ep.path, func(t *testing.T) {
+			rr := doRequest(t, router, ep.method, ep.path, "", jwt)
+			assertStatus(t, rr, http.StatusOK)
+		})
+	}
+}
+
+func TestViewerForbidden_WriteAndAdminEndpoints(t *testing.T) {
+	_, router := testServer(t)
+	jwt := viewerJWT(t)
+
+	forbidden := []struct {
+		method string
+		path   string
+	}{
+		{"POST", "/api/v1/findings/f-aws-0001/enrich"},
+		{"GET", "/api/v1/costs/summary"},
+		{"GET", "/api/v1/remediations"},
+		{"POST", "/api/v1/remediations/rem-001/execute"},
+		{"GET", "/api/v1/audit-log"},
+		{"GET", "/api/v1/users"},
+		{"GET", "/api/v1/policies"},
+	}
+
+	for _, ep := range forbidden {
+		t.Run(ep.method+" "+ep.path, func(t *testing.T) {
+			rr := doRequest(t, router, ep.method, ep.path, "", jwt)
+			assertStatus(t, rr, http.StatusForbidden)
+		})
+	}
+}
+
 // --- Resource-scoped RBAC tests (Sprint 8B) ---
 
 // scopedAdminJWT returns a JWT with admin role restricted to the given account IDs.

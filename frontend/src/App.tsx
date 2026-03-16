@@ -78,16 +78,24 @@ export default function App() {
                   </Route>
                 </Route>
 
-                {/* Operator routes */}
+                {/* Viewer-accessible ops routes (read-only) */}
+                <Route element={<ProtectedRoute roles={['admin', 'operator', 'viewer']}><Outlet /></ProtectedRoute>}>
+                  <Route element={<RoutingErrorBoundary fallbackLabel="Ops"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></RoutingErrorBoundary>}>
+                    <Route path="/ops/findings" element={<Findings />} />
+                    <Route path="/ops/findings/:id" element={<FindingDetail />} />
+                    <Route path="/ops/compliance" element={<Compliance />} />
+                    <Route path="/ops/agents" element={<AIAgents />} />
+                    <Route path="/ops/agents/:id" element={<AIAgentDetail />} />
+                  </Route>
+                </Route>
+
+                {/* Operator routes (full ops access) */}
                 <Route element={<ProtectedRoute roles={['admin', 'operator']}><Outlet /></ProtectedRoute>}>
                   <Route element={<RoutingErrorBoundary fallbackLabel="Ops"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></RoutingErrorBoundary>}>
                     <Route path="/ops" element={<CommandCenter />} />
-                    <Route path="/ops/findings" element={<Findings />} />
-                    <Route path="/ops/findings/:id" element={<FindingDetail />} />
                     <Route path="/ops/remediation" element={<RemediationQueue />} />
                     <Route path="/ops/remediation/:id" element={<RemediationDetail />} />
                     <Route path="/ops/costs" element={<Spend />} />
-                    <Route path="/ops/compliance" element={<Compliance />} />
                     <Route path="/ops/attack-paths" element={<AttackPaths />} />
                   </Route>
                 </Route>
