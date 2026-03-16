@@ -50,8 +50,11 @@ export function useExecuteRemediation() {
     onError: (err: Error) => {
       if (err instanceof ApiError && err.status === 403) {
         toast('Remediation execution requires admin role', 'error')
+      } else if (err instanceof ApiError && err.status >= 500) {
+        toast('Remediation failed due to a server error', 'error')
       } else {
-        toast(`Remediation failed: ${err.message}`, 'error')
+        console.error('[useExecuteRemediation]', err)
+        toast('Remediation request failed', 'error')
       }
     },
   })
