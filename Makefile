@@ -158,7 +158,7 @@ bench:  ## Run Go benchmarks
 	$(GO) test ./cmd/server/... -bench=. -benchmem -count=3 -timeout 5m
 
 profile:  ## Open pprof heap profile (dev server must be running on :6060)
-	$(GO) tool pprof http://localhost:6060/debug/pprof/heap
+	$(GO) tool pprof http://127.0.0.1:6060/debug/pprof/heap
 
 health:  ## Check backend health
 	@curl -sf http://localhost:8080/health | jq . || echo "Backend not reachable"
