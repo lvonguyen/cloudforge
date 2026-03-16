@@ -133,6 +133,13 @@ const RISK_CONFIG: Record<string, { bg: string; text: string; label: string }> =
   low:      { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-800 dark:text-green-300', label: 'Low' },
 }
 
+const DOT_COLORS: Record<string, string> = {
+  critical: 'bg-red-500 dark:bg-red-400',
+  high: 'bg-orange-500 dark:bg-orange-400',
+  medium: 'bg-yellow-500 dark:bg-yellow-400',
+  low: 'bg-green-500 dark:bg-green-400',
+}
+
 const STRIDE_META: Record<STRIDECategory, { label: string; color: string; abbr: string }> = {
   spoofing:               { label: 'Spoofing',               color: 'border-purple-300 bg-purple-50 dark:border-purple-700 dark:bg-purple-950/20',  abbr: 'S' },
   tampering:              { label: 'Tampering',              color: 'border-orange-300 bg-orange-50 dark:border-orange-700 dark:bg-orange-950/20',  abbr: 'T' },
@@ -387,7 +394,7 @@ export default function AIAgentDetail() {
                         <ul className="space-y-1">
                           {threats.map(t => (
                             <li key={t.id} className="text-[10px] flex items-start gap-1.5">
-                              <span className={cn('mt-0.5 h-1.5 w-1.5 rounded-full shrink-0 inline-block', RISK_CONFIG[t.risk_level]?.bg?.replace('bg-', 'bg-').replace('-100', '-500') ?? 'bg-gray-400')} />
+                              <span className={cn('mt-0.5 h-1.5 w-1.5 rounded-full shrink-0 inline-block', DOT_COLORS[t.risk_level] ?? 'bg-gray-400')} />
                               <span className="leading-tight">{t.title}</span>
                             </li>
                           ))}
