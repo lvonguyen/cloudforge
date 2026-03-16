@@ -628,7 +628,11 @@ export default function Request() {
           onSelect={id => {
             setSelectedResource(id)
             const item = catalog.find(c => c.id === id)
-            if (item) setCloudProvider(item.provider)
+            if (item) {
+              setCloudProvider(item.provider)
+              const regions = REGIONS[item.provider] ?? []
+              setRegion(regions[0] ?? '')
+            }
           }}
           provider={cloudProvider}
           onProviderChange={setCloudProvider}
