@@ -26,26 +26,34 @@ async function fetchMockFindings(): Promise<Finding[]> {
   }
 }
 
+/** Sentinel value indicating mock data is being served instead of live API data. */
+let _usingMockData = false
+
 async function fetchFindings(filters?: { severity?: string; provider?: string; status?: string }): Promise<Finding[]> {
   const params = new URLSearchParams()
   if (filters?.severity) params.set('severity', filters.severity)
   if (filters?.provider) params.set('provider', filters.provider)
   if (filters?.status) params.set('status', filters.status)
   const qs = params.toString()
+  _usingMockData = false
   try {
     return await apiClient.get<Finding[]>(`/findings${qs ? `?${qs}` : ''}`)
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
+    // In production builds, do not silently fall back to mock data
+    if (import.meta.env.PROD) throw err
     console.warn('[useFindings] API unavailable, using mock data')
+    _usingMockData = true
     return fetchMockFindings()
   }
 }
 
 export function useFindings(filters?: { severity?: string; provider?: string; status?: string }) {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['findings', filters],
     queryFn: () => fetchFindings(filters),
   })
+  return { ...query, isUsingMockData: query.isSuccess && _usingMockData }
 }
 
 export function useEnrichFinding() {
@@ -68,6 +76,7 @@ export function useFinding(id: string) {
         return await apiClient.get<Finding>(`/findings/${id}`)
       } catch (err) {
         if (err instanceof ApiError && err.status < 500) throw err
+        if (import.meta.env.PROD) throw err
         console.warn('[useFinding] API unavailable, using mock data')
         const findings = await fetchMockFindings()
         return findings.find((f) => f.id === id) ?? null
