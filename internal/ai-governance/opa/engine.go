@@ -133,6 +133,9 @@ func (e *Engine) LoadPolicies(ctx context.Context, paths []string) error {
 
 	// Key by the first path so each policy group is independently addressable.
 	e.queries[paths[0]] = &pq
+	// Default is last-writer-wins. In CloudForge, LoadPolicies is called once
+	// at startup; if called again, the last-loaded policy becomes the fallback
+	// for any unregistered policyPath in Evaluate.
 	e.queries["default"] = &pq
 	return nil
 }

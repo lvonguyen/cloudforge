@@ -205,7 +205,7 @@ func incrementVersion(v string) string {
 // newUUID generates a random UUID-like string for rotated secret values.
 func newUUID() string {
 	b := make([]byte, 16)
-	rand.Read(b)
+	_, _ = rand.Read(b) // error is always nil on supported platforms (Go 1.20+)
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
 		b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
 }

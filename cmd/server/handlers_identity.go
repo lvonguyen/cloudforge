@@ -53,6 +53,8 @@ func (s *Server) getIdentityUserRisk(w http.ResponseWriter, r *http.Request) {
 
 	risk, err := p.GetUserRiskScore(r.Context(), userID)
 	if err != nil {
+		// ErrNotFound is returned by mock providers; real providers (Okta/Entra)
+		// return nil error with a low-risk assessment for unknown users.
 		if errors.Is(err, identity.ErrNotFound) {
 			writeErrorResponse(w, "user not found", http.StatusNotFound)
 			return

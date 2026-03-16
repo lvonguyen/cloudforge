@@ -390,11 +390,11 @@ func main() {
 		}
 	}
 
-	// Start pprof server in dev mode (separate port, default mux)
+	// Start pprof server in dev mode (loopback only, separate port, default mux)
 	if os.Getenv("APP_ENV") == "development" {
 		go func() {
-			logger.Info("pprof server starting", zap.String("addr", ":6060"))
-			if err := http.ListenAndServe(":6060", nil); err != nil {
+			logger.Info("pprof server starting", zap.String("addr", "127.0.0.1:6060"))
+			if err := http.ListenAndServe("127.0.0.1:6060", nil); err != nil {
 				logger.Warn("pprof server error", zap.Error(err))
 			}
 		}()

@@ -257,7 +257,8 @@ jobs:
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@2f8dda6cf4de7d73b29853c3f29e73a01e297bd8 # v12.1.0
         with:
-          uploadArtifacts: true
+          uploadArtifacts: false
+          temporaryPublicStorage: false
           configPath: frontend/lighthouserc.json
 
   docker:

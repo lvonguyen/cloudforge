@@ -139,7 +139,7 @@ func computeAttackPaths(findings []Finding) ([]AttackPath, *AttackPathStats) {
 				if severityRank[f2.Severity] < 3 {
 					continue
 				}
-				if findingsInPaths[f1.ID] || findingsInPaths[f2.ID] {
+				if findingsInPaths[f2.ID] {
 					continue
 				}
 				if canConnect(f1, f2) {
