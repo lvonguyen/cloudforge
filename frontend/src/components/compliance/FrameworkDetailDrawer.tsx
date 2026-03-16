@@ -89,7 +89,7 @@ export function FrameworkDetailDrawer({
         <SheetHeader>
           <SheetTitle className="text-base">{framework.name}</SheetTitle>
           <SheetDescription>{framework.description}</SheetDescription>
-          {docLink && (
+          {docLink?.startsWith('https://') && (
             <a
               href={docLink}
               target="_blank"

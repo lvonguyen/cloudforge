@@ -12,6 +12,9 @@ import { useAgents } from '@/hooks/useAgents'
 import { useCompliance } from '@/hooks/useCompliance'
 import { useExceptions } from '@/hooks/useExceptions'
 
+// Fallback values when hooks haven't loaded (demo/offline mode)
+const FALLBACK_KPI = { policies: 42, agents: 7, compliance: 84, exceptions: 12, drafts: 3, active: 5 } as const
+
 const FALLBACK_EXCEPTION_QUEUE = [
   { id: 'EXC-001', app: 'payments-api', type: 'UNAPPROVED_REGION', resource: 'RDS in ap-southeast-3', status: 'PENDING', created: '2026-02-25', sla: '1d' },
   { id: 'EXC-002', app: 'data-pipeline', type: 'OVERSIZED_INSTANCE', resource: 'EC2 m5.24xlarge', status: 'PENDING', created: '2026-02-24', sla: '2d' },
@@ -34,21 +37,21 @@ export default function AdminDashboard() {
 
   const isLoading = polLoading || agentLoading || compLoading || excLoading
 
-  const activePolicies = policies?.filter(p => p.status === 'active').length ?? 42
-  const agentCount = agents?.length ?? 7
+  const activePolicies = policies?.filter(p => p.status === 'active').length ?? FALLBACK_KPI.policies
+  const agentCount = agents?.length ?? FALLBACK_KPI.agents
   const avgCompliance = frameworks && frameworks.length > 0
     ? Math.round(frameworks.reduce((s, f) => s + f.score, 0) / frameworks.length)
-    : 84
-  const openExceptions = exceptions?.length ?? 12
+    : FALLBACK_KPI.compliance
+  const openExceptions = exceptions?.length ?? FALLBACK_KPI.exceptions
 
-  const activeAgents = agents?.filter(a => a.status === 'active').length ?? 5
-  const idleAgents = (agents?.length ?? 7) - activeAgents
+  const activeAgents = agents?.filter(a => a.status === 'active').length ?? FALLBACK_KPI.active
+  const idleAgents = (agents?.length ?? FALLBACK_KPI.agents) - activeAgents
 
   const KPI_CARDS = [
-    { label: 'Active Policies', value: activePolicies, sub: `${(policies?.filter(p => p.status === 'draft').length ?? 3)} pending review`, icon: FileText, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/20', link: '/admin/policies' },
+    { label: 'Active Policies', value: activePolicies, sub: `${(policies?.filter(p => p.status === 'draft').length ?? FALLBACK_KPI.drafts)} pending review`, icon: FileText, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/20', link: '/admin/policies' },
     { label: 'AI Agents', value: agentCount, sub: `${activeAgents} active, ${idleAgents} idle`, icon: Bot, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/20', link: '/admin/ai-agents' },
     { label: 'Compliance Score', value: `${avgCompliance}%`, sub: 'avg across frameworks', icon: ShieldCheck, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/20', link: '/ops/compliance' },
-    { label: 'Open Exceptions', value: openExceptions, sub: `${exceptions?.filter(e => e.status === 'PENDING').length ?? 3} pending`, icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/20', link: '/ops/remediation' },
+    { label: 'Open Exceptions', value: openExceptions, sub: `${exceptions?.filter(e => e.status === 'PENDING').length ?? FALLBACK_KPI.drafts} pending`, icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/20', link: '/ops/remediation' },
   ]
 
   const EXCEPTION_QUEUE = exceptions
@@ -59,7 +62,7 @@ export default function AdminDashboard() {
         resource: e.resource_requested,
         status: e.status,
         created: e.created_at.slice(0, 10),
-        sla: e.status === 'PENDING' ? '—' : '—',
+        sla: '—', // SLA computation requires API field — tracked for future sprint
       }))
     : FALLBACK_EXCEPTION_QUEUE
 

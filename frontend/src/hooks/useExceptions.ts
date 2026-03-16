@@ -1,11 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient } from '@/lib/api'
+import { apiClient, ApiError } from '@/lib/api'
 import type { ExceptionRequest, Approver } from '@/types/grc'
 
 export function useExceptions() {
   return useQuery({
     queryKey: ['exceptions', 'pending'],
-    queryFn: () => apiClient.get<ExceptionRequest[]>('/exceptions/pending'),
+    queryFn: async () => {
+      try {
+        return await apiClient.get<ExceptionRequest[]>('/exceptions/pending')
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useExceptions] API unavailable, returning empty')
+        return [] as ExceptionRequest[]
+      }
+    },
   })
 }
 
@@ -30,14 +38,30 @@ export function useApproveException() {
 export function useMyExceptions() {
   return useQuery({
     queryKey: ['exceptions', 'mine'],
-    queryFn: () => apiClient.get<ExceptionRequest[]>('/exceptions/mine'),
+    queryFn: async () => {
+      try {
+        return await apiClient.get<ExceptionRequest[]>('/exceptions/mine')
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useMyExceptions] API unavailable, returning empty')
+        return [] as ExceptionRequest[]
+      }
+    },
   })
 }
 
 export function useException(id: string) {
   return useQuery({
     queryKey: ['exceptions', id],
-    queryFn: () => apiClient.get<ExceptionRequest>(`/exceptions/${id}`),
+    queryFn: async () => {
+      try {
+        return await apiClient.get<ExceptionRequest>(`/exceptions/${id}`)
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn(`[useException] API unavailable for ${id}`)
+        return null as unknown as ExceptionRequest
+      }
+    },
     enabled: Boolean(id),
   })
 }

@@ -228,9 +228,14 @@ func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
 	r = r.WithContext(ctx)
 
 	resultFilter := strings.ToLower(r.URL.Query().Get("result"))
+	if len(resultFilter) > 100 {
+		http.Error(w, `{"error":"result filter too long (max 100)"}`, http.StatusBadRequest)
+		return
+	}
 	actorFilter := r.URL.Query().Get("actor")
 	if len(actorFilter) > 255 {
-		actorFilter = actorFilter[:255]
+		http.Error(w, `{"error":"actor filter too long (max 255)"}`, http.StatusBadRequest)
+		return
 	}
 	page, perPage := parsePagination(r, 50, 200)
 
@@ -311,6 +316,10 @@ func (s *Server) listCatalogModules(w http.ResponseWriter, r *http.Request) {
 	providerFilter := strings.ToLower(r.URL.Query().Get("provider"))
 	categoryFilter := strings.ToLower(r.URL.Query().Get("category"))
 	searchFilter := strings.ToLower(r.URL.Query().Get("search"))
+	if len(searchFilter) > 200 {
+		http.Error(w, `{"error":"search filter too long (max 200)"}`, http.StatusBadRequest)
+		return
+	}
 
 	results := make([]CatalogModule, 0, len(s.data.CatalogModules))
 	for _, m := range s.data.CatalogModules {

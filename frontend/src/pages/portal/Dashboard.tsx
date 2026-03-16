@@ -20,7 +20,10 @@ const FALLBACK_APPROVALS = [
 ]
 
 function timeSince(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
+  const ts = new Date(dateStr).getTime()
+  if (isNaN(ts)) return '—'
+  const diff = Date.now() - ts
+  if (diff < 0) return 'just now'
   const hours = Math.floor(diff / 3_600_000)
   if (hours < 1) return 'just now'
   if (hours < 24) return `${hours}h ago`
@@ -156,7 +159,7 @@ export default function PortalDashboard() {
       </Card>
 
       {/* Pending approvals (if admin/operator) */}
-      {user.role !== 'requester' && (
+      {(user.role === 'admin' || user.role === 'operator') && (
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">

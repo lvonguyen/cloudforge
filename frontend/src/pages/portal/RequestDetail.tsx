@@ -154,14 +154,14 @@ export default function RequestDetail() {
     created: apiException.created_at,
     updated: apiException.updated_at,
     expiry: apiException.expiration_date,
-    approver_chain: apiException.approver_chain.map(a => ({
+    approver_chain: (apiException.approver_chain ?? []).map(a => ({
       role: a.role, email: a.email, decision: a.decision,
       decided_at: a.decided_at, comments: a.comments,
     })),
-    timeline: [] as ExceptionLifecycle['timeline'],
+    timeline: ((apiException as unknown as Record<string, unknown>).timeline as ExceptionLifecycle['timeline']) ?? [],
     compensating_controls: apiException.compensating_controls ?? [],
   } satisfies ExceptionLifecycle : undefined
-  const exc = apiMapped ?? (id ? brandMockData(MOCK_DETAILS[id]) : undefined)
+  const exc = apiMapped ?? (id && MOCK_DETAILS[id] ? brandMockData(MOCK_DETAILS[id]) : undefined)
 
   if (isLoading) {
     return (
@@ -283,6 +283,7 @@ export default function RequestDetail() {
       </Card>
 
       {/* Timeline */}
+      {exc.timeline.length > 0 && (
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Timeline</CardTitle>
@@ -303,6 +304,7 @@ export default function RequestDetail() {
           ))}
         </CardContent>
       </Card>
+      )}
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>

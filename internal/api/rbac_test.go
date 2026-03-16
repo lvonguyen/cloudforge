@@ -168,6 +168,24 @@ func TestRoleFromClaims_ViewerBelowRequester(t *testing.T) {
 	}
 }
 
+func TestRoleFromClaims_NoGroupsOutranksViewer(t *testing.T) {
+	// Intentional: ungrouped users default to requester (rank 1), which is
+	// higher than viewer (rank 0). This means adding someone to the viewer
+	// group restricts their access relative to having no group at all.
+	// Rationale: requester can submit exceptions; viewer cannot.
+	noGroups := &Claims{Subject: "user1"}
+	viewerGroup := &Claims{Subject: "viewer1", Groups: []string{"cloudforge-viewer"}}
+	if RoleFromClaims(noGroups) != RoleRequester {
+		t.Fatal("no groups should default to requester")
+	}
+	if RoleFromClaims(viewerGroup) != RoleViewer {
+		t.Fatal("viewer group should yield viewer")
+	}
+	if roleRank[RoleRequester] <= roleRank[RoleViewer] {
+		t.Fatal("requester must outrank viewer for default to be safe")
+	}
+}
+
 func TestRoleFromClaims_HighestWins(t *testing.T) {
 	claims := &Claims{
 		Subject: "user1",
