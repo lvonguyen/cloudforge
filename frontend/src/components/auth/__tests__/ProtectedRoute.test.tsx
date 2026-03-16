@@ -8,7 +8,7 @@ describe('ProtectedRoute', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     sessionStorage.clear()
-    localStorage.clear()
+    // Role now stored in sessionStorage (not localStorage)
     // Set DEV mode to true to bypass authentication redirects
     vi.stubEnv('DEV', true)
   })
@@ -34,7 +34,7 @@ describe('ProtectedRoute', () => {
   })
 
   it('redirects to home when user role is not in allowed roles', async () => {
-    localStorage.setItem('cloudforge_role', 'viewer')
+    sessionStorage.setItem('cloudforge_role', 'viewer')
 
     renderWithAuth(
       <ProtectedRoute roles={['admin']}>
@@ -49,7 +49,7 @@ describe('ProtectedRoute', () => {
   })
 
   it('allows operator access to operator-only routes', () => {
-    localStorage.setItem('cloudforge_role', 'operator')
+    sessionStorage.setItem('cloudforge_role', 'operator')
 
     renderWithAuth(
       <ProtectedRoute roles={['operator']}>
@@ -61,7 +61,7 @@ describe('ProtectedRoute', () => {
   })
 
   it('allows requester access to requester routes', () => {
-    localStorage.setItem('cloudforge_role', 'requester')
+    sessionStorage.setItem('cloudforge_role', 'requester')
 
     renderWithAuth(
       <ProtectedRoute roles={['requester']}>
@@ -73,7 +73,7 @@ describe('ProtectedRoute', () => {
   })
 
   it('allows multiple roles to access the same route', () => {
-    localStorage.setItem('cloudforge_role', 'operator')
+    sessionStorage.setItem('cloudforge_role', 'operator')
 
     renderWithAuth(
       <ProtectedRoute roles={['admin', 'operator', 'requester']}>

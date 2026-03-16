@@ -115,7 +115,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const savedRole = localStorage.getItem(ROLE_KEY) as Role | null
+  const savedRole = sessionStorage.getItem(ROLE_KEY) as Role | null
   const isDev = import.meta.env.DEV
 
   const [user, setUser] = useState<User>(() => {
@@ -168,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(VERIFIER_KEY)
     sessionStorage.removeItem(STATE_KEY)
     sessionStorage.removeItem(NONCE_KEY)
-    localStorage.removeItem(ROLE_KEY)
+    sessionStorage.removeItem(ROLE_KEY)
 
     if (!isDev && OKTA_ISSUER && OKTA_CLIENT_ID) {
       const params = new URLSearchParams({
@@ -183,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isDev])
 
   const setRole = useCallback((role: Role) => {
-    localStorage.setItem(ROLE_KEY, role)
+    sessionStorage.setItem(ROLE_KEY, role)
     setUser((prev) => ({ ...prev, role }))
   }, [])
 
@@ -234,7 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(STATE_KEY)
     sessionStorage.removeItem(NONCE_KEY)
 
-    const currentRole = localStorage.getItem(ROLE_KEY) as Role | null
+    const currentRole = sessionStorage.getItem(ROLE_KEY) as Role | null
     const u = userFromToken(data.access_token, currentRole)
     setUser(u)
     setIsAuthenticated(true)
