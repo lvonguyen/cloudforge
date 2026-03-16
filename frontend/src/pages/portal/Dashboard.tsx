@@ -125,7 +125,7 @@ export default function PortalDashboard() {
                 Pending Approvals
                 <Badge variant="outline" className="ml-2 text-[10px] bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">{PENDING_APPROVALS.length}</Badge>
               </CardTitle>
-              <Link to="/ops/command-center" className="text-xs text-primary hover:underline">Ops Center →</Link>
+              <Link to="/ops" className="text-xs text-primary hover:underline">Ops Center →</Link>
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
