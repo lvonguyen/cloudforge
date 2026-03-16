@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"cloudforge/internal/ai-governance/opa"
 	"cloudforge/internal/api"
 	"cloudforge/internal/audit"
 
@@ -402,6 +403,40 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 	if !s.enrichmentSvc.Enabled() {
 		writeErrorResponse(w, "AI enrichment is not enabled", http.StatusServiceUnavailable)
 		return
+	}
+
+	// OPA policy gate: evaluate AI tool access if engine is configured.
+	// Nil engine = no policies loaded = allow (graceful degradation).
+	if s.opaEngine != nil {
+		claims, _ := api.GetClaimsFromContext(r.Context())
+		opaInput := &opa.EvaluationInput{
+			Agent: opa.AgentContext{
+				ID:          "cloudforge-api",
+				Name:        "enrichment",
+				Environment: getEnv("APP_ENV", "production"),
+			},
+			Tool: &opa.ToolContext{
+				Name:     "ai_enrich",
+				Category: "analysis",
+			},
+			Request: &opa.RequestContext{
+				UserID:    claims.Subject,
+				SessionID: id,
+				Timestamp: time.Now(),
+				IP:        r.RemoteAddr,
+			},
+		}
+		decision, err := s.opaEngine.EvaluateToolAccess(ctx, &opaInput.Agent, opaInput.Tool)
+		if err != nil {
+			s.logger.Warn("OPA evaluation failed, allowing request", zap.Error(err))
+		} else if !decision.Allow {
+			s.logger.Warn("OPA denied enrichment",
+				zap.String("finding_id", id),
+				zap.Strings("reasons", decision.Reasons),
+			)
+			writeErrorResponse(w, "policy denied: AI enrichment not permitted", http.StatusForbidden)
+			return
+		}
 	}
 
 	// Find the finding in the DataStore

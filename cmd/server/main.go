@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"cloudforge/internal/ai"
+	"cloudforge/internal/ai-governance/opa"
 	"cloudforge/internal/api"
 	"cloudforge/internal/api/gateway"
 	"cloudforge/internal/audit"
@@ -65,6 +67,7 @@ type Server struct {
 	data          *DataStore         // findings, agents, traces, remediations, etc.
 	attackPathSvc *AttackPathService // attack path queries + mutex
 	enrichmentSvc *EnrichmentService // AI enrichment + cache
+	opaEngine     *opa.Engine        // AI governance policy engine (nil = disabled)
 
 	// Multi-tenancy (Phase 3)
 	tenantStore tenant.Store
@@ -260,6 +263,25 @@ func main() {
 		logger.Fatal("Failed to create container scanner", zap.Error(err))
 	}
 
+	// Initialize OPA engine for AI governance (graceful degradation if no policies)
+	var opaEngine *opa.Engine
+	if engine, err := opa.NewEngine(); err != nil {
+		logger.Warn("OPA engine init failed, AI governance disabled", zap.Error(err))
+	} else {
+		// Attempt to load AI governance policies from policies/ai/
+		aiPolicyGlob, _ := filepath.Glob("policies/ai/*.rego")
+		if len(aiPolicyGlob) > 0 {
+			if err := engine.LoadPolicies(context.Background(), aiPolicyGlob); err != nil {
+				logger.Warn("OPA AI policy load failed, governance disabled", zap.Error(err))
+			} else {
+				opaEngine = engine
+				logger.Info("OPA AI governance engine loaded", zap.Int("policies", len(aiPolicyGlob)))
+			}
+		} else {
+			logger.Info("No AI governance policies found in policies/ai/, OPA gate disabled")
+		}
+	}
+
 	// Initialize tenant store with seed data
 	tenantStore := seedTenants(logger)
 
@@ -280,6 +302,7 @@ func main() {
 			Cache:  make(map[string]*FindingEnrichment),
 			Logger: logger.Named("enrichment"),
 		},
+		opaEngine:         opaEngine,
 		finopsSvc:         newFinopsService(),
 		identityProviders: idProviders,
 		dedupCache:        ingestion.NewDedupCache(24 * time.Hour),
