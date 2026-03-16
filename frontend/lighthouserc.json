@@ -5,7 +5,8 @@
       "url": ["http://localhost:8041"],
       "startServerReadyPattern": "Accepting connections",
       "settings": {
-        "chromeFlags": "--no-sandbox --headless --disable-gpu"
+        "chromeFlags": "--no-sandbox --headless --disable-gpu --disable-dev-shm-usage",
+        "maxWaitForLoad": 15000
       }
     },
     "assert": {
