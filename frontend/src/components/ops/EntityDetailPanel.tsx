@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDown, ChevronRight, X, ExternalLink, Sparkles } from 'lucide-react'
+import { ChevronDown, ChevronRight, X, ExternalLink, Sparkles, Loader2 } from 'lucide-react'
 import { useCommandCenter } from '@/contexts/CommandCenterContext'
 import { Badge } from '@/components/ui/badge'
 import { SEVERITY_COLORS } from '@/lib/severity'
+import { useEnrichFinding } from '@/hooks/useFindings'
 import type { Finding } from '@/types/compliance'
 import type { AttackPath } from '@/types/attack-path'
 import type { RemediationRecord } from '@/types/remediation'
@@ -117,7 +118,7 @@ function FindingDetail({
       </Section>
 
       {/* AI Enrichment */}
-      {finding.ai_risk_rationale && (
+      {finding.ai_risk_rationale ? (
         <Section label="AI Enrichment" defaultOpen>
           <div className="flex items-center gap-1 mb-1">
             <Sparkles className="h-3 w-3 text-violet-400" />
@@ -135,6 +136,10 @@ function FindingDetail({
               ))}
             </div>
           )}
+        </Section>
+      ) : (
+        <Section label="AI Enrichment" defaultOpen>
+          <EnrichButton findingId={finding.id} />
         </Section>
       )}
 
@@ -320,6 +325,29 @@ function AttackPathDetail({ path }: { path: AttackPath }) {
         </div>
       </Section>
     </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Enrich button — triggers AI enrichment via Bedrock
+// ---------------------------------------------------------------------------
+
+function EnrichButton({ findingId }: { findingId: string }) {
+  const enrichMutation = useEnrichFinding()
+
+  return (
+    <button
+      onClick={() => enrichMutation.mutate(findingId)}
+      disabled={enrichMutation.isPending}
+      className="flex items-center gap-1.5 text-[10px] font-medium text-violet-400 hover:text-violet-300 bg-violet-500/10 border border-violet-500/20 px-2.5 py-1 transition-colors disabled:opacity-50"
+    >
+      {enrichMutation.isPending ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <Sparkles className="h-3 w-3" />
+      )}
+      {enrichMutation.isPending ? 'Enriching…' : 'Enrich with AI'}
+    </button>
   )
 }
 

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient, ApiError } from '@/lib/api'
 import type { Finding } from '@/types/compliance'
 
@@ -45,6 +45,18 @@ export function useFindings(filters?: { severity?: string; provider?: string; st
   return useQuery({
     queryKey: ['findings', filters],
     queryFn: () => fetchFindings(filters),
+  })
+}
+
+export function useEnrichFinding() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (findingId: string) => {
+      return apiClient.post<Finding>(`/findings/${findingId}/enrich`, {})
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['findings'] })
+    },
   })
 }
 
