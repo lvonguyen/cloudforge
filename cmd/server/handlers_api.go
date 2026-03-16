@@ -229,6 +229,9 @@ func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
 
 	resultFilter := strings.ToLower(r.URL.Query().Get("result"))
 	actorFilter := r.URL.Query().Get("actor")
+	if len(actorFilter) > 255 {
+		actorFilter = actorFilter[:255]
+	}
 	page, perPage := parsePagination(r, 50, 200)
 
 	// Start with mock data (historical events loaded from JSON)

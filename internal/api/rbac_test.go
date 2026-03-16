@@ -155,6 +155,19 @@ func TestRoleFromClaims_Default(t *testing.T) {
 	}
 }
 
+func TestRoleFromClaims_ViewerBelowRequester(t *testing.T) {
+	claims := &Claims{
+		Subject: "viewer1",
+		Groups:  []string{"cloudforge-viewer"},
+	}
+	if role := RoleFromClaims(claims); role != RoleViewer {
+		t.Errorf("viewer group should yield viewer role, got: %s", role)
+	}
+	if roleRank[RoleViewer] >= roleRank[RoleRequester] {
+		t.Errorf("viewer rank (%d) must be below requester rank (%d)", roleRank[RoleViewer], roleRank[RoleRequester])
+	}
+}
+
 func TestRoleFromClaims_HighestWins(t *testing.T) {
 	claims := &Claims{
 		Subject: "user1",

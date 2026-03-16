@@ -79,29 +79,35 @@ const (
 	RoleAdmin     Role = "admin"
 	RoleOperator  Role = "operator"
 	RoleRequester Role = "requester"
+	RoleViewer    Role = "viewer"
 )
 
 // groupRoleMap maps IdP/CF Access group names to roles (first match wins).
 var groupRoleMap = map[string]Role{
 	"cloudforge-admin":    RoleAdmin,
 	"cloudforge-operator": RoleOperator,
+	"cloudforge-viewer":   RoleViewer,
 }
 
 // roleRank defines privilege ordering for highest-privilege-wins resolution.
 var roleRank = map[Role]int{
-	RoleRequester: 0,
-	RoleOperator:  1,
-	RoleAdmin:     2,
+	RoleViewer:    0,
+	RoleRequester: 1,
+	RoleOperator:  2,
+	RoleAdmin:     3,
 }
 
 // RoleFromClaims extracts the highest-privilege role from JWT group claims.
 // Iterates all groups and returns the role with the highest rank.
+// If no group matches, defaults to RoleRequester (not viewer).
 func RoleFromClaims(c *Claims) Role {
 	best := RoleRequester
+	matched := false
 	for _, g := range c.Groups {
 		if role, ok := groupRoleMap[g]; ok {
-			if roleRank[role] > roleRank[best] {
+			if !matched || roleRank[role] > roleRank[best] {
 				best = role
+				matched = true
 			}
 		}
 	}
