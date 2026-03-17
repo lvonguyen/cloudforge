@@ -36,7 +36,9 @@ const CATEGORY_ICONS: Record<string, typeof Shield> = {
   COMPLIANCE: Shield,
 }
 
-function pathToFlow(path: AttackPath): { nodes: Node[]; edges: Edge[] } {
+const SEVERITY_PRIORITY: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
+
+function pathToFlow(path: AttackPath, chokePointIds?: Set<string>): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = path.nodes.map((n, i) => ({
     id: n.id,
     position: { x: i * 360, y: 0 },
@@ -57,7 +59,9 @@ function pathToFlow(path: AttackPath): { nodes: Node[]; edges: Edge[] } {
     sourcePosition: Position.Right,
     targetPosition: Position.Left,
     style: {
-      border: `2px solid ${NODE_BORDER_COLORS[n.severity] ?? '#6b7280'}`,
+      border: chokePointIds?.has(n.resource_id)
+        ? '3px dashed #f59e0b'
+        : `2px solid ${NODE_BORDER_COLORS[n.severity] ?? '#6b7280'}`,
       borderRadius: '0px',
       background: 'var(--color-card)',
       padding: '4px',
@@ -130,8 +134,8 @@ function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) 
   )
 }
 
-function PathGraphView({ path, onBack }: { path: AttackPath; onBack: () => void }) {
-  const { nodes, edges } = useMemo(() => pathToFlow(path), [path])
+function PathGraphView({ path, onBack, chokePointIds }: { path: AttackPath; onBack: () => void; chokePointIds?: Set<string> }) {
+  const { nodes, edges } = useMemo(() => pathToFlow(path, chokePointIds), [path, chokePointIds])
 
   return (
     <div className="space-y-4">
@@ -318,6 +322,45 @@ export default function AttackPaths() {
     [paths, selectedId]
   )
 
+  // Full dataset for choke point analysis
+  const { data: fullResponse } = useAttackPaths(1, 100)
+  const allPaths = useMemo(() => fullResponse?.data ?? [], [fullResponse])
+
+  const chokePoints = useMemo(() => {
+    const resourceMap = new Map<string, { resource_name: string; resource_type: string; provider: string; pathCount: number; severity: string }>()
+    for (const p of allPaths) {
+      const seen = new Set<string>()
+      for (const node of p.nodes) {
+        if (seen.has(node.resource_id)) continue
+        seen.add(node.resource_id)
+        const existing = resourceMap.get(node.resource_id)
+        if (existing) {
+          existing.pathCount++
+          if ((SEVERITY_PRIORITY[node.severity] ?? 9) < (SEVERITY_PRIORITY[existing.severity] ?? 9)) {
+            existing.severity = node.severity
+          }
+        } else {
+          resourceMap.set(node.resource_id, {
+            resource_name: node.resource_name,
+            resource_type: node.resource_type,
+            provider: node.provider,
+            pathCount: 1,
+            severity: node.severity,
+          })
+        }
+      }
+    }
+    return [...resourceMap.entries()]
+      .filter(([, r]) => r.pathCount > 1)
+      .sort((a, b) => b[1].pathCount - a[1].pathCount)
+      .slice(0, 5)
+  }, [allPaths])
+
+  const chokePointIds = useMemo(
+    () => new Set(chokePoints.map(([id]) => id)),
+    [chokePoints],
+  )
+
   const handleBack = useCallback(() => setSelectedId(null), [])
 
   if (isLoading) {
@@ -330,7 +373,7 @@ export default function AttackPaths() {
   if (selectedPath) {
     return (
       <div className="max-w-5xl p-6">
-        <PathGraphView path={selectedPath} onBack={handleBack} />
+        <PathGraphView path={selectedPath} onBack={handleBack} chokePointIds={chokePointIds} />
       </div>
     )
   }
@@ -364,6 +407,33 @@ export default function AttackPaths() {
       )}
 
       <Separator />
+
+      {/* Choke Points */}
+      {chokePoints.length > 0 && (
+        <Card className="rounded-none border-amber-200 dark:border-amber-900/40">
+          <CardHeader className="pb-2 pt-3 px-4">
+            <span className="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <Target className="h-3.5 w-3.5" />Choke Points
+            </span>
+            <span className="text-[10px] text-muted-foreground">Resources appearing in multiple attack paths</span>
+          </CardHeader>
+          <CardContent className="px-4 pb-3">
+            <div className="space-y-1.5">
+              {chokePoints.map(([id, cp]) => (
+                <div key={id} className="flex items-center gap-2 text-xs">
+                  <span className="h-2 w-2 shrink-0" style={{ backgroundColor: NODE_BORDER_COLORS[cp.severity] ?? '#6b7280' }} />
+                  <ProviderIcon provider={cp.provider} className="h-3.5 w-3.5 shrink-0" />
+                  <span className="flex-1 truncate font-medium">{cp.resource_name}</span>
+                  <span className="text-[10px] text-muted-foreground">{cp.resource_type}</span>
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${SEVERITY_COLORS[cp.severity] ?? ''}`}>
+                    in {cp.pathCount} paths
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Path list */}
       <div className="space-y-3">
