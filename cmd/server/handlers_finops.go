@@ -4,25 +4,49 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"sort"
 	"time"
 
 	"cloudforge/internal/finops"
 	"cloudforge/internal/finops/anomaly"
 	"cloudforge/internal/finops/chargeback"
+
+	"go.uber.org/zap"
 )
 
 // finopsService wires the concrete FinOps implementations together.
 // Lives in cmd/server to avoid import cycles (finops → anomaly → finops).
 type finopsService struct {
-	aggregator *finops.MemoryAggregator
+	aggregator finops.Aggregator
 	detector   *anomaly.Detector
 	allocator  *chargeback.Allocator
 }
 
-func newFinopsService() *finopsService {
+// newFinopsService creates the FinOps service with provider selection via FINOPS_PROVIDER env var.
+// "aws" → real AWS Cost Explorer data, "memory" (default) → synthetic 30-day seed.
+func newFinopsService(logger *zap.Logger) *finopsService {
+	var agg finops.Aggregator
+	switch os.Getenv("FINOPS_PROVIDER") {
+	case "aws":
+		region := os.Getenv("FINOPS_AWS_REGION")
+		if region == "" {
+			region = "us-east-1"
+		}
+		a, err := finops.NewAWSAggregator(region, logger)
+		if err != nil {
+			logger.Warn("AWS FinOps aggregator init failed, falling back to memory", zap.Error(err))
+			agg = finops.NewMemoryAggregator()
+		} else {
+			agg = a
+			logger.Info("FinOps using AWS Cost Explorer", zap.String("region", region))
+		}
+	default:
+		agg = finops.NewMemoryAggregator()
+	}
+
 	return &finopsService{
-		aggregator: finops.NewMemoryAggregator(),
+		aggregator: agg,
 		detector: anomaly.NewDetector(anomaly.DetectorConfig{
 			Sensitivity:  anomaly.SensitivityMedium,
 			BaselineDays: 14,
