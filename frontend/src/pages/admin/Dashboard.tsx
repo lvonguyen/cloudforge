@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { ShieldCheck, Bot, AlertTriangle, FileText, TrendingUp, Loader2 } from 'lucide-react'
+import { ShieldCheck, Bot, AlertTriangle, FileText, TrendingUp, TrendingDown, Minus, Loader2 } from 'lucide-react'
 import { EXCEPTION_STATUS_COLORS as STATUS_COLORS } from '@/lib/severity'
 import { usePolicies } from '@/hooks/usePolicies'
 import { useAgents } from '@/hooks/useAgents'
@@ -74,15 +74,35 @@ export default function AdminDashboard() {
   const overdueSLA = pendingExceptions.length - withinSLA
   const slaPct = pendingExceptions.length > 0 ? Math.round((withinSLA / pendingExceptions.length) * 100) : 100
 
-  // Trend metrics — computed from hooks, static fallbacks for values without API data
+  // Trend metrics — computed from hooks, with temporal comparison where possible
   const trendPolicies = policies?.length?.toLocaleString() ?? FALLBACK_TREND.policies
-  const trendRemediations = (remediations?.filter(r => r.status === 'completed').length ?? 341).toLocaleString()
-  const trendApproved = (exceptions?.filter(e => e.status === 'APPROVED').length ?? 7).toLocaleString()
-  // Change percentages: static until time-series API is available
+  const completedRemediations = remediations?.filter(r => r.status === 'completed') ?? []
+  const trendRemediations = completedRemediations.length > 0 ? completedRemediations.length.toLocaleString() : FALLBACK_TREND.remediations
+  const approvedExceptions = exceptions?.filter(e => e.status === 'APPROVED') ?? []
+  const trendApproved = approvedExceptions.length > 0 ? approvedExceptions.length.toLocaleString() : FALLBACK_TREND.approved
+
+  // Temporal comparison: last 7 days vs prior 7 days using created_at
+  const now = Date.now()
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+  function recentVsPrior(items: { created_at: string }[]): string | null {
+    const recent = items.filter(i => now - new Date(i.created_at).getTime() < WEEK_MS).length
+    const prior = items.filter(i => {
+      const age = now - new Date(i.created_at).getTime()
+      return age >= WEEK_MS && age < WEEK_MS * 2
+    }).length
+    if (prior === 0 && recent === 0) return null
+    if (prior === 0) return '+100%'
+    const pct = Math.round(((recent - prior) / prior) * 100)
+    return pct >= 0 ? `+${pct}%` : `${pct}%`
+  }
+
+  const remChange = remediations ? recentVsPrior(completedRemediations) : null
+  const excChange = exceptions ? recentVsPrior(approvedExceptions) : null
+
   const TREND = [
-    { label: 'Policies Evaluated', value: trendPolicies, change: '+12%' },
-    { label: 'Auto-Remediations', value: trendRemediations, change: '+8%' },
-    { label: 'Exceptions Approved', value: trendApproved, change: '-3%' },
+    { label: 'Policies Evaluated', value: trendPolicies, change: null as string | null },
+    { label: 'Auto-Remediations', value: trendRemediations, change: remChange },
+    { label: 'Exceptions Approved', value: trendApproved, change: excChange },
   ]
 
   const EXCEPTION_QUEUE = exceptions
@@ -161,18 +181,23 @@ export default function AdminDashboard() {
 
       {/* Trend row */}
       <div className="grid grid-cols-3 gap-4">
-        {TREND.map(({ label, value, change }) => (
-          <Card key={label}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <TrendingUp className="h-4 w-4 text-muted-foreground shrink-0" />
-              <div>
-                <p className="text-sm font-semibold">{value}</p>
-                <p className="text-[10px] text-muted-foreground">{label}</p>
-              </div>
-              <span className={`ml-auto text-xs font-medium ${change.startsWith('+') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{change}</span>
-            </CardContent>
-          </Card>
-        ))}
+        {TREND.map(({ label, value, change }) => {
+          const isPositive = change?.startsWith('+')
+          const TrendIcon = change == null ? Minus : isPositive ? TrendingUp : TrendingDown
+          const trendColor = change == null ? 'text-muted-foreground' : isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+          return (
+            <Card key={label}>
+              <CardContent className="p-4 flex items-center gap-3">
+                <TrendIcon className={`h-4 w-4 shrink-0 ${trendColor}`} />
+                <div>
+                  <p className="text-sm font-semibold">{value}</p>
+                  <p className="text-[10px] text-muted-foreground">{label}</p>
+                </div>
+                <span className={`ml-auto text-xs font-medium ${trendColor}`}>{change ?? '—'}</span>
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
 
       {/* Exception queue preview */}
