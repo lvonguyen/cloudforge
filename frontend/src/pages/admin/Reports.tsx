@@ -34,21 +34,7 @@ export default function Reports() {
 
   const handleCSVExport = () => {
     if (findings.length === 0) return
-    const rows = findings.map(f => ({
-      ID: f.id,
-      Title: f.title,
-      Severity: f.severity,
-      Category: f.category,
-      Provider: f.cloud_provider,
-      Resource: f.resource_name,
-      Region: f.region,
-      Status: f.status,
-      'Workflow Status': f.workflow_status,
-      'AI Risk Score': f.ai_risk_score ?? '',
-      'First Found': f.first_found_at,
-      'Due Date': f.due_date ?? '',
-    }))
-    exportCSV(rows, `cloudforge-findings-${new Date().toISOString().slice(0, 10)}.csv`)
+    exportCSV(findings)
   }
 
   return (

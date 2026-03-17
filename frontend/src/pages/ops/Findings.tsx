@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef, useEffect, useDeferredValue } from 'react'
+import { useMemo, useState, useCallback, useRef, useDeferredValue } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Download, ArrowUp, ArrowDown, X, SlidersHorizontal, ListFilter, ChevronDown, ChevronRight } from 'lucide-react'
