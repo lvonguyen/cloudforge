@@ -119,8 +119,8 @@ function getThreatModelForAgent(agentId: string, framework: string): ThreatModel
     threats: profile.threats,
     mitigations: BASE_MITIGATIONS,
     risk_summary: profile.risk_summary,
-    created_at: '2026-01-15T00:00:00Z',
-    updated_at: '2026-02-27T00:00:00Z',
+    created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date().toISOString(),
   }
 }
 
