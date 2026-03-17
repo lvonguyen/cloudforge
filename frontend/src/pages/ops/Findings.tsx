@@ -98,6 +98,10 @@ export default function Findings() {
   const [selectedProviders, setSelectedProviders] = useState<Set<string>>(new Set())
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set())
 
+  // Metric card filters
+  const [filterSLABreached, setFilterSLABreached] = useState(false)
+  const [filterAutoRem, setFilterAutoRem] = useState(false)
+
   // Severity tab
   const [severityTab, setSeverityTab] = useState<SeverityTab>('ALL')
 
@@ -152,13 +156,15 @@ export default function Findings() {
 
   const activeColumns = useMemo(() => ALL_COLUMNS.filter(c => visibleColumns.has(c.key)), [visibleColumns])
 
-  const hasFilters = selectedCategories.size > 0 || selectedProviders.size > 0 || selectedStatuses.size > 0 || search.length > 0
+  const hasFilters = selectedCategories.size > 0 || selectedProviders.size > 0 || selectedStatuses.size > 0 || search.length > 0 || filterSLABreached || filterAutoRem
 
   const clearFilters = useCallback(() => {
     setSelectedCategories(new Set())
     setSelectedProviders(new Set())
     setSelectedStatuses(new Set())
     setSearch('')
+    setFilterSLABreached(false)
+    setFilterAutoRem(false)
   }, [])
 
   // Counts for sidebar (computed from full dataset before any sidebar filter)
@@ -187,6 +193,16 @@ export default function Findings() {
     return m
   }, [allFindings])
 
+  const slaBreachedCount = useMemo(() => {
+    const now = Date.now()
+    return allFindings.filter(f => f.sla_breach_date && new Date(f.sla_breach_date).getTime() < now).length
+  }, [allFindings])
+
+  const autoRemCount = useMemo(
+    () => allFindings.filter(f => f.auto_remediatable).length,
+    [allFindings],
+  )
+
   // Filter pipeline
   const filtered = useMemo(() => {
     let result = allFindings
@@ -202,6 +218,14 @@ export default function Findings() {
     // Sidebar: status (OR within group)
     if (selectedStatuses.size > 0) {
       result = result.filter(f => selectedStatuses.has(f.status))
+    }
+    // Metric card filters
+    if (filterSLABreached) {
+      const now = Date.now()
+      result = result.filter(f => f.sla_breach_date && new Date(f.sla_breach_date).getTime() < now)
+    }
+    if (filterAutoRem) {
+      result = result.filter(f => f.auto_remediatable)
     }
     // Text search
     if (deferredSearch) {
@@ -527,6 +551,55 @@ export default function Findings() {
               Export
             </Button>
           </div>
+        </div>
+
+        {/* Metric cards */}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+          {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map(sev => {
+            const count = scaleCount(severityCounts[sev] ?? 0)
+            const isActive = severityTab === sev
+            return (
+              <button
+                key={sev}
+                onClick={() => setSeverityTab(prev => prev === sev ? 'ALL' : sev)}
+                className={`border p-2.5 text-left transition-colors ${
+                  isActive
+                    ? 'border-foreground/30 bg-muted/50'
+                    : 'border-border hover:bg-muted/30'
+                }`}
+              >
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{sev}</p>
+                <p className={`text-lg font-semibold tabular-nums mt-0.5 ${
+                  sev === 'CRITICAL' ? 'text-red-600 dark:text-red-400' :
+                  sev === 'HIGH' ? 'text-orange-600 dark:text-orange-400' :
+                  sev === 'MEDIUM' ? 'text-yellow-600 dark:text-yellow-400' :
+                  'text-blue-600 dark:text-blue-400'
+                }`}>{count.toLocaleString()}</p>
+              </button>
+            )
+          })}
+          <button
+            onClick={() => setFilterSLABreached(prev => !prev)}
+            className={`border p-2.5 text-left transition-colors ${
+              filterSLABreached
+                ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30'
+                : 'border-border hover:bg-muted/30'
+            }`}
+          >
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">SLA Breached</p>
+            <p className="text-lg font-semibold tabular-nums mt-0.5 text-red-600 dark:text-red-400">{scaleCount(slaBreachedCount).toLocaleString()}</p>
+          </button>
+          <button
+            onClick={() => setFilterAutoRem(prev => !prev)}
+            className={`border p-2.5 text-left transition-colors ${
+              filterAutoRem
+                ? 'border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950/30'
+                : 'border-border hover:bg-muted/30'
+            }`}
+          >
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Auto-Rem</p>
+            <p className="text-lg font-semibold tabular-nums mt-0.5 text-green-600 dark:text-green-400">{scaleCount(autoRemCount).toLocaleString()}</p>
+          </button>
         </div>
 
         {/* Severity tabs */}
