@@ -34,6 +34,7 @@ const Spend = lazy(() => import('@/pages/ops/Spend'))
 const Compliance = lazy(() => import('@/pages/ops/Compliance'))
 const AttackPaths = lazy(() => import('@/pages/ops/AttackPaths'))
 const Containers = lazy(() => import('@/pages/ops/Containers'))
+const DataClassification = lazy(() => import('@/pages/ops/DataClassification'))
 
 // Portal pages (lazy)
 const PortalDashboard = lazy(() => import('@/pages/portal/Dashboard'))
@@ -99,6 +100,7 @@ export default function App() {
                     <Route path="/ops/costs" element={<Spend />} />
                     <Route path="/ops/attack-paths" element={<AttackPaths />} />
                     <Route path="/ops/containers" element={<Containers />} />
+                    <Route path="/ops/data-classification" element={<DataClassification />} />
                   </Route>
                 </Route>
 
