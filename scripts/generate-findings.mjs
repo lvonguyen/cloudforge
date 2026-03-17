@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-// Generate 80 mock security findings for CloudForge frontend
-// Run: node scripts/generate-findings.mjs > frontend/src/lib/mock/findings.json
+// Generate mock security findings for CloudForge frontend
+// Run: node scripts/generate-findings.mjs [--count N] [--attack-paths attack-paths.json]
+// Default: 80 findings to stdout. --count 20000 for production dataset.
+// --attack-paths: pre-compute paths from curated <1000 subset and write to file.
 
 const AWS_ACCOUNTS = [
   { id: '123456789012', name: 'acme-payments-prod' },
@@ -51,17 +53,27 @@ const AWS_SOURCES = ['aws-security-hub', 'aws-guardduty'];
 const AZURE_SOURCES = ['azure-defender', 'azure-sentinel'];
 const GCP_SOURCES = ['gcp-scc', 'gcp-cspm'];
 
+// CLI args
+const cliArgs = process.argv.slice(2);
+const getCliArg = (name) => { const i = cliArgs.indexOf(name); return i !== -1 ? cliArgs[i + 1] : undefined };
+const TOTAL_COUNT = parseInt(getCliArg('--count') ?? '80', 10);
+const ATTACK_PATHS_FILE = getCliArg('--attack-paths');
+
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function pickN(arr, n) { const s = [...arr].sort(() => Math.random() - 0.5); return s.slice(0, n); }
-function pad(n) { return String(n).padStart(3, '0'); }
+function pad(n) { return String(n).padStart(5, '0'); }
 
-// Build distribution arrays
-function buildDist(values, counts) {
+// Build distribution arrays scaled to TOTAL_COUNT
+function buildDist(values, ratios) {
+  const total = ratios.reduce((a, b) => a + b, 0);
   const result = [];
   for (let i = 0; i < values.length; i++) {
-    for (let j = 0; j < counts[i]; j++) result.push(values[i]);
+    const count = Math.round((ratios[i] / total) * TOTAL_COUNT);
+    for (let j = 0; j < count; j++) result.push(values[i]);
   }
-  return result.sort(() => Math.random() - 0.5);
+  // Pad or trim to exact TOTAL_COUNT
+  while (result.length < TOTAL_COUNT) result.push(pick(values));
+  return result.slice(0, TOTAL_COUNT).sort(() => Math.random() - 0.5);
 }
 
 const providerDist = buildDist(['aws', 'azure', 'gcp'], [52, 20, 8]);
@@ -182,9 +194,11 @@ const BASE_DATE = new Date('2026-02-01T00:00:00Z');
 
 const findings = [];
 let autoRemCount = 0;
-const AUTO_REM_TARGET = 24;
+const AUTO_REM_TARGET = Math.round(TOTAL_COUNT * 0.3);
 
-for (let i = 0; i < 80; i++) {
+if (TOTAL_COUNT > 80) process.stderr.write(`[+] Generating ${TOTAL_COUNT} findings...\n`);
+
+for (let i = 0; i < TOTAL_COUNT; i++) {
   const idx = i + 1;
   const id = `f-${pad(idx)}`;
   const provider = providerDist[i];
@@ -462,4 +476,176 @@ for (const accountFindings of Object.values(byAccount)) {
   }
 }
 
-process.stdout.write(JSON.stringify(findings, null, 2) + '\n');
+// --- Third pass: pre-compute attack paths from curated candidate pool ---
+import { writeFileSync } from 'fs';
+
+if (ATTACK_PATHS_FILE) {
+  const CANDIDATE_LIMIT = 1500;
+  const SEVERITY_SCORE = { CRITICAL: 100, HIGH: 60, MEDIUM: 20, LOW: 5 };
+  const ENTRY_CATEGORIES = new Set(['NETWORK', 'VULNERABILITY']);
+  const TARGET_TYPES = new Set(['storage', 'database', 'encryption', 'secret']);
+
+  // Account density map
+  const accountDensity = {};
+  for (const f of findings) {
+    accountDensity[f.account_id] = (accountDensity[f.account_id] ?? 0) + 1;
+  }
+
+  // Score every finding
+  const scored = findings.map(f => {
+    let score = SEVERITY_SCORE[f.severity] ?? 0;
+    if (f.exploit_available) score += 50;
+    if (f.environment_type === 'production') score += 30;
+    if (ENTRY_CATEGORIES.has(f.category)) score += 20;
+    if (TARGET_TYPES.has(f.resource_type)) score += 20;
+    if ((f.epss ?? 0) > 0.5) score += 15;
+    if ((f.mitre_tactics?.length ?? 0) > 0) score += 10;
+    if ((f.ai_risk_score ?? 0) > 8) score += 10;
+    if ((accountDensity[f.account_id] ?? 0) > 20) score += 15;
+    if (f.impacted_resources?.length > 0) score += 25;
+    return { finding: f, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  const candidates = scored.slice(0, CANDIDATE_LIMIT).map(s => s.finding);
+
+  process.stderr.write(`[+] Selected ${candidates.length} path candidates from ${findings.length} findings (top by metadata score)\n`);
+
+  // Group candidates by account
+  const candByAccount = {};
+  for (const f of candidates) {
+    if (!candByAccount[f.account_id]) candByAccount[f.account_id] = [];
+    candByAccount[f.account_id].push(f);
+  }
+
+  // Classification helpers
+  const isEntry = (f) => {
+    if (f.category === 'NETWORK') return true;
+    if (f.category === 'VULNERABILITY' && f.exploit_available) return true;
+    const rt = (f.resource_type ?? '').toLowerCase();
+    return ['compute', 'container', 'serverless'].some(t => rt.includes(t)) &&
+      (SEVERITY_SCORE[f.severity] ?? 0) >= 60;
+  };
+  const isTarget = (f) => TARGET_TYPES.has(f.resource_type);
+  const canConnect = (a, b) => {
+    if (a.account_id !== b.account_id) return false;
+    if (a.resource_id === b.resource_id) return false;
+    return a.region === b.region || a.resource_type === b.resource_type;
+  };
+
+  const EDGE_LABELS = {
+    storage: 'Can access data', database: 'Can access data', secret: 'Can access data',
+    identity: 'IAM trust relationship', network: 'Network reachable',
+  };
+  const inferEdgeLabel = (from, to) => {
+    const toType = (to.resource_type ?? '').toLowerCase();
+    for (const [key, label] of Object.entries(EDGE_LABELS)) {
+      if (toType.includes(key)) return label;
+    }
+    return 'Lateral movement';
+  };
+
+  const paths = [];
+  let pathIdx = 0;
+
+  for (const [, acctFindings] of Object.entries(candByAccount)) {
+    if (acctFindings.length < 2) continue;
+    const entries = acctFindings.filter(isEntry);
+    const targets = acctFindings.filter(isTarget);
+    const intermediates = acctFindings.filter(f => !isEntry(f) && !isTarget(f));
+
+    for (const entry of entries) {
+      for (const target of targets) {
+        // Direct connection
+        if (canConnect(entry, target)) {
+          paths.push({
+            id: `ap-${String(++pathIdx).padStart(5, '0')}`,
+            title: `${entry.resource_name} → ${target.resource_name}`,
+            description: `Attack path from ${entry.category.toLowerCase()} finding on ${entry.resource_name} to ${target.resource_type} ${target.resource_name}`,
+            severity: (SEVERITY_SCORE[entry.severity] ?? 0) >= 100 ? 'CRITICAL' : 'HIGH',
+            score: Math.min((SEVERITY_SCORE[entry.severity] ?? 0) + (SEVERITY_SCORE[target.severity] ?? 0), 100),
+            hop_count: 2,
+            entry_point: { id: `node-${entry.id}`, finding_id: entry.id, resource_id: entry.resource_id, resource_name: entry.resource_name, resource_type: entry.resource_type, provider: entry.cloud_provider, account_id: entry.account_id, region: entry.region, severity: entry.severity, category: entry.category, label: `${entry.resource_name} (${entry.resource_type})` },
+            target: { id: `node-${target.id}`, finding_id: target.id, resource_id: target.resource_id, resource_name: target.resource_name, resource_type: target.resource_type, provider: target.cloud_provider, account_id: target.account_id, region: target.region, severity: target.severity, category: target.category, label: `${target.resource_name} (${target.resource_type})` },
+            nodes: [
+              { id: `node-${entry.id}`, finding_id: entry.id, resource_id: entry.resource_id, resource_name: entry.resource_name, resource_type: entry.resource_type, provider: entry.cloud_provider, account_id: entry.account_id, region: entry.region, severity: entry.severity, category: entry.category, label: `${entry.resource_name} (${entry.resource_type})` },
+              { id: `node-${target.id}`, finding_id: target.id, resource_id: target.resource_id, resource_name: target.resource_name, resource_type: target.resource_type, provider: target.cloud_provider, account_id: target.account_id, region: target.region, severity: target.severity, category: target.category, label: `${target.resource_name} (${target.resource_type})` },
+            ],
+            edges: [{ id: `edge-0`, source: `node-${entry.id}`, target: `node-${target.id}`, label: inferEdgeLabel(entry, target), edge_type: 'lateral_movement' }],
+            mitre_tactics: entry.mitre_tactics ?? [],
+            finding_ids: [entry.id, target.id],
+            ai_enriched: false,
+          });
+          if (paths.length > 500) break;
+          continue;
+        }
+
+        // Via intermediate
+        for (const mid of intermediates) {
+          if (canConnect(entry, mid) && canConnect(mid, target)) {
+            const midNode = { id: `node-${mid.id}`, finding_id: mid.id, resource_id: mid.resource_id, resource_name: mid.resource_name, resource_type: mid.resource_type, provider: mid.cloud_provider, account_id: mid.account_id, region: mid.region, severity: mid.severity, category: mid.category, label: `${mid.resource_name} (${mid.resource_type})` };
+            paths.push({
+              id: `ap-${String(++pathIdx).padStart(5, '0')}`,
+              title: `${entry.resource_name} → ${mid.resource_name} → ${target.resource_name}`,
+              description: `Multi-hop attack from ${entry.resource_name} through ${mid.resource_name} to ${target.resource_name}`,
+              severity: (SEVERITY_SCORE[entry.severity] ?? 0) >= 100 ? 'CRITICAL' : 'HIGH',
+              score: Math.min((SEVERITY_SCORE[entry.severity] ?? 0) + (SEVERITY_SCORE[mid.severity] ?? 0) + (SEVERITY_SCORE[target.severity] ?? 0), 100),
+              hop_count: 3,
+              entry_point: { id: `node-${entry.id}`, finding_id: entry.id, resource_id: entry.resource_id, resource_name: entry.resource_name, resource_type: entry.resource_type, provider: entry.cloud_provider, account_id: entry.account_id, region: entry.region, severity: entry.severity, category: entry.category, label: `${entry.resource_name} (${entry.resource_type})` },
+              target: { id: `node-${target.id}`, finding_id: target.id, resource_id: target.resource_id, resource_name: target.resource_name, resource_type: target.resource_type, provider: target.cloud_provider, account_id: target.account_id, region: target.region, severity: target.severity, category: target.category, label: `${target.resource_name} (${target.resource_type})` },
+              nodes: [
+                { id: `node-${entry.id}`, finding_id: entry.id, resource_id: entry.resource_id, resource_name: entry.resource_name, resource_type: entry.resource_type, provider: entry.cloud_provider, account_id: entry.account_id, region: entry.region, severity: entry.severity, category: entry.category, label: `${entry.resource_name} (${entry.resource_type})` },
+                midNode,
+                { id: `node-${target.id}`, finding_id: target.id, resource_id: target.resource_id, resource_name: target.resource_name, resource_type: target.resource_type, provider: target.cloud_provider, account_id: target.account_id, region: target.region, severity: target.severity, category: target.category, label: `${target.resource_name} (${target.resource_type})` },
+              ],
+              edges: [
+                { id: `edge-0`, source: `node-${entry.id}`, target: `node-${mid.id}`, label: inferEdgeLabel(entry, mid), edge_type: 'lateral_movement' },
+                { id: `edge-1`, source: `node-${mid.id}`, target: `node-${target.id}`, label: inferEdgeLabel(mid, target), edge_type: 'lateral_movement' },
+              ],
+              mitre_tactics: [...new Set([...(entry.mitre_tactics ?? []), ...(mid.mitre_tactics ?? [])])],
+              finding_ids: [entry.id, mid.id, target.id],
+              ai_enriched: false,
+            });
+            break;
+          }
+        }
+        if (paths.length > 500) break;
+      }
+      if (paths.length > 500) break;
+    }
+  }
+
+  // Sort by severity desc, score desc
+  const sevRank = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+  paths.sort((a, b) => (sevRank[b.severity] ?? 0) - (sevRank[a.severity] ?? 0) || b.score - a.score);
+
+  // Compute stats
+  const usedFindings = new Set();
+  for (const p of paths) for (const fid of p.finding_ids) usedFindings.add(fid);
+  const byProvider = {};
+  for (const p of paths) {
+    const prov = p.entry_point.provider;
+    byProvider[prov] = (byProvider[prov] ?? 0) + 1;
+  }
+
+  const output = {
+    paths,
+    stats: {
+      total_findings: findings.length,
+      findings_in_paths: usedFindings.size,
+      isolated_findings: findings.length - usedFindings.size,
+      coverage_percent: findings.length > 0 ? Math.round((usedFindings.size / findings.length) * 100) : 0,
+      total_paths: paths.length,
+      critical_paths: paths.filter(p => p.severity === 'CRITICAL').length,
+      high_paths: paths.filter(p => p.severity === 'HIGH').length,
+      medium_paths: paths.filter(p => p.severity === 'MEDIUM').length,
+      by_provider: byProvider,
+    },
+  };
+
+  writeFileSync(ATTACK_PATHS_FILE, JSON.stringify(output, null, 2));
+  process.stderr.write(`[+] ${paths.length} attack paths written to ${ATTACK_PATHS_FILE}\n`);
+  process.stderr.write(`    CRIT: ${output.stats.critical_paths}, HIGH: ${output.stats.high_paths}, coverage: ${output.stats.coverage_percent}%\n`);
+}
+
+process.stdout.write(JSON.stringify(findings) + '\n');
