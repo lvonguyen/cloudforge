@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback, useRef, useEffect, useDeferredValue } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Download, ArrowUp, ArrowDown, X, SlidersHorizontal, ListFilter } from 'lucide-react'
+import { Download, ArrowUp, ArrowDown, X, SlidersHorizontal, ListFilter, ChevronDown, ChevronRight } from 'lucide-react'
 import { useFindings } from '@/hooks/useFindings'
 import { useDebounce } from '@/hooks/useDebounce'
 import { SeverityBadge } from '@/components/findings/SeverityBadge'
@@ -112,6 +112,10 @@ export default function Findings() {
 
   // Virtualizer scroll container
   const parentRef = useRef<HTMLDivElement>(null)
+
+  // Group by
+  const [groupBy, setGroupBy] = useState<'none' | 'rule' | 'resource' | 'provider' | 'category'>('none')
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
 
   // Column visibility & resizable widths
   const [visibleColumns, setVisibleColumns] = useState<Set<SortColumn>>(() => new Set(ALL_COLUMNS.map(c => c.key)))
@@ -252,6 +256,27 @@ export default function Findings() {
     })
     return arr
   }, [filtered, sortCol, sortDir])
+
+  // Grouped data for GROUP BY view
+  const groupedFindings = useMemo(() => {
+    if (groupBy === 'none') return null
+    const groups = new Map<string, Finding[]>()
+    const keyFn = (f: Finding) => {
+      switch (groupBy) {
+        case 'rule': return f.canonical_rule_id || f.type
+        case 'resource': return f.resource_type
+        case 'provider': return f.cloud_provider.toUpperCase()
+        case 'category': return f.category
+      }
+    }
+    for (const f of sorted) {
+      const key = keyFn(f)
+      const arr = groups.get(key)
+      if (arr) arr.push(f)
+      else groups.set(key, [f])
+    }
+    return [...groups.entries()].sort((a, b) => b[1].length - a[1].length)
+  }, [sorted, groupBy])
 
   // Virtualizer
   const virtualizer = useVirtualizer({
@@ -524,6 +549,24 @@ export default function Findings() {
           )}
         </div>
 
+        {/* Group By tabs */}
+        <div className="flex items-center gap-1">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wide mr-1">Group:</span>
+          {([['none', 'All'], ['rule', 'Rule'], ['resource', 'Resource'], ['provider', 'Provider'], ['category', 'Category']] as const).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => { setGroupBy(key); setCollapsedGroups(new Set()) }}
+              className={`px-2 py-0.5 text-[10px] rounded-none font-medium transition-colors ${
+                groupBy === key
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Table */}
         {isLoading && (
           <p className="text-sm text-muted-foreground py-8">Loading findings...</p>
@@ -539,7 +582,57 @@ export default function Findings() {
             )}
           </div>
         )}
-        {!isLoading && sorted.length > 0 && (
+        {/* Grouped view */}
+        {!isLoading && groupedFindings && groupedFindings.length > 0 && (
+          <div className="overflow-auto" style={{ height: 'calc(100vh - 320px)' }}>
+            <div className="space-y-1">
+              {groupedFindings.map(([groupKey, items]) => {
+                const isCollapsed = collapsedGroups.has(groupKey)
+                return (
+                  <div key={groupKey}>
+                    <button
+                      type="button"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium bg-muted/50 hover:bg-muted transition-colors text-left"
+                      onClick={() => setCollapsedGroups(prev => {
+                        const next = new Set(prev)
+                        if (next.has(groupKey)) next.delete(groupKey)
+                        else next.add(groupKey)
+                        return next
+                      })}
+                    >
+                      {isCollapsed ? <ChevronRight className="h-3 w-3 shrink-0" /> : <ChevronDown className="h-3 w-3 shrink-0" />}
+                      <span>{groupKey}</span>
+                      <Badge variant="secondary" className="text-[10px] ml-auto">{items.length}</Badge>
+                    </button>
+                    {!isCollapsed && (
+                      <div className="divide-y divide-border">
+                        {items.slice(0, 20).map(f => (
+                          <button
+                            key={f.id}
+                            type="button"
+                            className="w-full grid grid-cols-[1fr_80px_100px_80px] gap-2 px-6 py-2 text-xs items-center hover:bg-muted/30 transition-colors text-left"
+                            onClick={() => navigate(`/ops/findings/${f.id}`)}
+                          >
+                            <span className="truncate">{f.title}</span>
+                            <SeverityBadge severity={f.severity} />
+                            <span className="text-muted-foreground truncate">{f.resource_name}</span>
+                            <span className="text-muted-foreground">{f.cloud_provider.toUpperCase()}</span>
+                          </button>
+                        ))}
+                        {items.length > 20 && (
+                          <p className="px-6 py-1.5 text-[10px] text-muted-foreground">+ {items.length - 20} more</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Flat table view */}
+        {!isLoading && sorted.length > 0 && groupBy === 'none' && (
           <>
             <div ref={parentRef} className="overflow-auto [&_[data-slot=table-container]]:overflow-visible" style={{ height: 'calc(100vh - 280px)' }}>
               <Table style={{ tableLayout: 'fixed', width: activeColumns.reduce((sum, c) => sum + columnWidths[c.key], 0) }}>
