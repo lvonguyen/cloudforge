@@ -49,15 +49,91 @@ interface TopologyResponse {
   clusters: Cluster[]
 }
 
-const EMPTY_TOPOLOGY: TopologyResponse = { clusters: [] }
+const DEV_TOPOLOGY: TopologyResponse = {
+  clusters: [
+    {
+      name: 'prod-eks-us-east-1', provider: 'aws', region: 'us-east-1',
+      namespaces: [
+        { name: 'default', pods: [
+          { id: 'pod-1', name: 'api-gateway-7b8c9d', namespace: 'default', status: 'Running', containers: [
+            { id: 'c-1', name: 'api-gateway', image: 'api-gateway:v2.4.1', registry: 'ecr', status: 'running', vuln_count: 3, vulns: [
+              { cve_id: 'CVE-2024-21626', severity: 'HIGH', package: 'runc', version: '1.1.9', fixed_in: '1.1.12', cvss: 8.6 },
+              { cve_id: 'CVE-2024-24790', severity: 'CRITICAL', package: 'golang', version: '1.21.5', fixed_in: '1.21.11', cvss: 9.8 },
+              { cve_id: 'CVE-2023-45288', severity: 'MEDIUM', package: 'golang', version: '1.21.5', fixed_in: '1.22.2', cvss: 5.3 },
+            ]},
+          ]},
+          { id: 'pod-2', name: 'auth-service-4f5e6d', namespace: 'default', status: 'Running', containers: [
+            { id: 'c-2', name: 'auth-service', image: 'auth-service:v1.8.0', registry: 'ecr', status: 'running', vuln_count: 1, vulns: [
+              { cve_id: 'CVE-2024-3094', severity: 'CRITICAL', package: 'xz-utils', version: '5.6.0', fixed_in: '5.6.1', cvss: 10.0 },
+            ]},
+          ]},
+        ]},
+        { name: 'kube-system', pods: [
+          { id: 'pod-3', name: 'coredns-5d78c9b', namespace: 'kube-system', status: 'Running', containers: [
+            { id: 'c-3', name: 'coredns', image: 'coredns/coredns:1.11.1', registry: 'dockerhub', status: 'running', vuln_count: 0 },
+          ]},
+        ]},
+        { name: 'monitoring', pods: [
+          { id: 'pod-4', name: 'prometheus-server-1a2b3c', namespace: 'monitoring', status: 'Running', containers: [
+            { id: 'c-4', name: 'prometheus', image: 'prom/prometheus:v2.51.0', registry: 'dockerhub', status: 'running', vuln_count: 0 },
+            { id: 'c-5', name: 'config-reloader', image: 'configmap-reload:v0.12.0', registry: 'dockerhub', status: 'running', vuln_count: 0 },
+          ]},
+        ]},
+      ],
+    },
+    {
+      name: 'prod-aks-eu-west-1', provider: 'azure', region: 'westeurope',
+      namespaces: [
+        { name: 'default', pods: [
+          { id: 'pod-5', name: 'web-frontend-8d9e0f', namespace: 'default', status: 'Running', containers: [
+            { id: 'c-6', name: 'nginx', image: 'nginx:1.25.3', registry: 'dockerhub', status: 'running', vuln_count: 5, vulns: [
+              { cve_id: 'CVE-2023-44487', severity: 'HIGH', package: 'nghttp2', version: '1.55.1', fixed_in: '1.57.0', cvss: 7.5 },
+              { cve_id: 'CVE-2023-5363', severity: 'HIGH', package: 'openssl', version: '3.1.2', fixed_in: '3.1.4', cvss: 7.5 },
+              { cve_id: 'CVE-2024-0727', severity: 'MEDIUM', package: 'openssl', version: '3.1.2', fixed_in: '3.2.1', cvss: 5.5 },
+              { cve_id: 'CVE-2023-52425', severity: 'MEDIUM', package: 'expat', version: '2.5.0', fixed_in: '2.6.0', cvss: 5.5 },
+              { cve_id: 'CVE-2023-6879', severity: 'LOW', package: 'aom', version: '3.6.0', fixed_in: '3.7.1', cvss: 3.3 },
+            ]},
+          ]},
+        ]},
+        { name: 'app-workloads', pods: [
+          { id: 'pod-6', name: 'payments-svc-3c4d5e', namespace: 'app-workloads', status: 'Running', containers: [
+            { id: 'c-7', name: 'payments-svc', image: 'payments-svc:v3.1.2', registry: 'acr', status: 'running', vuln_count: 0 },
+            { id: 'c-8', name: 'envoy-proxy', image: 'envoyproxy/envoy:v1.29.0', registry: 'dockerhub', status: 'running', vuln_count: 0 },
+          ]},
+        ]},
+      ],
+    },
+    {
+      name: 'dev-gke-us-central1', provider: 'gcp', region: 'us-central1',
+      namespaces: [
+        { name: 'dev', pods: [
+          { id: 'pod-7', name: 'data-pipeline-2c3d4e', namespace: 'dev', status: 'Running', containers: [
+            { id: 'c-9', name: 'spark-worker', image: 'spark:3.5.0-scala2.12', registry: 'gcr', status: 'running', vuln_count: 2, vulns: [
+              { cve_id: 'CVE-2024-23897', severity: 'CRITICAL', package: 'args4j', version: '2.33', fixed_in: '2.37', cvss: 9.8 },
+              { cve_id: 'CVE-2023-46604', severity: 'HIGH', package: 'activemq', version: '5.17.0', fixed_in: '5.18.3', cvss: 8.1 },
+            ]},
+          ]},
+          { id: 'pod-8', name: 'redis-cache-5f6a7b', namespace: 'dev', status: 'Running', containers: [
+            { id: 'c-10', name: 'redis', image: 'redis:7.2-alpine', registry: 'dockerhub', status: 'running', vuln_count: 0 },
+          ]},
+        ]},
+        { name: 'kube-system', pods: [
+          { id: 'pod-9', name: 'kube-dns-6f4b8c', namespace: 'kube-system', status: 'Running', containers: [
+            { id: 'c-11', name: 'kubedns', image: 'k8s.gcr.io/k8s-dns-kube-dns:1.14.13', registry: 'gcr', status: 'running', vuln_count: 0 },
+          ]},
+        ]},
+      ],
+    },
+  ],
+}
 
 async function fetchContainers(): Promise<TopologyResponse> {
   try {
     return await apiClient.get<TopologyResponse>('/containers')
   } catch (err) {
     if (import.meta.env.PROD && err instanceof ApiError && err.status < 500) throw err
-    console.warn('[Containers] API unavailable, using empty topology')
-    return EMPTY_TOPOLOGY
+    console.warn('[Containers] API unavailable, using dev mock topology')
+    return DEV_TOPOLOGY
   }
 }
 

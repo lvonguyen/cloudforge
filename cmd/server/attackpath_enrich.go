@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -15,24 +16,30 @@ import (
 
 // enrichmentResponse is the expected JSON structure from the AI model.
 type enrichmentResponse struct {
-	Description  string   `json:"description"`
-	Remediation  string   `json:"remediation"`
-	Likelihood   string   `json:"likelihood"`
-	MITRETactics []string `json:"mitre_tactics,omitempty"`
+	Description   string   `json:"description"`
+	Remediation   string   `json:"remediation"`
+	Likelihood    string   `json:"likelihood"`
+	MITRETactics  []string `json:"mitre_tactics,omitempty"`
+	Confidence    float64  `json:"confidence"`
+	Validated     bool     `json:"validated"`
+	RiskNarrative string   `json:"risk_narrative,omitempty"`
 }
 
 const enrichSystemPrompt = `You are a senior cloud security analyst. Given an attack path through cloud infrastructure, provide:
 1. A concise human-readable narrative of how the attack would progress
 2. Prioritized remediation recommendations
 3. Estimated real-world exploit likelihood (low, medium, or high)
+4. A confidence score (0.0-1.0) for how plausible this attack path is in practice
+5. Whether this path is validated as realistic (true/false)
+6. A brief business-impact risk narrative (1-2 sentences)
 
 Respond ONLY with valid JSON matching this schema:
-{"description":"...","remediation":"...","likelihood":"low|medium|high","mitre_tactics":["..."]}`
+{"description":"...","remediation":"...","likelihood":"low|medium|high","mitre_tactics":["..."],"confidence":0.85,"validated":true,"risk_narrative":"..."}`
 
 // enrichAttackPaths enriches attack paths with AI-generated descriptions.
+// Top-10 critical paths use TierPremium (Opus 4.6), remainder use TierFast (Sonnet 4.6).
 // Paths are processed in batches of 5 with a 300ms delay between batches.
-// Failures are logged and skipped — the static heuristic data is preserved.
-// mu guards concurrent reads from HTTP handlers during enrichment.
+// Failures (including ErrBudgetExhausted) are logged and skipped — static heuristic data preserved.
 func enrichAttackPaths(ctx context.Context, provider ai.Provider, paths []AttackPath, mu *sync.RWMutex, logger *zap.Logger) {
 	if len(paths) == 0 {
 		return
@@ -41,6 +48,9 @@ func enrichAttackPaths(ctx context.Context, provider ai.Provider, paths []Attack
 	const batchSize = 5
 	const batchDelay = 300 * time.Millisecond
 	enriched := 0
+
+	// Determine if provider supports tiered routing
+	router, hasRouter := provider.(*ai.RoutingProvider)
 
 	for i := 0; i < len(paths); i += batchSize {
 		end := i + batchSize
@@ -54,9 +64,23 @@ func enrichAttackPaths(ctx context.Context, provider ai.Provider, paths []Attack
 				return
 			}
 
-			// AI call runs without lock; only the field writes are synchronized.
-			result, err := fetchEnrichment(ctx, provider, &paths[j])
+			// Top-10 critical paths use Opus; rest use Sonnet
+			var result *enrichmentResponse
+			var err error
+			if hasRouter && j < 10 && paths[j].Severity == "CRITICAL" {
+				result, err = fetchEnrichmentWithTier(ctx, router, ai.TierPremium, &paths[j])
+			} else {
+				result, err = fetchEnrichment(ctx, provider, &paths[j])
+			}
+
 			if err != nil {
+				if errors.Is(err, ai.ErrBudgetExhausted) {
+					logger.Warn("AI budget exhausted, stopping enrichment",
+						zap.Int("enriched", enriched),
+						zap.Int("remaining", len(paths)-j),
+					)
+					return
+				}
 				logger.Warn("Failed to enrich attack path",
 					zap.String("path_id", paths[j].ID),
 					zap.Error(err),
@@ -83,6 +107,21 @@ func enrichAttackPaths(ctx context.Context, provider ai.Provider, paths []Attack
 	logger.Info("Attack path enrichment complete", zap.Int("enriched", enriched), zap.Int("total", len(paths)))
 }
 
+// fetchEnrichmentWithTier calls a specific tier on the routing provider.
+func fetchEnrichmentWithTier(ctx context.Context, router *ai.RoutingProvider, tier ai.ModelTier, path *AttackPath) (*enrichmentResponse, error) {
+	callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	prompt := buildEnrichmentPrompt(path)
+
+	response, err := router.CompleteWithTier(callCtx, tier, enrichSystemPrompt, prompt)
+	if err != nil {
+		return nil, fmt.Errorf("AI tier %d call failed: %w", tier, err)
+	}
+
+	return parseEnrichmentResponse(response)
+}
+
 // fetchEnrichment calls the AI provider and returns the parsed result without
 // mutating the path. The caller is responsible for applying under lock.
 func fetchEnrichment(ctx context.Context, provider ai.Provider, path *AttackPath) (*enrichmentResponse, error) {
@@ -96,12 +135,7 @@ func fetchEnrichment(ctx context.Context, provider ai.Provider, path *AttackPath
 		return nil, fmt.Errorf("AI call failed: %w", err)
 	}
 
-	result, err := parseEnrichmentResponse(response)
-	if err != nil {
-		return nil, fmt.Errorf("parsing AI response: %w", err)
-	}
-
-	return result, nil
+	return parseEnrichmentResponse(response)
 }
 
 // applyEnrichment writes AI results to the path. Must be called under write lock.
@@ -109,7 +143,15 @@ func applyEnrichment(path *AttackPath, result *enrichmentResponse) {
 	path.AIDescription = result.Description
 	path.AIRemediation = result.Remediation
 	path.AILikelihood = result.Likelihood
+	path.AIConfidence = result.Confidence
+	path.AIValidated = result.Validated
+	path.AIRiskNarrative = result.RiskNarrative
 	path.AIEnriched = true
+
+	// Flag low-confidence paths for frontend filtering
+	if result.Confidence < 0.3 {
+		path.LowConfidence = true
+	}
 
 	if len(result.MITRETactics) > 0 {
 		existing := make(map[string]bool, len(path.MITRETactics))
@@ -197,6 +239,14 @@ func validateEnrichment(r *enrichmentResponse) (*enrichmentResponse, error) {
 		r.Likelihood = strings.ToLower(r.Likelihood)
 	default:
 		r.Likelihood = "medium"
+	}
+
+	// Clamp confidence to 0-1
+	if r.Confidence < 0 {
+		r.Confidence = 0
+	}
+	if r.Confidence > 1 {
+		r.Confidence = 1
 	}
 
 	return r, nil

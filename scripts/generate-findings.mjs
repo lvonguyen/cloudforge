@@ -382,4 +382,84 @@ for (let i = 0; i < 80; i++) {
   findings.push(finding);
 }
 
+// --- Second pass: populate impacted_resources and toxic_combo_details ---
+
+const COMBO_TYPES = ['privilege_escalation', 'data_exfiltration', 'lateral_movement', 'network_exposure', 'credential_theft'];
+const ATTACK_VECTORS = ['network', 'local', 'adjacent'];
+const BLAST_RADII = ['account', 'region', 'vpc', 'subnet'];
+const EXPLOIT_POTENTIALS = ['active', 'likely', 'possible'];
+
+const COMBO_DESCRIPTIONS = {
+  privilege_escalation: [
+    'IAM misconfiguration combined with an exposed service allows an attacker to escalate from a low-privilege role to administrative access. The chained exploit bypasses standard permission boundaries.',
+    'Overly permissive role trust policy paired with an internet-facing endpoint enables cross-account privilege escalation. An attacker can assume the role without MFA.',
+  ],
+  data_exfiltration: [
+    'Unencrypted storage bucket with public access combined with a permissive egress rule creates a direct data exfiltration path. Sensitive records can be copied to attacker-controlled infrastructure.',
+    'Missing DLP controls on an externally accessible service allow bulk export of PII. The absence of egress monitoring means exfiltration could go undetected for days.',
+  ],
+  lateral_movement: [
+    'Overly permissive security group combined with a compromised service account enables east-west movement across VPC subnets. An attacker can pivot from a public-facing workload to internal databases.',
+    'Weak network segmentation paired with an unpatched container image allows lateral movement from a developer namespace to production workloads.',
+  ],
+  network_exposure: [
+    'Public-facing load balancer without WAF combined with an open database port exposes the application tier directly to the internet. Exploitation requires no authentication.',
+    'Unrestricted ingress on port 22 combined with weak SSH key management creates a persistent backdoor into the private network segment.',
+  ],
+  credential_theft: [
+    'Long-lived access keys stored in a public repository combined with an IAM role without MFA enforcement allow immediate credential takeover. Keys grant broad read/write access.',
+    'Service account key not rotated for 90+ days paired with an overly permissive role provides persistent access to sensitive cloud resources even after an initial breach is detected.',
+  ],
+};
+
+// Group findings by account_id
+const byAccount = {};
+for (const f of findings) {
+  if (!byAccount[f.account_id]) byAccount[f.account_id] = [];
+  byAccount[f.account_id].push(f);
+}
+
+for (const accountFindings of Object.values(byAccount)) {
+  // Identify CRITICAL/HIGH candidates
+  const candidates = accountFindings.filter(f => f.severity === 'CRITICAL' || f.severity === 'HIGH');
+  const siblings = accountFindings; // all findings in same account
+
+  for (const finding of candidates) {
+    // ~20% chance to get impacted_resources
+    if (Math.random() > 0.20) continue;
+
+    // Pick 1-3 OTHER findings in the same account as resource references
+    const others = siblings.filter(s => s.id !== finding.id);
+    if (others.length === 0) continue;
+    const count = Math.min(1 + Math.floor(Math.random() * 3), others.length);
+    const selected = others.sort(() => Math.random() - 0.5).slice(0, count);
+
+    finding.impacted_resources = selected.map(s => ({
+      resource_id: s.resource_id,
+      resource_name: s.resource_name,
+      resource_type: s.resource_type,
+      severity: pick(['HIGH', 'CRITICAL', 'MEDIUM']),
+    }));
+
+    // ~10% of findings that have impacted_resources get toxic_combo_details
+    if (Math.random() > 0.10) continue;
+
+    const comboType = pick(COMBO_TYPES);
+    const descriptions = COMBO_DESCRIPTIONS[comboType];
+    const relatedIds = selected.map(s => s.id);
+    // Build a plausible attack path using resource names
+    const attackPath = ['Internet', finding.resource_name, selected[0].resource_name];
+
+    finding.toxic_combo_details = {
+      combo_type: comboType,
+      description: pick(descriptions),
+      attack_vector: pick(ATTACK_VECTORS),
+      blast_radius: pick(BLAST_RADII),
+      exploit_potential: pick(EXPLOIT_POTENTIALS),
+      attack_path: attackPath,
+      related_findings: relatedIds,
+    };
+  }
+}
+
 process.stdout.write(JSON.stringify(findings, null, 2) + '\n');

@@ -89,3 +89,23 @@ func (s *Server) queryNLQ(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
+
+// getAIUsage returns AI cost budget status.
+func (s *Server) getAIUsage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	rp, ok := s.enrichmentSvc.AI.(*ai.RoutingProvider)
+	if !ok {
+		// No routing provider — return zero usage
+		json.NewEncoder(w).Encode(map[string]any{
+			"monthly_budget_cents": 0,
+			"spent_cents":          0,
+			"remaining_cents":      0,
+			"exhausted":            false,
+			"tiers":                []any{},
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(rp.GetBudgetStatus())
+}

@@ -22,10 +22,14 @@ type AttackPath struct {
 	FindingIDs   []string         `json:"finding_ids"`
 
 	// AI-enriched fields (populated when AI provider is available).
-	AIDescription string `json:"ai_description,omitempty"`
-	AIRemediation string `json:"ai_remediation,omitempty"`
-	AILikelihood  string `json:"ai_likelihood,omitempty"`
-	AIEnriched    bool   `json:"ai_enriched"`
+	AIDescription   string  `json:"ai_description,omitempty"`
+	AIRemediation   string  `json:"ai_remediation,omitempty"`
+	AILikelihood    string  `json:"ai_likelihood,omitempty"`
+	AIConfidence    float64 `json:"ai_confidence,omitempty"`
+	AIValidated     bool    `json:"ai_validated,omitempty"`
+	AIRiskNarrative string  `json:"ai_risk_narrative,omitempty"`
+	AIEnriched      bool    `json:"ai_enriched"`
+	LowConfidence   bool    `json:"low_confidence,omitempty"`
 }
 
 // AttackPathNode is a node (resource) in an attack path.

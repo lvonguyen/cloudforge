@@ -38,7 +38,11 @@ export interface AttackPath {
   ai_description?: string
   ai_remediation?: string
   ai_likelihood?: string
+  ai_confidence?: number
+  ai_validated?: boolean
+  ai_risk_narrative?: string
   ai_enriched: boolean
+  low_confidence?: boolean
 }
 
 export interface PaginatedResponse<T> {

@@ -244,5 +244,5 @@ func TestCovRoutingProvider_RecordUsage_MissingTier(t *testing.T) {
 	tiers := map[ModelTier]Provider{TierFast: mock}
 	rp := NewRoutingProvider(tiers, TierFast, nil)
 	// Calling recordUsage with a tier that has no usage entry should not panic
-	rp.recordUsage(TierLocal, "test prompt")
+	rp.recordUsage(TierLocal, "test prompt", "test response")
 }

@@ -1,8 +1,10 @@
 import { brandEmail } from '@/lib/mock-data-utils'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useAuth } from '@/lib/auth'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useFinding } from '@/hooks/useFindings'
+import { useAttackPaths } from '@/hooks/useAttackPaths'
+import { AttackPathMiniGraph } from '@/components/attack-path/AttackPathMiniGraph'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -28,6 +30,16 @@ export default function FindingDetail() {
   const createException = useCreateException()
   const { toasts, toast, dismiss } = useToast()
   const [suppressed, setSuppressed] = useState(false)
+
+  // Fetch attack paths to find any that include this finding
+  const { data: attackPathsData } = useAttackPaths(1, 200)
+  const relatedPaths = useMemo(() => {
+    if (!attackPathsData?.data || !finding) return []
+    return attackPathsData.data.filter(p =>
+      p.finding_ids.includes(finding.id) ||
+      p.nodes.some(n => n.resource_id === finding.resource_id),
+    )
+  }, [attackPathsData, finding])
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground p-6">Loading finding…</div>
@@ -386,6 +398,11 @@ export default function FindingDetail() {
 
         {/* ── Investigation Tab ── */}
         <TabsContent value="investigation" className="space-y-6 mt-4">
+          {/* Attack Path Visualization — Wiz-style finding-scoped graph */}
+          {relatedPaths.length > 0 && (
+            <AttackPathMiniGraph paths={relatedPaths} resourceId={finding.resource_id} />
+          )}
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

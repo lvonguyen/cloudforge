@@ -1,10 +1,11 @@
 import { useState, useMemo, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { type Node, type Edge, Position, MarkerType } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { BaseGraphView } from '@/components/ops/BaseGraphView'
 import { useFindings } from '@/hooks/useFindings'
 import { Badge } from '@/components/ui/badge'
-import { Network, Search, X, Shield } from 'lucide-react'
+import { Network, Search, X, Shield, Eye, EyeOff } from 'lucide-react'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS } from '@/lib/severity'
 import type { SecurityGraphNode } from '@/types/security-graph'
@@ -17,7 +18,6 @@ const NODE_FILL: Record<string, string> = {
 }
 
 // Deterministic x-position based on resource_type string hash for cluster distribution.
-// Known categories get fixed lanes; unknown types are hashed into 6 columns.
 const TYPE_LANES: Record<string, number> = {
   storage: 0, bucket: 0, blob: 0,
   compute: 200, instance: 200, vm: 200, ec2: 200, lambda: 200, function: 200,
@@ -32,18 +32,39 @@ function getXForType(rt: string): number {
   for (const [key, x] of Object.entries(TYPE_LANES)) {
     if (lower.includes(key)) return x
   }
-  // Hash fallback — distribute unknown types across 6 columns
   let hash = 0
   for (let i = 0; i < lower.length; i++) hash = ((hash << 5) - hash + lower.charCodeAt(i)) | 0
   return (Math.abs(hash) % 6) * 200
 }
 
+/** BFS to find all nodes within N hops of a seed node. */
+function bfsNeighborhood(seedId: string, adjacency: Map<string, Set<string>>, maxHops: number): Set<string> {
+  const visited = new Set<string>([seedId])
+  let frontier = [seedId]
+  for (let hop = 0; hop < maxHops && frontier.length > 0; hop++) {
+    const next: string[] = []
+    for (const nodeId of frontier) {
+      for (const neighbor of adjacency.get(nodeId) ?? []) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor)
+          next.push(neighbor)
+        }
+      }
+    }
+    frontier = next
+  }
+  return visited
+}
+
 export default function SecurityGraph() {
   const { data: findings = [], isLoading } = useFindings()
+  const [searchParams] = useSearchParams()
+  const focusResourceId = searchParams.get('focus')
   const [selectedNode, setSelectedNode] = useState<SecurityGraphNode | null>(null)
   const [filter, setFilter] = useState('')
+  const [showAll, setShowAll] = useState(false)
 
-  const { graphNodes, graphEdges, nodeMap } = useMemo(() => {
+  const { graphNodes, graphEdges, nodeMap, connectedCount, totalCount } = useMemo(() => {
     const nMap = new Map<string, SecurityGraphNode>()
 
     // Build unique resource nodes from findings
@@ -72,9 +93,16 @@ export default function SecurityGraph() {
     // Build edges from impacted_resources and toxic_combo_details
     const edgeSet = new Set<string>()
     const edges: Edge[] = []
+    const adjacency = new Map<string, Set<string>>()
+
+    const addAdjacency = (a: string, b: string) => {
+      if (!adjacency.has(a)) adjacency.set(a, new Set())
+      if (!adjacency.has(b)) adjacency.set(b, new Set())
+      adjacency.get(a)!.add(b)
+      adjacency.get(b)!.add(a)
+    }
 
     for (const f of findings) {
-      // Impacted resources create edges
       if (f.impacted_resources) {
         for (const ir of f.impacted_resources) {
           const target = ir.resource_id
@@ -91,11 +119,11 @@ export default function SecurityGraph() {
               style: { stroke: '#3b82f6', strokeWidth: 1 },
               markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6', width: 12, height: 12 },
             })
+            addAdjacency(f.resource_id, target)
           }
         }
       }
 
-      // Toxic combo related findings
       if (f.toxic_combo_details?.related_findings) {
         for (const rf of f.toxic_combo_details.related_findings) {
           const relFinding = findings.find(ff => ff.id === rf)
@@ -110,18 +138,52 @@ export default function SecurityGraph() {
             animated: true,
             style: { stroke: '#ef4444', strokeWidth: 2, strokeDasharray: '5 5' },
           })
+          addAdjacency(f.resource_id, relFinding.resource_id)
         }
       }
     }
 
-    // Position nodes by resource type clusters
+    // Determine which nodes to show
+    const connectedIds = new Set<string>()
+    for (const [id, neighbors] of adjacency) {
+      if (neighbors.size > 0) {
+        connectedIds.add(id)
+        for (const n of neighbors) connectedIds.add(n)
+      }
+    }
+
+    let visibleIds: Set<string>
+    if (focusResourceId && nMap.has(focusResourceId)) {
+      // Focus mode: 2-hop neighborhood around the focused resource
+      visibleIds = bfsNeighborhood(focusResourceId, adjacency, 2)
+      // If no edges exist for focused resource, show same-account + same-region (1-hop context)
+      if (visibleIds.size <= 1) {
+        const focusNode = nMap.get(focusResourceId)!
+        for (const [nodeId, node] of nMap) {
+          if (node.provider === focusNode.provider && node.region === focusNode.region) {
+            visibleIds.add(nodeId)
+            if (visibleIds.size > 50) break // cap neighborhood
+          }
+        }
+      }
+    } else if (showAll) {
+      visibleIds = new Set(nMap.keys())
+    } else {
+      // Default: connected subgraphs only
+      visibleIds = connectedIds
+    }
+
+    // Apply text filter
+    const filterLower = filter.toLowerCase()
     const typeCounters = new Map<number, number>()
     const nodes: Node[] = [...nMap.values()]
-      .filter(n => !filter || n.resource_name.toLowerCase().includes(filter.toLowerCase()) || n.resource_type.toLowerCase().includes(filter.toLowerCase()))
+      .filter(n => visibleIds.has(n.id))
+      .filter(n => !filter || n.resource_name.toLowerCase().includes(filterLower) || n.resource_type.toLowerCase().includes(filterLower))
       .map(n => {
         const x = getXForType(n.resource_type)
         const count = typeCounters.get(x) ?? 0
         typeCounters.set(x, count + 1)
+        const isFocused = n.id === focusResourceId
         return {
           id: n.id,
           position: { x: x + (Math.random() * 60 - 30), y: count * 100 + 50 },
@@ -129,7 +191,10 @@ export default function SecurityGraph() {
           targetPosition: Position.Left,
           data: {
             label: (
-              <div className="px-2 py-1.5 text-left min-w-[140px]" style={{ background: NODE_FILL[n.max_severity] ?? '#1e293b', border: '1px solid #334155' }}>
+              <div className="px-2 py-1.5 text-left min-w-[140px]" style={{
+                background: NODE_FILL[n.max_severity] ?? '#1e293b',
+                border: isFocused ? '3px solid #3b82f6' : '1px solid #334155',
+              }}>
                 <div className="text-[10px] font-medium text-white truncate">{n.resource_name}</div>
                 <div className="text-[9px] text-gray-400">{n.resource_type}</div>
                 <div className="flex items-center gap-1 mt-0.5">
@@ -142,8 +207,11 @@ export default function SecurityGraph() {
         }
       })
 
-    return { graphNodes: nodes, graphEdges: edges, nodeMap: nMap }
-  }, [findings, filter])
+    // Filter edges to only include visible nodes
+    const visibleEdges = edges.filter(e => visibleIds.has(e.source as string) && visibleIds.has(e.target as string))
+
+    return { graphNodes: nodes, graphEdges: visibleEdges, nodeMap: nMap, connectedCount: connectedIds.size, totalCount: nMap.size }
+  }, [findings, filter, focusResourceId, showAll])
 
   const handleNodeClick = useCallback((nodeId: string) => {
     setSelectedNode(nodeMap.get(nodeId) ?? null)
@@ -161,7 +229,15 @@ export default function SecurityGraph() {
         </div>
         <p className="text-[10px] text-muted-foreground">
           {graphNodes.length} resources · {graphEdges.length} connections
+          {!showAll && !focusResourceId && connectedCount < totalCount && (
+            <span> (of {totalCount} total)</span>
+          )}
         </p>
+        {focusResourceId && (
+          <Badge variant="outline" className="text-[10px]">
+            Focused: {nodeMap.get(focusResourceId)?.resource_name ?? focusResourceId}
+          </Badge>
+        )}
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input
@@ -177,6 +253,15 @@ export default function SecurityGraph() {
             </button>
           )}
         </div>
+        {!focusResourceId && (
+          <button
+            onClick={() => setShowAll(v => !v)}
+            className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showAll ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+            {showAll ? 'Connected only' : 'Show all resources'}
+          </button>
+        )}
         <div className="text-[10px] text-muted-foreground space-y-1">
           <div className="flex items-center gap-1.5"><span className="h-2 w-2 bg-[#3b82f6]" />Impact edges</div>
           <div className="flex items-center gap-1.5"><span className="h-2 w-2 bg-[#ef4444]" />Toxic combo links</div>

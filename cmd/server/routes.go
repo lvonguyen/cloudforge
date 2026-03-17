@@ -199,6 +199,11 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.queryNLQ)),
 	).Methods("POST")
 
+	// AI usage/budget status — admin only
+	apiRouter.Handle("/ai/usage",
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.getAIUsage)),
+	).Methods("GET")
+
 	// RQL (resource query language) — structured finding queries
 	apiRouter.Handle("/findings/query",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.queryFindings)),

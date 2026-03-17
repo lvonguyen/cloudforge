@@ -97,10 +97,45 @@ func (svc *AttackPathService) getAttackPathStats(w http.ResponseWriter, r *http.
 	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getAttackPathStats")
 	defer span.End()
 
+	claims, _ := api.GetClaimsFromContext(r.Context())
+	scope := api.ScopeFromContext(claims)
+
 	svc.Mu.RLock()
-	stats := svc.Stats
-	svc.Mu.RUnlock()
+	defer svc.Mu.RUnlock()
+
+	// Fast path: no scope restriction — return pre-computed stats.
+	if scope == nil {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(svc.Stats)
+		return
+	}
+
+	// Scoped path: compute stats on the fly for the caller's scope.
+	scoped := &AttackPathStats{
+		TotalFindings:    svc.Stats.TotalFindings,
+		FindingsInPaths:  svc.Stats.FindingsInPaths,
+		IsolatedFindings: svc.Stats.IsolatedFindings,
+		CoveragePercent:  svc.Stats.CoveragePercent,
+		ByProvider:       make(map[string]int),
+	}
+	for i := range svc.Paths {
+		if !attackPathInScope(scope, &svc.Paths[i]) {
+			continue
+		}
+		scoped.TotalPaths++
+		switch svc.Paths[i].Severity {
+		case "CRITICAL":
+			scoped.CriticalPaths++
+		case "HIGH":
+			scoped.HighPaths++
+		default:
+			scoped.MediumPaths++
+		}
+		if len(svc.Paths[i].Nodes) > 0 {
+			scoped.ByProvider[svc.Paths[i].Nodes[0].Provider]++
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(stats)
+	_ = json.NewEncoder(w).Encode(scoped)
 }
