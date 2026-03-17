@@ -51,10 +51,19 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-xyflow': ['@xyflow/react', '@xyflow/system'],
-            'vendor-recharts': ['recharts'],
-            'vendor-tanstack': ['@tanstack/react-query', '@tanstack/react-virtual'],
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              // React core MUST load before any vendor chunk that depends on it.
+              // Object-based manualChunks can't reassign transitive React modules
+              // that end up in vendor chunks, causing "Cannot set properties of
+              // undefined (setting 'Activity')" during chunk initialization.
+              if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
+                return 'vendor-react'
+              }
+              if (id.includes('@xyflow')) return 'vendor-xyflow'
+              if (id.includes('recharts')) return 'vendor-recharts'
+              if (id.includes('@tanstack')) return 'vendor-tanstack'
+            }
           },
         },
       },
