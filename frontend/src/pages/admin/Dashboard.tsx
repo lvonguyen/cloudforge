@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,7 +13,10 @@ import { useAgents } from '@/hooks/useAgents'
 import { useCompliance } from '@/hooks/useCompliance'
 import { useExceptions } from '@/hooks/useExceptions'
 import { useRemediations } from '@/hooks/useRemediations'
+import { useAttackPaths } from '@/hooks/useAttackPaths'
 import { ApiError } from '@/lib/api'
+import { ProviderBadge } from '@/components/ui/ProviderBadge'
+import { Target } from 'lucide-react'
 import type { ExceptionRequest } from '@/types/grc'
 
 // Fallback values when hooks haven't loaded (demo/offline mode)
@@ -50,6 +53,7 @@ export default function AdminDashboard() {
   const { data: frameworks, isLoading: compLoading, error: compError } = useCompliance()
   const { data: exceptions, isLoading: excLoading, error: excError } = useExceptions()
   const { data: remediations, isLoading: remLoading, error: remError } = useRemediations()
+  const { data: attackPathsResponse } = useAttackPaths(1, 100)
 
   const isLoading = polLoading || agentLoading || compLoading || excLoading || remLoading
 
@@ -127,6 +131,30 @@ export default function AdminDashboard() {
     { label: 'Auto-Remediations', value: trendRemediations, change: remChange },
     { label: 'Exceptions Approved', value: trendApproved, change: excChange },
   ]
+
+  // Choke points — resources appearing in multiple attack paths (GAP-02)
+  const SEVERITY_PRIORITY: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
+  const chokePoints = useMemo(() => {
+    const paths = attackPathsResponse?.data ?? []
+    const resourceMap = new Map<string, { name: string; type: string; provider: string; pathCount: number; severity: string }>()
+    for (const p of paths) {
+      const seen = new Set<string>()
+      for (const n of p.nodes) {
+        if (seen.has(n.resource_id)) continue
+        seen.add(n.resource_id)
+        const existing = resourceMap.get(n.resource_id)
+        if (existing) {
+          existing.pathCount++
+          if ((SEVERITY_PRIORITY[n.severity] ?? 9) < (SEVERITY_PRIORITY[existing.severity] ?? 9)) {
+            existing.severity = n.severity
+          }
+        } else {
+          resourceMap.set(n.resource_id, { name: n.resource_name, type: n.resource_type, provider: n.provider ?? '', pathCount: 1, severity: n.severity })
+        }
+      }
+    }
+    return [...resourceMap.entries()].filter(([, v]) => v.pathCount > 1).sort((a, b) => b[1].pathCount - a[1].pathCount).slice(0, 5)
+  }, [attackPathsResponse])
 
   const EXCEPTION_QUEUE = exceptions
     ? exceptions.slice(0, 4).map(e => ({
@@ -222,6 +250,35 @@ export default function AdminDashboard() {
           )
         })}
       </div>
+
+      {/* Choke points — GAP-02 */}
+      {chokePoints.length > 0 && (
+        <Card className="rounded-none border-amber-200 dark:border-amber-900/40">
+          <CardHeader className="pb-2 pt-3 px-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                <Target className="h-3.5 w-3.5" />Choke Points
+              </span>
+              <Link to="/ops/attack-paths" className="text-xs text-primary hover:underline">View All</Link>
+            </div>
+            <span className="text-[10px] text-muted-foreground">Resources appearing in multiple attack paths</span>
+          </CardHeader>
+          <CardContent className="px-4 pb-3">
+            <div className="space-y-1.5">
+              {chokePoints.map(([id, cp]) => (
+                <div key={id} className="flex items-center gap-2 text-xs">
+                  <ProviderBadge provider={cp.provider} />
+                  <span className="flex-1 truncate font-medium">{cp.name}</span>
+                  <span className="text-[10px] text-muted-foreground">{cp.type}</span>
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 rounded-none">
+                    in {cp.pathCount} paths
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Exception queue preview */}
       <Card>
