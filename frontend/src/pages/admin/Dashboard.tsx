@@ -49,7 +49,7 @@ function getInitialPreset(): PresetId {
 }
 
 // Fallback values when hooks haven't loaded (demo/offline mode)
-const FALLBACK_KPI = { policies: 42, agents: 7, compliance: 84, exceptions: 12, drafts: 3, active: 5 } as const
+const FALLBACK_KPI = { policies: 42, agents: 7, compliance: 84, exceptions: 4, drafts: 3, active: 5 } as const
 
 const FALLBACK_EXCEPTION_QUEUE = [
   { id: 'EXC-001', app: 'payments-api', type: 'UNAPPROVED_REGION', resource: 'RDS in ap-southeast-3', status: 'PENDING', created: '2026-02-25', sla: '1d' },
@@ -130,7 +130,7 @@ export default function AdminDashboard() {
     { label: 'Active Policies', value: activePolicies, sub: `${(policies?.filter(p => p.status === 'draft').length ?? FALLBACK_KPI.drafts)} pending review`, icon: FileText, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/20', link: '/admin/policies' },
     { label: 'AI Agents', value: agentCount, sub: `${activeAgents} active, ${idleAgents} idle`, icon: Bot, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/20', link: '/admin/ai-agents' },
     { label: 'Compliance Score', value: `${avgCompliance}%`, sub: 'avg across frameworks', icon: ShieldCheck, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/20', link: '/ops/compliance' },
-    { label: 'Open Exceptions', value: openExceptions, sub: `${exceptions?.filter(e => e.status === 'PENDING').length ?? FALLBACK_KPI.drafts} pending`, icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/20', link: '/ops/remediation' },
+    { label: 'Open Exceptions', value: openExceptions, sub: `${exceptions?.filter(e => e.status === 'PENDING').length ?? FALLBACK_KPI.drafts} pending`, icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/20', link: '/admin/exceptions' },
   ]
 
   // SLA summary — how many pending exceptions are within SLA
@@ -313,7 +313,7 @@ export default function AdminDashboard() {
               <span className="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                 <Target className="h-3.5 w-3.5" />Choke Points
               </span>
-              <Link to="/ops/attack-paths" className="text-xs text-primary hover:underline">View All</Link>
+              <Link to="/ops" className="text-xs text-primary hover:underline">View All</Link>
             </div>
             <span className="text-[10px] text-muted-foreground">Resources appearing in multiple attack paths</span>
           </CardHeader>
@@ -340,8 +340,8 @@ export default function AdminDashboard() {
 
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Exception Queue</CardTitle>
-            <Link to="/ops/remediation" className="text-xs text-primary hover:underline">View All →</Link>
+            <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Exception Requests</CardTitle>
+            <Link to="/admin/exceptions" className="text-xs text-primary hover:underline">View All →</Link>
           </div>
         </CardHeader>
         <CardContent className="p-0">
