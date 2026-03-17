@@ -11,6 +11,8 @@ import { usePolicies } from '@/hooks/usePolicies'
 import { useAgents } from '@/hooks/useAgents'
 import { useCompliance } from '@/hooks/useCompliance'
 import { useExceptions } from '@/hooks/useExceptions'
+import { useRemediations } from '@/hooks/useRemediations'
+import type { ExceptionRequest } from '@/types/grc'
 
 // Fallback values when hooks haven't loaded (demo/offline mode)
 const FALLBACK_KPI = { policies: 42, agents: 7, compliance: 84, exceptions: 12, drafts: 3, active: 5 } as const
@@ -22,11 +24,22 @@ const FALLBACK_EXCEPTION_QUEUE = [
   { id: 'EXC-004', app: 'auth-service', type: 'NETWORK_EXPOSURE', resource: 'SG sg-0abc1234 port 22', status: 'PENDING', created: '2026-02-22', sla: '4h' },
 ]
 
-const TREND = [
-  { label: 'Policies Evaluated', value: '18,432', change: '+12%' },
-  { label: 'Auto-Remediations', value: '341', change: '+8%' },
-  { label: 'Exceptions Approved', value: '7', change: '-3%' },
-]
+// Fallback trend values when hooks haven't loaded
+const FALLBACK_TREND = { policies: '18,432', remediations: '341', approved: '7' } as const
+
+const SLA_WINDOW_HOURS = 72 // Default exception review SLA: 72 hours
+
+function computeExceptionSLA(e: ExceptionRequest): string {
+  if (e.status !== 'PENDING') return '—'
+  const deadline = e.expiration_date
+    ? new Date(e.expiration_date).getTime()
+    : new Date(e.created_at).getTime() + SLA_WINDOW_HOURS * 60 * 60 * 1000
+  const remainMs = deadline - Date.now()
+  if (remainMs <= 0) return 'overdue'
+  const remainH = Math.floor(remainMs / (1000 * 60 * 60))
+  if (remainH < 24) return `${remainH}h`
+  return `${Math.floor(remainH / 24)}d`
+}
 
 export default function AdminDashboard() {
   const [expandedExc, setExpandedExc] = useState<string | null>(null)
@@ -34,8 +47,9 @@ export default function AdminDashboard() {
   const { data: agents, isLoading: agentLoading } = useAgents()
   const { data: frameworks, isLoading: compLoading } = useCompliance()
   const { data: exceptions, isLoading: excLoading } = useExceptions()
+  const { data: remediations, isLoading: remLoading } = useRemediations()
 
-  const isLoading = polLoading || agentLoading || compLoading || excLoading
+  const isLoading = polLoading || agentLoading || compLoading || excLoading || remLoading
 
   const activePolicies = policies?.filter(p => p.status === 'active').length ?? FALLBACK_KPI.policies
   const agentCount = agents?.length ?? FALLBACK_KPI.agents
@@ -54,6 +68,17 @@ export default function AdminDashboard() {
     { label: 'Open Exceptions', value: openExceptions, sub: `${exceptions?.filter(e => e.status === 'PENDING').length ?? FALLBACK_KPI.drafts} pending`, icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/20', link: '/ops/remediation' },
   ]
 
+  // Trend metrics — computed from hooks, static fallbacks for values without API data
+  const trendPolicies = policies?.length?.toLocaleString() ?? FALLBACK_TREND.policies
+  const trendRemediations = (remediations?.filter(r => r.status === 'completed').length ?? 341).toLocaleString()
+  const trendApproved = (exceptions?.filter(e => e.status === 'APPROVED').length ?? 7).toLocaleString()
+  // Change percentages: static until time-series API is available
+  const TREND = [
+    { label: 'Policies Evaluated', value: trendPolicies, change: '+12%' },
+    { label: 'Auto-Remediations', value: trendRemediations, change: '+8%' },
+    { label: 'Exceptions Approved', value: trendApproved, change: '-3%' },
+  ]
+
   const EXCEPTION_QUEUE = exceptions
     ? exceptions.slice(0, 4).map(e => ({
         id: e.id,
@@ -62,7 +87,7 @@ export default function AdminDashboard() {
         resource: e.resource_requested,
         status: e.status,
         created: e.created_at.slice(0, 10),
-        sla: '—', // SLA computation requires API field — tracked for future sprint
+        sla: computeExceptionSLA(e),
       }))
     : FALLBACK_EXCEPTION_QUEUE
 
@@ -163,7 +188,7 @@ export default function AdminDashboard() {
                         {exc.status}
                       </span>
                     </TableCell>
-                    <TableCell className={`text-xs font-medium ${exc.sla === '—' ? 'text-muted-foreground' : 'text-orange-600 dark:text-orange-400'}`}>{exc.sla}</TableCell>
+                    <TableCell className={`text-xs font-medium ${exc.sla === '—' ? 'text-muted-foreground' : exc.sla === 'overdue' ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'}`}>{exc.sla}</TableCell>
                   </TableRow>
                   {expandedExc === exc.id && (
                     <TableRow key={`${exc.id}-detail`}>
@@ -173,7 +198,7 @@ export default function AdminDashboard() {
                           <div><span className="text-muted-foreground">Type:</span> <span className="font-mono">{exc.type}</span></div>
                           <div><span className="text-muted-foreground">Resource:</span> <span className="font-medium">{exc.resource}</span></div>
                           <div><span className="text-muted-foreground">Status:</span> <span className={`font-medium px-1.5 py-0.5 rounded-none ${STATUS_COLORS[exc.status] ?? ''}`}>{exc.status}</span></div>
-                          <div><span className="text-muted-foreground">SLA:</span> <span className={`font-medium ${exc.sla === '—' ? '' : 'text-orange-600 dark:text-orange-400'}`}>{exc.sla}</span></div>
+                          <div><span className="text-muted-foreground">SLA:</span> <span className={`font-medium ${exc.sla === '—' ? '' : exc.sla === 'overdue' ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'}`}>{exc.sla}</span></div>
                           <div><span className="text-muted-foreground">Created:</span> <span className="font-medium">{exc.created}</span></div>
                         </div>
                       </TableCell>
