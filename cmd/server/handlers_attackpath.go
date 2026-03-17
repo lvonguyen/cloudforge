@@ -85,6 +85,12 @@ func (svc *AttackPathService) getAttackPath(w http.ResponseWriter, r *http.Reque
 	svc.Mu.RUnlock()
 
 	if found != nil {
+		claims, _ := api.GetClaimsFromContext(r.Context())
+		scope := api.ScopeFromContext(claims)
+		if scope != nil && !attackPathInScope(scope, found) {
+			http.NotFound(w, r)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(found)
 		return

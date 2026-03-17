@@ -184,9 +184,12 @@ export default function SecurityGraph() {
         const count = typeCounters.get(x) ?? 0
         typeCounters.set(x, count + 1)
         const isFocused = n.id === focusResourceId
+        // Deterministic jitter from node ID to avoid layout thrash on re-render
+        const idHash = n.id.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
+        const jitter = (Math.abs(idHash) % 60) - 30
         return {
           id: n.id,
-          position: { x: x + (Math.random() * 60 - 30), y: count * 100 + 50 },
+          position: { x: x + jitter, y: count * 100 + 50 },
           sourcePosition: Position.Right,
           targetPosition: Position.Left,
           data: {

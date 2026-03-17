@@ -166,11 +166,27 @@ func applyEnrichment(path *AttackPath, result *enrichmentResponse) {
 	}
 }
 
+// sanitizeForPrompt strips control characters and truncates to maxLen.
+// Prevents prompt injection via user-controlled resource names/types.
+func sanitizeForPrompt(s string, maxLen int) string {
+	var b strings.Builder
+	for _, r := range s {
+		if r >= 32 && r != 127 { // printable ASCII + valid Unicode
+			b.WriteRune(r)
+		}
+	}
+	result := b.String()
+	if len(result) > maxLen {
+		result = result[:maxLen]
+	}
+	return result
+}
+
 func buildEnrichmentPrompt(path *AttackPath) string {
 	var sb strings.Builder
 
 	sb.WriteString(fmt.Sprintf("Attack Path: %s\nSeverity: %s, Score: %.0f, Hops: %d\n\n",
-		path.Title, path.Severity, path.Score, path.HopCount))
+		sanitizeForPrompt(path.Title, 128), path.Severity, path.Score, path.HopCount))
 
 	sb.WriteString("Entry Point:\n")
 	writeNodeSummary(&sb, &path.EntryPoint)
@@ -203,8 +219,13 @@ func buildEnrichmentPrompt(path *AttackPath) string {
 
 func writeNodeSummary(sb *strings.Builder, node *AttackPathNode) {
 	sb.WriteString(fmt.Sprintf("  - %s (%s, %s) | %s/%s | %s | %s\n",
-		node.ResourceName, node.ResourceType, node.Category,
-		node.Provider, node.Region, node.Severity, node.AccountID))
+		sanitizeForPrompt(node.ResourceName, 128),
+		sanitizeForPrompt(node.ResourceType, 64),
+		sanitizeForPrompt(node.Category, 64),
+		sanitizeForPrompt(node.Provider, 64),
+		sanitizeForPrompt(node.Region, 64),
+		node.Severity,
+		node.AccountID))
 }
 
 func parseEnrichmentResponse(response string) (*enrichmentResponse, error) {

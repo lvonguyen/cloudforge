@@ -81,9 +81,13 @@ interface AttackPathMiniGraphProps {
 export function AttackPathMiniGraph({ paths, resourceId }: AttackPathMiniGraphProps) {
   // Show the first (highest-severity) path
   const primaryPath = paths[0]
-  if (!primaryPath) return null
 
-  const { nodes, edges } = useMemo(() => pathToFlowNodes(primaryPath), [primaryPath])
+  const { nodes, edges } = useMemo(
+    () => (primaryPath ? pathToFlowNodes(primaryPath) : { nodes: [], edges: [] }),
+    [primaryPath],
+  )
+
+  if (!primaryPath) return null
 
   const blastRadius = primaryPath.nodes.length
 

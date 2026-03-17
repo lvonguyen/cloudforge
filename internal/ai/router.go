@@ -141,7 +141,7 @@ func (r *RoutingProvider) GetUsageStats() []UsageStats {
 			Tier:          tier,
 			CallCount:     u.callCount.Load(),
 			TokenEstimate: u.tokenEstimate.Load(),
-			CostCents:     u.costMicros.Load() / 10_000, // microdollars to cents
+			CostCents:     u.costMicros.Load() / 10_000,
 		})
 	}
 	return stats
@@ -165,12 +165,13 @@ func (r *RoutingProvider) GetBudgetStatus() BudgetStatus {
 }
 
 // totalSpentCents returns accumulated cost across all tiers in cents.
+// Sums raw microdollar values first, then divides once to avoid per-tier truncation.
 func (r *RoutingProvider) totalSpentCents() int64 {
-	var total int64
+	var totalMicros int64
 	for _, u := range r.usage {
-		total += u.costMicros.Load() / 10_000
+		totalMicros += u.costMicros.Load()
 	}
-	return total
+	return totalMicros / 10_000
 }
 
 // recordUsage increments counters and estimates cost for the given tier.

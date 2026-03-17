@@ -16,7 +16,7 @@
 | [Component Rationale](./component-rationale.md) | Technology selection with cost analysis |
 | [DR/BC Plan](../DR-BC.md) | Disaster Recovery and Business Continuity |
 | [Pitch Deck](../pitch-deck.md) | Executive presentation |
-| [ADRs](../adr/) | Architecture Decision Records (ADR-001 through ADR-012) |
+| [ADRs](../adr/) | Architecture Decision Records (ADR-001 through ADR-014) |
 | [Runbooks](../runbooks/README.md) | Operational procedures (9 runbooks) |
 
 ---
@@ -227,15 +227,16 @@ When a finding is captured by multiple rules:
 
 ### 5.2 RBAC Model
 
-Three backend roles enforce API access control:
+Four backend roles enforce API access control:
 
 | Role | Description | Scope |
 | --- | --- | --- |
 | Admin | Tenant administrator | Full access: all endpoints, user management, audit log |
 | Operator | SecOps team | Read/update: findings, remediations, compliance, exceptions |
 | Requester | End user | Read + submit: own exceptions, catalog browsing |
+| Viewer | Read-only observer (rank 0) | GET only: /findings, /compliance/frameworks, /agents + traces |
 
-Note: The frontend includes a fourth "viewer" role for read-only access, but the backend does not define a RoleViewer constant. See [ADR-006](../adr/ADR-006-authentication.md) for the full RBAC design.
+See [ADR-006](../adr/ADR-006-authentication.md) for the full RBAC design. See [ADR-013](../adr/ADR-013-resource-scoped-rbac.md) for resource-scoped RBAC (ABAC) with `ResourceScope` in JWT claims.
 
 ### 5.3 Zero Trust Policies
 
@@ -473,12 +474,15 @@ See [Technical Runbooks](../runbooks/README.md) for detailed operational procedu
 | /api/v1/container/scan | GET | operator, admin | Scan container |
 | /api/v1/container/admission | GET | operator, admin | Check admission |
 | /api/v1/secrets | GET | operator, admin | List secrets |
-| /api/v1/secrets/scan | GET | operator, admin | Scan for secrets |
+| /api/v1/secrets/scan | POST | operator, admin | Scan for secrets (content in request body) |
 | /api/v1/secrets/{path} | GET | operator, admin | Get secret |
 | /api/v1/waf/templates | GET | operator, admin | List WAF templates |
 | /api/v1/waf/compliance/{templateId} | GET | operator, admin | Validate WAF compliance |
 | /api/v1/identity/users | GET | operator, admin | List identity users |
 | /api/v1/identity/users/{id}/risk | GET | operator, admin | Get user risk score |
+| /api/v1/ai/nlq | POST | operator, admin | Natural language query |
+| /api/v1/containers | GET | operator, admin | Container security topology |
+| /api/v1/ai/usage | GET | admin | AI budget status (monthly spend vs cap) |
 
 ---
 
@@ -518,6 +522,7 @@ Architecture diagrams in this document use Mermaid for GitHub rendering and can 
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
+| 3.1 | March 2026 | L. Vo-Nguyen | Added Viewer role to RBAC table, updated ADR count (009-014), added POST /api/v1/ai/nlq + GET /api/v1/containers + GET /api/v1/ai/usage to API reference, changed /secrets/scan from GET to POST |
 | 3.0 | March 2026 | L. Vo-Nguyen | Updated tech stack (Go 1.25, gorilla/mux, React 19), added remediation/attack path/FinOps/CSPM sections, full API reference from routes.go, corrected RBAC model, added ADR cross-references |
 | 2.0 | January 2026 | L. Vo-Nguyen | Architecture overview, compliance engine, CI/CD, identity, deployment |
 | 1.0 | January 2026 | L. Vo-Nguyen | Initial HLD |

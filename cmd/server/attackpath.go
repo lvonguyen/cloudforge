@@ -236,6 +236,9 @@ func buildChain(entry Finding, intermediates []Finding, target Finding) []Findin
 	if entry.AccountID != target.AccountID {
 		return nil
 	}
+	if entry.ID == target.ID {
+		return nil
+	}
 
 	// Direct connection: entry -> target
 	if entry.Region == target.Region {

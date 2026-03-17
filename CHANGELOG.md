@@ -10,12 +10,45 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Sprint E**: Client-side mock attack path generator for standalone demo; `AttackPathMiniGraph` embedded in `FindingDetail` Investigation tab (Wiz pattern) (Sprint E)
+- **Sprint E**: `SecurityGraph` focus mode — BFS 2-hop subgraph from selected node; connected-only default (hides isolated nodes) (Sprint E)
+- **Sprint E**: AI cost budget guard — `MonthlyBudgetCents` config, `ErrBudgetExhausted` error, enforced before enrichment calls (Sprint E)
+- **Sprint E**: Extended Bedrock enrichment — confidence scoring field, Opus/Sonnet tier routing based on finding severity (Sprint E)
+- **Sprint E**: Container mock data — 3 clusters with realistic K8s topology for `GET /api/v1/containers` (Sprint E)
+- **Sprint E**: `GET /api/v1/ai/usage` endpoint — AI budget status, admin-only (Sprint E)
+- **Sprint D**: `POST /api/v1/ai/nlq` — natural language query handler (`handlers_nlq.go`) (Sprint D)
+- **Sprint D**: DSPM data classification surface — sensitivity labels on findings (Sprint D)
+- **Sprint D**: Security graph page (`/ops/security-graph`) with ReactFlow visualization (Sprint D)
+- **Sprint D**: Investigation board page with kanban-style investigation tracking (Sprint D)
+- **Sprint D**: `LayoutSwitcher` component with layout presets (list, split, full) (Sprint D)
+- **Sprint C**: Viewer read-only surface — `/ops/findings`, `/ops/compliance`, `/ops/agents` + traces; 13 RBAC tests (Sprint C)
+- **Sprint C**: Choke point detection — cross-path resource frequency analysis; amber card + dashed border highlights (Sprint C)
+- **Sprint C**: Clickable metric cards — 6-card grid (CRIT/HIGH/MED/LOW/SLA/AutoRem) as filter toggles (Sprint C)
+- **Sprint C**: Filter pills — collapsible sidebar, horizontal pills with dropdown checkboxes (Sprint C)
+- **Sprint C**: Kanban remediation pipeline — List/Kanban toggle, `@hello-pangea/dnd`, demo-only drag (Sprint C)
+- **Sprint C**: Inline preview panel — 380px split layout, single-click=preview, double-click=navigate, arrow keys (Sprint C)
+- **Sprint C**: NLQ bar frontend — `NLQueryBar.tsx` with Cmd+K shortcut (Sprint C)
+- **Sprint C**: Enhanced lifecycle timeline — color-coded icons, synthetic events, actor info (Sprint C)
+- **Sprint C**: 4 new data layer toggles — compliance, workflow, time window, AI risk score (Sprint C)
+- **Sprint C**: Blast radius badge — resource count on `PathCard`, color-coded by threshold (Sprint C)
+- **Sprint C**: Container security view — `GET /api/v1/containers` + expandable K8s tree (`handlers_containers.go`) (Sprint C)
+- **Sprint B**: `actorFilter` 400 rejection (was truncation at >255 chars); `resultFilter` + `searchFilter` capped (Sprint B)
+- **Sprint B**: `RoleViewer` Go constant + rank 0 + `groupRoleMap` entry + 13 backend RBAC tests (Sprint B)
+- **Sprint B**: Compliance drill-down drawer — `FrameworkDetailDrawer` opens on row click with `https://` scheme-guarded doc links (Sprint B)
+- **Sprint B**: Portal dashboard hooks — `useMyExceptions`, `useExceptions` with try/catch + mock fallback (Sprint B)
+- **Sprint B**: `useException(id)` hook + `RequestDetail` API wiring; `approver_chain ?? []` + conditional timeline (Sprint B)
+- **Sprint B**: `FRAMEWORK_PROFILES` + `getThreatModelForAgent` — per-framework STRIDE data (Sprint B)
+- **Sprint B**: Admin dashboard 4 KPI hooks + computed KPIs + `FALLBACK_KPI` named constant (Sprint B)
 - Performance infrastructure: pprof dev endpoint (127.0.0.1:6060, dev-only), enrichment benchmarks (GetCached_Hit/Miss, EvictExpired_5000), `make bench` + `make profile` targets (Sprint A+)
 - Frontend performance: `useDeferredValue` for search inputs in Findings + Catalog, vendor chunk splitting (@xyflow 180KB, recharts 379KB, @tanstack 60KB) (Sprint A+)
 - Lighthouse CI budget: performance >= 90, TTI < 2s, LCP < 2.5s, CLS < 0.1 (Sprint A+)
 
 ### Fixed
 
+- **Sprint E**: Gitleaks CI `continue-on-error` to prevent false-positive blocks on testdata fixtures (Sprint E)
+- **Sprint D**: Production build errors in graph pages (D-15..D-17) (Sprint D)
+- **Sprint D**: Chrome QA route sweep — 4 findings resolved (Sprint D)
+- **Sprint B**: 11 agent review findings across 7 files (Sprint B)
 - **go.mod**: module path `test/example` → `cloudforge` with full dependency resolution (Sprint A)
 - **crypto/rand**: `math/rand` → `crypto/rand` in secrets memory_provider (CSPRNG for UUID generation) (Sprint A)
 - **EnrichmentService**: `sync.Mutex` → `sync.RWMutex` for concurrent cache reads; O(n^2) bubble sort → `sort.Slice` in eviction (Sprint A)
@@ -29,9 +62,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Identity handler**: `errors.Is(err, ErrNotFound)` → 404, other errors → 500 (was blanket 404) (Sprint A)
 - **Frontend auth**: `localStorage` → `sessionStorage` for role key (prevents cross-session persistence) (Sprint A)
 - **useFindings**: per-query `{ data, usingMockData }` return (was module-level mutable sentinel) (Sprint A)
+- `golang.org/x/sync` promoted from indirect to direct in `go.mod` (directly imported for `singleflight`)
+- Dead `Request` field removed from OPA evaluation input in enrichment handler (never read by `EvaluateToolAccess`)
+- Findings table header now sticky during scroll (fixed intermediate `overflow-x-auto` scroll context)
+- Provider badges switched to text-only for readability (SVG icons illegible at badge size)
 
 ### Changed
 
+- **Sprint E**: Real-data transform pipeline — 9000 anonymized HAEA findings; uploaded to R2 bucket; test fixture IDs updated (Sprint E)
+- **Sprint E**: `POST /api/v1/secrets/scan` — changed from GET with query param to POST with body (content in body) (Sprint E)
 - Resource-scoped RBAC (ADR-013 Accepted): `ResourceScope` in JWT claims with `Scopeable` interface — findings and attack paths filtered by account, region, environment, business unit (Sprint 8B)
 - Finding ingestion endpoint: `POST /api/v1/findings/ingest` with SHA-256 dedup cache, 24h TTL, admin-only (Sprint 9A)
 - Finding integrity hashing: tamper-evident SHA-256 hash on all findings at load time (Sprint 9B, STRIDE T-01)
@@ -41,16 +80,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Documentation review: HLD v3.0, 4 new ADRs (009-012), 3 new runbooks (07-09), cross-cutting fixes
 - Frontend planning doc — 18-screen React/Vite UI across Admin, Operator, and Requester role views with phased build plan and TypeScript type alignment (`docs/frontend-planning.md`)
 - IaC planning doc — Terraform module catalog, Rego policy expansion, two-track OPA architecture, Cloud Run + CF Pages deployment design (`docs/iac-planning.md`)
-
-### Fixed
-
-- `golang.org/x/sync` promoted from indirect to direct in `go.mod` (directly imported for `singleflight`)
-- Dead `Request` field removed from OPA evaluation input in enrichment handler (never read by `EvaluateToolAccess`)
-- Findings table header now sticky during scroll (fixed intermediate `overflow-x-auto` scroll context)
-- Provider badges switched to text-only for readability (SVG icons illegible at badge size)
-
-### Changed
-
 - ADR-013 status: Proposed to Accepted (resource-scoped RBAC implemented)
 - Threat model checklist: T-01 (integrity hashing) and T-02 (rollback encryption) checked off
 - npm audit CI gate: removed `|| true` fallback — now fails on high-severity advisories

@@ -130,9 +130,9 @@ This is a **platform reference implementation**, not production software:
 3. **Temporal Workflows** — Workflow definitions exist, orchestration layer not wired into request flow
 4. **FinOps Module** — Cost aggregation interfaces defined, no cloud API integration yet
 5. **Stub Packages** — container, secrets, waf, identity modules have interfaces and mock implementations but no production wiring
-6. **Frontend/Backend Role Mismatch** — Frontend has 4 roles (admin, operator, requester, viewer); backend has 3 (RoleAdmin, RoleOperator, RoleRequester, no RoleViewer constant)
+6. **RoleViewer** — `RoleViewer` (rank 0) is implemented with read-only surface (`/findings`, `/compliance/frameworks`, `/agents` + traces); fine-grained per-resource viewer scoping is not yet enforced
 7. **Chrome QA Findings** — 21/21 routes passing with error states, focus rings, footer landmark, OG meta tags; React 19 lazy() context edge case under Playwright (pre-existing, not prod)
-8. **Compliance Drill-Down** — Framework rows on `/ops/compliance` are view-only; control-level click-through and official doc links are planned
+8. **Compliance Drill-Down** — Framework rows are clickable with `FrameworkDetailDrawer` and doc links; control-level sub-drill-down is not yet implemented
 
 **Production Requirements:**
 
@@ -430,6 +430,8 @@ workflow:
 | [ADR-010](docs/adr/ADR-010-finops-cost-aggregation.md) | FinOps Multi-Cloud Cost Aggregation |
 | [ADR-011](docs/adr/ADR-011-toxic-combo-detection.md) | Toxic Combination Detection Strategy |
 | [ADR-012](docs/adr/ADR-012-whitelabel-architecture.md) | Whitelabel/Multi-Tenant Architecture |
+| [ADR-013](docs/adr/ADR-013-resource-scoped-rbac.md) | Resource-Scoped RBAC (ABAC) |
+| [ADR-014](docs/adr/ADR-014-event-driven-ingestion.md) | Event-Driven Finding Ingestion |
 
 ### Runbooks
 
@@ -553,6 +555,10 @@ Built-in support for 20+ frameworks:
 
 | Date | Author | Change |
 | ---- | ------ | ------ |
+| 2026-03-17 | Liem Vo-Nguyen | Sprint E: client-side mock attack path generator, AttackPathMiniGraph in FindingDetail, SecurityGraph focus mode (BFS 2-hop), connected-only default, AI cost budget guard (MonthlyBudgetCents, ErrBudgetExhausted), extended Bedrock enrichment (confidence scoring, Opus/Sonnet tier routing), container mock data (3 clusters), GET /api/v1/ai/usage, real-data transform pipeline (9000 anonymized findings), R2 upload |
+| 2026-03-17 | Liem Vo-Nguyen | Sprint D: NLQ bar backend (POST /api/v1/ai/nlq), DSPM data classification, security graph page, investigation board, LayoutSwitcher presets; production build fixes + Chrome QA 18/18 routes |
+| 2026-03-16 | Liem Vo-Nguyen | Sprint C: Viewer read-only surface + 13 RBAC tests, choke point detection, clickable metric cards, filter pills, kanban remediation pipeline (@hello-pangea/dnd), inline preview panel, NLQ bar (frontend), lifecycle timeline, data layer toggles, blast radius badges, container security view (GET /api/v1/containers) |
+| 2026-03-16 | Liem Vo-Nguyen | Sprint B: actorFilter 400 rejection, RoleViewer const + rank 0, compliance drill-down drawer (FrameworkDetailDrawer), portal dashboard hooks (useMyExceptions, useExceptions), RequestDetail API wiring, FRAMEWORK_PROFILES (per-framework STRIDE data), admin dashboard KPI hooks; 11 agent review fixes |
 | 2026-03-16 | Liem Vo-Nguyen | Sprint A + A+: 15 review fixes (go.mod, crypto/rand, RWMutex, sort.Slice, CORS dev-gate, tenant JWT, url.Values, full redaction, OPA default, attack path dedup, identity errors, sessionStorage, per-query mock), performance infra (pprof, 8 benchmarks, Makefile, useDeferredValue, vendor chunks, Lighthouse CI), E2E Chrome QA (21 pages, error states, focus rings, footer, OG tags, useAttackPaths fallback). Go: 34 pkgs / 1474 tests, Frontend: 323 tests |
 | 2026-03-12 | Liem Vo-Nguyen | Sprint 4: rebrand to "Platform", focus landing on 2 core modules, catalog CSP dropdown, benchmark tests, roadmap audit, whitelabel design doc |
 | 2026-03-12 | Liem Vo-Nguyen | Sprint 3: paginate attack paths, factory error tests, audit log key fix |

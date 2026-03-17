@@ -1,16 +1,20 @@
-# Handoff: CloudForge Sprint 8-10 + A/A+ Complete — FAANG Hardening + QA Cycle
+# Handoff: CloudForge Sprints B-E Complete — Attack Paths, Security Graph, AI Budget, Real Data
 
-## Current State (2026-03-16)
+## Current State (2026-03-17)
 
 [+] Project: 92% complete (reference implementation with enforcement-backed security)
 [+] Sprint 8-10 complete: 3.5->4.5 hardening cycle (CI enforcement, RBAC scope, ingest, audit, encryption)
 [+] Sprint A + A+ complete: 15 review fixes, performance infra, E2E Chrome QA (21/21 routes)
+[+] Sprint B complete: actorFilter validation, RoleViewer backend, compliance drill-down, portal hooks, STRIDE profiles, admin KPI hooks
+[+] Sprint C complete: Viewer read-only surface, choke points, metric cards, filter pills, kanban, preview panel, NLQ bar, lifecycle timeline, data layer toggles, blast radius, container security
+[+] Sprint D complete: NLQ backend, DSPM classification, security graph, investigation board, LayoutSwitcher; 18/18 Chrome routes PASS
+[+] Sprint E complete: attack path fidelity (client-side fallback, pre-computed paths), Bedrock enrichment (confidence scoring, tier routing), SecurityGraph focus mode, AI budget guard, real-data pipeline (9000 findings)
 [+] CI gates enforced: gosec HIGH+, Trivy exit-code 1, Codecov fail-on-error, frontend vitest, npm audit
-[+] Security: resource-scoped RBAC (ABAC), finding integrity SHA-256, AES-256-GCM rollback encryption
+[+] Security: resource-scoped RBAC (ABAC), finding integrity SHA-256, AES-256-GCM rollback encryption, AI cost budget guard
 [+] Audit: real audit logging with integrity hashes (MemoryAuditLogger + ZapAuditLogger)
 [+] Ingest: POST /api/v1/findings/ingest with SHA-256 dedup, 24h TTL
 [+] STRIDE: T-01 (integrity) and T-02 (rollback encryption) controls implemented
-[+] Testing: 30+ Go packages, internal/api/rbac_test.go (14 tests), internal/audit (7 tests), internal/ingestion (3 tests), encrypted_state (8 tests)
+[+] Testing: 34 Go packages / 1474 tests (-race clean), 323 frontend tests (38 files), 8 benchmarks
 [+] Previous: Sprint 4 (9 commits), Sprint 5-7 (test coverage, docs, interview holes)
 
 ## Sprint 4 Summary
@@ -49,10 +53,10 @@
 
 1. [LOW] React 19 lazy() context errors under Playwright (pre-existing, not prod)
 2. [P2] CSP style-src still allows 'unsafe-inline' (Tailwind/Radix requirement)
-3. [KNOWN] Frontend has 4 roles (incl viewer); backend has 3 (no RoleViewer constant)
+3. [DONE] RoleViewer added in Sprint B (rank 0, read-only surface: /findings, /compliance/frameworks, /agents + traces; 13 RBAC tests)
 4. [KNOWN] FinOps cloud API clients are interface-only (not wired to production credentials)
 5. [KNOWN] Container, secrets, waf, identity modules have interfaces + mock implementations only
-6. [UX] Compliance controls not clickable — no drill-down or official doc links (planned)
+6. [DONE] Compliance drill-down added in Sprint B — FrameworkDetailDrawer with doc links
 7. [LOW] Lighthouse TTI 2s budget may flake in CI — monitor, relax if needed
 
 ## Key Paths

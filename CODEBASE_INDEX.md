@@ -90,10 +90,11 @@ Layer key format: `"group:value"` — parsed via `parseLayerKey()`, built via `l
 
 ## Server Architecture (`cmd/server/`)
 
-- **Server struct**: composition root with 22 fields — domain services, singletons, middleware
+- **Server struct**: composition root with ~15-20 fields after God Object refactor (phases 1-3 complete) — domain services, singletons, middleware
 - **DataStore**: embeds MockData + 4 O(1) lookup maps (FindingsByID, AgentsByID, TracesByAgentID, RemediationsByID)
 - **EnrichmentService**: AI provider + cache + singleflight.Group for dedup
 - **AttackPathService**: computed attack paths + mutex for concurrent access
+- **Handler files**: `handlers_api.go`, `handlers_grc.go`, `handlers_attackpath.go`, `handlers_nlq.go` (NLQ/AI), `handlers_containers.go` (container security), `service_enrichment.go`, `mockdata.go`
 - **Routes**: gorilla/mux with auth → rate-limit → RBAC middleware chain
 - **Tenant middleware**: resolves from JWT `tenant_id` → X-Tenant-ID header → subdomain
 - **Config endpoint**: `GET /api/v1/config` + `/config.json` (unauthenticated, tenant-aware branding)
@@ -110,8 +111,8 @@ Layer key format: `"group:value"` — parsed via `parseLayerKey()`, built via `l
 
 ## Roles & RBAC
 
-- Go: `RoleAdmin`, `RoleOperator`, `RoleRequester` (NO RoleViewer)
-- Frontend: 4 roles including 'viewer' (display-only)
+- Go: `RoleAdmin`, `RoleOperator`, `RoleRequester`, `RoleViewer` (rank 0 — read-only; added Sprint B)
+- Frontend: 4 roles including 'viewer'
 - `RoleEnforcer.Require()` wraps handlers
 - `ResourceScope` on Claims for ABAC (providers, severities, environments, regions, accounts)
 
@@ -123,6 +124,6 @@ Layer key format: `"group:value"` — parsed via `parseLayerKey()`, built via `l
 
 ## Test Infrastructure
 
-- **Frontend**: Vitest + jsdom + @testing-library/react, 326+ tests across 38 files
-- **Backend**: Go standard testing, -race enabled, sync.Once for 42MB LFS fixture
+- **Frontend**: Vitest + jsdom + @testing-library/react, 323 tests across 38 files
+- **Backend**: Go standard testing, 1474 tests across 34 packages, -race clean, sync.Once for 42MB LFS fixture
 - **CI**: GitHub Actions — Frontend Checks, Build & Test, Lint, Security Scan, OPA Policy Test, Cloudflare Pages
