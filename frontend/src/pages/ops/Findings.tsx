@@ -219,14 +219,7 @@ export default function Findings() {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>(DEFAULT_WIDTHS)
   const resizingRef = useRef<{ col: string; startX: number; startWidth: number } | null>(null)
 
-  // Fluctuating display count for demo realism (cosmetic only — real data unchanged)
-  const [displayCount, setDisplayCount] = useState(() => 5500 + Math.floor(Math.random() * 1201))
-  useEffect(() => {
-    const id = setInterval(() => setDisplayCount(5500 + Math.floor(Math.random() * 1201)), 30_000)
-    return () => clearInterval(id)
-  }, [])
-  const displayScale = displayCount / (allFindings.length || 1)
-  const scaleCount = (n: number) => Math.round(n * displayScale)
+  const displayCount = allFindings.length
 
   const onResizeStart = useCallback((col: string, e: React.MouseEvent) => {
     e.preventDefault()
@@ -544,7 +537,7 @@ export default function Findings() {
                   className="rounded-none accent-foreground"
                 />
                 <span className="text-foreground group-hover:text-foreground/80 flex-1">{cat}</span>
-                <span className="text-muted-foreground tabular-nums">{scaleCount(categoryCounts[cat] ?? 0).toLocaleString()}</span>
+                <span className="text-muted-foreground tabular-nums">{(categoryCounts[cat] ?? 0).toLocaleString()}</span>
               </label>
             ))}
           </div>
@@ -563,7 +556,7 @@ export default function Findings() {
                   className="rounded-none accent-foreground"
                 />
                 <span className="text-foreground group-hover:text-foreground/80 flex-1">{prov.toUpperCase()}</span>
-                <span className="text-muted-foreground tabular-nums">{scaleCount(providerCounts[prov] ?? 0).toLocaleString()}</span>
+                <span className="text-muted-foreground tabular-nums">{(providerCounts[prov] ?? 0).toLocaleString()}</span>
               </label>
             ))}
           </div>
@@ -582,7 +575,7 @@ export default function Findings() {
                   className="rounded-none accent-foreground"
                 />
                 <span className="text-foreground group-hover:text-foreground/80 flex-1">{STATUS_LABELS[st] ?? st}</span>
-                <span className="text-muted-foreground tabular-nums">{scaleCount(statusCounts[st] ?? 0).toLocaleString()}</span>
+                <span className="text-muted-foreground tabular-nums">{(statusCounts[st] ?? 0).toLocaleString()}</span>
               </label>
             ))}
           </div>
@@ -743,7 +736,7 @@ export default function Findings() {
             <div className="flex gap-1.5">
               {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map(sev => (
                 <Badge key={sev} variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${SEVERITY_COLORS[sev]}`}>
-                  {sev} {scaleCount(severityCounts[sev] ?? 0).toLocaleString()}
+                  {sev} {(severityCounts[sev] ?? 0).toLocaleString()}
                 </Badge>
               ))}
             </div>
@@ -792,7 +785,7 @@ export default function Findings() {
         {/* Metric cards */}
         <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
           {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map(sev => {
-            const count = scaleCount(severityCounts[sev] ?? 0)
+            const count = (severityCounts[sev] ?? 0)
             const isActive = severityTab === sev
             return (
               <button
@@ -823,7 +816,7 @@ export default function Findings() {
             }`}
           >
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide">SLA Breached</p>
-            <p className="text-lg font-semibold tabular-nums mt-0.5 text-red-600 dark:text-red-400">{scaleCount(slaBreachedCount).toLocaleString()}</p>
+            <p className="text-lg font-semibold tabular-nums mt-0.5 text-red-600 dark:text-red-400">{(slaBreachedCount).toLocaleString()}</p>
           </button>
           <button
             onClick={() => setFilterAutoRem(prev => !prev)}
@@ -834,7 +827,7 @@ export default function Findings() {
             }`}
           >
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Auto-Rem</p>
-            <p className="text-lg font-semibold tabular-nums mt-0.5 text-green-600 dark:text-green-400">{scaleCount(autoRemCount).toLocaleString()}</p>
+            <p className="text-lg font-semibold tabular-nums mt-0.5 text-green-600 dark:text-green-400">{(autoRemCount).toLocaleString()}</p>
           </button>
         </div>
 
