@@ -9,11 +9,17 @@ const SEV_FILL: Record<string, string> = {
   LOW: '#3b82f6',
 }
 
-const TOOLTIP_STYLE = {
-  background: '#161b22',
-  border: '1px solid #1e2330',
-  borderRadius: 0,
-  fontSize: 11,
+const SEV_ABBR: Record<string, string> = {
+  CRITICAL: 'CRT',
+  HIGH: 'HI',
+  MEDIUM: 'MED',
+  LOW: 'LOW',
+}
+
+const PROVIDER_INITIAL: Record<string, string> = {
+  AWS: 'A',
+  AZURE: 'Z',
+  GCP: 'G',
 }
 
 interface TreeNode {
@@ -23,6 +29,9 @@ interface TreeNode {
   fill?: string
   findingId?: string
   severity?: string
+  provider?: string
+  resourceName?: string
+  findingTitle?: string
   [key: string]: unknown
 }
 
@@ -31,74 +40,123 @@ interface Props {
   onSelect: (f: Finding) => void
 }
 
+// Provider -> Severity -> Findings for contiguous same-color clusters
 function buildTreeData(findings: Finding[]): TreeNode[] {
   const providerMap = new Map<string, Map<string, Finding[]>>()
 
   for (const f of findings) {
     const provider = f.cloud_provider.toUpperCase()
     if (!providerMap.has(provider)) providerMap.set(provider, new Map())
-    const catMap = providerMap.get(provider)!
-    if (!catMap.has(f.category)) catMap.set(f.category, [])
-    catMap.get(f.category)!.push(f)
+    const sevMap = providerMap.get(provider)!
+    const sev = f.severity ?? 'MEDIUM'
+    if (!sevMap.has(sev)) sevMap.set(sev, [])
+    sevMap.get(sev)!.push(f)
   }
 
-  return Array.from(providerMap.entries()).map(([provider, catMap]) => ({
+  return Array.from(providerMap.entries()).map(([provider, sevMap]) => ({
     name: provider,
-    children: Array.from(catMap.entries()).map(([category, fs]) => ({
-      name: category,
+    children: Array.from(sevMap.entries()).map(([severity, fs]) => ({
+      name: severity,
       children: fs.map(f => ({
         name: f.resource_name || f.id.slice(0, 8),
         size: f.ai_risk_score || 1,
         fill: SEV_FILL[f.severity] ?? '#6b7280',
         findingId: f.id,
         severity: f.severity,
+        provider: f.cloud_provider.toUpperCase(),
+        resourceName: f.resource_name || f.id.slice(0, 8),
+        findingTitle: f.title,
       })),
     })),
   }))
 }
 
-// Custom cell renderer for per-cell fill colors + truncated labels
+// Adaptive cell renderer: full label > abbreviated label > no label
 function CustomCell(props: Record<string, unknown>) {
-  const { x, y, width, height, name, fill } = props as {
-    x: number
-    y: number
-    width: number
-    height: number
-    name: string
-    fill: string
+  const { x, y, width, height, name, fill, severity, provider } = props as {
+    x: number; y: number; width: number; height: number
+    name: string; fill: string; severity?: string; provider?: string
   }
 
-  if (width < 4 || height < 4) return null
+  if (width < 6 || height < 6) return null
+
+  const showFull = width > 30 && height > 14
+  const showAbbr = !showFull && width > 20 && height > 10
+
+  let label: string | null = null
+  if (showFull) {
+    const maxChars = Math.floor(width / 5)
+    const raw = String(name ?? '')
+    label = raw.length > maxChars ? raw.slice(0, maxChars) + '\u2026' : raw
+  } else if (showAbbr && severity) {
+    const sAbbr = SEV_ABBR[severity] ?? severity.slice(0, 3)
+    const pInit = provider ? (PROVIDER_INITIAL[provider] ?? provider.charAt(0)) : ''
+    label = pInit ? `${sAbbr}\u00b7${pInit}` : sAbbr
+  }
 
   return (
     <g>
       <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
+        x={x} y={y} width={width} height={height}
         fill={fill ?? '#6b7280'}
         stroke="#0a0a0f"
         strokeWidth={1}
         style={{ cursor: 'pointer' }}
       />
-      {width > 30 && height > 14 && (
-        <text
-          x={x + 4}
-          y={y + 12}
-          fill="#ffffff"
-          fontSize={9}
-          fontFamily="monospace"
-          stroke="#000000"
-          strokeWidth={0.3}
-          paintOrder="stroke"
-        >
-          {String(name ?? '').length > Math.floor(width / 5)
-            ? String(name ?? '').slice(0, Math.floor(width / 5)) + '…'
-            : String(name ?? '')}
-        </text>
+      {label && (
+        <>
+          <rect
+            x={x + 2}
+            y={y + (showFull ? 1 : 0)}
+            width={Math.min(label.length * (showFull ? 5.5 : 5) + 4, width - 4)}
+            height={showFull ? 14 : 11}
+            fill="rgba(0,0,0,0.5)"
+            rx={2}
+          />
+          <text
+            x={x + 4}
+            y={y + (showFull ? 12 : 9)}
+            fill="#ffffff"
+            fontSize={showFull ? 9 : 8}
+            fontFamily="monospace"
+          >
+            {label}
+          </text>
+        </>
       )}
     </g>
+  )
+}
+
+function TreemapTooltip({ active, payload }: {
+  active?: boolean
+  payload?: Array<{ payload: Record<string, unknown> }>
+}) {
+  if (!active || !payload?.length) return null
+  const d = payload[0].payload
+  if (!d.findingId) return null
+
+  return (
+    <div style={{
+      background: '#161b22',
+      border: '1px solid #1e2330',
+      borderRadius: 4,
+      padding: '8px 10px',
+      fontSize: 11,
+      maxWidth: 300,
+    }}>
+      <div style={{
+        color: SEV_FILL[d.severity as string] ?? '#9ca3af',
+        fontWeight: 600,
+        marginBottom: 2,
+      }}>
+        {String(d.severity)} — {String(d.provider)}
+      </div>
+      <div style={{ color: '#e5e7eb', marginBottom: 4 }}>
+        {String(d.findingTitle ?? d.name)}
+      </div>
+      <div style={{ color: '#9ca3af' }}>{String(d.resourceName)}</div>
+    </div>
   )
 }
 
@@ -131,10 +189,7 @@ export function FindingsTreemap({ findings, onSelect }: Props) {
             content={<CustomCell />}
             onClick={handleClick}
           >
-            <Tooltip
-              contentStyle={TOOLTIP_STYLE}
-              labelStyle={{ color: '#9ca3af' }}
-            />
+            <Tooltip content={<TreemapTooltip />} />
           </Treemap>
         </ResponsiveContainer>
       </div>
