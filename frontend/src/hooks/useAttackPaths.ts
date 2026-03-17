@@ -85,15 +85,52 @@ async function fetchAttackPaths(page: number, perPage: number): Promise<Paginate
   }
 }
 
+// computeStatsFromPaths derives stats directly from the path list, ensuring
+// stats always reflect the actual paths the list endpoint will display.
+// This fixes the disconnect where pre-computed stats came from a different
+// findings snapshot than the paths array.
+function computeStatsFromPaths(paths: AttackPath[]): AttackPathStats {
+  const byProvider: Record<string, number> = {}
+  const findingIDs = new Set<string>()
+  let critical = 0, high = 0, medium = 0
+
+  for (const p of paths) {
+    if (p.severity === 'CRITICAL') critical++
+    else if (p.severity === 'HIGH') high++
+    else medium++
+
+    if (p.nodes?.length > 0) {
+      const provider = p.nodes[0].provider
+      byProvider[provider] = (byProvider[provider] ?? 0) + 1
+    }
+    for (const fid of p.finding_ids ?? []) {
+      findingIDs.add(fid)
+    }
+  }
+
+  const findingsInPaths = findingIDs.size
+  return {
+    total_findings: findingsInPaths, // in mock mode, we only know about findings in paths
+    findings_in_paths: findingsInPaths,
+    isolated_findings: 0,
+    coverage_percent: paths.length > 0 ? 100 : 0,
+    total_paths: paths.length,
+    critical_paths: critical,
+    high_paths: high,
+    medium_paths: medium,
+    by_provider: byProvider,
+  }
+}
+
 async function fetchAttackPathStats(): Promise<AttackPathStats> {
   try {
     return await apiClient.get<AttackPathStats>('/attack-paths/stats')
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
     if (import.meta.env.PROD) throw err
-    console.warn('[useAttackPathStats] API unavailable, using mock stats')
-    const { stats } = await getMockAttackPaths()
-    return stats
+    console.warn('[useAttackPathStats] API unavailable, deriving stats from paths')
+    const { paths } = await getMockAttackPaths()
+    return computeStatsFromPaths(paths)
   }
 }
 
