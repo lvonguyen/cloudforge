@@ -79,7 +79,38 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
       return
     }
 
-    // NLQ mode: call AI endpoint
+    // NLQ mode: try client-side keyword extraction first, then AI endpoint
+    const lower = q.toLowerCase()
+    const severityTerms = ['critical', 'high', 'medium', 'low']
+    const providerTerms = ['aws', 'azure', 'gcp']
+    const categoryTerms: Record<string, string> = {
+      vuln: 'VULNERABILITY', vulnerability: 'VULNERABILITY', vulnerabilities: 'VULNERABILITY',
+      misconfig: 'MISCONFIGURATION', misconfiguration: 'MISCONFIGURATION',
+      identity: 'IDENTITY', iam: 'IDENTITY',
+      network: 'NETWORK', data: 'DATA_PROTECTION',
+    }
+    const statusTerms: Record<string, string> = {
+      open: 'open', 'in progress': 'in_progress', resolved: 'resolved', suppressed: 'suppressed',
+    }
+
+    const matchedSev = severityTerms.filter(s => lower.includes(s)).map(s => s.toUpperCase())
+    const matchedProv = providerTerms.filter(p => lower.includes(p))
+    const matchedCat = Object.entries(categoryTerms).filter(([k]) => lower.includes(k)).map(([, v]) => v)
+    const matchedStatus = Object.entries(statusTerms).filter(([k]) => lower.includes(k)).map(([, v]) => v)
+
+    if (matchedSev.length > 0 || matchedProv.length > 0 || matchedCat.length > 0 || matchedStatus.length > 0) {
+      const filters: NLQFilters = {}
+      if (matchedSev.length > 0) filters.severity = matchedSev
+      if (matchedProv.length > 0) filters.provider = matchedProv
+      if (matchedCat.length > 0) filters.category = [...new Set(matchedCat)]
+      if (matchedStatus.length > 0) filters.status = [...new Set(matchedStatus)]
+      setAppliedFilters(filters)
+      onApplyFilters(filters)
+      setOpen(false)
+      return
+    }
+
+    // No keywords matched — call AI endpoint
     setLoading(true)
     try {
       const filters = await apiClient.post<NLQFilters>('/ai/nlq', { query: q })
@@ -173,7 +204,7 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
                   onChange={e => setQuery(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
                   placeholder={mode === 'rql' ? 'severity=CRITICAL AND provider=aws' : 'e.g. critical AWS misconfigs in production'}
-                  className="flex-1 text-sm bg-transparent border-none outline-none font-mono"
+                  className="flex-1 text-sm bg-transparent border-none outline-none font-mono text-foreground placeholder:text-muted-foreground"
                   disabled={loading}
                 />
                 {loading && <span className="text-[10px] text-muted-foreground animate-pulse">Analyzing...</span>}
