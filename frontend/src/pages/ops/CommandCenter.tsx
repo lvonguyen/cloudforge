@@ -17,6 +17,7 @@ import {
 } from '@/contexts/CommandCenterContext'
 import { DataLayersPanel } from '@/components/ops/DataLayersPanel'
 import { EntityDetailPanel } from '@/components/ops/EntityDetailPanel'
+import { NLQueryBar } from '@/components/ops/NLQueryBar'
 import { StatusBar } from '@/components/ops/StatusBar'
 import { FindingsSummaryChart } from '@/components/ops/FindingsSummaryChart'
 import { FindingsTreemap } from '@/components/ops/FindingsTreemap'
@@ -392,9 +393,33 @@ function CommandCenterShell() {
     )
   }
 
+  const handleNLQFilters = useCallback((filters: { severity?: string[]; provider?: string[]; environment?: string[] }) => {
+    const layers: Record<string, boolean> = {}
+    if (filters.severity) {
+      for (const s of ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']) {
+        layers[`severity:${s}`] = filters.severity.includes(s)
+      }
+    }
+    if (filters.provider) {
+      for (const p of ['aws', 'azure', 'gcp']) {
+        layers[`provider:${p}`] = filters.provider.includes(p)
+      }
+    }
+    if (filters.environment) {
+      for (const e of ['production', 'staging', 'development']) {
+        layers[`environment:${e}`] = filters.environment.includes(e)
+      }
+    }
+    dispatch({ type: 'SET_LAYERS', payload: layers })
+  }, [dispatch])
+
   return (
     <div className="dark flex h-full flex-col bg-[#0a0a0f]">
       {state.showShortcutOverlay && <ShortcutOverlay />}
+      {/* NLQ bar — GAP-03 */}
+      <div className="px-3 py-2 border-b border-[#1e2330]">
+        <NLQueryBar onApplyFilters={handleNLQFilters} />
+      </div>
       {/* Three-column layout — PaneLayout pattern */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel — data layers */}
