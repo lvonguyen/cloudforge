@@ -57,27 +57,27 @@ export default function Compliance() {
         </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <ShieldCheck className="h-5 w-5 text-green-600 shrink-0" />
+            <ShieldCheck className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
             <div>
-              <p className="text-2xl font-bold text-green-600">{passing}</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{passing}</p>
               <p className="text-xs text-muted-foreground">Passing ≥90%</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <Shield className="h-5 w-5 text-yellow-600 shrink-0" />
+            <Shield className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0" />
             <div>
-              <p className="text-2xl font-bold text-yellow-600">{atRisk}</p>
+              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{atRisk}</p>
               <p className="text-xs text-muted-foreground">At Risk 75–89%</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <ShieldAlert className="h-5 w-5 text-red-600 shrink-0" />
+            <ShieldAlert className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0" />
             <div>
-              <p className="text-2xl font-bold text-red-600">{failing}</p>
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">{failing}</p>
               <p className="text-xs text-muted-foreground">Failing &lt;75%</p>
             </div>
           </CardContent>
@@ -137,12 +137,12 @@ export default function Compliance() {
                 onClick={() => setSelectedFramework(fw)}
               >
                 <div>
-                  <p className="font-medium">{fw.name}</p>
+                  <p className="font-medium text-foreground">{fw.name}</p>
                   <p className="text-xs text-muted-foreground capitalize">{fw.category}</p>
                 </div>
                 <div className="text-center">
                   <p className="font-mono text-xs text-muted-foreground">Controls</p>
-                  <p className="font-semibold">{fw.controls_passing}<span className="text-muted-foreground font-normal">/{fw.total_controls}</span></p>
+                  <p className="font-semibold text-foreground">{fw.controls_passing}<span className="text-muted-foreground font-normal">/{fw.total_controls}</span></p>
                 </div>
                 <div className="text-center">
                   <p className="font-mono text-xs text-muted-foreground">Compliance</p>
