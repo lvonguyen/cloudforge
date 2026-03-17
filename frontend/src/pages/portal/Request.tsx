@@ -98,7 +98,7 @@ function StepResourceSelection({
     <div className="space-y-6">
       <div>
         <h2 className="text-sm font-semibold mb-3">Select Resource Type</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {catalog.map(item => (
             <div
               key={item.id}
@@ -150,8 +150,16 @@ function StepResourceSelection({
 
 // ── Step 2: Configuration ────────────────────────────────────────────────────
 
+const GENERIC_SKUS = [
+  { id: 'small', name: 'Small', description: 'Dev/test workloads', cost: '$5–$50/mo' },
+  { id: 'medium', name: 'Medium', description: 'Staging and light production', cost: '$50–$200/mo' },
+  { id: 'large', name: 'Large', description: 'Production workloads', cost: '$200–$1,000/mo' },
+  { id: 'xlarge', name: 'X-Large', description: 'High-performance and data-intensive', cost: '$1,000+/mo' },
+]
+
 function ResourceFields({ resourceId, control, errors }: { resourceId: string; control: UseFormReturn<FieldValues>['control']; errors: Record<string, { message?: string }> }) {
-  if (resourceId === 'ec2') {
+  const rid = resourceId.replace(/^(aws|azure|gcp)-/, '')
+  if (rid === 'ec2') {
     return (
       <>
         <div className="space-y-1.5">
@@ -190,7 +198,7 @@ function ResourceFields({ resourceId, control, errors }: { resourceId: string; c
     )
   }
 
-  if (resourceId === 's3') {
+  if (rid === 's3') {
     return (
       <>
         <div className="space-y-1.5">
@@ -222,7 +230,7 @@ function ResourceFields({ resourceId, control, errors }: { resourceId: string; c
     )
   }
 
-  if (resourceId === 'rds') {
+  if (rid === 'rds') {
     return (
       <>
         <div className="space-y-1.5">
@@ -261,34 +269,64 @@ function ResourceFields({ resourceId, control, errors }: { resourceId: string; c
     )
   }
 
-  // AKS or GKE
+  // Container resources (AKS, EKS, GKE)
+  if (rid === 'aks' || rid === 'eks' || rid === 'gke') {
+    return (
+      <>
+        <div className="space-y-1.5">
+          <Label>Node Count</Label>
+          <Controller name="nodeCount" control={control} defaultValue={3} render={({ field }) => (
+            <Input type="number" {...field} min={1} max={100} />
+          )} />
+          {errors.nodeCount && <p className="text-xs text-destructive">{errors.nodeCount.message}</p>}
+        </div>
+        <div className="space-y-1.5">
+          <Label>Machine Type</Label>
+          <Controller name="machineType" control={control} defaultValue="" render={({ field }) => (
+            <Select value={field.value as string} onValueChange={field.onChange}>
+              <SelectTrigger className="w-full"><SelectValue placeholder="Select type" /></SelectTrigger>
+              <SelectContent>
+                {['Standard_D2s_v3', 'Standard_D4s_v3', 'n1-standard-2', 'n1-standard-4', 'e2-standard-4'].map(m => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )} />
+        </div>
+        <div className="flex items-center gap-2">
+          <Controller name="autoscaling" control={control} defaultValue={true} render={({ field }) => (
+            <input type="checkbox" id="autoscaling" checked={field.value as boolean} onChange={e => field.onChange(e.target.checked)} className="h-4 w-4 rounded border-input" />
+          )} />
+          <Label htmlFor="autoscaling" className="cursor-pointer">Enable autoscaling</Label>
+        </div>
+      </>
+    )
+  }
+
+  // Generic SKU dropdown for all other resource types
   return (
     <>
-      <div className="space-y-1.5">
-        <Label>Node Count</Label>
-        <Controller name="nodeCount" control={control} defaultValue={3} render={({ field }) => (
-          <Input type="number" {...field} min={1} max={100} />
-        )} />
-        {errors.nodeCount && <p className="text-xs text-destructive">{errors.nodeCount.message}</p>}
-      </div>
-      <div className="space-y-1.5">
-        <Label>Machine Type</Label>
-        <Controller name="machineType" control={control} defaultValue="" render={({ field }) => (
+      <div className="space-y-1.5 sm:col-span-2">
+        <Label>Size / SKU</Label>
+        <Controller name="sku" control={control} defaultValue="medium" render={({ field }) => (
           <Select value={field.value as string} onValueChange={field.onChange}>
-            <SelectTrigger className="w-full"><SelectValue placeholder="Select type" /></SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {['Standard_D2s_v3', 'Standard_D4s_v3', 'n1-standard-2', 'n1-standard-4', 'e2-standard-4'].map(m => (
-                <SelectItem key={m} value={m}>{m}</SelectItem>
+              {GENERIC_SKUS.map(sku => (
+                <SelectItem key={sku.id} value={sku.id}>
+                  <span className="font-medium">{sku.name}</span>
+                  <span className="text-muted-foreground ml-2">— {sku.description} ({sku.cost})</span>
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         )} />
       </div>
-      <div className="flex items-center gap-2">
-        <Controller name="autoscaling" control={control} defaultValue={true} render={({ field }) => (
-          <input type="checkbox" id="autoscaling" checked={field.value as boolean} onChange={e => field.onChange(e.target.checked)} className="h-4 w-4 rounded border-input" />
+      <div className="space-y-1.5">
+        <Label>Name / Identifier</Label>
+        <Controller name="resourceName" control={control} defaultValue="" render={({ field }) => (
+          <Input {...field} placeholder={`my-${rid || 'resource'}`} />
         )} />
-        <Label htmlFor="autoscaling" className="cursor-pointer">Enable autoscaling</Label>
       </div>
     </>
   )
@@ -633,6 +671,8 @@ export default function Request() {
               const regions = REGIONS[item.provider] ?? []
               setRegion(regions[0] ?? '')
             }
+            // Auto-advance to Configuration step after selection
+            setTimeout(() => setCurrentStep(1), 50)
           }}
           provider={cloudProvider}
           onProviderChange={setCloudProvider}
@@ -706,7 +746,7 @@ export default function Request() {
   }
 
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">New Resource Request</h1>
         <p className="text-sm text-muted-foreground mt-1">
