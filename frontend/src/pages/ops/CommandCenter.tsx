@@ -339,6 +339,18 @@ function CommandCenterShell() {
     })
   }, [allFindings, enabledByGroup, state.dateRange])
 
+  // Filter attack paths by active layers (provider/severity match on nodes)
+  const filteredAttackPaths = useMemo(() => {
+    const sevs = enabledByGroup.severity
+    const provs = enabledByGroup.provider
+    if ((!sevs || sevs.size === 0) && (!provs || provs.size === 0)) return attackPaths
+    return attackPaths.filter(p => {
+      if (sevs && sevs.size > 0 && !sevs.has(p.severity)) return false
+      if (provs && provs.size > 0 && !p.nodes.some(n => provs.has(n.provider))) return false
+      return true
+    })
+  }, [attackPaths, enabledByGroup])
+
   const toxicComboCount = useMemo(
     () => filteredFindings.filter(f => f.toxic_combo_details).length,
     [filteredFindings],
@@ -446,7 +458,7 @@ function CommandCenterShell() {
             </button>
           )}
           <CenterPane
-            attackPaths={attackPaths}
+            attackPaths={filteredAttackPaths}
             allFindings={allFindings}
             filteredFindings={filteredFindings}
             stats={stats ?? undefined}
