@@ -6,12 +6,14 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { ShieldCheck, Bot, AlertTriangle, FileText, TrendingUp, TrendingDown, Minus, Loader2 } from 'lucide-react'
+import { ShieldX } from 'lucide-react'
 import { EXCEPTION_STATUS_COLORS as STATUS_COLORS } from '@/lib/severity'
 import { usePolicies } from '@/hooks/usePolicies'
 import { useAgents } from '@/hooks/useAgents'
 import { useCompliance } from '@/hooks/useCompliance'
 import { useExceptions } from '@/hooks/useExceptions'
 import { useRemediations } from '@/hooks/useRemediations'
+import { ApiError } from '@/lib/api'
 import type { ExceptionRequest } from '@/types/grc'
 
 // Fallback values when hooks haven't loaded (demo/offline mode)
@@ -43,13 +45,34 @@ function computeExceptionSLA(e: ExceptionRequest): string {
 
 export default function AdminDashboard() {
   const [expandedExc, setExpandedExc] = useState<string | null>(null)
-  const { data: policies, isLoading: polLoading } = usePolicies()
-  const { data: agents, isLoading: agentLoading } = useAgents()
-  const { data: frameworks, isLoading: compLoading } = useCompliance()
-  const { data: exceptions, isLoading: excLoading } = useExceptions()
-  const { data: remediations, isLoading: remLoading } = useRemediations()
+  const { data: policies, isLoading: polLoading, error: polError } = usePolicies()
+  const { data: agents, isLoading: agentLoading, error: agentError } = useAgents()
+  const { data: frameworks, isLoading: compLoading, error: compError } = useCompliance()
+  const { data: exceptions, isLoading: excLoading, error: excError } = useExceptions()
+  const { data: remediations, isLoading: remLoading, error: remError } = useRemediations()
 
   const isLoading = polLoading || agentLoading || compLoading || excLoading || remLoading
+
+  // SEC-B08: Detect 403 from any hook and show Access Denied instead of fallback data
+  const authError = [polError, agentError, compError, excError, remError].find(
+    e => e instanceof ApiError && e.status === 403
+  )
+  if (!isLoading && authError) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="border-red-200 dark:border-red-800 max-w-md">
+          <CardContent className="p-8 text-center">
+            <ShieldX className="h-10 w-10 text-red-500 mx-auto mb-3" />
+            <h2 className="text-lg font-semibold">Access Denied</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              You do not have permission to view the admin dashboard.
+              Contact your administrator if you believe this is an error.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   const activePolicies = policies?.filter(p => p.status === 'active').length ?? FALLBACK_KPI.policies
   const agentCount = agents?.length ?? FALLBACK_KPI.agents
