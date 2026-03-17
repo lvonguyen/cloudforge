@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator'
 import {
   LayoutDashboard, FileText, Bot, Users, ClipboardList, Settings,
   Activity, AlertTriangle, Wrench, DollarSign, Shield, GitBranch,
-  Home, PlusCircle, List, Package,
+  Home, PlusCircle, List, Package, Box, Network, Database, Search,
   ChevronLeft, ChevronRight, X, type LucideIcon,
 } from 'lucide-react'
 
@@ -53,6 +53,10 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
         { to: '/ops/costs', label: 'Spend', icon: DollarSign },
         { to: '/ops/compliance', label: 'Compliance', icon: Shield },
         { to: '/ops/attack-paths', label: 'Attack Paths', icon: GitBranch },
+        { to: '/ops/containers', label: 'Containers', icon: Box },
+        { to: '/ops/graph', label: 'Security Graph', icon: Network },
+        { to: '/ops/data-classification', label: 'Data Classification', icon: Database },
+        { to: '/ops/investigations', label: 'Investigations', icon: Search },
       ],
     },
   ],
