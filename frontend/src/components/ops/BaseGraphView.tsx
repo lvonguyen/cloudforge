@@ -5,8 +5,6 @@ import {
   Controls,
   type Node,
   type Edge,
-  type OnNodesChange,
-  type OnEdgesChange,
   useNodesState,
   useEdgesState,
 } from '@xyflow/react'

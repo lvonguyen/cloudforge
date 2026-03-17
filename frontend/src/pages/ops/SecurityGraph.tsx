@@ -3,7 +3,6 @@ import { type Node, type Edge, Position, MarkerType } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { BaseGraphView } from '@/components/ops/BaseGraphView'
 import { useFindings } from '@/hooks/useFindings'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Network, Search, X, Shield } from 'lucide-react'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
@@ -71,7 +70,7 @@ export default function SecurityGraph() {
       // Impacted resources create edges
       if (f.impacted_resources) {
         for (const ir of f.impacted_resources) {
-          const target = ir.resource_id ?? ir.arn
+          const target = ir.resource_id
           if (!target || target === f.resource_id) continue
           const key = `${f.resource_id}->${target}`
           if (edgeSet.has(key)) continue

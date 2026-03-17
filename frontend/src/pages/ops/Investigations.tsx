@@ -1,11 +1,10 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import { type Node, type Edge, Position, MarkerType } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { BaseGraphView } from '@/components/ops/BaseGraphView'
 import { useFindings } from '@/hooks/useFindings'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Search, X, User, Shield, Database, FileText } from 'lucide-react'
+import { Search, X, Shield } from 'lucide-react'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS } from '@/lib/severity'
 import type { InvestigationEntityType } from '@/types/investigation'
 
@@ -16,15 +15,6 @@ const ENTITY_COLORS: Record<InvestigationEntityType, { bg: string; border: strin
   resource:           { bg: '#1e1e2e', border: '#f59e0b', text: '#fcd34d' },
   compliance_mapping: { bg: '#1e1e2e', border: '#22c55e', text: '#86efac' },
   impacted_resource:  { bg: '#1e1e2e', border: '#f97316', text: '#fdba74' },
-}
-
-const ENTITY_ICONS: Record<InvestigationEntityType, typeof Shield> = {
-  finding: Shield,
-  assignee: User,
-  technical_contact: User,
-  resource: Database,
-  compliance_mapping: FileText,
-  impacted_resource: Database,
 }
 
 export default function Investigations() {
@@ -46,13 +36,14 @@ export default function Investigations() {
     const finding = findings.find(f => f.id === selectedFindingId)
     if (!finding) return { graphNodes: [], graphEdges: [] }
 
+    const findingId = finding.id
     const nodes: Node[] = []
     const edges: Edge[] = []
     let entityIndex = 0
 
     // Central finding node
     nodes.push({
-      id: finding.id,
+      id: findingId,
       position: { x: 400, y: 300 },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
@@ -91,8 +82,8 @@ export default function Investigations() {
       })
 
       edges.push({
-        id: `${finding.id}->${id}`,
-        source: finding.id,
+        id: `${findingId}->${id}`,
+        source: findingId,
         target: id,
         animated: true,
         style: { stroke: colors.border, strokeWidth: 1 },
@@ -101,13 +92,13 @@ export default function Investigations() {
     }
 
     // Assignee
-    if (finding.assigned_to) {
-      addEntity('assignee', `assignee-${finding.assigned_to}`, finding.assigned_to, 'Assignee')
+    if (finding.assignee) {
+      addEntity('assignee', `assignee-${finding.assignee.user_id}`, finding.assignee.user_name, finding.assignee.team)
     }
 
     // Technical contact
     if (finding.technical_contact) {
-      addEntity('technical_contact', `tc-${finding.technical_contact}`, finding.technical_contact, 'Technical Contact')
+      addEntity('technical_contact', `tc-${finding.technical_contact.email}`, finding.technical_contact.name, finding.technical_contact.team)
     }
 
     // Primary resource
@@ -116,15 +107,14 @@ export default function Investigations() {
     // Compliance mappings
     if (finding.compliance_mappings) {
       for (const cm of finding.compliance_mappings.slice(0, 3)) {
-        addEntity('compliance_mapping', `comp-${cm.framework}-${cm.control}`, `${cm.framework} ${cm.control}`, cm.description?.slice(0, 40))
+        addEntity('compliance_mapping', `comp-${cm.framework_id}-${cm.control_id}`, `${cm.framework_name} ${cm.control_id}`, cm.control_title?.slice(0, 40))
       }
     }
 
     // Impacted resources
     if (finding.impacted_resources) {
       for (const ir of finding.impacted_resources.slice(0, 3)) {
-        const irName = ir.name ?? ir.resource_id ?? ir.arn?.split('/').pop() ?? 'Unknown'
-        addEntity('impacted_resource', `ir-${ir.resource_id ?? ir.arn}`, irName, ir.type)
+        addEntity('impacted_resource', `ir-${ir.resource_id}`, ir.resource_name, ir.resource_type)
       }
     }
 

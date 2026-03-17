@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { Database, Lock, Unlock, Eye, AlertTriangle } from 'lucide-react'
+import { Lock, Unlock, Eye, AlertTriangle } from 'lucide-react'
 import { apiClient, ApiError } from '@/lib/api'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import type { DataAsset, DataSensitivity, ScanStatus } from '@/types/dspm'
