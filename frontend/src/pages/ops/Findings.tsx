@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback, useRef, useEffect, useDeferredValue } f
 import { useNavigate } from 'react-router-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Download, ArrowUp, ArrowDown, X, SlidersHorizontal, ListFilter, ChevronDown, ChevronRight } from 'lucide-react'
-import { useFindings } from '@/hooks/useFindings'
+import { useFindings, useFinding } from '@/hooks/useFindings'
 import { useDebounce } from '@/hooks/useDebounce'
 import { SeverityBadge } from '@/components/findings/SeverityBadge'
 import { SLACountdown } from '@/components/findings/SLACountdown'
@@ -89,6 +89,92 @@ function formatWorkflowStatus(ws: string): string {
   return ws.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
+function FindingPreviewPanel({ id, onClose, onNavigate }: { id: string; onClose: () => void; onNavigate: () => void }) {
+  const { data: finding, isLoading: previewLoading } = useFinding(id)
+
+  if (previewLoading) return (
+    <div className="w-[380px] shrink-0 border-l border-border p-4">
+      <p className="text-xs text-muted-foreground">Loading...</p>
+    </div>
+  )
+  if (!finding) return null
+
+  return (
+    <div className="w-[380px] shrink-0 border-l border-border overflow-y-auto" style={{ height: 'calc(100vh - 320px)' }}>
+      <div className="p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <SeverityBadge severity={finding.severity} />
+          <button onClick={onClose} className="p-1 hover:bg-muted" aria-label="Close preview">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <h3 className="text-sm font-semibold leading-snug">{finding.title}</h3>
+        <p className="text-xs text-muted-foreground line-clamp-3">{finding.description}</p>
+        {finding.ai_risk_score != null && (
+          <div className="flex items-center gap-3">
+            <div className={`h-12 w-12 rounded-full border-[3px] flex items-center justify-center ${
+              finding.ai_risk_score >= 8 ? 'border-red-500' :
+              finding.ai_risk_score >= 6 ? 'border-orange-500' :
+              finding.ai_risk_score >= 4 ? 'border-yellow-500' : 'border-blue-500'
+            }`}>
+              <span className="text-sm font-bold tabular-nums">{finding.ai_risk_score.toFixed(1)}</span>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">AI Risk</p>
+              <p className="text-xs font-medium capitalize">{finding.ai_risk_level}</p>
+            </div>
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase">Resource</p>
+            <p className="font-medium truncate">{finding.resource_name}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase">Region</p>
+            <p className="font-medium">{finding.region}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase">Provider</p>
+            <ProviderBadge provider={finding.cloud_provider} />
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase">Environment</p>
+            <p className="font-medium">{finding.environment_type}</p>
+          </div>
+        </div>
+        {finding.compliance_mappings && finding.compliance_mappings.length > 0 && (
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Compliance</p>
+            <div className="flex flex-wrap gap-1">
+              {finding.compliance_mappings.slice(0, 6).map(m => (
+                <span key={`${m.framework_id}-${m.control_id}`} className="text-[9px] font-mono border px-1.5 py-0.5 bg-muted">
+                  {m.framework_name} {m.control_id}
+                </span>
+              ))}
+              {finding.compliance_mappings.length > 6 && (
+                <span className="text-[9px] text-muted-foreground">+{finding.compliance_mappings.length - 6}</span>
+              )}
+            </div>
+          </div>
+        )}
+        {finding.due_date && (
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">SLA</p>
+            <SLACountdown dueDate={finding.due_date} slaBreach={finding.sla_breach_date} />
+          </div>
+        )}
+        <button
+          onClick={onNavigate}
+          className="w-full text-xs text-blue-600 dark:text-blue-400 hover:underline text-left pt-2"
+        >
+          Open full detail →
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Findings() {
   const navigate = useNavigate()
   const { data: allFindings = [], isLoading } = useFindings()
@@ -119,6 +205,9 @@ export default function Findings() {
 
   // Sidebar collapse
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
+
+  // Preview panel
+  const [previewId, setPreviewId] = useState<string | null>(null)
 
   // Group by
   const [groupBy, setGroupBy] = useState<'none' | 'rule' | 'resource' | 'provider' | 'category'>('none')
@@ -843,7 +932,8 @@ export default function Findings() {
 
         {/* Flat table view */}
         {!isLoading && sorted.length > 0 && groupBy === 'none' && (
-          <>
+          <div className="flex gap-0">
+          <div className="flex-1 min-w-0">
             <div ref={parentRef} className="overflow-auto [&_[data-slot=table-container]]:overflow-visible" style={{ height: 'calc(100vh - 280px)' }}>
               <Table style={{ tableLayout: 'fixed', width: activeColumns.reduce((sum, c) => sum + columnWidths[c.key], 0) }}>
                 <TableHeader className="sticky top-0 z-10 bg-background">
@@ -881,11 +971,17 @@ export default function Findings() {
                         key={f.id}
                         data-index={virtualRow.index}
                         ref={virtualizer.measureElement}
-                        className="cursor-pointer hover:bg-muted/30 transition-colors"
+                        className={`cursor-pointer hover:bg-muted/30 transition-colors ${f.id === previewId ? 'bg-muted/40' : ''}`}
                         tabIndex={0}
                         role="link"
-                        onClick={() => navigate(`/ops/findings/${f.id}`)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/ops/findings/${f.id}`) } }}
+                        onClick={() => setPreviewId(f.id)}
+                        onDoubleClick={() => navigate(`/ops/findings/${f.id}`)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') { navigate(`/ops/findings/${f.id}`) }
+                          else if (e.key === 'Escape') { setPreviewId(null) }
+                          else if (e.key === 'ArrowDown') { e.preventDefault(); if (virtualRow.index < sorted.length - 1) setPreviewId(sorted[virtualRow.index + 1].id) }
+                          else if (e.key === 'ArrowUp') { e.preventDefault(); if (virtualRow.index > 0) setPreviewId(sorted[virtualRow.index - 1].id) }
+                        }}
                       >
                         {activeColumns.map(col => (
                           <TableCell key={col.key} className="overflow-hidden" style={{ width: columnWidths[col.key] }}>
@@ -906,7 +1002,15 @@ export default function Findings() {
                 Showing {sorted.length} of {allFindings.length} findings
               </span>
             </div>
-          </>
+          </div>
+          {previewId && (
+            <FindingPreviewPanel
+              id={previewId}
+              onClose={() => setPreviewId(null)}
+              onNavigate={() => navigate(`/ops/findings/${previewId}`)}
+            />
+          )}
+          </div>
         )}
       </div>
     </div>
