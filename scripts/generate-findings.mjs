@@ -4,31 +4,19 @@
 // Default: 80 findings to stdout. --count 20000 for production dataset.
 // --attack-paths: pre-compute paths from curated <1000 subset and write to file.
 
+// Clustered accounts — 5 total (2 AWS, 2 Azure, 1 GCP) for dense attack paths.
+// canConnect() requires same AccountID, so fewer accounts = more findings per account
+// = higher probability of BFS chains forming in computeAttackPaths().
 const AWS_ACCOUNTS = [
-  { id: '123456789012', name: 'acme-payments-prod' },
-  { id: '234567890123', name: 'acme-data-lake-dev' },
-  { id: '345678901234', name: 'acme-shared-services' },
-  { id: '456789012345', name: 'acme-networking-hub' },
-  { id: '567890123456', name: 'acme-security-tooling' },
-  { id: '678901234567', name: 'acme-catalog-prod' },
-  { id: '789012345678', name: 'acme-analytics-staging' },
-  { id: '890123456789', name: 'acme-ml-platform' },
-  { id: '901234567890', name: 'acme-sandbox-01' },
-  { id: '012345678901', name: 'acme-dr-west' },
+  { id: '123456789012', name: 'acme-workloads-prod' },
+  { id: '234567890123', name: 'acme-platform-shared' },
 ];
 const AZURE_SUBS = [
-  { id: 'sub-shared-001', name: 'shared-services-hub' },
-  { id: 'sub-identity-001', name: 'corp-identity-prod' },
-  { id: 'sub-finance-001', name: 'workload-finance-prod' },
-  { id: 'sub-hr-001', name: 'workload-hr-dev' },
-  { id: 'sub-monitor-001', name: 'platform-monitoring' },
-  { id: 'sub-aks-001', name: 'aks-platform-staging' },
+  { id: 'sub-workload-001', name: 'workload-prod-east' },
+  { id: 'sub-platform-001', name: 'platform-shared-hub' },
 ];
 const GCP_PROJECTS = [
-  { id: 'proj-analytics-001', name: 'analytics-data-warehouse' },
-  { id: 'proj-ml-001', name: 'ml-platform-prod' },
-  { id: 'proj-bq-001', name: 'bigquery-finance' },
-  { id: 'proj-gke-001', name: 'gke-ml-serving' },
+  { id: 'proj-analytics-001', name: 'analytics-data-platform' },
 ];
 
 const AWS_REGIONS = ['us-east-1', 'us-west-2', 'eu-west-1', 'ap-southeast-1'];
