@@ -17,6 +17,8 @@ interface ControlDetail {
   status: 'pass' | 'fail'
   description?: string
   finding_count?: number
+  citation?: string
+  reference_url?: string
 }
 
 interface Category {
@@ -63,6 +65,7 @@ function generateControls(cat: Category): ControlDetail[] {
 
 function CategoryAccordion({ cat, frameworkId }: { cat: Category; frameworkId: string }) {
   const [expanded, setExpanded] = useState(false)
+  const [expandedControl, setExpandedControl] = useState<string | null>(null)
   const navigate = useNavigate()
   const controls = cat.controls ?? generateControls(cat)
 
@@ -98,29 +101,64 @@ function CategoryAccordion({ cat, frameworkId }: { cat: Category; frameworkId: s
       {expanded && (
         <div className="border-t divide-y">
           {controls.map(ctrl => (
-            <div key={ctrl.id} className="flex items-center gap-2 px-3 py-2 text-xs">
-              {ctrl.status === 'pass' ? (
-                <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
-              ) : (
-                <XCircle className="h-3.5 w-3.5 text-red-600 shrink-0" />
-              )}
-              <span className="font-mono text-muted-foreground shrink-0">{ctrl.id}</span>
-              <div className="flex-1 min-w-0">
-                <span className="truncate block">{ctrl.title}</span>
-                {ctrl.description && (
-                  <span className="text-[10px] text-muted-foreground truncate block">{ctrl.description}</span>
+            <div key={ctrl.id} className="px-3 py-2 text-xs">
+              <div
+                className="flex items-center gap-2 cursor-pointer"
+                onClick={() => setExpandedControl(expandedControl === ctrl.id ? null : ctrl.id)}
+              >
+                {ctrl.status === 'pass' ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                ) : (
+                  <XCircle className="h-3.5 w-3.5 text-red-600 shrink-0" />
+                )}
+                <span className="font-mono text-muted-foreground shrink-0">{ctrl.id}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="truncate block">{ctrl.title}</span>
+                  {ctrl.description && expandedControl !== ctrl.id && (
+                    <span className="text-[10px] text-muted-foreground truncate block">{ctrl.description}</span>
+                  )}
+                </div>
+                {ctrl.status === 'fail' && (ctrl.finding_count ?? 0) > 0 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate(`/ops/findings?framework=${frameworkId}&control=${ctrl.id}`)
+                    }}
+                    className="text-[10px] text-primary hover:underline shrink-0"
+                  >
+                    {ctrl.finding_count} finding{ctrl.finding_count! > 1 ? 's' : ''}
+                  </button>
                 )}
               </div>
-              {ctrl.status === 'fail' && (ctrl.finding_count ?? 0) > 0 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    navigate(`/ops/findings?framework=${frameworkId}&control=${ctrl.id}`)
-                  }}
-                  className="text-[10px] text-primary hover:underline shrink-0"
-                >
-                  {ctrl.finding_count} finding{ctrl.finding_count! > 1 ? 's' : ''}
-                </button>
+              {expandedControl === ctrl.id && (
+                <div className="ml-5 mt-2 space-y-1.5 border-l-2 border-muted pl-3">
+                  {ctrl.description && (
+                    <p className="text-[10px] text-muted-foreground">{ctrl.description}</p>
+                  )}
+                  {ctrl.citation && (
+                    <div className="bg-muted/30 px-2 py-1.5">
+                      <p className="text-[10px] text-muted-foreground italic">{ctrl.citation}</p>
+                    </div>
+                  )}
+                  {ctrl.reference_url?.startsWith('https://') && (
+                    <a
+                      href={ctrl.reference_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline"
+                    >
+                      <ExternalLink className="h-2.5 w-2.5" />View Standard
+                    </a>
+                  )}
+                  {ctrl.status === 'fail' && (
+                    <button
+                      onClick={() => navigate(`/ops/findings?framework=${frameworkId}&control=${ctrl.id}`)}
+                      className="text-[10px] text-primary hover:underline block"
+                    >
+                      View related findings →
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           ))}
