@@ -99,3 +99,10 @@ export-outputs/
 .playwright-mcp/
 
 .claude/codegraph/
+.claude/repo-capabilities.json
+
+# Node modules (root-level stray from npx)
+node_modules/
+
+# Generated sprint plans (superseded)
+tasks/next-sprint.md
