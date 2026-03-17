@@ -125,6 +125,14 @@ func main() {
 		logger.Fatal("Failed to initialize GRC provider", zap.Error(err))
 	}
 
+	// Auto-derive JWKS URL from Okta domain when not explicitly set.
+	// This removes the need to manually configure CLOUDFORGE_JWKS_URL alongside OKTA_DOMAIN.
+	if domain := os.Getenv("OKTA_DOMAIN"); domain != "" && os.Getenv("CLOUDFORGE_JWKS_URL") == "" {
+		jwksURL := "https://" + domain + "/oauth2/default/v1/keys"
+		os.Setenv("CLOUDFORGE_JWKS_URL", jwksURL)
+		logger.Info("Auto-derived JWKS URL from OKTA_DOMAIN", zap.String("jwks_url", jwksURL))
+	}
+
 	// Initialize authentication middleware
 	authMiddleware, err := api.NewAuthMiddleware(api.AuthConfig{
 		JWTSecretEnv: cfg.JWTSecretEnv,
@@ -304,7 +312,7 @@ func main() {
 			Logger: logger.Named("enrichment"),
 		},
 		opaEngine:         opaEngine,
-		finopsSvc:         newFinopsService(),
+		finopsSvc:         newFinopsService(logger),
 		identityProviders: idProviders,
 		dedupCache:        ingestion.NewDedupCache(24 * time.Hour),
 		workflowEngine:    workflowEngine,
@@ -333,6 +341,7 @@ func main() {
 		Paths: attackPaths,
 		Stats: attackPathStats,
 	}
+	srv.attackPathSvc.buildPathIndex()
 
 	// Server-scoped context: cancelled on SIGINT/SIGTERM to stop background work.
 	serverCtx, serverCancel := context.WithCancel(context.Background())
