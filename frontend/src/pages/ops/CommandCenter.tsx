@@ -385,14 +385,6 @@ function CommandCenterShell() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [dispatch, state.showShortcutOverlay])
 
-  if (findingsLoading) {
-    return (
-      <div className="flex items-center justify-center h-full bg-[#0a0a0f] text-gray-500 text-xs font-mono">
-        Initializing command center…
-      </div>
-    )
-  }
-
   const handleNLQFilters = useCallback((filters: { severity?: string[]; provider?: string[]; environment?: string[] }) => {
     const layers: Record<string, boolean> = {}
     if (filters.severity) {
@@ -412,6 +404,14 @@ function CommandCenterShell() {
     }
     dispatch({ type: 'SET_LAYERS', payload: layers })
   }, [dispatch])
+
+  if (findingsLoading) {
+    return (
+      <div className="flex items-center justify-center h-full bg-[#0a0a0f] text-gray-500 text-xs font-mono">
+        Initializing command center…
+      </div>
+    )
+  }
 
   return (
     <div className="dark flex h-full flex-col bg-[#0a0a0f]">

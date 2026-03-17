@@ -27,8 +27,8 @@ async function fetchDataAssets(): Promise<DataAsset[]> {
     const resp = await apiClient.get<{ data: DataAsset[] }>('/data-classification/assets')
     return resp.data
   } catch (err) {
-    if (err instanceof ApiError && err.status < 500) throw err
-    if (import.meta.env.PROD) throw err
+    if (import.meta.env.PROD && err instanceof ApiError && err.status < 500) throw err
+    console.warn('[DataClassification] API unavailable, using mock data')
     return MOCK_ASSETS
   }
 }

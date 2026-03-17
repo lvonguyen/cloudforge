@@ -16,19 +16,26 @@ const NODE_FILL: Record<string, string> = {
   LOW: '#1e3a5f',
 }
 
-const RESOURCE_TYPE_X: Record<string, number> = {
-  's3 bucket': 0, 'storage account': 0, 'cloud storage': 0,
-  'ec2 instance': 300, 'vm instance': 300, 'virtual machine': 300,
-  'rds instance': 600, 'sql database': 600, 'cloud sql': 600,
-  'iam role': 900, 'iam user': 900, 'service account': 900,
+// Deterministic x-position based on resource_type string hash for cluster distribution.
+// Known categories get fixed lanes; unknown types are hashed into 6 columns.
+const TYPE_LANES: Record<string, number> = {
+  storage: 0, bucket: 0, blob: 0,
+  compute: 200, instance: 200, vm: 200, ec2: 200, lambda: 200, function: 200,
+  database: 400, rds: 400, sql: 400, dynamodb: 400, cosmos: 400,
+  network: 600, vpc: 600, subnet: 600, security_group: 600, nsg: 600, firewall: 600,
+  iam: 800, role: 800, user: 800, identity: 800, policy: 800,
+  container: 1000, eks: 1000, ecs: 1000, kubernetes: 1000, pod: 1000,
 }
 
 function getXForType(rt: string): number {
   const lower = rt.toLowerCase()
-  for (const [key, x] of Object.entries(RESOURCE_TYPE_X)) {
+  for (const [key, x] of Object.entries(TYPE_LANES)) {
     if (lower.includes(key)) return x
   }
-  return 450 // center for unknown types
+  // Hash fallback — distribute unknown types across 6 columns
+  let hash = 0
+  for (let i = 0; i < lower.length; i++) hash = ((hash << 5) - hash + lower.charCodeAt(i)) | 0
+  return (Math.abs(hash) % 6) * 200
 }
 
 export default function SecurityGraph() {
