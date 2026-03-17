@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft, ExternalLink, CheckCircle2, Shield, AlertTriangle, Brain, Crosshair, Building2, Zap, Globe, Flame, Server, ChevronRight, Clock, MessageSquare, Search } from 'lucide-react'
+import { ArrowLeft, ExternalLink, CheckCircle2, Shield, AlertTriangle, Brain, Crosshair, Building2, Zap, Globe, Flame, Server, ChevronRight, Clock, MessageSquare, Search, CircleDot, Wrench, UserCheck, XCircle } from 'lucide-react'
 import { SeverityBadge } from '@/components/findings/SeverityBadge'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { useTracePanel } from '@/lib/trace-panel-context'
@@ -389,28 +389,92 @@ export default function FindingDetail() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                <div className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" />Detection Timeline</div>
+                <div className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" />Finding Lifecycle</div>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-0">
-                {[
-                  { label: 'First Detected', time: finding.first_found_at, color: 'bg-blue-500' },
-                  { label: 'Last Seen', time: finding.last_seen_at, color: 'bg-indigo-500' },
-                  ...(finding.due_date ? [{ label: 'SLA Due', time: finding.due_date, color: 'bg-orange-500' }] : []),
-                  ...(finding.resolved_at ? [{ label: 'Resolved', time: finding.resolved_at, color: 'bg-green-500' }] : []),
-                ].map((event, i, arr) => (
-                  <div key={event.label} className="flex gap-3 items-start">
-                    <div className="flex flex-col items-center">
-                      <div className={`h-2.5 w-2.5 rounded-full ${event.color} shrink-0 mt-1.5`} />
-                      {i < arr.length - 1 && <div className="w-px h-8 bg-border" />}
-                    </div>
-                    <div className="pb-4">
-                      <p className="text-xs font-medium">{event.label}</p>
-                      <p className="text-[10px] text-muted-foreground">{new Date(event.time).toLocaleString()}</p>
-                    </div>
-                  </div>
-                ))}
+                {(() => {
+                  const events: { label: string; time: string; icon: typeof Clock; iconColor: string; dotColor: string; description: string; actor?: string }[] = [
+                    { label: 'First Detected', time: finding.first_found_at, icon: CircleDot, iconColor: 'text-blue-500', dotColor: 'bg-blue-500', description: `Detected by ${finding.source} scanner` },
+                    { label: 'Last Seen', time: finding.last_seen_at, icon: Search, iconColor: 'text-indigo-500', dotColor: 'bg-indigo-500', description: 'Latest scan confirmed finding still active' },
+                  ]
+                  // Synthetic events from workflow status
+                  if (finding.workflow_status !== 'new') {
+                    events.push({
+                      label: 'Triaged',
+                      time: finding.first_found_at, // approximate
+                      icon: CheckCircle2, iconColor: 'text-yellow-500', dotColor: 'bg-yellow-500',
+                      description: 'Finding triaged and severity confirmed',
+                    })
+                  }
+                  if (finding.assignee) {
+                    events.push({
+                      label: 'Assigned',
+                      time: finding.assignee.assigned_at,
+                      icon: UserCheck, iconColor: 'text-orange-500', dotColor: 'bg-orange-500',
+                      description: `Assigned to ${finding.assignee.team}`,
+                      actor: finding.assignee.user_name,
+                    })
+                  }
+                  if (finding.workflow_status === 'in_progress') {
+                    events.push({
+                      label: 'Remediation Started',
+                      time: finding.last_seen_at,
+                      icon: Wrench, iconColor: 'text-cyan-500', dotColor: 'bg-cyan-500',
+                      description: 'Active remediation in progress',
+                    })
+                  }
+                  if (finding.due_date) {
+                    events.push({
+                      label: 'SLA Due',
+                      time: finding.due_date,
+                      icon: Clock, iconColor: 'text-orange-500', dotColor: 'bg-orange-500',
+                      description: finding.sla_breach_date ? 'SLA breached — overdue' : 'Remediation deadline',
+                    })
+                  }
+                  if (finding.resolved_at) {
+                    events.push({
+                      label: 'Resolved',
+                      time: finding.resolved_at,
+                      icon: CheckCircle2, iconColor: 'text-green-500', dotColor: 'bg-green-500',
+                      description: 'Finding resolved and verified',
+                    })
+                  }
+                  if (finding.workflow_status === 'false_positive' || finding.workflow_status === 'risk_accepted') {
+                    events.push({
+                      label: finding.workflow_status === 'false_positive' ? 'Marked False Positive' : 'Risk Accepted',
+                      time: finding.last_seen_at,
+                      icon: XCircle, iconColor: 'text-gray-500', dotColor: 'bg-gray-500',
+                      description: finding.suppression_reason ?? 'Finding suppressed',
+                    })
+                  }
+                  // Sort by time
+                  events.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
+                  return events.map((event, i, arr) => {
+                    const Icon = event.icon
+                    return (
+                      <div key={event.label} className="flex gap-3 items-start">
+                        <div className="flex flex-col items-center">
+                          <div className={`h-6 w-6 rounded-full bg-muted flex items-center justify-center shrink-0 mt-0.5`}>
+                            <Icon className={`h-3 w-3 ${event.iconColor}`} />
+                          </div>
+                          {i < arr.length - 1 && <div className="w-px h-8 bg-border" />}
+                        </div>
+                        <div className="pb-4 flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-medium">{event.label}</p>
+                            {event.actor && (
+                              <span className="text-[10px] text-muted-foreground">by {event.actor}</span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">{event.description}</p>
+                          <p className="text-[10px] text-muted-foreground/70 mt-0.5">{new Date(event.time).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    )
+                  })
+                })()}
               </div>
               <Separator className="my-3" />
               <div className="grid grid-cols-2 gap-4">
