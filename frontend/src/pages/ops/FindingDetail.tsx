@@ -312,7 +312,7 @@ export default function FindingDetail() {
             <Button
               size="sm"
               className="text-xs gap-1.5"
-              disabled={!finding.auto_remediatable || !remediateCooldown.canFire}
+              disabled={!remediateCooldown.canFire}
               onClick={() => {
                 if (!remediateCooldown.canFire) return
                 openTimeline('Remediating: ' + finding.title, [{
@@ -321,6 +321,9 @@ export default function FindingDetail() {
                   duration_ms: 3200, status: 'ok', attributes: { 'finding.id': finding.id }, events: [], data: {},
                 }])
                 remediateCooldown.fire()
+                toast(finding.auto_remediatable
+                  ? 'Auto-remediation initiated — IaC change queued'
+                  : 'Remediation plan generated — review guidance below', 'info')
               }}
             >
               <CheckCircle2 className="h-3.5 w-3.5" />{!remediateCooldown.canFire ? 'Running\u2026' : 'Remediate'}
@@ -389,8 +392,30 @@ export default function FindingDetail() {
             </Card>
           ) : (
             <Card>
-              <CardContent className="p-4">
+              <CardContent className="p-4 space-y-3">
                 <p className="text-sm text-muted-foreground">{finding.remediation}</p>
+                {(() => {
+                  const guidance: Record<string, { title: string; steps: string[] }> = {
+                    compute: { title: 'Compute Remediation', steps: ['Review instance security groups and restrict inbound rules', 'Enable IMDSv2 and disable legacy metadata endpoints', 'Apply latest AMI/image patches via deployment pipeline', 'Rotate compromised credentials and revoke unused IAM roles'] },
+                    storage: { title: 'Storage Remediation', steps: ['Enable server-side encryption (SSE-S3/SSE-KMS/CMK)', 'Block public access at bucket/account level', 'Enable access logging and versioning', 'Review and tighten bucket policies and ACLs'] },
+                    database: { title: 'Database Remediation', steps: ['Enable encryption at rest and in transit (TLS)', 'Restrict network access to private subnets only', 'Enable automated backups and audit logging', 'Rotate master credentials and enforce IAM authentication'] },
+                    network: { title: 'Network Remediation', steps: ['Restrict security group/NSG rules to specific CIDR ranges', 'Remove 0.0.0.0/0 inbound rules on sensitive ports', 'Enable VPC Flow Logs / NSG Flow Logs for monitoring', 'Implement network segmentation with private subnets'] },
+                    identity: { title: 'Identity & Access Remediation', steps: ['Remove unused IAM users/roles and access keys', 'Enforce MFA on all privileged accounts', 'Apply least-privilege policies and review permissions', 'Enable CloudTrail/Activity Log for authentication events'] },
+                    container: { title: 'Container Remediation', steps: ['Scan images for known CVEs and rebuild from patched base', 'Enforce pod security standards (restricted profile)', 'Enable runtime protection and network policies', 'Rotate secrets and use external secret managers'] },
+                    serverless: { title: 'Serverless Remediation', steps: ['Restrict function execution role to minimum permissions', 'Enable VPC attachment for functions accessing private resources', 'Review and limit environment variables containing secrets', 'Enable X-Ray/distributed tracing for execution monitoring'] },
+                  }
+                  const g = guidance[finding.resource_type] ?? guidance.compute
+                  return (
+                    <div className="mt-3 border-t border-border pt-3">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">{g.title}</p>
+                      <ol className="list-decimal list-inside space-y-1.5">
+                        {g.steps.map((step, i) => (
+                          <li key={i} className="text-xs text-muted-foreground">{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  )
+                })()}
               </CardContent>
             </Card>
           )}
