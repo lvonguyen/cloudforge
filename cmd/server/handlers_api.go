@@ -228,9 +228,12 @@ func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
 	r = r.WithContext(ctx)
 
 	resultFilter := strings.ToLower(r.URL.Query().Get("result"))
-	if len(resultFilter) > 100 {
-		http.Error(w, `{"error":"result filter too long (max 100)"}`, http.StatusBadRequest)
-		return
+	if resultFilter != "" {
+		validResults := map[string]bool{"success": true, "failure": true, "blocked": true}
+		if !validResults[resultFilter] {
+			writeErrorResponse(w, "invalid result filter: must be success, failure, or blocked", http.StatusBadRequest)
+			return
+		}
 	}
 	actorFilter := r.URL.Query().Get("actor")
 	if len(actorFilter) > 255 {
