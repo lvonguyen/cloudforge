@@ -116,7 +116,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const savedRole = sessionStorage.getItem(ROLE_KEY) as Role | null
-  const isDev = import.meta.env.DEV
+  const isDev = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true'
 
   const [user, setUser] = useState<User>(() => {
     if (isDev) return { ...DEFAULT_USER, role: savedRole ?? DEFAULT_USER.role }

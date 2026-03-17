@@ -29,7 +29,8 @@ export class ApiError extends Error {
 }
 
 function authHeaders(): Record<string, string> {
-  const token = import.meta.env.DEV
+  const isDev = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true'
+  const token = isDev
     ? (import.meta.env.VITE_DEV_TOKEN as string | undefined)
     : sessionStorage.getItem(TOKEN_KEY)
   return token ? { Authorization: `Bearer ${token}` } : {}
