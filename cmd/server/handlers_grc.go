@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/mail"
 
 	"cloudforge/internal/api"
 	"cloudforge/internal/grc"
@@ -28,6 +29,14 @@ func (s *Server) createException(w http.ResponseWriter, r *http.Request) {
 	if req.ApplicationID == "" || req.PolicyViolated == "" {
 		writeErrorResponse(w, "application_id and policy_violated are required", http.StatusBadRequest)
 		return
+	}
+
+	// RFC 5322 email format validation when client provides requestor_email
+	if req.RequestorEmail != "" {
+		if _, err := mail.ParseAddress(req.RequestorEmail); err != nil {
+			writeErrorResponse(w, "requestor_email is not a valid email address", http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Enforce requestor identity from JWT — caller cannot impersonate another user.
