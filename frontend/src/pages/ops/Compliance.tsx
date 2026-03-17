@@ -7,23 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShieldCheck, ShieldAlert, Shield } from 'lucide-react'
 import { RadialBarChart, RadialBar, ResponsiveContainer } from 'recharts'
 
-const FRAMEWORK_DOC_LINKS: Record<string, string> = {
-  'nist-csf':  'https://www.nist.gov/cyberframework',
-  'pci-dss':   'https://www.pcisecuritystandards.org/document_library/',
-  'hipaa':     'https://www.hhs.gov/hipaa/',
-  'iso-27001': 'https://www.iso.org/standard/27001',
-  'iso-42001': 'https://www.iso.org/standard/81230.html',
-  'tisax':     'https://www.enx.com/en-us/tisax/',
-}
-
-// Static last-assessed dates keyed by framework ID — would come from API in production
-const LAST_ASSESSED: Record<string, string> = {
-  'nist-csf':  '2026-03-01',
-  'pci-dss':   '2026-02-28',
-  'hipaa':     '2026-02-15',
-  'iso-27001': '2026-02-20',
-  'iso-42001': '2026-03-05',
-  'tisax':     '2026-01-30',
+const FRAMEWORK_METADATA: Record<string, { doc_link: string; last_assessed: string }> = {
+  'nist-csf':  { doc_link: 'https://www.nist.gov/cyberframework', last_assessed: '2026-03-01' },
+  'pci-dss':   { doc_link: 'https://www.pcisecuritystandards.org/document_library/', last_assessed: '2026-02-28' },
+  'hipaa':     { doc_link: 'https://www.hhs.gov/hipaa/', last_assessed: '2026-02-15' },
+  'iso-27001': { doc_link: 'https://www.iso.org/standard/27001', last_assessed: '2026-02-20' },
+  'iso-42001': { doc_link: 'https://www.iso.org/standard/81230.html', last_assessed: '2026-03-05' },
+  'tisax':     { doc_link: 'https://www.enx.com/en-us/tisax/', last_assessed: '2026-01-30' },
 }
 
 function scoreClass(score: number): string {
@@ -160,7 +150,7 @@ export default function Compliance() {
                 </div>
                 <div className="text-right">
                   <p className="font-mono text-xs text-muted-foreground">Last Assessed</p>
-                  <p className="text-xs">{LAST_ASSESSED[fw.id] ?? '—'}</p>
+                  <p className="text-xs">{FRAMEWORK_METADATA[fw.id]?.last_assessed ?? '—'}</p>
                 </div>
               </button>
             ))}
@@ -176,7 +166,7 @@ export default function Compliance() {
         framework={selectedFramework}
         open={selectedFramework !== null}
         onOpenChange={(open) => { if (!open) setSelectedFramework(null) }}
-        docLink={selectedFramework ? FRAMEWORK_DOC_LINKS[selectedFramework.id] : undefined}
+        docLink={selectedFramework ? FRAMEWORK_METADATA[selectedFramework.id]?.doc_link : undefined}
       />
     </div>
   )
