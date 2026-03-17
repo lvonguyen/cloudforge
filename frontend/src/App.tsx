@@ -33,6 +33,7 @@ const RemediationDetail = lazy(() => import('@/pages/ops/RemediationDetail'))
 const Spend = lazy(() => import('@/pages/ops/Spend'))
 const Compliance = lazy(() => import('@/pages/ops/Compliance'))
 const AttackPaths = lazy(() => import('@/pages/ops/AttackPaths'))
+const Containers = lazy(() => import('@/pages/ops/Containers'))
 
 // Portal pages (lazy)
 const PortalDashboard = lazy(() => import('@/pages/portal/Dashboard'))
@@ -97,6 +98,7 @@ export default function App() {
                     <Route path="/ops/remediation/:id" element={<RemediationDetail />} />
                     <Route path="/ops/costs" element={<Spend />} />
                     <Route path="/ops/attack-paths" element={<AttackPaths />} />
+                    <Route path="/ops/containers" element={<Containers />} />
                   </Route>
                 </Route>
 

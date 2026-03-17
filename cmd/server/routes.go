@@ -151,6 +151,9 @@ func (s *Server) setupRoutes() {
 	).Methods("GET")
 
 	// Container security
+	apiRouter.Handle("/containers",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listContainers)),
+	).Methods("GET")
 	apiRouter.Handle("/container/scan",
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.scanContainer)),
 	).Methods("GET")
