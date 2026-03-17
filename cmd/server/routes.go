@@ -199,6 +199,11 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.queryNLQ)),
 	).Methods("POST")
 
+	// RQL (resource query language) — structured finding queries
+	apiRouter.Handle("/findings/query",
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.queryFindings)),
+	).Methods("GET")
+
 	// Finding ingestion (admin-only write endpoint with deduplication)
 	apiRouter.Handle("/findings/ingest",
 		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.ingestFinding)),
