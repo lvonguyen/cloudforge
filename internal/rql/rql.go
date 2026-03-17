@@ -115,6 +115,8 @@ func (e *Evaluator) Match(q *Query) bool {
 			result = result && next
 		case JuncOr:
 			result = result || next
+		case JuncNone:
+			// no-op: single condition, no junction needed
 		}
 	}
 	return result

@@ -269,9 +269,9 @@ func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
 
 	resultFilter := strings.ToLower(r.URL.Query().Get("result"))
 	if resultFilter != "" {
-		validResults := map[string]bool{"success": true, "failure": true, "blocked": true}
+		validResults := map[string]bool{"success": true, "failure": true, "blocked": true, "denied": true}
 		if !validResults[resultFilter] {
-			writeErrorResponse(w, "invalid result filter: must be success, failure, or blocked", http.StatusBadRequest)
+			writeErrorResponse(w, "invalid result filter: must be success, failure, blocked, or denied", http.StatusBadRequest)
 			return
 		}
 	}
