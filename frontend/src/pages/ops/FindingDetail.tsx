@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, ExternalLink, CheckCircle2, Shield, AlertTriangle, Brain, Crosshair, Building2 } from 'lucide-react'
+import { ArrowLeft, ExternalLink, CheckCircle2, Shield, AlertTriangle, Brain, Crosshair, Building2, Zap, Globe, Flame, Server, ChevronRight } from 'lucide-react'
 import { SeverityBadge } from '@/components/findings/SeverityBadge'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { useTracePanel } from '@/lib/trace-panel-context'
@@ -141,6 +141,57 @@ export default function FindingDetail() {
           </Button>
         </div>
       </div>
+
+      {/* Risk Factors (toxic combo visualization) */}
+      {finding.toxic_combo_details && (
+        <Card className="border-red-200 dark:border-red-900/40">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium uppercase tracking-wide text-red-600 dark:text-red-400">
+              <div className="flex items-center gap-1.5"><Flame className="h-3.5 w-3.5" />Toxic Combination — {finding.toxic_combo_details.combo_type}</div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex flex-wrap gap-1.5">
+              {finding.exploit_available && (
+                <Badge variant="outline" className="text-[10px] gap-1 bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                  <Zap className="h-3 w-3" />Exploit Available
+                </Badge>
+              )}
+              {finding.toxic_combo_details.attack_vector === 'network' && (
+                <Badge variant="outline" className="text-[10px] gap-1 bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800">
+                  <Globe className="h-3 w-3" />External Exposure
+                </Badge>
+              )}
+              {finding.environment_type === 'production' && (
+                <Badge variant="outline" className="text-[10px] gap-1 bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                  <Server className="h-3 w-3" />Production
+                </Badge>
+              )}
+              {finding.toxic_combo_details.blast_radius && (
+                <Badge variant="outline" className="text-[10px] gap-1 bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">
+                  <Flame className="h-3 w-3" />Blast: {finding.toxic_combo_details.blast_radius}
+                </Badge>
+              )}
+              {finding.toxic_combo_details.exploit_potential && (
+                <Badge variant="outline" className="text-[10px] gap-1 bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800">
+                  <Zap className="h-3 w-3" />Potential: {finding.toxic_combo_details.exploit_potential}
+                </Badge>
+              )}
+            </div>
+            {finding.toxic_combo_details.attack_path.length > 0 && (
+              <div className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground overflow-x-auto">
+                {finding.toxic_combo_details.attack_path.map((node, i) => (
+                  <span key={i} className="flex items-center gap-1 shrink-0">
+                    <span className="bg-muted px-1.5 py-0.5 rounded">{node}</span>
+                    {i < finding.toxic_combo_details!.attack_path.length - 1 && <ChevronRight className="h-3 w-3" />}
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">{finding.toxic_combo_details.description}</p>
+          </CardContent>
+        </Card>
+      )}
 
       <Separator />
 
