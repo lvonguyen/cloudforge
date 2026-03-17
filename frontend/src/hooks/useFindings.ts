@@ -17,12 +17,24 @@ async function fetchLocalMockFindings(): Promise<Finding[]> {
   return res.json()
 }
 
+const SESSION_SOURCE_KEY = 'cf_findings_source'
+
 async function fetchMockFindings(): Promise<Finding[]> {
+  const preferred = sessionStorage.getItem(SESSION_SOURCE_KEY)
+
+  // Re-use the source that worked earlier in this session
+  if (preferred === 'r2') return fetchR2Findings()
+  if (preferred === 'local') return fetchLocalMockFindings()
+
   try {
-    return await fetchR2Findings()
+    const data = await fetchR2Findings()
+    sessionStorage.setItem(SESSION_SOURCE_KEY, 'r2')
+    return data
   } catch {
     console.warn('[useFindings] R2 unavailable, falling back to local mock')
-    return fetchLocalMockFindings()
+    const data = await fetchLocalMockFindings()
+    sessionStorage.setItem(SESSION_SOURCE_KEY, 'local')
+    return data
   }
 }
 
@@ -39,6 +51,7 @@ async function fetchFindings(filters?: { severity?: string; provider?: string; s
   const qs = params.toString()
   try {
     const data = await apiClient.get<Finding[]>(`/findings${qs ? `?${qs}` : ''}`)
+    sessionStorage.setItem(SESSION_SOURCE_KEY, 'api')
     return { data, usingMockData: false }
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
