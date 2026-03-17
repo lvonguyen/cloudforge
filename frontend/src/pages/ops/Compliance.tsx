@@ -5,6 +5,7 @@ import { FrameworkDetailDrawer } from '@/components/compliance/FrameworkDetailDr
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShieldCheck, ShieldAlert, Shield } from 'lucide-react'
+import { RadialBarChart, RadialBar, ResponsiveContainer } from 'recharts'
 
 const FRAMEWORK_DOC_LINKS: Record<string, string> = {
   'nist-csf':  'https://www.nist.gov/cyberframework',
@@ -92,6 +93,44 @@ export default function Compliance() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Framework score gauges */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-mono uppercase tracking-wide">Framework Health</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {frameworks.slice(0, 5).map(fw => {
+              const color = fw.score >= 80 ? '#16a34a' : fw.score >= 60 ? '#ca8a04' : '#dc2626'
+              return (
+                <button
+                  key={fw.id}
+                  type="button"
+                  className="flex flex-col items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-none p-0"
+                  onClick={() => setSelectedFramework(fw)}
+                >
+                  <div className="h-[80px] w-[80px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadialBarChart
+                        cx="50%" cy="50%"
+                        innerRadius="70%" outerRadius="100%"
+                        startAngle={90} endAngle={-270}
+                        data={[{ value: fw.score, fill: color }]}
+                        barSize={6}
+                      >
+                        <RadialBar dataKey="value" background={{ fill: 'hsl(var(--muted))' }} cornerRadius={3} />
+                      </RadialBarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <p className={`text-sm font-bold tabular-nums ${scoreClass(fw.score)}`}>{fw.score}%</p>
+                  <p className="text-[10px] text-muted-foreground text-center leading-tight">{fw.name}</p>
+                </button>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Framework detail cards */}
       <Card>
