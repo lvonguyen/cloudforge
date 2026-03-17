@@ -64,6 +64,12 @@ func (s *Server) queryNLQ(w http.ResponseWriter, r *http.Request) {
 		subject = claims.Subject
 	}
 	nlqRateLimiter.Lock()
+	// Evict stale entries to prevent unbounded map growth
+	for k, t := range nlqRateLimiter.last {
+		if time.Since(t) > nlqMinInterval*10 {
+			delete(nlqRateLimiter.last, k)
+		}
+	}
 	if last, ok := nlqRateLimiter.last[subject]; ok && time.Since(last) < nlqMinInterval {
 		nlqRateLimiter.Unlock()
 		http.Error(w, `{"error":"rate limit exceeded, try again shortly"}`, http.StatusTooManyRequests)

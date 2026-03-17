@@ -111,11 +111,12 @@ func (r *RoutingProvider) CompleteWithTier(ctx context.Context, tier ModelTier, 
 		}
 	}
 
-	// Attempt fallback chain.
+	// Attempt fallback chain — record at TierPremium rate (fallbacks are typically
+	// more expensive than the originally requested tier).
 	for _, fb := range r.fallbackChain {
 		result, err := fb.CompleteWithSystem(ctx, systemPrompt, userPrompt)
 		if err == nil {
-			r.recordUsage(tier, userPrompt, result)
+			r.recordUsage(TierPremium, userPrompt, result)
 			return result, nil
 		}
 	}

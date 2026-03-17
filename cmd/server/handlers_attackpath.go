@@ -149,6 +149,9 @@ func (svc *AttackPathService) getAttackPathStats(w http.ResponseWriter, r *http.
 		scoped.TotalFindings = int(float64(scoped.FindingsInPaths) * ratio)
 	}
 	scoped.IsolatedFindings = scoped.TotalFindings - scoped.FindingsInPaths
+	if scoped.IsolatedFindings < 0 {
+		scoped.IsolatedFindings = 0
+	}
 	if scoped.TotalFindings > 0 {
 		scoped.CoveragePercent = float64(scoped.FindingsInPaths) / float64(scoped.TotalFindings) * 100
 	}

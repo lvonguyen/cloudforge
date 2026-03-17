@@ -176,17 +176,18 @@ func sanitizeForPrompt(s string, maxLen int) string {
 		}
 	}
 	result := b.String()
-	if len(result) > maxLen {
-		result = result[:maxLen]
+	runes := []rune(result)
+	if len(runes) > maxLen {
+		runes = runes[:maxLen]
 	}
-	return result
+	return string(runes)
 }
 
 func buildEnrichmentPrompt(path *AttackPath) string {
 	var sb strings.Builder
 
 	sb.WriteString(fmt.Sprintf("Attack Path: %s\nSeverity: %s, Score: %.0f, Hops: %d\n\n",
-		sanitizeForPrompt(path.Title, 128), path.Severity, path.Score, path.HopCount))
+		sanitizeForPrompt(path.Title, 128), sanitizeForPrompt(path.Severity, 16), path.Score, path.HopCount))
 
 	sb.WriteString("Entry Point:\n")
 	writeNodeSummary(&sb, &path.EntryPoint)
@@ -224,8 +225,8 @@ func writeNodeSummary(sb *strings.Builder, node *AttackPathNode) {
 		sanitizeForPrompt(node.Category, 64),
 		sanitizeForPrompt(node.Provider, 64),
 		sanitizeForPrompt(node.Region, 64),
-		node.Severity,
-		node.AccountID))
+		sanitizeForPrompt(node.Severity, 16),
+		sanitizeForPrompt(node.AccountID, 32)))
 }
 
 func parseEnrichmentResponse(response string) (*enrichmentResponse, error) {
