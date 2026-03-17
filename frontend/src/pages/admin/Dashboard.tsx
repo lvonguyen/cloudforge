@@ -68,6 +68,12 @@ export default function AdminDashboard() {
     { label: 'Open Exceptions', value: openExceptions, sub: `${exceptions?.filter(e => e.status === 'PENDING').length ?? FALLBACK_KPI.drafts} pending`, icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/20', link: '/ops/remediation' },
   ]
 
+  // SLA summary — how many pending exceptions are within SLA
+  const pendingExceptions = exceptions?.filter(e => e.status === 'PENDING') ?? []
+  const withinSLA = pendingExceptions.filter(e => computeExceptionSLA(e) !== 'overdue').length
+  const overdueSLA = pendingExceptions.length - withinSLA
+  const slaPct = pendingExceptions.length > 0 ? Math.round((withinSLA / pendingExceptions.length) * 100) : 100
+
   // Trend metrics — computed from hooks, static fallbacks for values without API data
   const trendPolicies = policies?.length?.toLocaleString() ?? FALLBACK_TREND.policies
   const trendRemediations = (remediations?.filter(r => r.status === 'completed').length ?? 341).toLocaleString()
@@ -130,6 +136,28 @@ export default function AdminDashboard() {
           </Link>
         ))}
       </div>
+
+      {/* SLA overview */}
+      {pendingExceptions.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Exception SLA Compliance</p>
+              <span className={`text-sm font-bold tabular-nums ${slaPct >= 80 ? 'text-green-600 dark:text-green-400' : slaPct >= 50 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>{slaPct}%</span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${slaPct >= 80 ? 'bg-green-500' : slaPct >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                style={{ width: `${slaPct}%` }}
+              />
+            </div>
+            <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground">
+              <span>{withinSLA} within SLA</span>
+              {overdueSLA > 0 && <span className="text-red-600 dark:text-red-400">{overdueSLA} overdue</span>}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Trend row */}
       <div className="grid grid-cols-3 gap-4">
