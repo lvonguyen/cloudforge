@@ -100,6 +100,13 @@ function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) 
                 {path.severity}
               </Badge>
               <span className="text-[10px] text-muted-foreground">{path.hop_count} hop{path.hop_count !== 1 ? 's' : ''}</span>
+              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${
+                path.nodes.length > 10 ? 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800' :
+                path.nodes.length >= 5 ? 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800' :
+                'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800'
+              }`}>
+                Blast: {path.nodes.length} resources
+              </Badge>
               <span className="text-[10px] text-muted-foreground">Score: {path.score.toFixed(0)}</span>
               {path.nodes.length > 0 && (
                 <ProviderBadge provider={path.nodes[0].provider} />
