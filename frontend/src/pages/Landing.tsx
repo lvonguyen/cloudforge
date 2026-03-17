@@ -80,7 +80,7 @@ export default function Landing() {
       <div className="space-y-1">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-none overflow-hidden">
-            <img src={branding.logoPath} alt={branding.productName} className="h-10 w-10" />
+            <img src={branding.logoPath} alt={branding.productName} className="h-10 w-10" width={40} height={40} />
           </div>
           <div>
             <h1 className="text-xl font-semibold tracking-tight">{branding.productName} Platform</h1>
@@ -149,7 +149,7 @@ function ProjectTile({ project }: { project: ProjectCard }) {
             <div className="flex items-center gap-2.5">
               <div className={`h-9 w-9 rounded-none ${project.bg} flex items-center justify-center overflow-hidden`}>
                 {project.iconSvg ? (
-                  <img src={project.iconSvg} alt={project.name} className="h-9 w-9" />
+                  <img src={project.iconSvg} alt={project.name} className="h-9 w-9" width={36} height={36} loading="lazy" />
                 ) : (
                   <Icon className={`h-4 w-4 ${project.color}`} />
                 )}
