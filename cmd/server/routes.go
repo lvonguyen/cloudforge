@@ -113,6 +113,9 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/remediations/{id}",
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getRemediation)),
 	).Methods("GET")
+	apiRouter.Handle("/remediations/{id}",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.patchRemediation)),
+	).Methods("PATCH")
 
 	// Agent traces (viewer can see traces read-only)
 	apiRouter.Handle("/agents/{id}/traces",
@@ -153,6 +156,9 @@ func (s *Server) setupRoutes() {
 	// Container security
 	apiRouter.Handle("/containers",
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listContainers)),
+	).Methods("GET")
+	apiRouter.Handle("/containers/{id}",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getContainer)),
 	).Methods("GET")
 	apiRouter.Handle("/container/scan",
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.scanContainer)),

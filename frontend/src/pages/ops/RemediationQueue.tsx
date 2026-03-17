@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator'
 import { RemediationTierBadge } from '@/components/remediation/RemediationTierBadge'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { CheckCircle2, Play, Eye, RotateCcw, List, LayoutGrid } from 'lucide-react'
-import { useRemediations, useExecuteRemediation } from '@/hooks/useRemediations'
+import { useRemediations, useExecuteRemediation, usePatchRemediation } from '@/hooks/useRemediations'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
 import type { RemediationRecord } from '@/types/remediation'
@@ -264,12 +264,15 @@ export default function RemediationQueue() {
   const pending = items.filter(q => q.status === 'pending').length
   const inProgress = items.filter(q => q.status === 'in_progress').length
 
+  const patchRemediation = usePatchRemediation()
+
   function handleKanbanDragEnd(result: DropResult) {
     if (!result.destination) return
     const newStatus = result.destination.droppableId
     if (result.source.droppableId === newStatus) return
     setStatusOverrides(prev => new Map(prev).set(result.draggableId, newStatus))
-    toast(`Status updated to ${KANBAN_LABELS[newStatus]} (demo)`, 'info')
+    patchRemediation.mutate({ id: result.draggableId, status: newStatus })
+    toast(`Status updated to ${KANBAN_LABELS[newStatus]}`, 'info')
   }
 
   if (isLoading) return <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">Loading remediation queue...</div>

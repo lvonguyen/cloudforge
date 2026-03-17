@@ -40,6 +40,23 @@ export function useRemediation(id: string) {
   })
 }
 
+export function usePatchRemediation() {
+  const qc = useQueryClient()
+  const { toast } = useToast()
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      apiClient.patch<RemediationRecord>(`/remediations/${id}`, { status }),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['remediations'] }) },
+    onError: (err: Error) => {
+      if (err instanceof ApiError && err.status === 403) {
+        toast('Status update requires operator or admin role', 'error')
+      } else {
+        toast('Failed to update remediation status', 'error')
+      }
+    },
+  })
+}
+
 export function useExecuteRemediation() {
   const qc = useQueryClient()
   const { toast } = useToast()

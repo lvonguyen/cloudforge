@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 // ContainerVuln represents a container vulnerability.
@@ -54,8 +56,33 @@ type ContainerTopologyResponse struct {
 	Clusters []Cluster `json:"clusters"`
 }
 
+func (s *Server) getContainer(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+	topology := s.buildContainerTopology()
+	for _, cluster := range topology.Clusters {
+		for _, ns := range cluster.Namespaces {
+			for _, pod := range ns.Pods {
+				for _, c := range pod.Containers {
+					if c.ID == id {
+						w.Header().Set("Content-Type", "application/json")
+						json.NewEncoder(w).Encode(c)
+						return
+					}
+				}
+			}
+		}
+	}
+	http.Error(w, `{"error":"container not found"}`, http.StatusNotFound)
+}
+
 func (s *Server) listContainers(w http.ResponseWriter, _ *http.Request) {
-	topology := ContainerTopologyResponse{
+	topology := s.buildContainerTopology()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(topology)
+}
+
+func (s *Server) buildContainerTopology() ContainerTopologyResponse {
+	return ContainerTopologyResponse{
 		Clusters: []Cluster{
 			{
 				Name: "prod-us-east-1", Provider: "aws", Region: "us-east-1",
@@ -116,7 +143,4 @@ func (s *Server) listContainers(w http.ResponseWriter, _ *http.Request) {
 			},
 		},
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(topology)
 }
