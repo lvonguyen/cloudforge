@@ -56,7 +56,7 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
       {/* Right side */}
       <div className="ml-auto flex items-center gap-3">
         <ThemeToggle />
-        {import.meta.env.DEV && <RoleSwitcher />}
+        <RoleSwitcher />
 
         <DropdownMenu>
           <DropdownMenuTrigger aria-label="User menu" className="flex items-center gap-2 rounded-full h-8 w-8 bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90">
