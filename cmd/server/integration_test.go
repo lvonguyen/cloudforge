@@ -42,14 +42,14 @@ func TestIntegration_FullServerLifecycle(t *testing.T) {
 
 	// 3. GET /api/v1/findings/{id} -> 200, single finding
 	t.Run("get_finding", func(t *testing.T) {
-		rr := doRequest(t, router, "GET", "/api/v1/findings/f-aws-0001", "", jwt)
+		rr := doRequest(t, router, "GET", "/api/v1/findings/f-00001", "", jwt)
 		assertStatus(t, rr, http.StatusOK)
 
 		var result Finding
 		assertJSON(t, rr, &result)
 
-		if result.ID != "f-aws-0001" {
-			t.Errorf("finding id = %q, want f-aws-0001", result.ID)
+		if result.ID != "f-00001" {
+			t.Errorf("finding id = %q, want f-00001", result.ID)
 		}
 	})
 
@@ -254,7 +254,7 @@ func TestIntegration_AuthorizationMatrix(t *testing.T) {
 		want   int
 	}{
 		{"GET", "/api/v1/findings", "", http.StatusOK},
-		{"GET", "/api/v1/findings/f-aws-0001", "", http.StatusOK},
+		{"GET", "/api/v1/findings/f-00001", "", http.StatusOK},
 		{"GET", "/api/v1/compliance/frameworks", "", http.StatusOK},
 		{"GET", "/api/v1/agents", "", http.StatusOK},
 		{"GET", "/api/v1/costs/summary", "", http.StatusOK},

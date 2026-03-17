@@ -62,14 +62,14 @@ func TestGetFinding(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)
 
-	rr := doRequest(t, router, "GET", "/api/v1/findings/f-aws-0001", "", jwt)
+	rr := doRequest(t, router, "GET", "/api/v1/findings/f-00001", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
 
 	var result Finding
 	assertJSON(t, rr, &result)
 
-	if result.ID != "f-aws-0001" {
-		t.Errorf("finding id = %q, want f-aws-0001", result.ID)
+	if result.ID != "f-00001" {
+		t.Errorf("finding id = %q, want f-00001", result.ID)
 	}
 }
 
@@ -429,7 +429,7 @@ func TestAllEndpoints_RequireAuth(t *testing.T) {
 		path   string
 	}{
 		{"GET", "/api/v1/findings"},
-		{"GET", "/api/v1/findings/f-aws-0001"},
+		{"GET", "/api/v1/findings/f-00001"},
 		{"GET", "/api/v1/compliance/frameworks"},
 		{"GET", "/api/v1/agents"},
 		{"GET", "/api/v1/agents/550e8400-e29b-41d4-a716-446655440001"},
@@ -488,7 +488,7 @@ func TestViewerAllowed_ReadOnlyEndpoints(t *testing.T) {
 		path   string
 	}{
 		{"GET", "/api/v1/findings"},
-		{"GET", "/api/v1/findings/f-aws-0001"},
+		{"GET", "/api/v1/findings/f-00001"},
 		{"GET", "/api/v1/compliance/frameworks"},
 		{"GET", "/api/v1/agents"},
 		{"GET", "/api/v1/agents/550e8400-e29b-41d4-a716-446655440001"},
@@ -511,7 +511,7 @@ func TestViewerForbidden_WriteAndAdminEndpoints(t *testing.T) {
 		method string
 		path   string
 	}{
-		{"POST", "/api/v1/findings/f-aws-0001/enrich"},
+		{"POST", "/api/v1/findings/f-00001/enrich"},
 		{"GET", "/api/v1/costs/summary"},
 		{"GET", "/api/v1/remediations"},
 		{"POST", "/api/v1/remediations/rem-001/execute"},
@@ -547,8 +547,8 @@ func scopedAdminJWT(t *testing.T, accountIDs []string) string {
 func TestListFindings_ScopedByAccount(t *testing.T) {
 	_, router := testServer(t)
 
-	// f-aws-0001 has account_id 100000000315
-	targetAccount := "100000000315"
+	// f-00001 has account_id 847291036584
+	targetAccount := "847291036584"
 	jwt := scopedAdminJWT(t, []string{targetAccount})
 
 	rr := doRequest(t, router, "GET", "/api/v1/findings?per_page=200", "", jwt)
@@ -583,7 +583,7 @@ func TestListFindings_ScopedAdmin_SeesFewerThanUnscoped(t *testing.T) {
 	assertJSON(t, rr1, &allResp)
 
 	// Scoped admin sees subset
-	scopedJWT := scopedAdminJWT(t, []string{"100000000315"})
+	scopedJWT := scopedAdminJWT(t, []string{"847291036584"})
 	rr2 := doRequest(t, router, "GET", "/api/v1/findings", "", scopedJWT)
 	assertStatus(t, rr2, http.StatusOK)
 	var scopedResp paginatedFindings
@@ -597,27 +597,27 @@ func TestListFindings_ScopedAdmin_SeesFewerThanUnscoped(t *testing.T) {
 func TestGetFinding_ScopeDenied(t *testing.T) {
 	_, router := testServer(t)
 
-	// f-aws-0001 has account_id 100000000315
+	// f-00001 has account_id 847291036584
 	// Scope to a different account
 	jwt := scopedAdminJWT(t, []string{"999999999999"})
 
-	rr := doRequest(t, router, "GET", "/api/v1/findings/f-aws-0001", "", jwt)
+	rr := doRequest(t, router, "GET", "/api/v1/findings/f-00001", "", jwt)
 	assertStatus(t, rr, http.StatusForbidden)
 }
 
 func TestGetFinding_ScopeAllowed(t *testing.T) {
 	_, router := testServer(t)
 
-	// f-aws-0001 has account_id 100000000315
-	jwt := scopedAdminJWT(t, []string{"100000000315"})
+	// f-00001 has account_id 847291036584
+	jwt := scopedAdminJWT(t, []string{"847291036584"})
 
-	rr := doRequest(t, router, "GET", "/api/v1/findings/f-aws-0001", "", jwt)
+	rr := doRequest(t, router, "GET", "/api/v1/findings/f-00001", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
 
 	var result Finding
 	assertJSON(t, rr, &result)
-	if result.ID != "f-aws-0001" {
-		t.Errorf("finding id = %q, want f-aws-0001", result.ID)
+	if result.ID != "f-00001" {
+		t.Errorf("finding id = %q, want f-00001", result.ID)
 	}
 }
 
@@ -627,7 +627,7 @@ func TestGetFinding_NilScopeAllowsAll(t *testing.T) {
 	// Admin without ResourceScope sees everything (backwards compat)
 	jwt := adminJWT(t)
 
-	rr := doRequest(t, router, "GET", "/api/v1/findings/f-aws-0001", "", jwt)
+	rr := doRequest(t, router, "GET", "/api/v1/findings/f-00001", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
 }
 
@@ -637,7 +637,7 @@ func TestFinding_IntegrityHashPopulated(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)
 
-	rr := doRequest(t, router, "GET", "/api/v1/findings/f-aws-0001", "", jwt)
+	rr := doRequest(t, router, "GET", "/api/v1/findings/f-00001", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
 
 	var result Finding
@@ -696,9 +696,9 @@ func TestAuditLog_IncludesRealEvents(t *testing.T) {
 func TestFinding_IntegrityHashDeterministic(t *testing.T) {
 	srv, _ := testServer(t)
 
-	f := srv.data.FindingsByID["f-aws-0001"]
+	f := srv.data.FindingsByID["f-00001"]
 	if f == nil {
-		t.Fatal("f-aws-0001 not found")
+		t.Fatal("f-00001 not found")
 	}
 
 	hash1 := f.ComputeIntegrityHash()
