@@ -35,6 +35,8 @@ const Compliance = lazy(() => import('@/pages/ops/Compliance'))
 const AttackPaths = lazy(() => import('@/pages/ops/AttackPaths'))
 const Containers = lazy(() => import('@/pages/ops/Containers'))
 const DataClassification = lazy(() => import('@/pages/ops/DataClassification'))
+const SecurityGraph = lazy(() => import('@/pages/ops/SecurityGraph'))
+const Investigations = lazy(() => import('@/pages/ops/Investigations'))
 
 // Portal pages (lazy)
 const PortalDashboard = lazy(() => import('@/pages/portal/Dashboard'))
@@ -101,6 +103,8 @@ export default function App() {
                     <Route path="/ops/attack-paths" element={<AttackPaths />} />
                     <Route path="/ops/containers" element={<Containers />} />
                     <Route path="/ops/data-classification" element={<DataClassification />} />
+                    <Route path="/ops/graph" element={<SecurityGraph />} />
+                    <Route path="/ops/investigations" element={<Investigations />} />
                   </Route>
                 </Route>
 
