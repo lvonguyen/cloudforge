@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Search, X, Sparkles } from 'lucide-react'
+import { Search, X, Sparkles, Code2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { apiClient } from '@/lib/api'
+import { parseRQL, rqlToFilters, isValidRQL, RQL_SYNTAX_HINT } from '@/lib/rql-parser'
 
 interface NLQFilters {
   severity?: string[]
@@ -16,11 +17,14 @@ interface NLQueryBarProps {
   onApplyFilters: (filters: NLQFilters) => void
 }
 
+type QueryMode = 'nlq' | 'rql'
+
 export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [appliedFilters, setAppliedFilters] = useState<NLQFilters | null>(null)
+  const [mode, setMode] = useState<QueryMode>('nlq')
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Cmd+K / Ctrl+K shortcut
@@ -50,8 +54,33 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
   const handleSubmit = useCallback(async () => {
     const q = query.trim()
     if (!q) return
-    setLoading(true)
 
+    // RQL mode: parse client-side, no AI call needed
+    if (mode === 'rql') {
+      if (!isValidRQL(q)) {
+        // Invalid RQL — fall back to text search
+        const fallback: NLQFilters = { text: q }
+        setAppliedFilters(fallback)
+        onApplyFilters(fallback)
+        setOpen(false)
+        return
+      }
+      const parsed = parseRQL(q)
+      const raw = rqlToFilters(parsed)
+      const filters: NLQFilters = {}
+      if (raw.severity) filters.severity = raw.severity
+      if (raw.provider) filters.provider = raw.provider
+      if (raw.category) filters.category = raw.category
+      if (raw.status) filters.status = raw.status
+      if (raw.environment) filters.environment = raw.environment
+      setAppliedFilters(filters)
+      onApplyFilters(filters)
+      setOpen(false)
+      return
+    }
+
+    // NLQ mode: call AI endpoint
+    setLoading(true)
     try {
       const filters = await apiClient.post<NLQFilters>('/ai/nlq', { query: q })
       setAppliedFilters(filters)
@@ -66,7 +95,7 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
     } finally {
       setLoading(false)
     }
-  }, [query, onApplyFilters])
+  }, [query, onApplyFilters, mode])
 
   const clearFilters = useCallback(() => {
     setAppliedFilters(null)
@@ -120,7 +149,22 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
           <div className="relative w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
             <div className="border border-border bg-background shadow-2xl">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+              {/* Mode toggle */}
+              <div className="flex items-center gap-1 px-4 pt-3 pb-1">
+                <button
+                  className={`text-[10px] font-medium px-2 py-0.5 transition-colors ${mode === 'nlq' ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' : 'text-muted-foreground hover:text-foreground'}`}
+                  onClick={() => setMode('nlq')}
+                >
+                  <Sparkles className="h-3 w-3 inline mr-1" />NLQ
+                </button>
+                <button
+                  className={`text-[10px] font-medium px-2 py-0.5 transition-colors ${mode === 'rql' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'text-muted-foreground hover:text-foreground'}`}
+                  onClick={() => setMode('rql')}
+                >
+                  <Code2 className="h-3 w-3 inline mr-1" />RQL
+                </button>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
                 <Search className="h-4 w-4 text-muted-foreground shrink-0" />
                 <input
                   ref={inputRef}
@@ -128,8 +172,8 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
-                  placeholder="e.g. critical AWS misconfigs in production"
-                  className="flex-1 text-sm bg-transparent border-none outline-none"
+                  placeholder={mode === 'rql' ? 'severity=CRITICAL AND provider=aws' : 'e.g. critical AWS misconfigs in production'}
+                  className="flex-1 text-sm bg-transparent border-none outline-none font-mono"
                   disabled={loading}
                 />
                 {loading && <span className="text-[10px] text-muted-foreground animate-pulse">Analyzing...</span>}
@@ -138,8 +182,17 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
                 </button>
               </div>
               <div className="px-4 py-2 text-[10px] text-muted-foreground">
-                <span className="font-medium">Examples:</span>{' '}
-                <span className="text-violet-500">critical AWS misconfigs</span> · <span className="text-violet-500">open vulnerabilities in prod</span> · <span className="text-violet-500">S3 bucket findings</span>
+                {mode === 'rql' ? (
+                  <>
+                    <span className="font-medium">Syntax:</span>{' '}
+                    <span className="text-emerald-500 font-mono">{RQL_SYNTAX_HINT}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-medium">Examples:</span>{' '}
+                    <span className="text-violet-500">critical AWS misconfigs</span> · <span className="text-violet-500">open vulnerabilities in prod</span> · <span className="text-violet-500">S3 bucket findings</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
