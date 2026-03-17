@@ -10,11 +10,16 @@ const EMPTY_STATS: AttackPathStats = {
   high_paths: 0, medium_paths: 0, by_provider: {},
 }
 
-// Cached pre-computed attack paths from R2 or local mock
-let mockCache: { paths: AttackPath[]; stats: AttackPathStats } | null = null
+// Singleflight cache: coalesces concurrent calls and allows invalidation
+let mockCachePromise: Promise<{ paths: AttackPath[]; stats: AttackPathStats }> | null = null
 
 async function getMockAttackPaths(): Promise<{ paths: AttackPath[]; stats: AttackPathStats }> {
-  if (mockCache) return mockCache
+  if (mockCachePromise) return mockCachePromise
+  mockCachePromise = loadMockAttackPaths().catch(err => { mockCachePromise = null; throw err })
+  return mockCachePromise
+}
+
+async function loadMockAttackPaths(): Promise<{ paths: AttackPath[]; stats: AttackPathStats }> {
 
   // Try pre-computed attack-paths.json from R2 first (fast, no client-side computation)
   try {
@@ -23,8 +28,7 @@ async function getMockAttackPaths(): Promise<{ paths: AttackPath[]; stats: Attac
       const data = await res.json()
       if (data.paths?.length > 0) {
         console.warn('[useAttackPaths] Using pre-computed paths from R2:', data.paths.length, 'paths')
-        mockCache = { paths: data.paths, stats: data.stats }
-        return mockCache
+        return { paths: data.paths, stats: data.stats }
       }
     }
   } catch { /* fall through */ }
@@ -36,8 +40,7 @@ async function getMockAttackPaths(): Promise<{ paths: AttackPath[]; stats: Attac
       const data = await res.json()
       if (data.paths?.length > 0) {
         console.warn('[useAttackPaths] Using pre-computed paths from local mock:', data.paths.length, 'paths')
-        mockCache = { paths: data.paths, stats: data.stats }
-        return mockCache
+        return { paths: data.paths, stats: data.stats }
       }
     }
   } catch { /* fall through */ }
@@ -56,8 +59,7 @@ async function getMockAttackPaths(): Promise<{ paths: AttackPath[]; stats: Attac
       findings = await res.json()
     }
     console.warn('[useAttackPaths] Computing mock paths client-side from', findings.length, 'findings')
-    mockCache = computeMockAttackPaths(findings)
-    return mockCache
+    return computeMockAttackPaths(findings)
   } catch {
     return { paths: [], stats: EMPTY_STATS }
   }

@@ -20,7 +20,7 @@ function isEntryPoint(f: Finding): boolean {
 
 function isTarget(f: Finding): boolean {
   const rt = f.resource_type?.toLowerCase() ?? ''
-  return ['storage', 'database', 'secret', 'encryption'].some(t => rt.includes(t))
+  return rt === 'storage' || rt === 'database' || rt === 'secret' || rt === 'encryption'
 }
 
 function canConnect(a: Finding, b: Finding): boolean {

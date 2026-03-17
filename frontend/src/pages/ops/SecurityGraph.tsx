@@ -37,7 +37,9 @@ function getXForType(rt: string): number {
   return (Math.abs(hash) % 6) * 200
 }
 
-/** BFS to find all nodes within N hops of a seed node. */
+const MAX_BFS_NODES = 500
+
+/** BFS to find all nodes within N hops of a seed node, capped at MAX_BFS_NODES. */
 function bfsNeighborhood(seedId: string, adjacency: Map<string, Set<string>>, maxHops: number): Set<string> {
   const visited = new Set<string>([seedId])
   let frontier = [seedId]
@@ -48,6 +50,7 @@ function bfsNeighborhood(seedId: string, adjacency: Map<string, Set<string>>, ma
         if (!visited.has(neighbor)) {
           visited.add(neighbor)
           next.push(neighbor)
+          if (visited.size >= MAX_BFS_NODES) return visited
         }
       }
     }
@@ -59,7 +62,8 @@ function bfsNeighborhood(seedId: string, adjacency: Map<string, Set<string>>, ma
 export default function SecurityGraph() {
   const { data: findings = [], isLoading } = useFindings()
   const [searchParams] = useSearchParams()
-  const focusResourceId = searchParams.get('focus')
+  const rawFocus = searchParams.get('focus')
+  const focusResourceId = rawFocus && rawFocus.length <= 256 ? rawFocus : null
   const [selectedNode, setSelectedNode] = useState<SecurityGraphNode | null>(null)
   const [filter, setFilter] = useState('')
   const [showAll, setShowAll] = useState(false)

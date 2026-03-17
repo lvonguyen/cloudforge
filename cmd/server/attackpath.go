@@ -240,8 +240,8 @@ func buildChain(entry Finding, intermediates []Finding, target Finding) []Findin
 		return nil
 	}
 
-	// Direct connection: entry -> target
-	if entry.Region == target.Region {
+	// Direct connection: entry -> target (must pass canConnect gate)
+	if canConnect(entry, target) {
 		return []Finding{entry, target}
 	}
 
@@ -256,10 +256,6 @@ func buildChain(entry Finding, intermediates []Finding, target Finding) []Findin
 		}
 	}
 
-	// Cross-region but same account: direct link only if connectable
-	if canConnect(entry, target) {
-		return []Finding{entry, target}
-	}
 	return nil
 }
 

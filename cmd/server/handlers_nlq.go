@@ -4,9 +4,20 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"cloudforge/internal/ai"
+	"cloudforge/internal/api"
 )
+
+// nlqRateLimiter tracks per-user NLQ call timestamps to prevent AI budget drain.
+var nlqRateLimiter = struct {
+	sync.Mutex
+	last map[string]time.Time
+}{last: make(map[string]time.Time)}
+
+const nlqMinInterval = 3 * time.Second // max ~20 req/min per user
 
 // NLQRequest is the request body for the NLQ endpoint.
 type NLQRequest struct {
@@ -45,6 +56,21 @@ func (s *Server) queryNLQ(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"AI provider not configured"}`, http.StatusServiceUnavailable)
 		return
 	}
+
+	// Per-user rate limit to prevent AI budget drain
+	claims, _ := api.GetClaimsFromContext(r.Context())
+	subject := "unknown"
+	if claims != nil {
+		subject = claims.Subject
+	}
+	nlqRateLimiter.Lock()
+	if last, ok := nlqRateLimiter.last[subject]; ok && time.Since(last) < nlqMinInterval {
+		nlqRateLimiter.Unlock()
+		http.Error(w, `{"error":"rate limit exceeded, try again shortly"}`, http.StatusTooManyRequests)
+		return
+	}
+	nlqRateLimiter.last[subject] = time.Now()
+	nlqRateLimiter.Unlock()
 
 	var req NLQRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

@@ -118,12 +118,9 @@ func (svc *AttackPathService) getAttackPathStats(w http.ResponseWriter, r *http.
 
 	// Scoped path: compute stats on the fly for the caller's scope.
 	scoped := &AttackPathStats{
-		TotalFindings:    svc.Stats.TotalFindings,
-		FindingsInPaths:  svc.Stats.FindingsInPaths,
-		IsolatedFindings: svc.Stats.IsolatedFindings,
-		CoveragePercent:  svc.Stats.CoveragePercent,
-		ByProvider:       make(map[string]int),
+		ByProvider: make(map[string]int),
 	}
+	scopedFindingIDs := make(map[string]bool)
 	for i := range svc.Paths {
 		if !attackPathInScope(scope, &svc.Paths[i]) {
 			continue
@@ -140,6 +137,20 @@ func (svc *AttackPathService) getAttackPathStats(w http.ResponseWriter, r *http.
 		if len(svc.Paths[i].Nodes) > 0 {
 			scoped.ByProvider[svc.Paths[i].Nodes[0].Provider]++
 		}
+		for _, fid := range svc.Paths[i].FindingIDs {
+			scopedFindingIDs[fid] = true
+		}
+	}
+	// Compute scoped finding-level stats from filtered paths
+	scoped.FindingsInPaths = len(scopedFindingIDs)
+	// TotalFindings for scope = findings in paths + isolated (approximate: use global ratio)
+	if svc.Stats.TotalFindings > 0 && svc.Stats.FindingsInPaths > 0 {
+		ratio := float64(svc.Stats.TotalFindings) / float64(svc.Stats.FindingsInPaths)
+		scoped.TotalFindings = int(float64(scoped.FindingsInPaths) * ratio)
+	}
+	scoped.IsolatedFindings = scoped.TotalFindings - scoped.FindingsInPaths
+	if scoped.TotalFindings > 0 {
+		scoped.CoveragePercent = float64(scoped.FindingsInPaths) / float64(scoped.TotalFindings) * 100
 	}
 
 	w.Header().Set("Content-Type", "application/json")
