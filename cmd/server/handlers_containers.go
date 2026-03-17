@@ -1,10 +1,13 @@
 package main
 
 import (
+	"cloudforge/internal/container"
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 )
 
 // ContainerVuln represents a container vulnerability.
@@ -82,6 +85,17 @@ func (s *Server) listContainers(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) buildContainerTopology() ContainerTopologyResponse {
+	// When TRIVY_OUTPUT_PATH is set, parse real Trivy K8s scan output.
+	if trivyPath := os.Getenv("TRIVY_OUTPUT_PATH"); trivyPath != "" {
+		clusters, err := container.ParseTrivyK8sFile(trivyPath)
+		if err != nil {
+			s.logger.Warn("Trivy parse failed, falling back to mock topology",
+				zap.String("path", trivyPath), zap.Error(err))
+		} else {
+			return trivyClustersToTopology(clusters)
+		}
+	}
+
 	return ContainerTopologyResponse{
 		Clusters: []Cluster{
 			{
@@ -143,4 +157,35 @@ func (s *Server) buildContainerTopology() ContainerTopologyResponse {
 			},
 		},
 	}
+}
+
+// trivyClustersToTopology converts the parser's topology types to the handler's API types.
+func trivyClustersToTopology(clusters []container.TopologyCluster) ContainerTopologyResponse {
+	var out []Cluster
+	for _, tc := range clusters {
+		c := Cluster{Name: tc.Name, Provider: tc.Provider, Region: tc.Region}
+		for _, tns := range tc.Namespaces {
+			ns := Namespace{Name: tns.Name}
+			for _, tp := range tns.Pods {
+				pod := Pod{ID: tp.ID, Name: tp.Name, Namespace: tp.Namespace, Status: tp.Status}
+				for _, tcr := range tp.Containers {
+					cr := Container{
+						ID: tcr.ID, Name: tcr.Name, Image: tcr.Image,
+						Registry: tcr.Registry, Status: tcr.Status, VulnCount: tcr.VulnCount,
+					}
+					for _, tv := range tcr.Vulns {
+						cr.Vulns = append(cr.Vulns, ContainerVuln{
+							CVEID: tv.CVEID, Severity: tv.Severity, Package: tv.Package,
+							Version: tv.Version, FixedIn: tv.FixedIn, CVSS: tv.CVSS,
+						})
+					}
+					pod.Containers = append(pod.Containers, cr)
+				}
+				ns.Pods = append(ns.Pods, pod)
+			}
+			c.Namespaces = append(c.Namespaces, ns)
+		}
+		out = append(out, c)
+	}
+	return ContainerTopologyResponse{Clusters: out}
 }
