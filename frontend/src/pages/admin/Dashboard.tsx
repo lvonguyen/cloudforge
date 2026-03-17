@@ -3,11 +3,15 @@ import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { ShieldCheck, Bot, AlertTriangle, FileText, TrendingUp, TrendingDown, Minus, Loader2 } from 'lucide-react'
 import { ShieldX } from 'lucide-react'
 import { EXCEPTION_STATUS_COLORS as STATUS_COLORS } from '@/lib/severity'
+import { branding } from '@/lib/branding'
 import { usePolicies } from '@/hooks/usePolicies'
 import { useAgents } from '@/hooks/useAgents'
 import { useCompliance } from '@/hooks/useCompliance'
@@ -18,6 +22,31 @@ import { ApiError } from '@/lib/api'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { Target } from 'lucide-react'
 import type { ExceptionRequest } from '@/types/grc'
+
+// Widget preset definitions
+type WidgetId = 'kpi' | 'sla' | 'trend' | 'chokepoints' | 'exceptions'
+type PresetId = 'default' | 'security' | 'operations' | 'executive'
+
+interface DashboardPreset {
+  id: PresetId
+  label: string
+  widgets: WidgetId[]
+}
+
+const PRESETS: DashboardPreset[] = [
+  { id: 'default', label: 'All Widgets', widgets: ['kpi', 'sla', 'trend', 'chokepoints', 'exceptions'] },
+  { id: 'security', label: 'Security Focus', widgets: ['kpi', 'chokepoints', 'exceptions'] },
+  { id: 'operations', label: 'Operations', widgets: ['kpi', 'sla', 'trend', 'exceptions'] },
+  { id: 'executive', label: 'Executive', widgets: ['kpi', 'trend'] },
+]
+
+const PRESET_STORAGE_KEY = `${branding.storagePrefix}:dashboard-preset`
+
+function getInitialPreset(): PresetId {
+  const stored = localStorage.getItem(PRESET_STORAGE_KEY)
+  if (stored && PRESETS.some(p => p.id === stored)) return stored as PresetId
+  return 'default'
+}
 
 // Fallback values when hooks haven't loaded (demo/offline mode)
 const FALLBACK_KPI = { policies: 42, agents: 7, compliance: 84, exceptions: 12, drafts: 3, active: 5 } as const
@@ -48,6 +77,15 @@ function computeExceptionSLA(e: ExceptionRequest): string {
 
 export default function AdminDashboard() {
   const [expandedExc, setExpandedExc] = useState<string | null>(null)
+  const [presetId, setPresetId] = useState<PresetId>(getInitialPreset)
+  const activePreset = PRESETS.find(p => p.id === presetId) ?? PRESETS[0]
+  const showWidget = (id: WidgetId) => activePreset.widgets.includes(id)
+
+  function handlePresetChange(value: string) {
+    const id = value as PresetId
+    setPresetId(id)
+    localStorage.setItem(PRESET_STORAGE_KEY, id)
+  }
   const { data: policies, isLoading: polLoading, error: polError } = usePolicies()
   const { data: agents, isLoading: agentLoading, error: agentError } = useAgents()
   const { data: frameworks, isLoading: compLoading, error: compError } = useCompliance()
@@ -183,10 +221,23 @@ export default function AdminDashboard() {
           <h1 className="text-xl font-semibold">Admin Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Platform overview — {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>
         </div>
-        <Badge variant="secondary" className="text-xs">Live</Badge>
+        <div className="flex items-center gap-2">
+          <Select value={presetId} onValueChange={handlePresetChange}>
+            <SelectTrigger className="h-7 w-36 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PRESETS.map(p => (
+                <SelectItem key={p.id} value={p.id} className="text-xs">{p.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Badge variant="secondary" className="text-xs">Live</Badge>
+        </div>
       </div>
 
       {/* KPI Cards */}
+      {showWidget('kpi') && (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {KPI_CARDS.map(({ label, value, sub, icon: Icon, color, bg, link }) => (
           <Link key={label} to={link} className="group">
@@ -207,9 +258,10 @@ export default function AdminDashboard() {
           </Link>
         ))}
       </div>
+      )}
 
       {/* SLA overview */}
-      {pendingExceptions.length > 0 && (
+      {showWidget('sla') && pendingExceptions.length > 0 && (
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
@@ -231,6 +283,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Trend row */}
+      {showWidget('trend') && (
       <div className="grid grid-cols-3 gap-4">
         {TREND.map(({ label, value, change }) => {
           const isPositive = change?.startsWith('+')
@@ -250,9 +303,10 @@ export default function AdminDashboard() {
           )
         })}
       </div>
+      )}
 
       {/* Choke points — GAP-02 */}
-      {chokePoints.length > 0 && (
+      {showWidget('chokepoints') && chokePoints.length > 0 && (
         <Card className="rounded-none border-amber-200 dark:border-amber-900/40">
           <CardHeader className="pb-2 pt-3 px-4">
             <div className="flex items-center justify-between">
@@ -281,7 +335,9 @@ export default function AdminDashboard() {
       )}
 
       {/* Exception queue preview */}
+      {showWidget('exceptions') && (
       <Card>
+
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Exception Queue</CardTitle>
@@ -343,6 +399,7 @@ export default function AdminDashboard() {
           </Table>
         </CardContent>
       </Card>
+      )}
     </div>
   )
 }
