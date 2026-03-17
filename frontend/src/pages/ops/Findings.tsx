@@ -272,25 +272,9 @@ export default function Findings() {
     return m
   }, [allFindings])
 
-  // Severity summary (always from full dataset)
-  const severityCounts = useMemo(() => {
-    const m: Record<string, number> = {}
-    for (const f of allFindings) m[f.severity] = (m[f.severity] ?? 0) + 1
-    return m
-  }, [allFindings])
-
-  const slaBreachedCount = useMemo(() => {
-    const now = Date.now()
-    return allFindings.filter(f => f.sla_breach_date && new Date(f.sla_breach_date).getTime() < now).length
-  }, [allFindings])
-
-  const autoRemCount = useMemo(
-    () => allFindings.filter(f => f.auto_remediatable).length,
-    [allFindings],
-  )
-
-  // Filter pipeline
-  const filtered = useMemo(() => {
+  // Base filtered: sidebar + search + severity tab (excludes metric card toggles)
+  // KPI cards derive from this so clicking SLA/AutoRem doesn't zero their own counts
+  const baseFiltered = useMemo(() => {
     let result = allFindings
 
     // Sidebar: category (OR within group)
@@ -305,21 +289,19 @@ export default function Findings() {
     if (selectedStatuses.size > 0) {
       result = result.filter(f => selectedStatuses.has(f.status))
     }
-    // Metric card filters
-    if (filterSLABreached) {
-      const now = Date.now()
-      result = result.filter(f => f.sla_breach_date && new Date(f.sla_breach_date).getTime() < now)
-    }
-    if (filterAutoRem) {
-      result = result.filter(f => f.auto_remediatable)
-    }
     // Text search
     if (deferredSearch) {
       const q = deferredSearch.toLowerCase()
       result = result.filter(f =>
         f.title.toLowerCase().includes(q) ||
         f.resource_name.toLowerCase().includes(q) ||
-        f.id.toLowerCase().includes(q)
+        f.id.toLowerCase().includes(q) ||
+        f.description?.toLowerCase().includes(q) ||
+        f.cloud_provider?.toLowerCase().includes(q) ||
+        f.category?.toLowerCase().includes(q) ||
+        f.resource_type?.toLowerCase().includes(q) ||
+        f.region?.toLowerCase().includes(q) ||
+        f.account_name?.toLowerCase().includes(q)
       )
     }
     // Severity tab
@@ -329,6 +311,39 @@ export default function Findings() {
 
     return result
   }, [allFindings, selectedCategories, selectedProviders, selectedStatuses, deferredSearch, severityTab])
+
+  // KPI summaries (from baseFiltered — respects sidebar/search/severity but not metric toggles)
+  const severityCounts = useMemo(() => {
+    const m: Record<string, number> = {}
+    for (const f of baseFiltered) m[f.severity] = (m[f.severity] ?? 0) + 1
+    return m
+  }, [baseFiltered])
+
+  const slaBreachedCount = useMemo(() => {
+    const now = Date.now()
+    return baseFiltered.filter(f => f.sla_breach_date && new Date(f.sla_breach_date).getTime() < now).length
+  }, [baseFiltered])
+
+  const autoRemCount = useMemo(
+    () => baseFiltered.filter(f => f.auto_remediatable).length,
+    [baseFiltered],
+  )
+
+  // Full filter pipeline (baseFiltered + metric card toggles)
+  const filtered = useMemo(() => {
+    let result = baseFiltered
+
+    // Metric card filters
+    if (filterSLABreached) {
+      const now = Date.now()
+      result = result.filter(f => f.sla_breach_date && new Date(f.sla_breach_date).getTime() < now)
+    }
+    if (filterAutoRem) {
+      result = result.filter(f => f.auto_remediatable)
+    }
+
+    return result
+  }, [baseFiltered, filterSLABreached, filterAutoRem])
 
   // Sort
   const sorted = useMemo(() => {
@@ -730,7 +745,9 @@ export default function Findings() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold font-mono">Findings</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">{displayCount.toLocaleString()} total findings</p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {displayCount.toLocaleString()} total findings{hasFilters ? ` (${filtered.length.toLocaleString()} matching)` : ''}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex gap-1.5">
