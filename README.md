@@ -70,7 +70,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | **Security** | | |
 | Rate limiting | Done | Redis-backed, tier-based, wired into `/api/v1` routes |
 | JWT authentication | Done | HS256/RS256 validation, JWKS caching, wired into router |
-| OIDC provider integration | Interface Only | Okta OIDC configured (Fly.io production), Entra ID provider interface exists |
+| OIDC provider integration | Done | Okta JWKS auto-derived from OKTA_DOMAIN, Entra ID provider interface; full SSO requires Okta app config |
 | Authorization (RBAC) | Done | Role-based middleware (admin/operator/requester), dev header override with enum validation |
 | **IaC / Deploy** | | |
 | Terraform modules (compute) | Done | Cloud Run + ECS Fargate + Azure Container Apps |
@@ -82,7 +82,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | Environment configs | Done | Dev environment with GCS remote state |
 | **Portal** | | |
 | React SPA (frontend/) | Done | React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui |
-| 21 route pages | Done | Admin, Operator, Requester role views + attack paths |
+| 26 route pages | Done | Admin, Operator, Requester role views + attack paths + containers |
 | Dark mode | Done | CSS variable overrides, anti-flash script |
 | Cloudflare Pages deploy | Done | cloudforge-demo.lvonguyen.com |
 | API hook migration | Partial | MyRequests, useFindings (R2 fallback), useAttackPaths (mock fallback), useCostAnomalies cache fix, Execute/Retry mutations wired; remaining hooks fall back to mock on 401 in dev |
@@ -112,8 +112,8 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | `internal/findings` | Production | Finding types, bridge to CSPM aggregator |
 | `pkg/remediation` | Production | Executor engine, 10 handlers, rollback |
 | `internal/cicd` | Partial | SAST/VCS interfaces, basic integrations |
-| `internal/finops` | Interface Only | Cost aggregation interfaces, no cloud API wiring |
-| `internal/container` | Interface + Mock | K8s admission webhook pattern, image scan interface |
+| `internal/finops` | Production | Cost aggregation (AWS Cost Explorer wirable via FINOPS_PROVIDER=aws), anomaly detection, chargeback |
+| `internal/container` | Production | K8s topology (Trivy parser wirable via TRIVY_OUTPUT_PATH), image scan interface |
 | `internal/secrets` | Interface + Mock | Vault integration interface, mock provider |
 | `internal/waf` | Interface + Mock | Golden template validation, compliance scanner |
 | `internal/identity` | Interface + Mock | Okta/Entra ID provider stubs with mock returns |
@@ -121,23 +121,31 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 ---
 
+## [+] Quality & Testing
+
+| Metric | Value |
+| ------ | ----- |
+| Go packages | 34 (all passing with `-race`) |
+| Go tests | 1474 |
+| Frontend tests | 323 |
+| Benchmarks | 8 |
+| CI gates | 8 (lint, gosec, Trivy, vitest, npm audit, integration, Codecov, Lighthouse) |
+| Coverage thresholds | v8 lines: 70%, functions: 75%, branches: 65% |
+| 100% coverage packages | workflow, remediation/secrets, finops/aggregator |
+
 ## [!] Known Limitations
 
 This is a **platform reference implementation**, not production software:
 
-1. **Test Coverage** - 34 packages, 1474 Go tests + 323 frontend tests passing (cspm, grc, remediation, ai, compliance, finops, server handlers, benchmarks, integration suite), v8 coverage thresholds active
-2. **OIDC Provider Stub** - JWT auth middleware is production-ready (HS256/RS256, JWKS), but Okta/Entra ID providers not wired into auth flow
-3. **Temporal Workflows** — Workflow definitions exist, orchestration layer not wired into request flow
-4. **FinOps Module** — Cost aggregation interfaces defined, no cloud API integration yet
-5. **Stub Packages** — container, secrets, waf, identity modules have interfaces and mock implementations but no production wiring
-6. **RoleViewer** — `RoleViewer` (rank 0) is implemented with read-only surface (`/findings`, `/compliance/frameworks`, `/agents` + traces); fine-grained per-resource viewer scoping is not yet enforced
-7. **Chrome QA Findings** — 21/21 routes passing with error states, focus rings, footer landmark, OG meta tags; React 19 lazy() context edge case under Playwright (pre-existing, not prod)
-8. **Compliance Drill-Down** — Framework rows are clickable with `FrameworkDetailDrawer` and doc links; control-level sub-drill-down is not yet implemented
+1. **Temporal Workflows** — Workflow definitions exist, orchestration layer not wired into request flow
+2. **Stub Packages** — secrets, waf modules have interfaces and mock implementations but no production wiring
+3. **RoleViewer** — `RoleViewer` (rank 0) is implemented with read-only surface (`/findings`, `/compliance/frameworks`, `/agents` + traces); fine-grained per-resource viewer scoping is not yet enforced
+4. **Chrome QA Findings** — 26/26 routes passing with error states, focus rings, footer landmark, OG meta tags; React 19 lazy() context edge case under Playwright (pre-existing, not prod)
+5. **OIDC Auth Flow** — JWT middleware is production-ready (HS256/RS256, JWKS); Okta JWKS URL auto-derives from `OKTA_DOMAIN` env var. Full SSO login flow requires Okta app configuration.
 
 **Production Requirements:**
 
-- Expand test suites (handler-level unit tests + integration tests)
-- Wire Okta/Entra ID providers into JWT auth flow
+- Wire Okta/Entra ID OIDC application for full SSO login flow
 - Expand RBAC with fine-grained permissions
 - Test and validate Temporal workflows
 
