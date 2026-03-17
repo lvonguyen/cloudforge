@@ -44,12 +44,43 @@ function matchesGroup(f: Finding, layers: Record<string, boolean>, group: string
   }
 }
 
-const FILTER_GROUPS = ['severity', 'provider', 'environment'] as const
+const FILTER_GROUPS = ['severity', 'provider', 'environment', 'compliance', 'workflow', 'time', 'risk'] as const
+
+/** Does a finding pass the filter for a single layer group? */
+function matchesGroupExtended(f: Finding, layers: Record<string, boolean>, group: string): boolean {
+  const vals = enabledValues(layers, group)
+  if (vals.size === 0) return true
+  switch (group) {
+    case 'compliance':
+      return f.compliance_mappings?.some(m => vals.has(m.framework_id)) ?? false
+    case 'workflow':
+      return vals.has(f.workflow_status)
+    case 'time': {
+      const ageMs = Date.now() - new Date(f.first_found_at).getTime()
+      const ageHours = ageMs / 3_600_000
+      if (vals.has('1h') && ageHours <= 1) return true
+      if (vals.has('4h') && ageHours <= 4) return true
+      if (vals.has('24h') && ageHours <= 24) return true
+      if (vals.has('7d') && ageHours <= 168) return true
+      if (vals.has('30d') && ageHours <= 720) return true
+      return false
+    }
+    case 'risk': {
+      if (vals.has('critical') && f.ai_risk_score >= 8) return true
+      if (vals.has('high') && f.ai_risk_score >= 6 && f.ai_risk_score < 8) return true
+      if (vals.has('medium') && f.ai_risk_score >= 4 && f.ai_risk_score < 6) return true
+      if (vals.has('low') && f.ai_risk_score < 4) return true
+      return false
+    }
+    default:
+      return matchesGroup(f, layers, group)
+  }
+}
 
 /** Filter findings applying all groups EXCEPT excludeGroup (for faceted counts). */
 function facetedFilter(findings: Finding[], layers: Record<string, boolean>, excludeGroup: string): Finding[] {
   return findings.filter(f =>
-    FILTER_GROUPS.every(g => g === excludeGroup || matchesGroup(f, layers, g)),
+    FILTER_GROUPS.every(g => g === excludeGroup || matchesGroupExtended(f, layers, g)),
   )
 }
 
@@ -246,6 +277,80 @@ export function DataLayersPanel({ findings, attackPaths }: DataLayersPanelProps)
               onChange={() => toggle('environment', env)}
             />
           ))}
+        </LayerGroup>
+
+        {/* Compliance */}
+        <LayerGroup label="Compliance" defaultOpen={false}>
+          {(['nist-csf', 'pci-dss', 'soc2', 'hipaa', 'iso-27001', 'cis'] as const).map(fw => {
+            const count = facetedFilter(findings, activeLayers, 'compliance')
+              .filter(f => f.compliance_mappings?.some(m => m.framework_id === fw)).length
+            return (
+              <LayerToggle
+                key={fw}
+                label={fw.toUpperCase()}
+                count={count}
+                checked={!!activeLayers[layerKey('compliance', fw)]}
+                onChange={() => toggle('compliance', fw)}
+              />
+            )
+          })}
+        </LayerGroup>
+
+        {/* Workflow Status */}
+        <LayerGroup label="Workflow" defaultOpen={false}>
+          {(['new', 'triaged', 'assigned', 'in_progress'] as const).map(ws => {
+            const count = facetedFilter(findings, activeLayers, 'workflow')
+              .filter(f => f.workflow_status === ws).length
+            return (
+              <LayerToggle
+                key={ws}
+                label={ws.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                count={count}
+                checked={!!activeLayers[layerKey('workflow', ws)]}
+                onChange={() => toggle('workflow', ws)}
+              />
+            )
+          })}
+        </LayerGroup>
+
+        {/* Time Presets */}
+        <LayerGroup label="Time Window" defaultOpen={false}>
+          {([['1h', 'Last Hour'], ['4h', 'Last 4 Hours'], ['24h', 'Last 24 Hours'], ['7d', 'Last 7 Days'], ['30d', 'Last 30 Days']] as const).map(([key, label]) => {
+            const count = facetedFilter(findings, activeLayers, 'time').filter(f => {
+              const ageMs = Date.now() - new Date(f.first_found_at).getTime()
+              const limits: Record<string, number> = { '1h': 3_600_000, '4h': 14_400_000, '24h': 86_400_000, '7d': 604_800_000, '30d': 2_592_000_000 }
+              return ageMs <= (limits[key] ?? Infinity)
+            }).length
+            return (
+              <LayerToggle
+                key={key}
+                label={label}
+                count={count}
+                checked={!!activeLayers[layerKey('time', key)]}
+                onChange={() => toggle('time', key)}
+              />
+            )
+          })}
+        </LayerGroup>
+
+        {/* Risk Score */}
+        <LayerGroup label="AI Risk Score" defaultOpen={false}>
+          {([['critical', 'Critical (8-10)', 'bg-red-400'], ['high', 'High (6-8)', 'bg-orange-400'], ['medium', 'Medium (4-6)', 'bg-yellow-500'], ['low', 'Low (0-4)', 'bg-blue-400']] as const).map(([key, label, dot]) => {
+            const ranges: Record<string, [number, number]> = { critical: [8, 10], high: [6, 8], medium: [4, 6], low: [0, 4] }
+            const [lo, hi] = ranges[key] ?? [0, 10]
+            const count = facetedFilter(findings, activeLayers, 'risk')
+              .filter(f => f.ai_risk_score >= lo && f.ai_risk_score < hi).length
+            return (
+              <LayerToggle
+                key={key}
+                label={label}
+                count={count}
+                checked={!!activeLayers[layerKey('risk', key)]}
+                onChange={() => toggle('risk', key)}
+                dotColor={dot}
+              />
+            )
+          })}
         </LayerGroup>
 
         {/* Attack Paths — read-only */}
