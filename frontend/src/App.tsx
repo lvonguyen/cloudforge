@@ -32,11 +32,14 @@ const RemediationQueue = lazy(() => import('@/pages/ops/RemediationQueue'))
 const RemediationDetail = lazy(() => import('@/pages/ops/RemediationDetail'))
 const Spend = lazy(() => import('@/pages/ops/Spend'))
 const Compliance = lazy(() => import('@/pages/ops/Compliance'))
-const AttackPaths = lazy(() => import('@/pages/ops/AttackPaths'))
 const Containers = lazy(() => import('@/pages/ops/Containers'))
 const DataClassification = lazy(() => import('@/pages/ops/DataClassification'))
-const SecurityGraph = lazy(() => import('@/pages/ops/SecurityGraph'))
 const Investigations = lazy(() => import('@/pages/ops/Investigations'))
+const AppCatalog = lazy(() => import('@/pages/ops/AppCatalog'))
+
+// Admin pages (lazy — added Sprint G)
+const Exceptions = lazy(() => import('@/pages/admin/Exceptions'))
+const Reports = lazy(() => import('@/pages/admin/Reports'))
 
 // Portal pages (lazy)
 const PortalDashboard = lazy(() => import('@/pages/portal/Dashboard'))
@@ -79,6 +82,8 @@ export default function App() {
                     <Route path="/admin/users" element={<Users />} />
                     <Route path="/admin/audit-log" element={<AuditLog />} />
                     <Route path="/admin/system" element={<SystemHealth />} />
+                    <Route path="/admin/exceptions" element={<Exceptions />} />
+                    <Route path="/admin/reports" element={<Reports />} />
                   </Route>
                 </Route>
 
@@ -100,10 +105,9 @@ export default function App() {
                     <Route path="/ops/remediation" element={<RemediationQueue />} />
                     <Route path="/ops/remediation/:id" element={<RemediationDetail />} />
                     <Route path="/ops/costs" element={<Spend />} />
-                    <Route path="/ops/attack-paths" element={<AttackPaths />} />
                     <Route path="/ops/containers" element={<Containers />} />
                     <Route path="/ops/data-classification" element={<DataClassification />} />
-                    <Route path="/ops/graph" element={<SecurityGraph />} />
+                    <Route path="/ops/app-catalog" element={<AppCatalog />} />
                     <Route path="/ops/investigations" element={<Investigations />} />
                   </Route>
                 </Route>

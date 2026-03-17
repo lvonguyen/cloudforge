@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
   LayoutDashboard, FileText, Bot, Users, ClipboardList, Settings,
-  Activity, AlertTriangle, Wrench, DollarSign, Shield, GitBranch,
-  Home, PlusCircle, List, Package, Box, Network, Database, Search,
-  ChevronLeft, ChevronRight, X, type LucideIcon,
+  Activity, AlertTriangle, Wrench, DollarSign, Shield,
+  Home, PlusCircle, List, Package, Box, Database, Search,
+  ChevronLeft, ChevronRight, X, BarChart3, ListChecks, type LucideIcon,
 } from 'lucide-react'
 
 interface NavItem {
@@ -33,7 +33,9 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
       section: 'Management',
       items: [
         { to: '/admin/users', label: 'Users', icon: Users },
+        { to: '/admin/exceptions', label: 'Exceptions', icon: ListChecks },
         { to: '/admin/audit-log', label: 'Audit Log', icon: ClipboardList },
+        { to: '/admin/reports', label: 'Reports', icon: BarChart3 },
         { to: '/admin/system', label: 'System', icon: Settings },
       ],
     },
@@ -52,10 +54,8 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
       items: [
         { to: '/ops/costs', label: 'Spend', icon: DollarSign },
         { to: '/ops/compliance', label: 'Compliance', icon: Shield },
-        { to: '/ops/attack-paths', label: 'Attack Paths', icon: GitBranch },
         { to: '/ops/containers', label: 'Containers', icon: Box },
-        { to: '/ops/graph', label: 'Security Graph', icon: Network },
-        { to: '/ops/data-classification', label: 'Data Classification', icon: Database },
+        { to: '/ops/app-catalog', label: 'Application Catalog', icon: Database },
         { to: '/ops/investigations', label: 'Investigations', icon: Search },
       ],
     },
