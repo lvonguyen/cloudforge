@@ -203,6 +203,46 @@ func (s *Server) executeRemediation(w http.ResponseWriter, r *http.Request) {
 	writeErrorResponse(w, "remediation not found", http.StatusNotFound)
 }
 
+func (s *Server) patchRemediation(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.patchRemediation")
+	defer span.End()
+	r = r.WithContext(ctx)
+
+	id := mux.Vars(r)["id"]
+	span.SetAttributes(attribute.String("remediation.id", id))
+
+	var body struct {
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeErrorResponse(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	body.Status = strings.ToLower(body.Status)
+	validStatuses := map[string]bool{
+		"pending": true, "in_progress": true, "completed": true, "failed": true, "skipped": true,
+	}
+	if !validStatuses[body.Status] {
+		writeErrorResponse(w, "invalid status: must be pending, in_progress, completed, failed, or skipped", http.StatusBadRequest)
+		return
+	}
+
+	rem, ok := s.data.RemediationsByID[id]
+	if !ok {
+		writeErrorResponse(w, "remediation not found", http.StatusNotFound)
+		return
+	}
+
+	rem.Status = body.Status
+	rem.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+
+	s.logAuditEvent(r, "remediation.update_status", "remediation", id, "success")
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(rem)
+}
+
 func (s *Server) listAgentTraces(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAgentTraces")
 	defer span.End()
