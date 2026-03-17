@@ -19,6 +19,7 @@ import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import type { Finding } from '@/types/compliance'
 import { SEVERITY_COLORS } from '@/lib/severity'
 import { exportCSV } from '@/lib/export-csv'
+import { NLQueryBar } from '@/components/ops/NLQueryBar'
 
 const SEVERITY_ORDER: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
 
@@ -597,6 +598,15 @@ export default function Findings() {
 
       {/* Main content */}
       <div className="flex-1 min-w-0 space-y-4">
+        {/* NLQ bar */}
+        <NLQueryBar onApplyFilters={(filters) => {
+          if (filters.severity?.length) setSeverityTab(filters.severity[0] as SeverityTab)
+          if (filters.category?.length) setSelectedCategories(new Set(filters.category))
+          if (filters.provider?.length) setSelectedProviders(new Set(filters.provider))
+          if (filters.status?.length) setSelectedStatuses(new Set(filters.status))
+          if (filters.text) setSearch(filters.text)
+        }} />
+
         {/* Filter pills (when sidebar collapsed) */}
         {sidebarCollapsed && (
           <div className="flex items-center gap-2 flex-wrap">

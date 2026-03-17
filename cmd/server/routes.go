@@ -185,6 +185,11 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getIdentityUserRisk)),
 	).Methods("GET")
 
+	// NLQ (natural language query) — operator, admin
+	apiRouter.Handle("/ai/nlq",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.queryNLQ)),
+	).Methods("POST")
+
 	// Finding ingestion (admin-only write endpoint with deduplication)
 	apiRouter.Handle("/findings/ingest",
 		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.ingestFinding)),
