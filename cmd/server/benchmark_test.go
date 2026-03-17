@@ -57,16 +57,17 @@ func benchServer(b *testing.B) (*Server, *mux.Router) {
 		healthChecker:  observability.NewHealthChecker(logger, nil),
 		logger:         logger,
 		data:           NewDataStore(mockData),
-		attackPathSvc: &AttackPathService{
-			Paths: attackPaths,
-			Stats: attackPathStats,
-		},
+		attackPathSvc: func() *AttackPathService {
+			svc := &AttackPathService{Paths: attackPaths, Stats: attackPathStats}
+			svc.buildPathIndex()
+			return svc
+		}(),
 		enrichmentSvc: &EnrichmentService{
 			Cache:  make(map[string]*FindingEnrichment),
 			Logger: logger,
 		},
 		roles:     &api.RoleEnforcer{DevMode: false},
-		finopsSvc: newFinopsService(),
+		finopsSvc: newFinopsService(logger),
 		identityProviders: map[string]identity.Provider{
 			"okta":     identity.NewMockOktaProvider(),
 			"entra_id": identity.NewMockEntraIDProvider(),

@@ -106,16 +106,17 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		healthChecker:  observability.NewHealthChecker(logger, nil),
 		logger:         logger,
 		data:           NewDataStore(&mockData),
-		attackPathSvc: &AttackPathService{
-			Paths: sharedTestPaths,
-			Stats: sharedTestPathStats,
-		},
+		attackPathSvc: func() *AttackPathService {
+			svc := &AttackPathService{Paths: sharedTestPaths, Stats: sharedTestPathStats}
+			svc.buildPathIndex()
+			return svc
+		}(),
 		enrichmentSvc: &EnrichmentService{
 			Cache:  make(map[string]*FindingEnrichment),
 			Logger: logger,
 		},
 		roles:       &api.RoleEnforcer{DevMode: false},
-		finopsSvc:   newFinopsService(),
+		finopsSvc:   newFinopsService(logger),
 		dedupCache:  ingestion.NewDedupCache(24 * time.Hour),
 		auditLogger: audit.NewMemoryAuditLogger(),
 		identityProviders: map[string]identity.Provider{

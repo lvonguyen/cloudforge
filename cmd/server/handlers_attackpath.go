@@ -15,9 +15,18 @@ import (
 // AttackPathService encapsulates attack path data and the mutex protecting it.
 // Extracted from Server to reduce the God Object surface area.
 type AttackPathService struct {
-	Paths []AttackPath
-	Stats *AttackPathStats
-	Mu    sync.RWMutex
+	Paths     []AttackPath
+	PathsByID map[string]*AttackPath // O(1) lookup by ID
+	Stats     *AttackPathStats
+	Mu        sync.RWMutex
+}
+
+// buildPathIndex populates PathsByID from the Paths slice.
+func (svc *AttackPathService) buildPathIndex() {
+	svc.PathsByID = make(map[string]*AttackPath, len(svc.Paths))
+	for i := range svc.Paths {
+		svc.PathsByID[svc.Paths[i].ID] = &svc.Paths[i]
+	}
 }
 
 // attackPathInScope returns true if all nodes in the path fall within the scope.
@@ -74,13 +83,11 @@ func (svc *AttackPathService) getAttackPath(w http.ResponseWriter, r *http.Reque
 	span.SetAttributes(attribute.String("attack_path.id", id))
 
 	svc.Mu.RLock()
+	src := svc.PathsByID[id]
 	var found *AttackPath
-	for i := range svc.Paths {
-		if svc.Paths[i].ID == id {
-			p := svc.Paths[i]
-			found = &p
-			break
-		}
+	if src != nil {
+		p := *src
+		found = &p
 	}
 	svc.Mu.RUnlock()
 
