@@ -117,6 +117,9 @@ export default function Findings() {
   // Virtualizer scroll container
   const parentRef = useRef<HTMLDivElement>(null)
 
+  // Sidebar collapse
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
+
   // Group by
   const [groupBy, setGroupBy] = useState<'none' | 'rule' | 'resource' | 'provider' | 'category'>('none')
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
@@ -424,6 +427,7 @@ export default function Findings() {
   return (
     <div className="flex gap-0 h-full">
       {/* Left sidebar */}
+      {!sidebarCollapsed && (
       <aside className="w-[220px] shrink-0 border-r border-border pr-4 mr-4 space-y-5 overflow-y-auto" aria-label="Findings filters">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Quick Filters</span>
@@ -493,10 +497,143 @@ export default function Findings() {
             ))}
           </div>
         </div>
+        <button
+          onClick={() => setSidebarCollapsed(true)}
+          className="text-[10px] text-muted-foreground hover:text-foreground mt-2"
+        >
+          Collapse sidebar
+        </button>
       </aside>
+      )}
 
       {/* Main content */}
       <div className="flex-1 min-w-0 space-y-4">
+        {/* Filter pills (when sidebar collapsed) */}
+        {sidebarCollapsed && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Category pill */}
+            <div className="flex items-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className={`flex items-center gap-1 px-2.5 py-1 text-xs border transition-colors ${
+                    selectedCategories.size > 0
+                      ? 'border-foreground/30 bg-muted/50 font-medium'
+                      : 'border-border text-muted-foreground hover:bg-muted/30'
+                  }`}>
+                    Category
+                    {selectedCategories.size > 0 && (
+                      <span className="text-[9px] bg-foreground text-background px-1">{selectedCategories.size}</span>
+                    )}
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuLabel className="text-xs">Category</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {SIDEBAR_CATEGORIES.map(cat => (
+                    <DropdownMenuCheckboxItem
+                      key={cat}
+                      checked={selectedCategories.has(cat)}
+                      onCheckedChange={() => setSelectedCategories(s => toggleSet(s, cat))}
+                      className="text-xs"
+                    >
+                      {CATEGORY_SHORT[cat] ?? cat}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {selectedCategories.size > 0 && (
+                <button onClick={() => setSelectedCategories(new Set())} className="p-0.5 text-muted-foreground hover:text-foreground">
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            {/* Provider pill */}
+            <div className="flex items-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className={`flex items-center gap-1 px-2.5 py-1 text-xs border transition-colors ${
+                    selectedProviders.size > 0
+                      ? 'border-foreground/30 bg-muted/50 font-medium'
+                      : 'border-border text-muted-foreground hover:bg-muted/30'
+                  }`}>
+                    Provider
+                    {selectedProviders.size > 0 && (
+                      <span className="text-[9px] bg-foreground text-background px-1">{selectedProviders.size}</span>
+                    )}
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-40">
+                  <DropdownMenuLabel className="text-xs">Provider</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {SIDEBAR_PROVIDERS.map(prov => (
+                    <DropdownMenuCheckboxItem
+                      key={prov}
+                      checked={selectedProviders.has(prov)}
+                      onCheckedChange={() => setSelectedProviders(s => toggleSet(s, prov))}
+                      className="text-xs"
+                    >
+                      {prov.toUpperCase()}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {selectedProviders.size > 0 && (
+                <button onClick={() => setSelectedProviders(new Set())} className="p-0.5 text-muted-foreground hover:text-foreground">
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            {/* Status pill */}
+            <div className="flex items-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className={`flex items-center gap-1 px-2.5 py-1 text-xs border transition-colors ${
+                    selectedStatuses.size > 0
+                      ? 'border-foreground/30 bg-muted/50 font-medium'
+                      : 'border-border text-muted-foreground hover:bg-muted/30'
+                  }`}>
+                    Status
+                    {selectedStatuses.size > 0 && (
+                      <span className="text-[9px] bg-foreground text-background px-1">{selectedStatuses.size}</span>
+                    )}
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-40">
+                  <DropdownMenuLabel className="text-xs">Status</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {SIDEBAR_STATUSES.map(st => (
+                    <DropdownMenuCheckboxItem
+                      key={st}
+                      checked={selectedStatuses.has(st)}
+                      onCheckedChange={() => setSelectedStatuses(s => toggleSet(s, st))}
+                      className="text-xs"
+                    >
+                      {STATUS_LABELS[st] ?? st}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {selectedStatuses.size > 0 && (
+                <button onClick={() => setSelectedStatuses(new Set())} className="p-0.5 text-muted-foreground hover:text-foreground">
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            {hasFilters && (
+              <button onClick={clearFilters} className="text-[11px] text-blue-600 hover:text-blue-700 dark:text-blue-400">Clear all</button>
+            )}
+            <button
+              onClick={() => setSidebarCollapsed(false)}
+              className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-border px-2 py-1 hover:bg-muted/30 transition-colors"
+            >
+              <SlidersHorizontal className="h-3 w-3" />Filters
+            </button>
+          </div>
+        )}
+
         {/* Top bar */}
         <div className="flex items-center justify-between">
           <div>
