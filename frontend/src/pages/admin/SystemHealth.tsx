@@ -85,7 +85,7 @@ function formatLastChecked(iso: string): string {
   }
 }
 
-function ServiceCard({ svc }: { svc: ServiceStatus }) {
+function ServiceCard({ svc, isFallback }: { svc: ServiceStatus; isFallback?: boolean }) {
   const cfg = STATUS_CONFIG[svc.status] ?? STATUS_CONFIG.healthy
   const { icon: Icon, color, badge, dot } = cfg
   return (
@@ -101,6 +101,9 @@ function ServiceCard({ svc }: { svc: ServiceStatus }) {
       </CardHeader>
       <CardContent className="space-y-2 pt-0">
         <p className="text-xs text-muted-foreground">{svc.description}</p>
+        {isFallback && (
+          <p className="text-[10px] text-muted-foreground/60 italic" title="Static fallback — start backend for live data">Reference data only</p>
+        )}
         <div className="grid grid-cols-3 gap-2 pt-1">
           <div>
             <p className={`text-sm font-bold ${svc.latency_ms !== undefined ? (svc.latency_ms > 100 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400') : 'text-red-600 dark:text-red-400'}`}>
@@ -182,9 +185,12 @@ export default function SystemHealth() {
     down: services.filter(s => s.status === 'down').length,
   }
 
+  const usingFallback = !hasComponents
   const lastRefreshed = dataUpdatedAt
     ? new Date(dataUpdatedAt).toLocaleTimeString()
-    : 'never'
+    : isError
+      ? `Offline since ${new Date().toLocaleTimeString()}`
+      : 'connecting…'
 
   return (
     <div className="space-y-6">
@@ -194,8 +200,11 @@ export default function SystemHealth() {
           <p className="text-sm text-muted-foreground mt-0.5">Service status — live checks every 30s</p>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {usingFallback && (
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-none bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">Simulated data</span>
+          )}
           <Clock className="h-3.5 w-3.5" />
-          Last refreshed: {isLoading ? 'loading…' : lastRefreshed}
+          {isLoading ? 'loading…' : lastRefreshed}
         </div>
       </div>
 
@@ -241,7 +250,7 @@ export default function SystemHealth() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {isLoading
           ? Array.from({ length: 6 }, (_, i) => <SkeletonCard key={i} />)
-          : services.map(svc => <ServiceCard key={svc.name} svc={svc} />)
+          : services.map(svc => <ServiceCard key={svc.name} svc={svc} isFallback={usingFallback} />)
         }
       </div>
     </div>
