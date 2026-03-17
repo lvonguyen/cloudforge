@@ -11,12 +11,50 @@
     "score": 80.6,
     "relevant_for": ["aws", "azure", "gcp"],
     "categories": [
-      { "id": "GOVERN", "name": "Govern", "passing": 12, "failing": 3, "score": 80.0 },
-      { "id": "IDENTIFY", "name": "Identify", "passing": 18, "failing": 4, "score": 81.8 },
-      { "id": "PROTECT", "name": "Protect", "passing": 22, "failing": 6, "score": 78.6 },
-      { "id": "DETECT", "name": "Detect", "passing": 15, "failing": 4, "score": 78.9 },
-      { "id": "RESPOND", "name": "Respond", "passing": 12, "failing": 2, "score": 85.7 },
-      { "id": "RECOVER", "name": "Recover", "passing": 8, "failing": 2, "score": 80.0 }
+      { "id": "GOVERN", "name": "Govern", "passing": 12, "failing": 3, "score": 80.0, "controls": [
+        { "id": "GV.RM-01", "title": "Risk Management Strategy", "status": "pass", "description": "Organizational risk management strategy established and communicated", "finding_count": 0 },
+        { "id": "GV.RM-02", "title": "Risk Appetite Statement", "status": "pass", "description": "Risk appetite and tolerance levels defined", "finding_count": 0 },
+        { "id": "GV.RM-03", "title": "Risk Management Integration", "status": "fail", "description": "Cybersecurity risk management integrated into enterprise risk", "finding_count": 4 },
+        { "id": "GV.OC-01", "title": "Organizational Context", "status": "pass", "description": "Organizational mission and stakeholder expectations understood", "finding_count": 0 },
+        { "id": "GV.OC-03", "title": "Legal Requirements", "status": "fail", "description": "Legal, regulatory, and contractual requirements understood", "finding_count": 2 },
+        { "id": "GV.SC-01", "title": "Supply Chain Policy", "status": "pass", "description": "Cybersecurity supply chain risk management policy established", "finding_count": 0 },
+        { "id": "GV.RR-01", "title": "Roles and Responsibilities", "status": "fail", "description": "Organizational leadership accountable for cybersecurity risk", "finding_count": 3 }
+      ]},
+      { "id": "IDENTIFY", "name": "Identify", "passing": 18, "failing": 4, "score": 81.8, "controls": [
+        { "id": "ID.AM-01", "title": "Hardware Asset Inventory", "status": "pass", "description": "Inventories of hardware managed by the organization maintained", "finding_count": 0 },
+        { "id": "ID.AM-02", "title": "Software Asset Inventory", "status": "pass", "description": "Inventories of software and services maintained", "finding_count": 0 },
+        { "id": "ID.AM-07", "title": "Data Classification", "status": "fail", "description": "Data classification scheme and inventory maintained", "finding_count": 6 },
+        { "id": "ID.RA-01", "title": "Vulnerability Disclosure", "status": "pass", "description": "Vulnerabilities in assets identified, validated, and recorded", "finding_count": 0 },
+        { "id": "ID.RA-03", "title": "Threat Intelligence", "status": "fail", "description": "Internal and external threats identified and documented", "finding_count": 3 },
+        { "id": "ID.RA-05", "title": "Risk Prioritization", "status": "pass", "description": "Threats, vulnerabilities, and impacts used to determine risk", "finding_count": 0 },
+        { "id": "ID.IM-01", "title": "Improvement Processes", "status": "fail", "description": "Improvements identified from evaluations and exercises", "finding_count": 2 }
+      ]},
+      { "id": "PROTECT", "name": "Protect", "passing": 22, "failing": 6, "score": 78.6, "controls": [
+        { "id": "PR.AA-01", "title": "Identity Management", "status": "pass", "description": "Identities and credentials for users and services managed", "finding_count": 0 },
+        { "id": "PR.AA-03", "title": "MFA Enforcement", "status": "fail", "description": "Multi-factor authentication enforced for remote and privileged access", "finding_count": 8 },
+        { "id": "PR.AA-05", "title": "Least Privilege", "status": "fail", "description": "Access permissions managed using least-privilege principles", "finding_count": 12 },
+        { "id": "PR.DS-01", "title": "Data at Rest", "status": "pass", "description": "Data-at-rest protected with encryption", "finding_count": 0 },
+        { "id": "PR.DS-02", "title": "Data in Transit", "status": "fail", "description": "Data-in-transit protected with TLS 1.2+", "finding_count": 5 },
+        { "id": "PR.PS-01", "title": "Configuration Management", "status": "fail", "description": "Configuration baselines established and maintained", "finding_count": 7 },
+        { "id": "PR.IR-01", "title": "Incident Readiness", "status": "pass", "description": "Incident response plans established and maintained", "finding_count": 0 }
+      ]},
+      { "id": "DETECT", "name": "Detect", "passing": 15, "failing": 4, "score": 78.9, "controls": [
+        { "id": "DE.CM-01", "title": "Network Monitoring", "status": "pass", "description": "Networks monitored for potentially adverse events", "finding_count": 0 },
+        { "id": "DE.CM-03", "title": "Personnel Activity", "status": "fail", "description": "Personnel activity and technology usage monitored", "finding_count": 3 },
+        { "id": "DE.CM-06", "title": "External Service Monitoring", "status": "fail", "description": "External service provider activities monitored", "finding_count": 4 },
+        { "id": "DE.AE-02", "title": "Event Analysis", "status": "pass", "description": "Potentially adverse events analyzed to understand attack targets", "finding_count": 0 },
+        { "id": "DE.AE-06", "title": "Incident Declaration", "status": "pass", "description": "Information on adverse events provided to authorized staff", "finding_count": 0 }
+      ]},
+      { "id": "RESPOND", "name": "Respond", "passing": 12, "failing": 2, "score": 85.7, "controls": [
+        { "id": "RS.MA-01", "title": "Incident Management", "status": "pass", "description": "Incident response plan executed in coordination with third parties", "finding_count": 0 },
+        { "id": "RS.AN-03", "title": "Root Cause Analysis", "status": "fail", "description": "Root cause analysis performed for confirmed incidents", "finding_count": 2 },
+        { "id": "RS.CO-02", "title": "Incident Reporting", "status": "pass", "description": "Incidents reported to designated authorities and stakeholders", "finding_count": 0 }
+      ]},
+      { "id": "RECOVER", "name": "Recover", "passing": 8, "failing": 2, "score": 80.0, "controls": [
+        { "id": "RC.RP-01", "title": "Recovery Plan Execution", "status": "pass", "description": "Recovery plan executed during or after an incident", "finding_count": 0 },
+        { "id": "RC.CO-03", "title": "Recovery Communication", "status": "fail", "description": "Recovery activities and progress communicated to stakeholders", "finding_count": 1 },
+        { "id": "RC.RP-04", "title": "Backup Integrity", "status": "pass", "description": "Backups verified and restoration tested periodically", "finding_count": 0 }
+      ]}
     ]
   },
   {
@@ -31,11 +69,39 @@
     "score": 81.3,
     "relevant_for": ["aws", "azure"],
     "categories": [
-      { "id": "REQ-1-2", "name": "Network Security", "passing": 8, "failing": 2, "score": 80.0 },
-      { "id": "REQ-3-4", "name": "Data Protection", "passing": 10, "failing": 3, "score": 76.9 },
-      { "id": "REQ-5-6", "name": "Vulnerability Management", "passing": 9, "failing": 2, "score": 81.8 },
-      { "id": "REQ-7-8", "name": "Access Control", "passing": 11, "failing": 2, "score": 84.6 },
-      { "id": "REQ-9-12", "name": "Monitoring & Testing", "passing": 14, "failing": 3, "score": 82.4 }
+      { "id": "REQ-1-2", "name": "Network Security", "passing": 8, "failing": 2, "score": 80.0, "controls": [
+        { "id": "1.2.1", "title": "Firewall Configuration Standards", "status": "pass", "description": "Restrict inbound and outbound traffic to that which is necessary", "finding_count": 0 },
+        { "id": "1.3.1", "title": "Inbound Traffic Restricted", "status": "pass", "description": "Inbound traffic restricted to system components in the CDE", "finding_count": 0 },
+        { "id": "1.3.2", "title": "Outbound Traffic Restricted", "status": "fail", "description": "Outbound traffic from CDE limited to necessary traffic", "finding_count": 3 },
+        { "id": "2.2.1", "title": "System Configuration Standards", "status": "fail", "description": "Vendor-supplied defaults changed before production deployment", "finding_count": 5 },
+        { "id": "2.2.7", "title": "Non-Console Admin Encrypted", "status": "pass", "description": "All non-console administrative access encrypted with TLS", "finding_count": 0 }
+      ]},
+      { "id": "REQ-3-4", "name": "Data Protection", "passing": 10, "failing": 3, "score": 76.9, "controls": [
+        { "id": "3.4.1", "title": "PAN Masked on Display", "status": "pass", "description": "PAN masked when displayed; first six and last four digits max", "finding_count": 0 },
+        { "id": "3.5.1", "title": "PAN Rendered Unreadable", "status": "fail", "description": "PAN rendered unreadable anywhere it is stored", "finding_count": 4 },
+        { "id": "4.2.1", "title": "Strong Cryptography in Transit", "status": "fail", "description": "Strong cryptography used during PAN transmission over open networks", "finding_count": 6 },
+        { "id": "3.6.1", "title": "Key Management Procedures", "status": "pass", "description": "Cryptographic key management procedures documented and implemented", "finding_count": 0 },
+        { "id": "4.2.2", "title": "End-User Messaging", "status": "fail", "description": "PAN secured if sent via end-user messaging technologies", "finding_count": 2 }
+      ]},
+      { "id": "REQ-5-6", "name": "Vulnerability Management", "passing": 9, "failing": 2, "score": 81.8, "controls": [
+        { "id": "5.2.1", "title": "Anti-Malware Deployed", "status": "pass", "description": "Anti-malware solution deployed on all commonly affected systems", "finding_count": 0 },
+        { "id": "5.3.3", "title": "Anti-Malware Active", "status": "pass", "description": "Anti-malware performs periodic scans and active monitoring", "finding_count": 0 },
+        { "id": "6.2.4", "title": "Secure Coding Practices", "status": "fail", "description": "Software engineering techniques prevent common vulnerabilities", "finding_count": 7 },
+        { "id": "6.3.1", "title": "Security Patches Applied", "status": "fail", "description": "Critical security patches installed within one month of release", "finding_count": 9 }
+      ]},
+      { "id": "REQ-7-8", "name": "Access Control", "passing": 11, "failing": 2, "score": 84.6, "controls": [
+        { "id": "7.2.1", "title": "Access Control System", "status": "pass", "description": "Access control system restricts access based on need to know", "finding_count": 0 },
+        { "id": "7.2.5", "title": "Access Reviews", "status": "fail", "description": "Access reviewed at least once every six months", "finding_count": 3 },
+        { "id": "8.3.6", "title": "Password Complexity", "status": "pass", "description": "Passwords require minimum 12 characters with numeric and alphabetic", "finding_count": 0 },
+        { "id": "8.4.2", "title": "MFA for CDE Access", "status": "fail", "description": "MFA implemented for all access into the cardholder data environment", "finding_count": 5 }
+      ]},
+      { "id": "REQ-9-12", "name": "Monitoring & Testing", "passing": 14, "failing": 3, "score": 82.4, "controls": [
+        { "id": "10.2.1", "title": "Audit Logs Enabled", "status": "pass", "description": "Audit logs capture all individual user accesses to cardholder data", "finding_count": 0 },
+        { "id": "10.4.1", "title": "Log Review Frequency", "status": "fail", "description": "Audit logs reviewed at least daily to identify anomalies", "finding_count": 4 },
+        { "id": "11.3.1", "title": "Vulnerability Scans", "status": "fail", "description": "Internal vulnerability scans performed at least quarterly", "finding_count": 6 },
+        { "id": "11.4.1", "title": "Penetration Testing", "status": "fail", "description": "External and internal penetration testing performed annually", "finding_count": 2 },
+        { "id": "12.1.1", "title": "Security Policy Published", "status": "pass", "description": "Information security policy established, published, and distributed", "finding_count": 0 }
+      ]}
     ]
   },
   {

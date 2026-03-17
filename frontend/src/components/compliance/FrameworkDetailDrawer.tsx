@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
-import { CheckCircle2, XCircle, AlertTriangle, ExternalLink } from 'lucide-react'
+import { useState } from 'react'
+import { CheckCircle2, XCircle, AlertTriangle, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import {
   Sheet,
   SheetContent,
@@ -10,12 +11,21 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { ComplianceScore } from './ComplianceScore'
 
+interface ControlDetail {
+  id: string
+  title: string
+  status: 'pass' | 'fail'
+  description?: string
+  finding_count?: number
+}
+
 interface Category {
   id: string
   name: string
   passing: number
   failing: number
   score: number
+  controls?: ControlDetail[]
 }
 
 interface Framework {
@@ -30,37 +40,94 @@ interface Framework {
   categories?: Category[]
 }
 
-interface Control {
-  id: string
-  title: string
-  category: string
-  status: 'pass' | 'fail'
+// generateControls creates placeholder controls from category stats when
+// real control data is not available in the JSON.
+function generateControls(cat: Category): ControlDetail[] {
+  const controls: ControlDetail[] = []
+  for (let i = 1; i <= cat.passing; i++) {
+    controls.push({
+      id: `${cat.id}-${String(i).padStart(2, '0')}`,
+      title: `${cat.name} — Control ${i}`,
+      status: 'pass',
+    })
+  }
+  for (let i = 1; i <= cat.failing; i++) {
+    controls.push({
+      id: `${cat.id}-F${String(i).padStart(2, '0')}`,
+      title: `${cat.name} — Control ${cat.passing + i}`,
+      status: 'fail',
+    })
+  }
+  return controls
 }
 
-function generateControls(fw: Framework): Control[] {
-  const controls: Control[] = []
-  const cats = fw.categories ?? []
+function CategoryAccordion({ cat, frameworkId }: { cat: Category; frameworkId: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const navigate = useNavigate()
+  const controls = cat.controls ?? generateControls(cat)
 
-  for (const cat of cats) {
-    for (let i = 1; i <= cat.passing; i++) {
-      controls.push({
-        id: `${cat.id}-${String(i).padStart(2, '0')}`,
-        title: `${cat.name} — Control ${i}`,
-        category: cat.name,
-        status: 'pass',
-      })
-    }
-    for (let i = 1; i <= cat.failing; i++) {
-      controls.push({
-        id: `${cat.id}-F${String(i).padStart(2, '0')}`,
-        title: `${cat.name} — Control ${cat.passing + i}`,
-        category: cat.name,
-        status: 'fail',
-      })
-    }
-  }
+  return (
+    <div className="border rounded-sm">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center justify-between w-full px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          <span className="font-medium">{cat.name}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            {cat.passing}/{cat.passing + cat.failing}
+          </span>
+          <Badge
+            variant="secondary"
+            className={`text-[10px] px-1.5 py-0 ${
+              cat.score >= 90
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                : cat.score >= 75
+                  ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+            }`}
+          >
+            {cat.score.toFixed(0)}%
+          </Badge>
+        </div>
+      </button>
 
-  return controls
+      {expanded && (
+        <div className="border-t divide-y">
+          {controls.map(ctrl => (
+            <div key={ctrl.id} className="flex items-center gap-2 px-3 py-2 text-xs">
+              {ctrl.status === 'pass' ? (
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
+              ) : (
+                <XCircle className="h-3.5 w-3.5 text-red-600 shrink-0" />
+              )}
+              <span className="font-mono text-muted-foreground shrink-0">{ctrl.id}</span>
+              <div className="flex-1 min-w-0">
+                <span className="truncate block">{ctrl.title}</span>
+                {ctrl.description && (
+                  <span className="text-[10px] text-muted-foreground truncate block">{ctrl.description}</span>
+                )}
+              </div>
+              {ctrl.status === 'fail' && (ctrl.finding_count ?? 0) > 0 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigate(`/ops/findings?framework=${frameworkId}&control=${ctrl.id}`)
+                  }}
+                  className="text-[10px] text-primary hover:underline shrink-0"
+                >
+                  {ctrl.finding_count} finding{ctrl.finding_count! > 1 ? 's' : ''}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function FrameworkDetailDrawer({
@@ -74,11 +141,6 @@ export function FrameworkDetailDrawer({
   onOpenChange: (open: boolean) => void
   docLink?: string
 }) {
-  const controls = useMemo(
-    () => (framework ? generateControls(framework) : []),
-    [framework],
-  )
-
   if (!framework) return null
 
   const cats = framework.categories ?? []
@@ -110,51 +172,14 @@ export function FrameworkDetailDrawer({
             </span>
           </div>
 
-          {/* Category breakdown */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Categories</h3>
+          {/* Category accordions with inline controls */}
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Categories & Controls
+            </p>
             {cats.map(cat => (
-              <div key={cat.id} className="flex items-center justify-between text-sm">
-                <span>{cat.name}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {cat.passing}/{cat.passing + cat.failing}
-                  </span>
-                  <Badge
-                    variant="secondary"
-                    className={`text-[10px] px-1.5 py-0 ${
-                      cat.score >= 90
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                        : cat.score >= 75
-                          ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-                    }`}
-                  >
-                    {cat.score.toFixed(0)}%
-                  </Badge>
-                </div>
-              </div>
+              <CategoryAccordion key={cat.id} cat={cat} frameworkId={framework.id} />
             ))}
-          </div>
-
-          {/* Controls table */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Controls ({controls.length})
-            </h3>
-            <div className="border rounded-none divide-y max-h-[400px] overflow-y-auto">
-              {controls.map(ctrl => (
-                <div key={ctrl.id} className="flex items-center gap-2 px-3 py-2 text-xs">
-                  {ctrl.status === 'pass' ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
-                  ) : (
-                    <XCircle className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                  )}
-                  <span className="font-mono text-muted-foreground shrink-0">{ctrl.id}</span>
-                  <span className="truncate">{ctrl.title}</span>
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* Failing controls summary */}
