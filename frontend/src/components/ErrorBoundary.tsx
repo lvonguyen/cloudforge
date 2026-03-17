@@ -13,6 +13,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('[ErrorBoundary]', error, errorInfo.componentStack)
+    // Stale deployment chunks: Cloudflare Pages deploys new hashes but cached
+    // index.js still references old chunk paths. Auto-reload to fetch fresh assets.
+    if (error.message?.includes('dynamically imported module') || error.message?.includes('Failed to fetch')) {
+      window.location.reload()
+      return
+    }
   }
 
   render() {

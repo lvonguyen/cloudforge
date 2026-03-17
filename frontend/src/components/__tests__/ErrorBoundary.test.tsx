@@ -109,4 +109,22 @@ describe('ErrorBoundary', () => {
     )
     expect(screen.getByText('specific error text')).toBeInTheDocument()
   })
+
+  it('auto-reloads on stale deployment chunk errors', () => {
+    const reloadMock = vi.fn()
+    Object.defineProperty(window, 'location', {
+      value: { ...window.location, reload: reloadMock },
+      writable: true,
+    })
+
+    render(
+      <MemoryRouter>
+        <ErrorBoundary>
+          <Bomb message="Failed to fetch dynamically imported module: /assets/Foo-abc123.js" />
+        </ErrorBoundary>
+      </MemoryRouter>
+    )
+
+    expect(reloadMock).toHaveBeenCalledOnce()
+  })
 })
