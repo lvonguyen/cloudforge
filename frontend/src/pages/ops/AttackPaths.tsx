@@ -53,6 +53,7 @@ function pathToFlow(path: AttackPath, chokePointIds?: Set<string>): { nodes: Nod
           </div>
           <div className="text-xs font-medium truncate max-w-[200px]">{n.resource_name}</div>
           <div className="text-[10px] text-muted-foreground">{n.resource_type} · {n.region}</div>
+          <div className="text-[9px] text-muted-foreground mt-0.5">{path.nodes.length} resources in path</div>
         </div>
       ),
     },
