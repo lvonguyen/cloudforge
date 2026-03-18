@@ -109,3 +109,4 @@ node_modules/
 # Generated sprint plans (superseded)
 tasks/next-sprint.md
 .claude/scheduled_tasks.lock
+.claude/QA_REPORT_*.md
