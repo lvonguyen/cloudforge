@@ -5,6 +5,8 @@ import { Route, Routes } from 'react-router-dom'
 import PortalDashboard from '@/pages/portal/Dashboard'
 import MyRequests from '@/pages/portal/MyRequests'
 import RequestDetail from '@/pages/portal/RequestDetail'
+import Catalog from '@/pages/portal/Catalog'
+import Request from '@/pages/portal/Request'
 
 describe('PortalDashboard', () => {
   it('renders and shows heading after loading', async () => {
@@ -47,5 +49,29 @@ describe('RequestDetail', () => {
       { route: '/portal/requests/NONEXISTENT' },
     )
     expect(screen.getByText(/loading request/i)).toBeInTheDocument()
+  })
+})
+
+describe('Catalog', () => {
+  it('renders without crashing', () => {
+    renderWithProviders(<Catalog />)
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
+  })
+
+  it('shows the Resource Catalog heading', () => {
+    renderWithProviders(<Catalog />)
+    expect(screen.getByText('Resource Catalog')).toBeInTheDocument()
+  })
+})
+
+describe('Request', () => {
+  it('renders without crashing', () => {
+    renderWithAuth(<Request />)
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
+  })
+
+  it('shows the New Resource Request heading', () => {
+    renderWithAuth(<Request />)
+    expect(screen.getByText('New Resource Request')).toBeInTheDocument()
   })
 })

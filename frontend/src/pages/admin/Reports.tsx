@@ -1,7 +1,6 @@
 import { useFindings } from '@/hooks/useFindings'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { BarChart3, Download, FileText, Shield, Wrench } from 'lucide-react'
 import { exportCSV } from '@/lib/export-csv'
 
@@ -64,9 +63,13 @@ export default function Reports() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-xs text-muted-foreground">{report.description}</p>
-                <Button size="sm" variant="outline" className="gap-1.5 text-xs w-full" disabled>
-                  <BarChart3 className="h-3.5 w-3.5" />Generate PDF
-                  <Badge variant="secondary" className="text-[9px] ml-auto">Coming soon</Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-xs w-full"
+                  onClick={() => window.print()}
+                >
+                  <BarChart3 className="h-3.5 w-3.5" />Generate Report
                 </Button>
               </CardContent>
             </Card>
