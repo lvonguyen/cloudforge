@@ -49,6 +49,7 @@ type Config struct {
 	AIRegion         string // AWS region for Bedrock (default: us-east-1)
 	AIModel          string // Bedrock model ID override
 	CORSOrigins      string // Comma-separated allowed CORS origins
+	WSServerURL      string // URL of the ws-server for SSE event publishing
 }
 
 // Server holds application state and wires domain services to HTTP routes.
@@ -77,6 +78,10 @@ type Server struct {
 	finopsSvc   *finopsService
 	identitySvc *IdentityService
 	dedupCache  *ingestion.DedupCache
+
+	// Deploy preview (ws-server integration)
+	wsServerURL   string
+	deployTracker *deployTracker
 
 	// Singleton service instances (avoid per-request allocation)
 	workflowEngine   workflow.Engine
@@ -115,6 +120,7 @@ func main() {
 		AIRegion:         getEnv("CLOUDFORGE_AI_REGION", "us-east-1"),
 		AIModel:          getEnv("CLOUDFORGE_AI_MODEL", ""),
 		CORSOrigins:      getEnv("CORS_ALLOWED_ORIGINS", ""),
+		WSServerURL:      getEnv("WS_SERVER_URL", ""),
 	}
 
 	// Initialize GRC provider
@@ -325,6 +331,8 @@ func main() {
 		secretsManager:   secrets.NewManager(logger),
 		containerScanner: containerScnr,
 		tenantStore:      tenantStore,
+		wsServerURL:      cfg.WSServerURL,
+		deployTracker:    newDeployTracker(),
 	}
 
 	logger.Info("Mock data loaded",

@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"compress/gzip"
+	"fmt"
+	"net"
 	"net/http"
 	"strings"
 
@@ -12,6 +15,14 @@ import (
 // Applied at the http.Server level so all routes benefit (44MB findings -> ~4MB).
 func (s *Server) gzipMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Bypass gzip for SSE and WebSocket — compression defeats low-latency streaming
+		// and buffered writes prevent event delivery to the client.
+		if r.Header.Get("Accept") == "text/event-stream" ||
+			strings.EqualFold(r.Header.Get("Upgrade"), "websocket") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)
 			return
@@ -36,6 +47,23 @@ type gzipResponseWriter struct {
 
 func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 	return w.gw.Write(b)
+}
+
+// Flush flushes both the gzip buffer and the underlying ResponseWriter.
+// Required for SSE handlers that call http.Flusher after writing each event.
+func (w *gzipResponseWriter) Flush() {
+	_ = w.gw.Flush()
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Hijack delegates to the underlying ResponseWriter for WebSocket upgrades.
+func (w *gzipResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if h, ok := w.ResponseWriter.(http.Hijacker); ok {
+		return h.Hijack()
+	}
+	return nil, nil, fmt.Errorf("underlying ResponseWriter does not support Hijack")
 }
 
 // securityHeadersMiddleware adds security headers.

@@ -214,6 +214,14 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.ingestFinding)),
 	).Methods("POST")
 
+	// Deploy preview (operator + admin)
+	apiRouter.Handle("/deploy/preview",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.startDeployPreview)),
+	).Methods("POST")
+	apiRouter.Handle("/deploy/preview/{id}/abort",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.abortDeployPreview)),
+	).Methods("POST")
+
 	// Workflow orchestration
 	apiRouter.Handle("/workflows",
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listWorkflows)),
