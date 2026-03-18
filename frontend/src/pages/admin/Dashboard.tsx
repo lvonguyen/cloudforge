@@ -344,7 +344,7 @@ export default function AdminDashboard() {
             <Link to="/admin/exceptions" className="text-xs text-primary hover:underline">View All →</Link>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

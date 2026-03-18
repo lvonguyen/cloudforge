@@ -174,7 +174,7 @@ export default function Investigations() {
       {/* Left panel — finding search */}
       <div className="w-72 border-r border-border bg-background flex flex-col shrink-0">
         <div className="p-4 border-b border-border space-y-3">
-          <h2 className="text-sm font-semibold">Investigation Board</h2>
+          <h1 className="text-sm font-semibold">Investigation Board</h1>
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <input
