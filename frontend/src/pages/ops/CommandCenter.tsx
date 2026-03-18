@@ -225,6 +225,11 @@ function CenterPane({
               {attackPaths.length} paths
               {attackPaths.length > 0 && stats?.critical_paths != null ? ` · ${stats.critical_paths} critical` : ''}
             </span>
+            <span className="text-[10px] text-gray-600 font-mono">
+              {filteredFindings.length === allFindings.length
+                ? `${allFindings.length} findings`
+                : `${filteredFindings.length} of ${allFindings.length} findings`}
+            </span>
             {/* Segmented center view control */}
             <div className="ml-auto flex border border-[#1e2330]">
               {(['charts', 'treemap'] as const).map((view, i) => (
@@ -304,7 +309,7 @@ function CommandCenterShell() {
   const { state, dispatch, showDetailPanel } = useCommandCenter()
 
   // Data fetching
-  const { data: allFindings = [], isLoading: findingsLoading } = useFindings()
+  const { data: allFindings = [], isLoading: findingsLoading, isUsingMockData } = useFindings()
   const { data: attackPathsResponse } = useAttackPaths(1, 100)
   const { data: stats } = useAttackPathStats()
   const { data: remediations = [] } = useRemediations()
@@ -429,8 +434,13 @@ function CommandCenterShell() {
     <div className="dark flex h-full flex-col bg-[#0a0a0f]">
       {state.showShortcutOverlay && <ShortcutOverlay />}
       {/* NLQ bar — GAP-03 */}
-      <div className="px-3 py-2 border-b border-[#1e2330]">
+      <div className="px-3 py-2 border-b border-[#1e2330] flex items-center gap-2">
         <NLQueryBar onApplyFilters={handleNLQFilters} />
+        {isUsingMockData && (
+          <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-amber-600 text-amber-400 shrink-0">
+            Demo data
+          </Badge>
+        )}
       </div>
       {/* Three-column layout — PaneLayout pattern */}
       <div className="flex flex-1 overflow-hidden">
