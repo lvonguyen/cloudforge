@@ -94,6 +94,17 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getFinding)),
 	).Methods("GET")
 
+	// Finding comments
+	apiRouter.Handle("/findings/{id}/comments",
+		s.roles.Require(api.RoleViewer, api.RoleRequester, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listComments)),
+	).Methods("GET")
+	apiRouter.Handle("/findings/{id}/comments",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.addComment)),
+	).Methods("POST")
+	apiRouter.Handle("/findings/{id}/comments/{commentId}",
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.deleteComment)),
+	).Methods("DELETE")
+
 	// Compliance (viewer can see frameworks read-only)
 	apiRouter.Handle("/compliance/frameworks",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listFrameworks)),
@@ -163,6 +174,11 @@ func (s *Server) setupRoutes() {
 	).Methods("GET")
 	apiRouter.Handle("/attack-paths/{id}",
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.attackPathSvc.getAttackPath)),
+	).Methods("GET")
+
+	// Data classification (DSPM)
+	apiRouter.Handle("/data-classification/assets",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listDataClassificationAssets)),
 	).Methods("GET")
 
 	// Container security

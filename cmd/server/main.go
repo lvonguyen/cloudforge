@@ -71,6 +71,7 @@ type Server struct {
 	attackPathSvc *AttackPathService // attack path queries + mutex
 	enrichmentSvc *EnrichmentService // AI enrichment + cache
 	opaEngine     *opa.Engine        // AI governance policy engine (nil = disabled)
+	comments      *CommentsStore     // finding comments (in-memory)
 
 	// Multi-tenancy (Phase 3)
 	tenantStore tenant.Store
@@ -325,6 +326,7 @@ func main() {
 			Logger: logger.Named("enrichment"),
 		},
 		opaEngine:        opaEngine,
+		comments:         NewCommentsStore(),
 		finopsSvc:        newFinopsService(logger),
 		identitySvc:      NewIdentityService(idProviders),
 		dedupCache:       ingestion.NewDedupCache(24 * time.Hour),

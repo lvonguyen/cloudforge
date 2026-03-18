@@ -120,6 +120,7 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 			Logger: logger,
 		},
 		roles:       &api.RoleEnforcer{DevMode: false},
+		comments:    NewCommentsStore(),
 		finopsSvc:   newFinopsService(logger),
 		dedupCache:  ingestion.NewDedupCache(24 * time.Hour),
 		auditLogger: audit.NewMemoryAuditLogger(),

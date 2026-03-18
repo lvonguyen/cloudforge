@@ -16,6 +16,7 @@ import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
 import { useCreateException } from '@/hooks/useExceptions'
+import { useComments, useAddComment } from '@/hooks/useComments'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
 
@@ -30,6 +31,9 @@ export default function FindingDetail() {
   const createException = useCreateException()
   const { toasts, toast, dismiss } = useToast()
   const [suppressed, setSuppressed] = useState(false)
+  const [commentText, setCommentText] = useState('')
+  const { data: comments = [] } = useComments(id ?? '')
+  const addComment = useAddComment(id ?? '')
 
   // Fetch attack paths to find any that include this finding
   const { data: attackPathsData } = useAttackPaths(1, 200)
@@ -534,14 +538,59 @@ export default function FindingDetail() {
         </TabsContent>
 
         {/* ── Comments Tab ── */}
-        <TabsContent value="comments" className="mt-4">
+        <TabsContent value="comments" className="mt-4 space-y-4">
+          {/* Comment input */}
           <Card>
-            <CardContent className="p-8 flex flex-col items-center justify-center text-center">
-              <MessageSquare className="h-8 w-8 text-muted-foreground/40 mb-2" />
-              <p className="text-sm font-medium">Comments</p>
-              <p className="text-xs text-muted-foreground mt-1">Coming soon — threaded discussion for findings collaboration.</p>
+            <CardContent className="p-4">
+              <textarea
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                placeholder="Add a comment..."
+                rows={3}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+              />
+              <div className="flex justify-end mt-2">
+                <Button
+                  size="sm"
+                  disabled={!commentText.trim() || addComment.isPending}
+                  onClick={() => {
+                    addComment.mutate(commentText.trim(), {
+                      onSuccess: () => setCommentText(''),
+                    })
+                  }}
+                >
+                  {addComment.isPending ? 'Posting...' : 'Comment'}
+                </Button>
+              </div>
             </CardContent>
           </Card>
+
+          {/* Comment list */}
+          {comments.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 flex flex-col items-center justify-center text-center">
+                <MessageSquare className="h-8 w-8 text-muted-foreground/40 mb-2" />
+                <p className="text-sm font-medium">No comments yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Be the first to add a comment.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {comments.map(c => (
+                <Card key={c.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-medium">{c.author}</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(c.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm">{c.body}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
