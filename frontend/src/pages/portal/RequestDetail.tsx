@@ -1,5 +1,4 @@
 import { brandEmail } from '@/lib/mock-data-utils'
-import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,7 +8,7 @@ import { ArrowLeft, CheckCircle2, XCircle, Clock, Loader2 } from 'lucide-react'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
-import { useException } from '@/hooks/useExceptions'
+import { useException, useWithdrawException } from '@/hooks/useExceptions'
 
 interface ExceptionLifecycle {
   id: string
@@ -135,8 +134,7 @@ export default function RequestDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { toasts, toast, dismiss } = useToast()
-  const [withdrawn, setWithdrawn] = useState(false)
-  const [withdrawing, setWithdrawing] = useState(false)
+  const withdraw = useWithdrawException()
   const { data: apiException, isLoading } = useException(id ?? '')
 
   // Try API data first; fall back to inline mock for dev/offline
@@ -198,23 +196,26 @@ export default function RequestDetail() {
           </div>
           <p className="text-sm text-muted-foreground">{exc.resource}</p>
         </div>
-        {exc.status === 'PENDING' && !withdrawn && (
+        {exc.status === 'PENDING' && !withdraw.isSuccess && (
           <Button
             size="sm"
             variant="outline"
             className="text-xs shrink-0"
-            disabled={withdrawing}
+            disabled={withdraw.isPending}
             onClick={() => {
-              setWithdrawing(true)
-              setTimeout(() => {
-                setWithdrawing(false)
-                setWithdrawn(true)
-                toast('Request withdrawn')
-                setTimeout(() => navigate('/portal/requests'), 1500)
-              }, 800)
+              if (!id) return
+              withdraw.mutate(id, {
+                onSuccess: () => {
+                  toast('Request withdrawn')
+                  setTimeout(() => navigate('/portal/requests'), 1500)
+                },
+                onError: (err) => {
+                  toast(err instanceof Error ? err.message : 'Failed to withdraw')
+                },
+              })
             }}
           >
-            {withdrawing ? 'Withdrawing\u2026' : 'Withdraw'}
+            {withdraw.isPending ? 'Withdrawing\u2026' : 'Withdraw'}
           </Button>
         )}
       </div>

@@ -54,6 +54,9 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/exceptions/mine", // requester, operator, admin
 		s.roles.Require(api.RoleRequester, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.GetMyExceptions)),
 	).Methods("GET")
+	apiRouter.Handle("/exceptions/{id}/withdraw", // requester, operator, admin
+		s.roles.Require(api.RoleRequester, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.WithdrawException)),
+	).Methods("POST")
 	apiRouter.Handle("/exceptions/{id}", // operator, admin
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.GetException)),
 	).Methods("GET")
@@ -146,6 +149,9 @@ func (s *Server) setupRoutes() {
 	// Policies
 	apiRouter.Handle("/policies",
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listPolicies)),
+	).Methods("GET")
+	apiRouter.Handle("/policies/{id}",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getPolicy)),
 	).Methods("GET")
 
 	// Attack paths (delegated to AttackPathService)

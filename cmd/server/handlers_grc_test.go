@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -137,5 +138,125 @@ func TestPatchRemediation_Unauthenticated(t *testing.T) {
 	_, router := testServer(t)
 
 	rr := doRequest(t, router, "PATCH", "/api/v1/remediations/rem-001", `{"status":"in_progress"}`, "")
+	assertStatus(t, rr, http.StatusUnauthorized)
+}
+
+// --- WithdrawException tests ---
+
+// seedPendingException creates a PENDING exception with the given requestor email
+// and returns its ID. The provider is accessed via the server's grcHandler.
+func seedPendingException(t *testing.T, srv *Server, requestorEmail string) string {
+	t.Helper()
+	ctx := context.Background()
+	exc, err := srv.grcHandler.provider.CreateException(ctx, &grc.ExceptionRequest{
+		ApplicationID:  "test-app",
+		RequestorEmail: requestorEmail,
+		PolicyViolated: "COST-001",
+		BusinessCase:   "test withdrawal",
+	})
+	if err != nil {
+		t.Fatalf("seed exception: %v", err)
+	}
+	return exc.ID
+}
+
+func TestWithdrawException_Success(t *testing.T) {
+	srv, router := testServer(t)
+
+	const requestor = "alice@test.com"
+	excID := seedPendingException(t, srv, requestor)
+
+	jwt := makeJWT(t, api.Claims{
+		Subject: requestor,
+		Email:   requestor,
+		Scope:   "requester",
+	})
+
+	rr := doRequest(t, router, "POST", "/api/v1/exceptions/"+excID+"/withdraw", "{}", jwt)
+	assertStatus(t, rr, http.StatusOK)
+
+	var result grc.ExceptionRequest
+	assertJSON(t, rr, &result)
+	if result.Status != grc.StatusRevoked {
+		t.Errorf("status = %q, want %q", result.Status, grc.StatusRevoked)
+	}
+}
+
+func TestWithdrawException_AdminCanWithdraw(t *testing.T) {
+	srv, router := testServer(t)
+
+	excID := seedPendingException(t, srv, "alice@test.com")
+	jwt := adminJWT(t) // admin, different subject
+
+	rr := doRequest(t, router, "POST", "/api/v1/exceptions/"+excID+"/withdraw", "{}", jwt)
+	assertStatus(t, rr, http.StatusOK)
+
+	var result grc.ExceptionRequest
+	assertJSON(t, rr, &result)
+	if result.Status != grc.StatusRevoked {
+		t.Errorf("status = %q, want %q", result.Status, grc.StatusRevoked)
+	}
+}
+
+func TestWithdrawException_NotPending(t *testing.T) {
+	srv, router := testServer(t)
+
+	const requestor = "alice@test.com"
+	excID := seedPendingException(t, srv, requestor)
+
+	// Move to APPROVED so withdraw should fail with 409.
+	ctx := context.Background()
+	exc, _ := srv.grcHandler.provider.GetException(ctx, excID)
+	exc.Status = grc.StatusApproved
+	if err := srv.grcHandler.provider.UpdateException(ctx, exc); err != nil {
+		t.Fatalf("update exception: %v", err)
+	}
+
+	jwt := makeJWT(t, api.Claims{
+		Subject: requestor,
+		Email:   requestor,
+		Scope:   "requester",
+	})
+
+	rr := doRequest(t, router, "POST", "/api/v1/exceptions/"+excID+"/withdraw", "{}", jwt)
+	assertStatus(t, rr, http.StatusConflict)
+
+	var errResp map[string]string
+	if err := json.NewDecoder(rr.Body).Decode(&errResp); err == nil {
+		if errResp["error"] == "" {
+			t.Error("expected non-empty error message in 409 body")
+		}
+	}
+}
+
+func TestWithdrawException_WrongUser(t *testing.T) {
+	srv, router := testServer(t)
+
+	excID := seedPendingException(t, srv, "alice@test.com")
+
+	// bob is a requester, not the requestor and not admin.
+	jwt := makeJWT(t, api.Claims{
+		Subject: "bob@test.com",
+		Email:   "bob@test.com",
+		Scope:   "requester",
+	})
+
+	rr := doRequest(t, router, "POST", "/api/v1/exceptions/"+excID+"/withdraw", "{}", jwt)
+	assertStatus(t, rr, http.StatusForbidden)
+}
+
+func TestWithdrawException_NotFound(t *testing.T) {
+	_, router := testServer(t)
+
+	jwt := adminJWT(t)
+	rr := doRequest(t, router, "POST", "/api/v1/exceptions/nonexistent-id/withdraw", "{}", jwt)
+	assertStatus(t, rr, http.StatusNotFound)
+}
+
+func TestWithdrawException_Unauthenticated(t *testing.T) {
+	srv, router := testServer(t)
+	excID := seedPendingException(t, srv, "alice@test.com")
+
+	rr := doRequest(t, router, "POST", "/api/v1/exceptions/"+excID+"/withdraw", "{}", "")
 	assertStatus(t, rr, http.StatusUnauthorized)
 }

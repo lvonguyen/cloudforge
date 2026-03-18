@@ -303,6 +303,54 @@ func (h *GRCHandler) GetExceptionsByApp(w http.ResponseWriter, r *http.Request) 
 	_ = json.NewEncoder(w).Encode(exceptions)
 }
 
+func (h *GRCHandler) WithdrawException(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.withdrawException")
+	defer span.End()
+	r = r.WithContext(ctx)
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+	span.SetAttributes(attribute.String("exception.id", id))
+
+	claims, ok := api.GetClaimsFromContext(r.Context())
+	if !ok {
+		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	exc, err := h.provider.GetException(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, grc.ErrNotFound) {
+			writeErrorResponse(w, "exception not found", http.StatusNotFound)
+			return
+		}
+		h.writeError(w, err, "withdraw exception: get")
+		return
+	}
+
+	if exc.Status != grc.StatusPending {
+		writeErrorResponse(w, "exception is not in PENDING status", http.StatusConflict)
+		return
+	}
+
+	role := api.RoleFromClaims(claims)
+	if claims.Subject != exc.RequestorEmail && role != api.RoleAdmin {
+		writeErrorResponse(w, "forbidden: only the requestor or an admin can withdraw", http.StatusForbidden)
+		return
+	}
+
+	exc.Status = grc.StatusRevoked
+	if err := h.provider.UpdateException(r.Context(), exc); err != nil {
+		h.writeError(w, err, "withdraw exception: update")
+		return
+	}
+
+	h.logAudit(r, "exception.withdraw", "exception", id, "success")
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(exc)
+}
+
 func (h *GRCHandler) ValidateException(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.validateException")
 	defer span.End()
