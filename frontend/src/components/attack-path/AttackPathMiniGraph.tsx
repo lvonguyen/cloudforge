@@ -1,8 +1,8 @@
 /**
  * Compact attack path graph for embedding in finding detail Investigation tab.
- * Reuses the same node/edge styling as the full AttackPaths page.
+ * Supports expand/collapse, path selector, node click detail, and edge tooltips.
  */
-import { useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import {
   ReactFlow,
   Background,
@@ -16,9 +16,8 @@ import '@xyflow/react/dist/style.css'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Network, AlertTriangle, ExternalLink } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import type { AttackPath } from '@/types/attack-path'
+import { ArrowRight, Network, AlertTriangle, Maximize2, Minimize2, X } from 'lucide-react'
+import type { AttackPath, AttackPathNode } from '@/types/attack-path'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS } from '@/lib/severity'
 
 const NODE_BORDER_COLORS: Record<string, string> = {
@@ -54,6 +53,7 @@ function pathToFlowNodes(path: AttackPath): { nodes: Node[]; edges: Edge[] } {
       background: 'var(--color-card)',
       padding: '4px',
       width: 200,
+      cursor: 'pointer',
     },
   }))
 
@@ -64,10 +64,10 @@ function pathToFlowNodes(path: AttackPath): { nodes: Node[]; edges: Edge[] } {
     label: e.label,
     type: 'default',
     markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-    style: { strokeWidth: 2 },
-    labelStyle: { fontSize: 9, fill: 'var(--color-muted-foreground)' },
-    labelBgStyle: { fill: 'var(--color-background)', fillOpacity: 0.9 },
-    labelBgPadding: [3, 5] as [number, number],
+    style: { strokeWidth: 2, cursor: 'pointer' },
+    labelStyle: { fontSize: 10, fill: 'var(--color-muted-foreground)', cursor: 'pointer' },
+    labelBgStyle: { fill: 'var(--color-background)', fillOpacity: 0.95 },
+    labelBgPadding: [4, 6] as [number, number],
   }))
 
   return { nodes, edges }
@@ -79,13 +79,21 @@ interface AttackPathMiniGraphProps {
 }
 
 export function AttackPathMiniGraph({ paths, resourceId }: AttackPathMiniGraphProps) {
-  // Show the first (highest-severity) path
-  const primaryPath = paths[0]
+  const [expanded, setExpanded] = useState(false)
+  const [selectedPathIndex, setSelectedPathIndex] = useState(0)
+  const [nodeDetail, setNodeDetail] = useState<AttackPathNode | null>(null)
+
+  const primaryPath = paths[selectedPathIndex] ?? paths[0]
 
   const { nodes, edges } = useMemo(
     () => (primaryPath ? pathToFlowNodes(primaryPath) : { nodes: [], edges: [] }),
     [primaryPath],
   )
+
+  const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+    const pathNode = primaryPath?.nodes.find(n => n.id === node.id)
+    if (pathNode) setNodeDetail(pathNode)
+  }, [primaryPath])
 
   if (!primaryPath) return null
 
@@ -103,8 +111,21 @@ export function AttackPathMiniGraph({ paths, resourceId }: AttackPathMiniGraphPr
               {primaryPath.severity}
             </Badge>
             {paths.length > 1 && (
-              <span className="text-[10px] text-muted-foreground">+{paths.length - 1} more</span>
+              <select
+                value={selectedPathIndex}
+                onChange={(e) => { setSelectedPathIndex(Number(e.target.value)); setNodeDetail(null) }}
+                className="text-[10px] bg-transparent border border-border rounded px-1 py-0.5 text-muted-foreground"
+              >
+                {paths.map((p, i) => (
+                  <option key={p.id} value={i}>
+                    {p.severity} — {p.title.slice(0, 40)}{p.title.length > 40 ? '\u2026' : ''}
+                  </option>
+                ))}
+              </select>
             )}
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setExpanded(!expanded)}>
+              {expanded ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -150,41 +171,55 @@ export function AttackPathMiniGraph({ paths, resourceId }: AttackPathMiniGraphPr
         )}
 
         {/* Graph */}
-        <div className="h-48 border rounded-md overflow-hidden">
+        <div className={`${expanded ? 'h-[400px]' : 'h-48'} border rounded-md overflow-hidden relative transition-all duration-200`}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
+            onNodeClick={onNodeClick}
             fitView
             fitViewOptions={{ padding: 0.3 }}
             proOptions={{ hideAttribution: true }}
             nodesDraggable={false}
             nodesConnectable={false}
             elementsSelectable={false}
-            panOnDrag={false}
-            zoomOnScroll={false}
+            panOnDrag={expanded}
+            zoomOnScroll={expanded}
             minZoom={0.3}
-            maxZoom={1}
+            maxZoom={expanded ? 2 : 1}
           >
             <Background gap={16} size={1} />
-            <Controls showInteractive={false} showZoom={false} />
+            <Controls showInteractive={false} showZoom={expanded} />
           </ReactFlow>
-        </div>
 
-        {/* Link to full graph */}
-        <div className="flex justify-end gap-2">
-          <Link to={`/ops/attack-paths`}>
-            <Button variant="ghost" size="sm" className="text-xs gap-1">
-              All Attack Paths <ExternalLink className="h-3 w-3" />
-            </Button>
-          </Link>
-          {resourceId && (
-            <Link to={`/ops/graph?focus=${encodeURIComponent(resourceId)}`}>
-              <Button variant="ghost" size="sm" className="text-xs gap-1">
-                View on Security Graph <ExternalLink className="h-3 w-3" />
-              </Button>
-            </Link>
+          {/* Node detail overlay */}
+          {nodeDetail && (
+            <div className="absolute z-20 top-2 right-2 bg-card border border-border rounded-md shadow-lg p-3 max-w-[220px]">
+              <button onClick={() => setNodeDetail(null)} className="absolute top-1 right-1 text-muted-foreground hover:text-foreground">
+                <X className="h-3 w-3" />
+              </button>
+              <div className="space-y-1.5">
+                <Badge variant="outline" className={`text-[9px] ${SEVERITY_COLORS[nodeDetail.severity] ?? ''}`}>
+                  {nodeDetail.severity}
+                </Badge>
+                <p className="text-xs font-medium">{nodeDetail.resource_name}</p>
+                <p className="text-[10px] text-muted-foreground">{nodeDetail.resource_type}</p>
+                <p className="text-[10px] text-muted-foreground">{nodeDetail.region}</p>
+                {nodeDetail.finding_id && (
+                  <p className="text-[10px] font-mono text-muted-foreground truncate">{nodeDetail.finding_id}</p>
+                )}
+              </div>
+            </div>
           )}
         </div>
+
+        {/* Link to security graph (attack-paths route removed in Sprint G) */}
+        {resourceId && (
+          <div className="flex justify-end">
+            <Button variant="ghost" size="sm" className="text-xs gap-1 text-muted-foreground">
+              Resource: {resourceId.length > 30 ? resourceId.slice(0, 30) + '\u2026' : resourceId}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   )
