@@ -3,10 +3,18 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import React from 'react'
-import { useExceptions, useCreateException, useApproveException } from '@/hooks/useExceptions'
-import { apiClient } from '@/lib/api'
+import { useExceptions, useCreateException, useApproveException, useMyExceptions, useException, MOCK_EXCEPTIONS } from '@/hooks/useExceptions'
+import { apiClient, ApiError } from '@/lib/api'
 
 vi.mock('@/lib/api', () => ({
+  ApiError: class ApiError extends Error {
+    status: number
+    constructor(status: number, message: string) {
+      super(message)
+      this.status = status
+      this.name = 'ApiError'
+    }
+  },
   apiClient: {
     get: vi.fn(),
     post: vi.fn(),
@@ -175,5 +183,63 @@ describe('useApproveException', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['exceptions'] })
+  })
+})
+
+describe('useExceptions mock fallback', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+  afterEach(() => { vi.restoreAllMocks() })
+
+  it('returns pending mock data on API failure', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(new Error('Network error'))
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const { result } = renderHook(() => useExceptions(), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data!.length).toBeGreaterThan(0)
+    expect(result.current.data!.every(e => e.status === 'PENDING')).toBe(true)
+    warnSpy.mockRestore()
+  })
+
+  it('rethrows 4xx ApiErrors', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(new ApiError(403, 'Forbidden'))
+
+    const { result } = renderHook(() => useExceptions(), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isError).toBe(true))
+
+    expect((result.current.error as ApiError).status).toBe(403)
+  })
+})
+
+describe('useMyExceptions mock fallback', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+  afterEach(() => { vi.restoreAllMocks() })
+
+  it('returns all mock data on API failure', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(new Error('Network error'))
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const { result } = renderHook(() => useMyExceptions(), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toHaveLength(MOCK_EXCEPTIONS.length)
+    warnSpy.mockRestore()
+  })
+})
+
+describe('useException mock fallback', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+  afterEach(() => { vi.restoreAllMocks() })
+
+  it('returns matching mock on API failure', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(new Error('Network error'))
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const { result } = renderHook(() => useException('exc-001'), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data!.id).toBe('exc-001')
+    warnSpy.mockRestore()
   })
 })
