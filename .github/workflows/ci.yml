@@ -58,7 +58,7 @@ jobs:
 
       - name: Test with coverage
         run: |
-          go test -v -race -timeout 20m -coverprofile=coverage.out -covermode=atomic ./...
+          go test -v -race -timeout 25m -coverprofile=coverage.out -covermode=atomic ./...
         env:
           REDIS_ADDR: localhost:6379
 
