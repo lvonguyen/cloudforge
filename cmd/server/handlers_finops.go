@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -60,32 +61,23 @@ func newFinopsService(logger *zap.Logger) *finopsService {
 	}
 }
 
-// getCostSummaryComputed replaces the old static JSON handler with computed data.
-// It returns the types.go CostSummary shape to maintain API compatibility.
-func (s *Server) getCostSummaryComputed(w http.ResponseWriter, r *http.Request) {
-	svc := s.finopsSvc
-
-	end := time.Now().UTC()
-	start := end.AddDate(0, 0, -30)
-
-	records, err := svc.aggregator.FetchCosts(r.Context(), start, end)
+// ComputeSummary fetches costs for the given period and returns a fully-assembled CostSummary.
+func (svc *finopsService) ComputeSummary(ctx context.Context, start, end time.Time) (*CostSummary, error) {
+	records, err := svc.aggregator.FetchCosts(ctx, start, end)
 	if err != nil {
-		s.writeInternalError(w, err, "cost summary")
-		return
+		return nil, fmt.Errorf("fetching costs: %w", err)
 	}
 
 	records = svc.aggregator.NormalizeCosts(records)
 	alerts := svc.detector.Detect(records)
 	allocMap := svc.allocator.Allocate(records)
 
-	// Build API-compatible CostSummary (types.go shape).
 	summary := CostSummary{
 		Period:     fmt.Sprintf("%s / %s", start.Format("2006-01-02"), end.Format("2006-01-02")),
 		ByProvider: make(map[string]float64),
 		ByService:  make(map[string]float64),
 	}
 
-	// Aggregate totals and daily breakdown.
 	dailyMap := make(map[string]*CostDaily)
 	for _, rec := range records {
 		summary.Total += rec.Cost
@@ -109,7 +101,6 @@ func (s *Server) getCostSummaryComputed(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	// Sort daily entries by date.
 	summary.Daily = make([]CostDaily, 0, len(dailyMap))
 	for _, d := range dailyMap {
 		summary.Daily = append(summary.Daily, *d)
@@ -118,7 +109,6 @@ func (s *Server) getCostSummaryComputed(w http.ResponseWriter, r *http.Request) 
 		return summary.Daily[i].Date < summary.Daily[j].Date
 	})
 
-	// Map anomaly alerts to API type.
 	summary.Anomalies = make([]CostAnomaly, len(alerts))
 	for i, a := range alerts {
 		summary.Anomalies[i] = CostAnomaly{
@@ -134,7 +124,6 @@ func (s *Server) getCostSummaryComputed(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	// Map allocations to chargeback.
 	allocs := make([]ChargebackAllocation, 0, len(allocMap))
 	var chargeTotal float64
 	for _, a := range allocMap {
@@ -153,6 +142,20 @@ func (s *Server) getCostSummaryComputed(w http.ResponseWriter, r *http.Request) 
 		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
 		TotalCost:   chargeTotal,
 		Allocations: allocs,
+	}
+
+	return &summary, nil
+}
+
+// getCostSummaryComputed delegates to finopsService.ComputeSummary.
+func (s *Server) getCostSummaryComputed(w http.ResponseWriter, r *http.Request) {
+	end := time.Now().UTC()
+	start := end.AddDate(0, 0, -30)
+
+	summary, err := s.finopsSvc.ComputeSummary(r.Context(), start, end)
+	if err != nil {
+		s.writeInternalError(w, err, "cost summary")
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
