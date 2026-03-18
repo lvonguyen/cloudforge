@@ -39,7 +39,7 @@ export function useChannel(channel: string, opts?: UseChannelOptions): UseChanne
 
   const esRef = useRef<EventSource | null>(null)
   const retryRef = useRef(0)
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const cleanup = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
