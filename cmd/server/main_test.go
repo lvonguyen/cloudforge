@@ -132,6 +132,7 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		secretsProvider:  secrets.NewMemoryProvider("demo"),
 		secretsManager:   secrets.NewManager(logger),
 		containerScanner: ctrScanner,
+		deployTracker:    newDeployTracker(),
 	}
 
 	srv.setupRoutes()

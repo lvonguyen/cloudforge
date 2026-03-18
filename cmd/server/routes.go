@@ -74,10 +74,16 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.ValidateException)),
 	).Methods("POST")
 
-	// Findings — read endpoints (viewer can see findings read-only)
+	// Findings — static routes before parameterized {id} to avoid gorilla/mux shadowing
 	apiRouter.Handle("/findings",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listFindings)),
 	).Methods("GET")
+	apiRouter.Handle("/findings/query",
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.queryFindings)),
+	).Methods("GET")
+	apiRouter.Handle("/findings/ingest",
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.ingestFinding)),
+	).Methods("POST")
 	apiRouter.Handle("/findings/{id}/enrich",
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.enrichFinding)),
 	).Methods("POST")
@@ -203,16 +209,6 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/ai/usage",
 		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.getAIUsage)),
 	).Methods("GET")
-
-	// RQL (resource query language) — structured finding queries
-	apiRouter.Handle("/findings/query",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.queryFindings)),
-	).Methods("GET")
-
-	// Finding ingestion (admin-only write endpoint with deduplication)
-	apiRouter.Handle("/findings/ingest",
-		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.ingestFinding)),
-	).Methods("POST")
 
 	// Deploy preview (operator + admin)
 	apiRouter.Handle("/deploy/preview",

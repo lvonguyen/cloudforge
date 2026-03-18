@@ -1,4 +1,4 @@
-.PHONY: build run dev test clean docker-build docker-up docker-down migrate lint fmt help build-cspm run-cspm test-cspm bedrock-auth bedrock-check bedrock-export dev-ai health smoke bench profile
+.PHONY: build run dev test clean docker-build docker-up docker-down migrate lint fmt help build-cspm run-cspm test-cspm bedrock-auth bedrock-check bedrock-export dev-ai health smoke bench profile generate-attack-paths load-test-smoke load-test-stress
 
 # Variables
 BINARY_NAME=cloudforge
@@ -162,6 +162,20 @@ profile:  ## Open pprof heap profile (dev server must be running on :6060)
 
 health:  ## Check backend health
 	@curl -sf http://localhost:8080/health | jq . || echo "Backend not reachable"
+
+generate-attack-paths:  ## Regenerate attack path data for R2 upload
+	@echo "[*] To regenerate and upload attack path data:"
+	@echo "  1. Start server: make run"
+	@echo "  2. Export: curl -s http://localhost:8080/api/v1/attack-paths?per_page=100 -H 'Authorization: Bearer <TOKEN>' | jq '.items' > attack-paths.json"
+	@echo "  3. Upload: wrangler r2 object put cloudforge-demo-data/mock/attack-paths.json --file attack-paths.json"
+	@echo ""
+	@echo "[!] Requires: wrangler CLI authenticated to Cloudflare account"
+
+load-test-smoke:  ## Run k6 smoke test (5 VUs, 30s)
+	k6 run k6/smoke.js
+
+load-test-stress:  ## Run k6 stress test (ramp 0→50→0, 3min)
+	k6 run k6/stress.js
 
 smoke: build  ## Start backend, verify health, stop
 	@echo "Starting backend for smoke test..."

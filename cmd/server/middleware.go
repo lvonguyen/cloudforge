@@ -3,6 +3,9 @@ package main
 import (
 	"bufio"
 	"compress/gzip"
+	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"net"
 	"net/http"
@@ -66,7 +69,36 @@ func (w *gzipResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return nil, nil, fmt.Errorf("underlying ResponseWriter does not support Hijack")
 }
 
-// securityHeadersMiddleware adds security headers.
+type contextKey string
+
+const cspNonceKey contextKey = "csp-nonce"
+
+// generateCSPNonce produces a cryptographically random base64-encoded nonce
+// for Content-Security-Policy headers. Returns empty string on failure (rare).
+func generateCSPNonce() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(b)
+}
+
+// CSPNonceFromContext extracts the per-request CSP nonce for use in templates.
+//
+// SEC-004 status: The nonce infrastructure is in place, but style-src still
+// requires 'unsafe-inline' because Vite-built SPAs inject inline styles
+// (Tailwind reset, Radix UI) that cannot reference a server-generated nonce
+// without a Vite plugin + HTML template nonce injection pipeline. Removing
+// 'unsafe-inline' is a single CSP directive change once the frontend is ready.
+func CSPNonceFromContext(ctx context.Context) string {
+	if v, ok := ctx.Value(cspNonceKey).(string); ok {
+		return v
+	}
+	return ""
+}
+
+// securityHeadersMiddleware adds security headers and generates a per-request
+// CSP nonce threaded through the request context.
 // HSTS is only set on TLS connections or when the request was forwarded over HTTPS
 // (X-Forwarded-Proto: https). Setting HSTS on plain HTTP causes browser lockout in dev.
 func (s *Server) securityHeadersMiddleware(next http.Handler) http.Handler {
@@ -75,10 +107,17 @@ func (s *Server) securityHeadersMiddleware(next http.Handler) http.Handler {
 		if isTLS {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
+
+		nonce := generateCSPNonce()
+		r = r.WithContext(context.WithValue(r.Context(), cspNonceKey, nonce))
+
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
+		w.Header().Set("Content-Security-Policy", fmt.Sprintf(
+			"default-src 'self'; script-src 'self' 'nonce-%s'; style-src 'self' 'unsafe-inline' 'nonce-%s'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+			nonce, nonce,
+		))
 		next.ServeHTTP(w, r)
 	})
 }
