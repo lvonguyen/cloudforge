@@ -5,8 +5,10 @@ import (
 	"errors"
 	"net/http"
 	"net/mail"
+	"strings"
 
 	"cloudforge/internal/api"
+	"cloudforge/internal/audit"
 	"cloudforge/internal/grc"
 
 	"github.com/gorilla/mux"
@@ -15,23 +17,85 @@ import (
 	"go.uber.org/zap"
 )
 
-func (s *Server) createException(w http.ResponseWriter, r *http.Request) {
+// GRCHandler encapsulates GRC exception management handlers,
+// extracted from Server to reduce God Object field count.
+type GRCHandler struct {
+	provider    grc.GRCProvider
+	logger      *zap.Logger
+	auditLogger audit.AuditLogger
+}
+
+// decodeBody decodes a JSON request body with size limit.
+func (h *GRCHandler) decodeBody(w http.ResponseWriter, r *http.Request, dst interface{}) bool {
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(dst); err != nil {
+		var msg string
+		switch {
+		case strings.Contains(err.Error(), "http: request body too large"):
+			msg = "request body exceeds maximum allowed size"
+		case strings.Contains(err.Error(), "unknown field"):
+			msg = "request contains unknown fields"
+		default:
+			msg = "invalid request body"
+		}
+		h.logger.Warn("JSON decode error", zap.Error(err))
+		writeErrorResponse(w, msg, http.StatusBadRequest)
+		return false
+	}
+	return true
+}
+
+// writeError logs the actual error and returns a generic message to the client.
+func (h *GRCHandler) writeError(w http.ResponseWriter, err error, operation string) {
+	h.logger.Error("operation failed", zap.String("operation", operation), zap.Error(err))
+	writeErrorResponse(w, "internal server error", http.StatusInternalServerError)
+}
+
+// logAudit records an audit event for GRC operations.
+func (h *GRCHandler) logAudit(r *http.Request, action, resource, resourceID, result string) {
+	if h.auditLogger == nil {
+		return
+	}
+	actor := ""
+	actorRole := ""
+	if claims, ok := api.GetClaimsFromContext(r.Context()); ok {
+		actor = claims.Subject
+		actorRole = string(api.RoleFromClaims(claims))
+	}
+	_ = h.auditLogger.Log(r.Context(), audit.AuditEntry{
+		Actor:      actor,
+		ActorRole:  actorRole,
+		Action:     action,
+		Resource:   resource,
+		ResourceID: resourceID,
+		Result:     result,
+		IP:         r.RemoteAddr,
+	})
+}
+
+// ValidateExceptionRequest is the request body for exception validation.
+type ValidateExceptionRequest struct {
+	ApplicationID string `json:"application_id"`
+	PolicyCode    string `json:"policy_code"`
+}
+
+func (h *GRCHandler) CreateException(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.createException")
 	defer span.End()
 	r = r.WithContext(ctx)
 
 	var req grc.ExceptionRequest
-	if !s.decodeJSONBody(w, r, &req) {
+	if !h.decodeBody(w, r, &req) {
 		return
 	}
 
-	// Validate required fields
 	if req.ApplicationID == "" || req.PolicyViolated == "" {
 		writeErrorResponse(w, "application_id and policy_violated are required", http.StatusBadRequest)
 		return
 	}
 
-	// RFC 5322 email format validation when client provides requestor_email
 	if req.RequestorEmail != "" {
 		if _, err := mail.ParseAddress(req.RequestorEmail); err != nil {
 			writeErrorResponse(w, "requestor_email is not a valid email address", http.StatusBadRequest)
@@ -39,7 +103,6 @@ func (s *Server) createException(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Enforce requestor identity from JWT — caller cannot impersonate another user.
 	claims, ok := api.GetClaimsFromContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
@@ -48,7 +111,7 @@ func (s *Server) createException(w http.ResponseWriter, r *http.Request) {
 	if req.RequestorEmail == "" {
 		req.RequestorEmail = claims.Email
 	} else if req.RequestorEmail != claims.Email {
-		s.logger.Warn("identity spoofing attempt on createException",
+		h.logger.Warn("identity spoofing attempt on createException",
 			zap.String("claimed_email", req.RequestorEmail),
 			zap.String("authenticated_email", claims.Email),
 		)
@@ -56,24 +119,23 @@ func (s *Server) createException(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Server-authoritative workflow state — ignore client-supplied values.
 	req.Status = grc.StatusPending
 	req.ApproverChain = nil
 
-	created, err := s.grcProvider.CreateException(r.Context(), &req)
+	created, err := h.provider.CreateException(r.Context(), &req)
 	if err != nil {
-		s.writeInternalError(w, err, "create exception")
+		h.writeError(w, err, "create exception")
 		return
 	}
 
-	s.logAuditEvent(r, "exception.create", "exception", created.ID, "success")
+	h.logAudit(r, "exception.create", "exception", created.ID, "success")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(created)
 }
 
-func (s *Server) getException(w http.ResponseWriter, r *http.Request) {
+func (h *GRCHandler) GetException(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getException")
 	defer span.End()
 	r = r.WithContext(ctx)
@@ -82,18 +144,17 @@ func (s *Server) getException(w http.ResponseWriter, r *http.Request) {
 	id := vars["id"]
 	span.SetAttributes(attribute.String("exception.id", id))
 
-	exc, err := s.grcProvider.GetException(r.Context(), id)
+	exc, err := h.provider.GetException(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, grc.ErrNotFound) {
 			writeErrorResponse(w, "exception not found", http.StatusNotFound)
 			return
 		}
-		s.logger.Error("get exception failed", zap.Error(err))
+		h.logger.Error("get exception failed", zap.Error(err))
 		writeErrorResponse(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	// Authorization: require admin/operator role or JWT subject matching the exception's app owner.
 	claims, ok := api.GetClaimsFromContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
@@ -109,7 +170,7 @@ func (s *Server) getException(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(exc)
 }
 
-func (s *Server) submitApproval(w http.ResponseWriter, r *http.Request) {
+func (h *GRCHandler) SubmitApproval(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.submitApproval")
 	defer span.End()
 	r = r.WithContext(ctx)
@@ -119,11 +180,10 @@ func (s *Server) submitApproval(w http.ResponseWriter, r *http.Request) {
 	span.SetAttributes(attribute.String("exception.id", id))
 
 	var approver grc.Approver
-	if !s.decodeJSONBody(w, r, &approver) {
+	if !h.decodeBody(w, r, &approver) {
 		return
 	}
 
-	// Enforce that the approver email matches the authenticated JWT identity
 	claims, ok := api.GetClaimsFromContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
@@ -136,24 +196,23 @@ func (s *Server) submitApproval(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.grcProvider.SubmitApproval(r.Context(), id, approver); err != nil {
-		s.writeInternalError(w, err, "submit approval")
+	if err := h.provider.SubmitApproval(r.Context(), id, approver); err != nil {
+		h.writeError(w, err, "submit approval")
 		return
 	}
 
-	s.logAuditEvent(r, "exception.approve", "exception", id, "success")
+	h.logAudit(r, "exception.approve", "exception", id, "success")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "approval recorded"})
 }
 
-func (s *Server) getPendingApprovals(w http.ResponseWriter, r *http.Request) {
+func (h *GRCHandler) GetPendingApprovals(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getPendingApprovals")
 	defer span.End()
 	r = r.WithContext(ctx)
 
-	// Enforce that the query matches the authenticated JWT identity
 	claims, ok := api.GetClaimsFromContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
@@ -168,9 +227,9 @@ func (s *Server) getPendingApprovals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pending, err := s.grcProvider.GetPendingApprovals(r.Context(), email)
+	pending, err := h.provider.GetPendingApprovals(r.Context(), email)
 	if err != nil {
-		s.writeInternalError(w, err, "get pending approvals")
+		h.writeError(w, err, "get pending approvals")
 		return
 	}
 
@@ -178,21 +237,20 @@ func (s *Server) getPendingApprovals(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(pending)
 }
 
-func (s *Server) getMyExceptions(w http.ResponseWriter, r *http.Request) {
+func (h *GRCHandler) GetMyExceptions(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getMyExceptions")
 	defer span.End()
 	r = r.WithContext(ctx)
 
-	// Extract email from JWT context
 	claims, ok := api.GetClaimsFromContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
 		return
 	}
 
-	exceptions, err := s.grcProvider.GetExceptionsByRequestor(r.Context(), claims.Email)
+	exceptions, err := h.provider.GetExceptionsByRequestor(r.Context(), claims.Email)
 	if err != nil {
-		s.writeInternalError(w, err, "get exceptions by requestor")
+		h.writeError(w, err, "get exceptions by requestor")
 		return
 	}
 
@@ -200,14 +258,14 @@ func (s *Server) getMyExceptions(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(exceptions)
 }
 
-func (s *Server) getExpiringExceptions(w http.ResponseWriter, r *http.Request) {
+func (h *GRCHandler) GetExpiringExceptions(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getExpiringExceptions")
 	defer span.End()
 	r = r.WithContext(ctx)
 
-	expiring, err := s.grcProvider.GetExpiringExceptions(r.Context(), 30)
+	expiring, err := h.provider.GetExpiringExceptions(r.Context(), 30)
 	if err != nil {
-		s.writeInternalError(w, err, "get expiring exceptions")
+		h.writeError(w, err, "get expiring exceptions")
 		return
 	}
 
@@ -215,7 +273,7 @@ func (s *Server) getExpiringExceptions(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(expiring)
 }
 
-func (s *Server) getExceptionsByApp(w http.ResponseWriter, r *http.Request) {
+func (h *GRCHandler) GetExceptionsByApp(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getExceptionsByApp")
 	defer span.End()
 	r = r.WithContext(ctx)
@@ -224,7 +282,6 @@ func (s *Server) getExceptionsByApp(w http.ResponseWriter, r *http.Request) {
 	appID := vars["appId"]
 	span.SetAttributes(attribute.String("application.id", appID))
 
-	// Authorization: admin sees all; non-admin must match the application identity.
 	claims, ok := api.GetClaimsFromContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
@@ -236,9 +293,9 @@ func (s *Server) getExceptionsByApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exceptions, err := s.grcProvider.GetExceptionsByApplication(r.Context(), appID)
+	exceptions, err := h.provider.GetExceptionsByApplication(r.Context(), appID)
 	if err != nil {
-		s.writeInternalError(w, err, "get exceptions by app")
+		h.writeError(w, err, "get exceptions by app")
 		return
 	}
 
@@ -246,25 +303,19 @@ func (s *Server) getExceptionsByApp(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(exceptions)
 }
 
-// ValidateExceptionRequest is the request body for exception validation
-type ValidateExceptionRequest struct {
-	ApplicationID string `json:"application_id"`
-	PolicyCode    string `json:"policy_code"`
-}
-
-func (s *Server) validateException(w http.ResponseWriter, r *http.Request) {
+func (h *GRCHandler) ValidateException(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.validateException")
 	defer span.End()
 	r = r.WithContext(ctx)
 
 	var req ValidateExceptionRequest
-	if !s.decodeJSONBody(w, r, &req) {
+	if !h.decodeBody(w, r, &req) {
 		return
 	}
 
-	validation, err := s.grcProvider.ValidateException(r.Context(), req.ApplicationID, req.PolicyCode)
+	validation, err := h.provider.ValidateException(r.Context(), req.ApplicationID, req.PolicyCode)
 	if err != nil {
-		s.writeInternalError(w, err, "validate exception")
+		h.writeError(w, err, "validate exception")
 		return
 	}
 

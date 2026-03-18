@@ -46,32 +46,32 @@ func (s *Server) setupRoutes() {
 	// Exception read endpoints — require operator or admin
 	// Literal paths registered before parameterized to prevent /{id} shadowing.
 	apiRouter.Handle("/exceptions/pending", // operator, admin
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getPendingApprovals)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.GetPendingApprovals)),
 	).Methods("GET")
 	apiRouter.Handle("/exceptions/expiring", // operator, admin
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getExpiringExceptions)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.GetExpiringExceptions)),
 	).Methods("GET")
 	apiRouter.Handle("/exceptions/mine", // requester, operator, admin
-		s.roles.Require(api.RoleRequester, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getMyExceptions)),
+		s.roles.Require(api.RoleRequester, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.GetMyExceptions)),
 	).Methods("GET")
 	apiRouter.Handle("/exceptions/{id}", // operator, admin
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getException)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.GetException)),
 	).Methods("GET")
 	apiRouter.Handle("/applications/{appId}/exceptions", // operator, admin
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getExceptionsByApp)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.GetExceptionsByApp)),
 	).Methods("GET")
 
 	// Exception write endpoints — require admin
 	apiRouter.Handle("/exceptions", // admin only
-		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.createException)),
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.grcHandler.CreateException)),
 	).Methods("POST")
 	apiRouter.Handle("/exceptions/{id}/approve", // admin only
-		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.submitApproval)),
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.grcHandler.SubmitApproval)),
 	).Methods("POST")
 
 	// Policy validation — require operator or admin
 	apiRouter.Handle("/validate/exception", // operator, admin
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.validateException)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.ValidateException)),
 	).Methods("POST")
 
 	// Findings — read endpoints (viewer can see findings read-only)
