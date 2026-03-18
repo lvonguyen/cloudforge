@@ -29,6 +29,26 @@ function getToken(): string | null {
   return sessionStorage.getItem(TOKEN_KEY)
 }
 
+async function fetchTicket(): Promise<string | null> {
+  const jwt = getToken()
+  if (!jwt) return null
+  try {
+    const res = await fetch(`${WS_URL}/api/session/ticket`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({ user_id: 'cloudforge' }),
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as { ticket?: string }
+    return data.ticket ?? null
+  } catch {
+    return null
+  }
+}
+
 export function useChannel(channel: string, opts?: UseChannelOptions): UseChannelReturn {
   const enabled = opts?.enabled ?? true
   const maxEvents = opts?.maxEvents ?? 200
@@ -56,10 +76,17 @@ export function useChannel(channel: string, opts?: UseChannelOptions): UseChanne
       return
     }
 
-    function connect() {
-      const token = getToken()
+    async function connect() {
+      // Fetch a single-use ticket (60s TTL) — safer than passing JWT in URL
+      const ticket = await fetchTicket()
       const params = new URLSearchParams({ channel })
-      if (token) params.set('token', token)
+      if (ticket) {
+        params.set('ticket', ticket)
+      } else {
+        // Fallback to token query param for dev/environments without ticket endpoint
+        const token = getToken()
+        if (token) params.set('token', token)
+      }
 
       const url = `${WS_URL}/sse?${params}`
       const es = new EventSource(url)
@@ -92,11 +119,12 @@ export function useChannel(channel: string, opts?: UseChannelOptions): UseChanne
         retryRef.current++
         setError(new Error(`SSE disconnected, reconnecting in ${Math.round(backoff / 1000)}s`))
 
-        timerRef.current = setTimeout(connect, backoff)
+        // Re-fetch ticket on reconnect (previous ticket expired)
+        timerRef.current = setTimeout(() => { void connect() }, backoff)
       }
     }
 
-    connect()
+    void connect()
 
     return cleanup
   }, [channel, enabled, maxEvents, cleanup])

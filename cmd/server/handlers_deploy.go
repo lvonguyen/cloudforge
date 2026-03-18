@@ -333,8 +333,9 @@ func (s *Server) publishToWSServer(ctx context.Context, channel, event string, d
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
-	// Auth: ws-server /api/publish (Wave 4) will accept CloudForge JWT bearer.
-	// No auth needed until that endpoint lands — publish is fire-and-forget.
+	if s.wsPublishKey != "" {
+		req.Header.Set("X-API-Key", s.wsPublishKey)
+	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

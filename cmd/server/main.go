@@ -50,6 +50,7 @@ type Config struct {
 	AIModel          string // Bedrock model ID override
 	CORSOrigins      string // Comma-separated allowed CORS origins
 	WSServerURL      string // URL of the ws-server for SSE event publishing
+	WSPublishKey     string // X-API-Key for ws-server /api/publish (WS_PUBLISH_KEY env var)
 }
 
 // Server holds application state and wires domain services to HTTP routes.
@@ -81,6 +82,7 @@ type Server struct {
 
 	// Deploy preview (ws-server integration)
 	wsServerURL   string
+	wsPublishKey  string
 	deployTracker *deployTracker
 
 	// Singleton service instances (avoid per-request allocation)
@@ -121,6 +123,7 @@ func main() {
 		AIModel:          getEnv("CLOUDFORGE_AI_MODEL", ""),
 		CORSOrigins:      getEnv("CORS_ALLOWED_ORIGINS", ""),
 		WSServerURL:      getEnv("WS_SERVER_URL", ""),
+		WSPublishKey:     getEnv("WS_PUBLISH_KEY", ""),
 	}
 
 	// Initialize GRC provider
@@ -332,6 +335,7 @@ func main() {
 		containerScanner: containerScnr,
 		tenantStore:      tenantStore,
 		wsServerURL:      cfg.WSServerURL,
+		wsPublishKey:     cfg.WSPublishKey,
 		deployTracker:    newDeployTracker(),
 	}
 
