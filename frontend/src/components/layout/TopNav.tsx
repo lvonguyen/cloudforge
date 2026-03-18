@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react'
 import { RoleSwitcher } from './RoleSwitcher'
 import { ThemeToggle } from './ThemeToggle'
+import { CommandPalette } from './CommandPalette'
 import { useAuth } from '@/lib/auth'
 import { branding } from '@/lib/branding'
 import {
@@ -14,6 +16,18 @@ import { Search, LogOut, User, Menu } from 'lucide-react'
 
 export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
   const { user, logout } = useAuth()
+  const [cmdOpen, setCmdOpen] = useState(false)
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setCmdOpen(true)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-border bg-background px-6">
@@ -37,13 +51,13 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
         <span className="font-semibold text-sm tracking-tight text-foreground">{branding.productName}</span>
       </div>
 
-      {/* Search — command palette placeholder */}
+      {/* Search — opens command palette */}
       <div className="relative flex-1 max-w-sm">
         <button
           type="button"
-          disabled
+          onClick={() => setCmdOpen(true)}
           aria-label="Search"
-          className="flex w-full items-center gap-2 rounded-md border border-border bg-muted/50 px-3 h-8 text-sm text-muted-foreground cursor-not-allowed"
+          className="flex w-full items-center gap-2 rounded-md border border-border bg-muted/50 px-3 h-8 text-sm text-muted-foreground hover:bg-muted transition-colors"
         >
           <Search className="h-4 w-4 shrink-0" />
           <span className="flex-1 text-left">Search...</span>
@@ -82,6 +96,8 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
     </header>
   )
 }
