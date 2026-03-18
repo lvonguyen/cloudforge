@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"cloudforge/internal/api"
+	"cloudforge/internal/audit"
 	"cloudforge/internal/grc"
 	"cloudforge/internal/identity"
 	"cloudforge/internal/observability"
@@ -50,8 +51,12 @@ func benchServer(b *testing.B) (*Server, *mux.Router) {
 	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings)
 
 	srv := &Server{
-		config:         Config{Port: "0"},
-		grcProvider:    grcProvider,
+		config: Config{Port: "0"},
+		grcHandler: &GRCHandler{
+			provider:    grcProvider,
+			logger:      logger.Named("grc"),
+			auditLogger: audit.NewMemoryAuditLogger(),
+		},
 		router:         mux.NewRouter(),
 		authMiddleware: authMiddleware,
 		healthChecker:  observability.NewHealthChecker(logger, nil),
@@ -68,10 +73,10 @@ func benchServer(b *testing.B) (*Server, *mux.Router) {
 		},
 		roles:     &api.RoleEnforcer{DevMode: false},
 		finopsSvc: newFinopsService(logger),
-		identityProviders: map[string]identity.Provider{
+		identitySvc: NewIdentityService(map[string]identity.Provider{
 			"okta":     identity.NewMockOktaProvider(),
 			"entra_id": identity.NewMockEntraIDProvider(),
-		},
+		}),
 	}
 
 	srv.setupRoutes()

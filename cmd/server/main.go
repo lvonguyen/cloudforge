@@ -55,7 +55,7 @@ type Config struct {
 // Domain logic lives in dedicated services; Server is the composition root.
 type Server struct {
 	config         Config
-	grcProvider    grc.GRCProvider
+	grcHandler     *GRCHandler
 	router         *mux.Router
 	authMiddleware *api.AuthMiddleware
 	rateLimiter    *gateway.RateLimiter
@@ -74,9 +74,9 @@ type Server struct {
 	tenantStore tenant.Store
 
 	// Already-isolated services
-	finopsSvc         *finopsService
-	identityProviders map[string]identity.Provider
-	dedupCache        *ingestion.DedupCache
+	finopsSvc   *finopsService
+	identitySvc *IdentityService
+	dedupCache  *ingestion.DedupCache
 
 	// Singleton service instances (avoid per-request allocation)
 	workflowEngine   workflow.Engine
@@ -296,8 +296,12 @@ func main() {
 
 	// Create server
 	srv := &Server{
-		config:         cfg,
-		grcProvider:    grcProvider,
+		config: cfg,
+		grcHandler: &GRCHandler{
+			provider:    grcProvider,
+			logger:      logger.Named("grc"),
+			auditLogger: audit.NewZapAuditLogger(logger.Named("audit.grc"), audit.NewMemoryAuditLogger()),
+		},
 		router:         mux.NewRouter(),
 		authMiddleware: authMiddleware,
 		rateLimiter:    rateLimiter,
@@ -311,16 +315,16 @@ func main() {
 			Cache:  make(map[string]*FindingEnrichment),
 			Logger: logger.Named("enrichment"),
 		},
-		opaEngine:         opaEngine,
-		finopsSvc:         newFinopsService(logger),
-		identityProviders: idProviders,
-		dedupCache:        ingestion.NewDedupCache(24 * time.Hour),
-		workflowEngine:    workflowEngine,
-		wafManager:        wafMgr,
-		secretsProvider:   secrets.NewMemoryProvider("demo"),
-		secretsManager:    secrets.NewManager(logger),
-		containerScanner:  containerScnr,
-		tenantStore:       tenantStore,
+		opaEngine:        opaEngine,
+		finopsSvc:        newFinopsService(logger),
+		identitySvc:      NewIdentityService(idProviders),
+		dedupCache:       ingestion.NewDedupCache(24 * time.Hour),
+		workflowEngine:   workflowEngine,
+		wafManager:       wafMgr,
+		secretsProvider:  secrets.NewMemoryProvider("demo"),
+		secretsManager:   secrets.NewManager(logger),
+		containerScanner: containerScnr,
+		tenantStore:      tenantStore,
 	}
 
 	logger.Info("Mock data loaded",

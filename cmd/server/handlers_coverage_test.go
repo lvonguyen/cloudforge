@@ -451,17 +451,17 @@ func TestHandlers_NewEndpoints_RequesterForbidden(t *testing.T) {
 // Verify mock identity providers are wired into the server
 // ---------------------------------------------------------------------------
 
-func TestHandlers_IdentityProviders_WiredCorrectly(t *testing.T) {
+func TestHandlers_IdentityService_WiredCorrectly(t *testing.T) {
 	srv, _ := testServer(t)
 
-	if srv.identityProviders == nil {
-		t.Fatal("identityProviders map is nil")
+	if srv.identitySvc == nil {
+		t.Fatal("identitySvc is nil")
 	}
 
-	if _, ok := srv.identityProviders["okta"]; !ok {
+	if _, err := srv.identitySvc.GetProvider("okta"); err != nil {
 		t.Error("okta provider not registered")
 	}
-	if _, ok := srv.identityProviders["entra_id"]; !ok {
+	if _, err := srv.identitySvc.GetProvider("entra_id"); err != nil {
 		t.Error("entra_id provider not registered")
 	}
 }

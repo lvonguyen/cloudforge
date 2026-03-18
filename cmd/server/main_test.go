@@ -100,7 +100,11 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		config: Config{
 			Port: "0",
 		},
-		grcProvider:    grcProvider,
+		grcHandler: &GRCHandler{
+			provider:    grcProvider,
+			logger:      logger.Named("grc"),
+			auditLogger: audit.NewMemoryAuditLogger(),
+		},
 		router:         mux.NewRouter(),
 		authMiddleware: authMiddleware,
 		healthChecker:  observability.NewHealthChecker(logger, nil),
@@ -119,10 +123,10 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		finopsSvc:   newFinopsService(logger),
 		dedupCache:  ingestion.NewDedupCache(24 * time.Hour),
 		auditLogger: audit.NewMemoryAuditLogger(),
-		identityProviders: map[string]identity.Provider{
+		identitySvc: NewIdentityService(map[string]identity.Provider{
 			"okta":     identity.NewMockOktaProvider(),
 			"entra_id": identity.NewMockEntraIDProvider(),
-		},
+		}),
 		workflowEngine:   wfEngine,
 		wafManager:       wafMgr,
 		secretsProvider:  secrets.NewMemoryProvider("demo"),
