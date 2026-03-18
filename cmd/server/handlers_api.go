@@ -426,6 +426,25 @@ func (s *Server) listPolicies(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
+func (s *Server) getPolicy(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getPolicy")
+	defer span.End()
+	r = r.WithContext(ctx)
+
+	id := mux.Vars(r)["id"]
+	span.SetAttributes(attribute.String("policy.id", id))
+
+	for _, p := range s.data.Policies {
+		if p.ID == id {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(p)
+			return
+		}
+	}
+
+	writeErrorResponse(w, "policy not found", http.StatusNotFound)
+}
+
 func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.enrichFinding")
 	defer span.End()

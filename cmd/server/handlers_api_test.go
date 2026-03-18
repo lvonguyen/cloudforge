@@ -440,6 +440,7 @@ func TestAllEndpoints_RequireAuth(t *testing.T) {
 		{"GET", "/api/v1/audit-log"},
 		{"GET", "/api/v1/users"},
 		{"GET", "/api/v1/policies"},
+		{"GET", "/api/v1/policies/pol-001"},
 	}
 
 	for _, ep := range endpoints {
@@ -467,6 +468,7 @@ func TestAllEndpoints_RequesterForbidden(t *testing.T) {
 		{"GET", "/api/v1/audit-log"},
 		{"GET", "/api/v1/users"},
 		{"GET", "/api/v1/policies"},
+		{"GET", "/api/v1/policies/pol-001"},
 	}
 
 	for _, ep := range endpoints {
@@ -709,4 +711,31 @@ func TestFinding_IntegrityHashDeterministic(t *testing.T) {
 	if hash1 != f.IntegrityHash {
 		t.Errorf("stored hash %q != computed %q", f.IntegrityHash, hash1)
 	}
+}
+
+func TestGetPolicy_Success(t *testing.T) {
+	srv, router := testServer(t)
+	jwt := adminJWT(t)
+
+	if len(srv.data.Policies) == 0 {
+		t.Fatal("mock data has no policies")
+	}
+	wantID := srv.data.Policies[0].ID
+
+	rr := doRequest(t, router, "GET", "/api/v1/policies/"+wantID, "", jwt)
+	assertStatus(t, rr, http.StatusOK)
+
+	var got Policy
+	assertJSON(t, rr, &got)
+	if got.ID != wantID {
+		t.Errorf("policy id = %q, want %q", got.ID, wantID)
+	}
+}
+
+func TestGetPolicy_NotFound(t *testing.T) {
+	_, router := testServer(t)
+	jwt := adminJWT(t)
+
+	rr := doRequest(t, router, "GET", "/api/v1/policies/pol-nonexistent", "", jwt)
+	assertStatus(t, rr, http.StatusNotFound)
 }

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import policiesData from '@/lib/mock/policies.json'
 import { POLICY_DETAILS, generatePolicyDetail } from '@/lib/mock/policy-details'
+import { usePolicy } from '@/hooks/usePolicies'
 import { highlightRego } from '@/lib/rego-highlight'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -46,9 +47,16 @@ export default function PolicyDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [copied, setCopied] = useState(false)
+  const { data: apiPolicy } = usePolicy(id ?? '')
 
   const policy = (() => {
     if (!id) return undefined
+    // Try API data first (summary-level) — enhance with mock detail data
+    if (apiPolicy) {
+      const detail = POLICY_DETAILS[id] ?? generatePolicyDetail(apiPolicy as any)
+      return brandMockData(detail)
+    }
+    // Fallback to static mock
     if (POLICY_DETAILS[id]) return brandMockData(POLICY_DETAILS[id])
     const summary = policiesData.find((p: { id: string }) => p.id === id)
     if (!summary) return undefined
