@@ -88,6 +88,7 @@ type Server struct {
 	// Deploy preview (ws-server integration)
 	wsServerURL   string
 	wsPublishKey  string
+	wsHTTPClient  *http.Client // Connection-pooled client for ws-server publish
 	deployTracker *deployTracker
 
 	// Singleton service instances (avoid per-request allocation)
@@ -349,7 +350,15 @@ func main() {
 		tenantStore:      tenantStore,
 		wsServerURL:      cfg.WSServerURL,
 		wsPublishKey:     cfg.WSPublishKey,
-		deployTracker:    newDeployTracker(),
+		wsHTTPClient: &http.Client{
+			Timeout: 10 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        20,
+				MaxIdleConnsPerHost: 10,
+				IdleConnTimeout:     90 * time.Second,
+			},
+		},
+		deployTracker: newDeployTracker(),
 
 		// Integration layer
 		integrationHandler: &IntegrationHandler{
@@ -432,6 +441,11 @@ func main() {
 			return err
 		},
 	})
+
+	// Register ws-server health check (non-critical — deploy previews degrade gracefully)
+	if cfg.WSServerURL != "" {
+		healthChecker.RegisterHTTPCheck("ws-server", cfg.WSServerURL+"/health", false)
+	}
 
 	// Start periodic health checks
 	healthCtx, healthCancel := context.WithCancel(context.Background())

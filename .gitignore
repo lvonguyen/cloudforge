@@ -103,6 +103,9 @@ export-outputs/
 .claude/agents
 .claude/graph
 
+# Rust build artifacts
+rust/libaegispath/target/
+
 # Node modules (root-level stray from npx)
 node_modules/
 

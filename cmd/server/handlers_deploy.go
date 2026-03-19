@@ -337,7 +337,7 @@ func (s *Server) publishToWSServer(ctx context.Context, channel, event string, d
 		req.Header.Set("X-API-Key", s.wsPublishKey)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := s.wsHTTPClient.Do(req)
 	if err != nil {
 		s.logger.Debug("ws-server publish failed", zap.String("channel", channel), zap.Error(err))
 		return

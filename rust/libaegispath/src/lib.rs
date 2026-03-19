@@ -1,0 +1,166 @@
+pub mod attackpath;
+pub mod loader;
+pub mod types;
+
+use std::slice;
+
+/// Maximum input buffer size for FFI entry points (64MB).
+/// Prevents a single call from OOM-ing the shared Go/Rust process.
+const MAX_INPUT_BYTES: usize = 64 * 1024 * 1024;
+
+/// Compute attack paths from a JSON array of findings.
+///
+/// # Safety
+///
+/// - `json_ptr` must point to a valid UTF-8 byte buffer of length `json_len`.
+/// - `out_len` must point to a writable `usize`.
+/// - The returned pointer must be freed with `aegis_free`.
+/// - Returns null on error (parse failure, empty input).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn aegis_compute_attack_paths(
+    json_ptr: *const u8,
+    json_len: usize,
+    out_len: *mut usize,
+) -> *mut u8 {
+    if json_ptr.is_null() || out_len.is_null() || json_len == 0 || json_len > MAX_INPUT_BYTES {
+        return std::ptr::null_mut();
+    }
+
+    let input = unsafe { slice::from_raw_parts(json_ptr, json_len) };
+
+    let findings: Vec<types::Finding> = match serde_json::from_slice(input) {
+        Ok(f) => f,
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    let result = attackpath::compute_attack_paths(&findings);
+
+    let output = match serde_json::to_vec(&result) {
+        Ok(v) => v,
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    // Shrink capacity to match length so aegis_free can reconstruct
+    // with Vec::from_raw_parts(ptr, len, len) without UB.
+    let mut output = output;
+    output.shrink_to_fit();
+    let len = output.len();
+    let ptr = output.as_ptr();
+    std::mem::forget(output);
+
+    unsafe { *out_len = len };
+    ptr as *mut u8
+}
+
+/// Load findings from JSON and serialize them with an optional filter.
+///
+/// # Safety
+///
+/// - `json_ptr` must point to a valid UTF-8 byte buffer of length `json_len`.
+/// - `filter_ptr` may be null (no filter). If non-null, must point to valid JSON.
+/// - `out_len` must point to a writable `usize`.
+/// - The returned pointer must be freed with `aegis_free`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn aegis_load_and_serialize_findings(
+    json_ptr: *const u8,
+    json_len: usize,
+    filter_ptr: *const u8,
+    filter_len: usize,
+    out_len: *mut usize,
+) -> *mut u8 {
+    if json_ptr.is_null() || out_len.is_null() || json_len == 0 || json_len > MAX_INPUT_BYTES {
+        return std::ptr::null_mut();
+    }
+
+    let input = unsafe { slice::from_raw_parts(json_ptr, json_len) };
+
+    let findings: Vec<loader::FullFinding> = match serde_json::from_slice(input) {
+        Ok(f) => f,
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    let filter = if !filter_ptr.is_null() && filter_len > 0 {
+        let filter_bytes = unsafe { slice::from_raw_parts(filter_ptr, filter_len) };
+        serde_json::from_slice::<loader::FindingsFilter>(filter_bytes).ok()
+    } else {
+        None
+    };
+
+    let output = match loader::serialize_findings(&findings, filter.as_ref()) {
+        Ok(v) => v,
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    let mut output = output;
+    output.shrink_to_fit();
+    let len = output.len();
+    let ptr = output.as_ptr();
+    std::mem::forget(output);
+
+    unsafe { *out_len = len };
+    ptr as *mut u8
+}
+
+/// Free a buffer previously returned by `aegis_compute_attack_paths`.
+///
+/// # Safety
+///
+/// - `ptr` and `len` must exactly match a previous return from this library.
+/// - Must not be called twice on the same pointer.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn aegis_free(ptr: *mut u8, len: usize) {
+    if !ptr.is_null() && len > 0 {
+        drop(unsafe { Vec::from_raw_parts(ptr, len, len) });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ffi_round_trip() {
+        let input = r#"[
+            {"id":"f1","resource_type":"compute","resource_id":"r1","resource_name":"EC2-1",
+             "cloud_provider":"AWS","region":"us-east-1","account_id":"acct-1",
+             "severity":"HIGH","category":"NETWORK","exploit_available":false,"mitre_tactics":[]},
+            {"id":"f2","resource_type":"storage","resource_id":"r2","resource_name":"S3-1",
+             "cloud_provider":"AWS","region":"us-east-1","account_id":"acct-1",
+             "severity":"CRITICAL","category":"DATA","exploit_available":false,"mitre_tactics":[]}
+        ]"#;
+
+        let bytes = input.as_bytes();
+        let mut out_len: usize = 0;
+
+        let result_ptr =
+            unsafe { aegis_compute_attack_paths(bytes.as_ptr(), bytes.len(), &mut out_len) };
+
+        assert!(!result_ptr.is_null());
+        assert!(out_len > 0);
+
+        let result_bytes = unsafe { std::slice::from_raw_parts(result_ptr, out_len) };
+        let result: types::AttackPathResult = serde_json::from_slice(result_bytes).unwrap();
+
+        assert_eq!(result.paths.len(), 1);
+        assert_eq!(result.stats.total_findings, 2);
+        assert_eq!(result.stats.findings_in_paths, 2);
+
+        unsafe { aegis_free(result_ptr, out_len) };
+    }
+
+    #[test]
+    fn ffi_null_input() {
+        let mut out_len: usize = 0;
+        let ptr = unsafe { aegis_compute_attack_paths(std::ptr::null(), 0, &mut out_len) };
+        assert!(ptr.is_null());
+    }
+
+    #[test]
+    fn ffi_invalid_json() {
+        let bad = b"not json";
+        let mut out_len: usize = 0;
+        let ptr =
+            unsafe { aegis_compute_attack_paths(bad.as_ptr(), bad.len(), &mut out_len) };
+        assert!(ptr.is_null());
+    }
+}

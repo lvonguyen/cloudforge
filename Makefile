@@ -1,4 +1,4 @@
-.PHONY: build run dev test clean docker-build docker-up docker-down migrate lint fmt help build-cspm run-cspm test-cspm bedrock-auth bedrock-check bedrock-export dev-ai health smoke bench profile generate-attack-paths load-test-smoke load-test-stress
+.PHONY: build run dev test clean docker-build docker-up docker-down migrate lint fmt help build-cspm run-cspm test-cspm bedrock-auth bedrock-check bedrock-export dev-ai health smoke bench profile generate-attack-paths load-test-smoke load-test-stress rust-build rust-test rust-bench rust-clean
 
 # Variables
 BINARY_NAME=aegis
@@ -47,7 +47,10 @@ run:
 # Run backend + frontend dev servers (Ctrl-C kills both)
 dev:
 	@trap 'kill 0' EXIT; \
-	AEGIS_JWT_SECRET=$(CF_JWT_SECRET) GRC_PROVIDER=memory $(GO) run ./cmd/server & \
+	AEGIS_JWT_SECRET=$(CF_JWT_SECRET) GRC_PROVIDER=memory \
+	WS_SERVER_URL=$${WS_SERVER_URL:-} \
+	WS_PUBLISH_KEY=$${WS_PUBLISH_KEY:-} \
+	$(GO) run ./cmd/server & \
 	cd frontend && npm run dev & \
 	wait
 
@@ -150,12 +153,27 @@ dev-ai:
 	AEGIS_AI_REGION=$${AEGIS_AI_REGION:-us-east-1} \
 	AEGIS_JWT_SECRET=$(CF_JWT_SECRET) \
 	GRC_PROVIDER=memory \
+	WS_SERVER_URL=$${WS_SERVER_URL:-} \
+	WS_PUBLISH_KEY=$${WS_PUBLISH_KEY:-} \
 	$(GO) run ./cmd/server & \
 	cd frontend && npm run dev & \
 	wait
 
 bench:  ## Run Go benchmarks
 	$(GO) test ./cmd/server/... -bench=. -benchmem -count=3 -timeout 5m
+
+# Rust hot-path library (libaegispath)
+rust-build:  ## Build Rust shared library (release)
+	cd rust/libaegispath && cargo build --release
+
+rust-test:  ## Run Rust unit tests
+	cd rust/libaegispath && cargo test
+
+rust-bench:  ## Run Rust Criterion benchmarks
+	cd rust/libaegispath && cargo bench
+
+rust-clean:  ## Clean Rust build artifacts
+	cd rust/libaegispath && cargo clean
 
 profile:  ## Open pprof heap profile (dev server must be running on :6060)
 	$(GO) tool pprof http://127.0.0.1:6060/debug/pprof/heap
