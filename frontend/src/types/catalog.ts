@@ -8,6 +8,7 @@ export interface CatalogModule {
   cost_estimate: string
   tags: string[]
   icon: string
+  icon_path?: string
   category: string
   compliance_tags: string[]
   auto_approved: boolean

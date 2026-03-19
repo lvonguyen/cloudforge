@@ -159,7 +159,9 @@ export default function Catalog() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <div className="h-8 w-8 rounded-none bg-muted flex items-center justify-center shrink-0">
-                        <Icon className="h-4 w-4 text-muted-foreground" />
+                        {module.icon_path
+                          ? <img src={module.icon_path} alt="" className="h-5 w-5 object-contain" />
+                          : <Icon className="h-4 w-4 text-muted-foreground" />}
                       </div>
                       <div>
                         <CardTitle className="text-sm leading-snug">{module.name}</CardTitle>

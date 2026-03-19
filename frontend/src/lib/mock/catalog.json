@@ -7,12 +7,21 @@
     "resource_type": "s3",
     "version": "v2.4.1",
     "cost_estimate": "$2-$50/mo",
-    "tags": ["storage", "encryption", "versioning"],
+    "tags": [
+      "storage",
+      "encryption",
+      "versioning"
+    ],
     "icon": "hard-drive",
     "category": "storage",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/aws/s3.svg"
   },
   {
     "id": "aws-ec2",
@@ -22,12 +31,20 @@
     "resource_type": "ec2",
     "version": "v3.1.0",
     "cost_estimate": "$10-$500/mo",
-    "tags": ["compute", "hardened", "ssm"],
+    "tags": [
+      "compute",
+      "hardened",
+      "ssm"
+    ],
     "icon": "server",
     "category": "compute",
-    "compliance_tags": ["SOC2", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/aws/ec2.svg"
   },
   {
     "id": "aws-rds",
@@ -37,12 +54,21 @@
     "resource_type": "rds",
     "version": "v2.2.0",
     "cost_estimate": "$25-$300/mo",
-    "tags": ["database", "encryption", "multi-az"],
+    "tags": [
+      "database",
+      "encryption",
+      "multi-az"
+    ],
     "icon": "database",
     "category": "database",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~8 min"
+    "provisioning_time": "~8 min",
+    "icon_path": "/icons/services/aws/rds.svg"
   },
   {
     "id": "aws-eks",
@@ -52,12 +78,20 @@
     "resource_type": "eks",
     "version": "v4.0.1",
     "cost_estimate": "$75-$1200/mo",
-    "tags": ["kubernetes", "containers", "fargate"],
+    "tags": [
+      "kubernetes",
+      "containers",
+      "fargate"
+    ],
     "icon": "box",
     "category": "container",
-    "compliance_tags": ["SOC2", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~15 min"
+    "provisioning_time": "~15 min",
+    "icon_path": "/icons/services/aws/eks.svg"
   },
   {
     "id": "aws-lambda",
@@ -67,12 +101,19 @@
     "resource_type": "lambda",
     "version": "v2.1.0",
     "cost_estimate": "$0-$50/mo",
-    "tags": ["serverless", "event-driven", "tracing"],
+    "tags": [
+      "serverless",
+      "event-driven",
+      "tracing"
+    ],
     "icon": "zap",
     "category": "serverless",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/aws/lambda.svg"
   },
   {
     "id": "aws-vpc",
@@ -82,12 +123,21 @@
     "resource_type": "vpc",
     "version": "v3.2.0",
     "cost_estimate": "$35-$150/mo",
-    "tags": ["network", "multi-az", "flow-logs"],
+    "tags": [
+      "network",
+      "multi-az",
+      "flow-logs"
+    ],
     "icon": "network",
     "category": "network",
-    "compliance_tags": ["SOC2", "FedRAMP", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP",
+      "PCI"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/aws/vpc.svg"
   },
   {
     "id": "aws-cloudfront",
@@ -97,12 +147,20 @@
     "resource_type": "cloudfront",
     "version": "v1.5.0",
     "cost_estimate": "$5-$200/mo",
-    "tags": ["cdn", "waf", "tls"],
+    "tags": [
+      "cdn",
+      "waf",
+      "tls"
+    ],
     "icon": "globe",
     "category": "network",
-    "compliance_tags": ["SOC2", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "PCI"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~10 min"
+    "provisioning_time": "~10 min",
+    "icon_path": "/icons/services/aws/cloudfront.svg"
   },
   {
     "id": "aws-dynamodb",
@@ -112,12 +170,20 @@
     "resource_type": "dynamodb",
     "version": "v1.8.0",
     "cost_estimate": "$5-$100/mo",
-    "tags": ["nosql", "serverless", "global-table"],
+    "tags": [
+      "nosql",
+      "serverless",
+      "global-table"
+    ],
     "icon": "layers",
     "category": "database",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/aws/dynamodb.svg"
   },
   {
     "id": "aws-sqs",
@@ -127,12 +193,19 @@
     "resource_type": "sqs",
     "version": "v1.3.0",
     "cost_estimate": "$0-$25/mo",
-    "tags": ["messaging", "async", "dead-letter"],
+    "tags": [
+      "messaging",
+      "async",
+      "dead-letter"
+    ],
     "icon": "mail",
     "category": "messaging",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/aws/sqs.svg"
   },
   {
     "id": "aws-ecs",
@@ -142,12 +215,20 @@
     "resource_type": "ecs",
     "version": "v2.0.0",
     "cost_estimate": "$20-$400/mo",
-    "tags": ["containers", "fargate", "auto-scaling"],
+    "tags": [
+      "containers",
+      "fargate",
+      "auto-scaling"
+    ],
     "icon": "container",
     "category": "container",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/aws/eks.svg"
   },
   {
     "id": "aws-waf",
@@ -157,12 +238,20 @@
     "resource_type": "wafv2",
     "version": "v2.0.0",
     "cost_estimate": "$5-$100/mo",
-    "tags": ["security", "waf", "bot-control"],
+    "tags": [
+      "security",
+      "waf",
+      "bot-control"
+    ],
     "icon": "shield",
     "category": "security",
-    "compliance_tags": ["SOC2", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "PCI"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/aws/waf.svg"
   },
   {
     "id": "aws-guardduty",
@@ -172,12 +261,20 @@
     "resource_type": "guardduty",
     "version": "v1.2.0",
     "cost_estimate": "$10-$200/mo",
-    "tags": ["security", "threat-detection", "ml"],
+    "tags": [
+      "security",
+      "threat-detection",
+      "ml"
+    ],
     "icon": "shield",
     "category": "security",
-    "compliance_tags": ["SOC2", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/aws/guardduty.svg"
   },
   {
     "id": "aws-sagemaker",
@@ -187,12 +284,20 @@
     "resource_type": "sagemaker",
     "version": "v1.5.0",
     "cost_estimate": "$50-$2000/mo",
-    "tags": ["ai-ml", "training", "inference"],
+    "tags": [
+      "ai-ml",
+      "training",
+      "inference"
+    ],
     "icon": "cpu",
     "category": "ai-ml",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~10 min"
+    "provisioning_time": "~10 min",
+    "icon_path": "/icons/services/aws/ec2.svg"
   },
   {
     "id": "aws-codepipeline",
@@ -202,12 +307,19 @@
     "resource_type": "codepipeline",
     "version": "v1.3.0",
     "cost_estimate": "$1-$30/mo",
-    "tags": ["cicd", "automation", "deployment"],
+    "tags": [
+      "cicd",
+      "automation",
+      "deployment"
+    ],
     "icon": "git-branch",
     "category": "cicd",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/aws/lambda.svg"
   },
   {
     "id": "aws-sns",
@@ -217,12 +329,19 @@
     "resource_type": "sns",
     "version": "v1.4.0",
     "cost_estimate": "$0-$20/mo",
-    "tags": ["messaging", "pub-sub", "notifications"],
+    "tags": [
+      "messaging",
+      "pub-sub",
+      "notifications"
+    ],
     "icon": "bell",
     "category": "messaging",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/aws/sns.svg"
   },
   {
     "id": "aws-secrets-manager",
@@ -232,12 +351,21 @@
     "resource_type": "secretsmanager",
     "version": "v1.6.0",
     "cost_estimate": "$0-$15/mo",
-    "tags": ["security", "secrets", "rotation"],
+    "tags": [
+      "security",
+      "secrets",
+      "rotation"
+    ],
     "icon": "key",
     "category": "security",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/aws/secretsmanager.svg"
   },
   {
     "id": "aws-kms",
@@ -247,12 +375,22 @@
     "resource_type": "kms",
     "version": "v2.1.0",
     "cost_estimate": "$1-$50/mo",
-    "tags": ["security", "encryption", "key-management"],
+    "tags": [
+      "security",
+      "encryption",
+      "key-management"
+    ],
     "icon": "lock",
     "category": "security",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI",
+      "FedRAMP"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/aws/kms.svg"
   },
   {
     "id": "aws-acm",
@@ -262,12 +400,20 @@
     "resource_type": "acm",
     "version": "v1.2.0",
     "cost_estimate": "$0/mo",
-    "tags": ["security", "certificates", "tls"],
+    "tags": [
+      "security",
+      "certificates",
+      "tls"
+    ],
     "icon": "badge-check",
     "category": "security",
-    "compliance_tags": ["SOC2", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "PCI"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/aws/kms.svg"
   },
   {
     "id": "aws-cloudwatch",
@@ -277,12 +423,19 @@
     "resource_type": "cloudwatch",
     "version": "v2.0.0",
     "cost_estimate": "$5-$300/mo",
-    "tags": ["observability", "metrics", "alarms"],
+    "tags": [
+      "observability",
+      "metrics",
+      "alarms"
+    ],
     "icon": "activity",
     "category": "observability",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/aws/guardduty.svg"
   },
   {
     "id": "aws-step-functions",
@@ -292,12 +445,19 @@
     "resource_type": "stepfunctions",
     "version": "v1.3.0",
     "cost_estimate": "$0-$50/mo",
-    "tags": ["serverless", "orchestration", "workflows"],
+    "tags": [
+      "serverless",
+      "orchestration",
+      "workflows"
+    ],
     "icon": "workflow",
     "category": "serverless",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/aws/lambda.svg"
   },
   {
     "id": "aws-api-gateway",
@@ -307,12 +467,20 @@
     "resource_type": "apigateway",
     "version": "v2.0.0",
     "cost_estimate": "$3-$150/mo",
-    "tags": ["api", "serverless", "throttling"],
+    "tags": [
+      "api",
+      "serverless",
+      "throttling"
+    ],
     "icon": "code-2",
     "category": "serverless",
-    "compliance_tags": ["SOC2", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "PCI"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/aws/cloudfront.svg"
   },
   {
     "id": "aws-kinesis",
@@ -322,12 +490,20 @@
     "resource_type": "kinesis",
     "version": "v1.5.0",
     "cost_estimate": "$15-$400/mo",
-    "tags": ["streaming", "real-time", "analytics"],
+    "tags": [
+      "streaming",
+      "real-time",
+      "analytics"
+    ],
     "icon": "radio",
     "category": "analytics",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/aws/sns.svg"
   },
   {
     "id": "aws-glue",
@@ -337,12 +513,20 @@
     "resource_type": "glue",
     "version": "v1.4.0",
     "cost_estimate": "$10-$500/mo",
-    "tags": ["etl", "data-catalog", "serverless"],
+    "tags": [
+      "etl",
+      "data-catalog",
+      "serverless"
+    ],
     "icon": "shuffle",
     "category": "analytics",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/aws/dynamodb.svg"
   },
   {
     "id": "aws-athena",
@@ -352,12 +536,19 @@
     "resource_type": "athena",
     "version": "v1.3.0",
     "cost_estimate": "$0-$200/mo",
-    "tags": ["analytics", "sql", "serverless"],
+    "tags": [
+      "analytics",
+      "sql",
+      "serverless"
+    ],
     "icon": "search",
     "category": "analytics",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/aws/dynamodb.svg"
   },
   {
     "id": "aws-redshift",
@@ -367,12 +558,21 @@
     "resource_type": "redshift",
     "version": "v2.0.0",
     "cost_estimate": "$180-$3000/mo",
-    "tags": ["analytics", "data-warehouse", "columnar"],
+    "tags": [
+      "analytics",
+      "data-warehouse",
+      "columnar"
+    ],
     "icon": "bar-chart-3",
     "category": "analytics",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~15 min"
+    "provisioning_time": "~15 min",
+    "icon_path": "/icons/services/aws/rds.svg"
   },
   {
     "id": "aws-elasticache",
@@ -382,12 +582,20 @@
     "resource_type": "elasticache",
     "version": "v1.6.0",
     "cost_estimate": "$20-$600/mo",
-    "tags": ["cache", "redis", "high-availability"],
+    "tags": [
+      "cache",
+      "redis",
+      "high-availability"
+    ],
     "icon": "zap",
     "category": "database",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~8 min"
+    "provisioning_time": "~8 min",
+    "icon_path": "/icons/services/aws/elasticache.svg"
   },
   {
     "id": "aws-dax",
@@ -397,12 +605,19 @@
     "resource_type": "dax",
     "version": "v1.2.0",
     "cost_estimate": "$100-$800/mo",
-    "tags": ["cache", "dynamodb", "microsecond"],
+    "tags": [
+      "cache",
+      "dynamodb",
+      "microsecond"
+    ],
     "icon": "zap",
     "category": "database",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~10 min"
+    "provisioning_time": "~10 min",
+    "icon_path": "/icons/services/aws/dynamodb.svg"
   },
   {
     "id": "aws-msk",
@@ -412,12 +627,20 @@
     "resource_type": "msk",
     "version": "v1.3.0",
     "cost_estimate": "$150-$2000/mo",
-    "tags": ["messaging", "kafka", "streaming"],
+    "tags": [
+      "messaging",
+      "kafka",
+      "streaming"
+    ],
     "icon": "radio",
     "category": "messaging",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~20 min"
+    "provisioning_time": "~20 min",
+    "icon_path": "/icons/services/aws/sns.svg"
   },
   {
     "id": "aws-eventbridge",
@@ -427,12 +650,19 @@
     "resource_type": "eventbridge",
     "version": "v1.4.0",
     "cost_estimate": "$0-$30/mo",
-    "tags": ["messaging", "event-driven", "integration"],
+    "tags": [
+      "messaging",
+      "event-driven",
+      "integration"
+    ],
     "icon": "git-merge",
     "category": "messaging",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/aws/sns.svg"
   },
   {
     "id": "aws-app-runner",
@@ -442,12 +672,19 @@
     "resource_type": "apprunner",
     "version": "v1.2.0",
     "cost_estimate": "$5-$200/mo",
-    "tags": ["containers", "paas", "auto-scaling"],
+    "tags": [
+      "containers",
+      "paas",
+      "auto-scaling"
+    ],
     "icon": "play-circle",
     "category": "container",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/aws/lambda.svg"
   },
   {
     "id": "aws-ecr",
@@ -457,12 +694,19 @@
     "resource_type": "ecr",
     "version": "v1.5.0",
     "cost_estimate": "$1-$50/mo",
-    "tags": ["containers", "registry", "scanning"],
+    "tags": [
+      "containers",
+      "registry",
+      "scanning"
+    ],
     "icon": "package",
     "category": "container",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/aws/eks.svg"
   },
   {
     "id": "aws-lightsail",
@@ -472,12 +716,19 @@
     "resource_type": "lightsail",
     "version": "v1.1.0",
     "cost_estimate": "$3-$80/mo",
-    "tags": ["compute", "simplified", "predictable-pricing"],
+    "tags": [
+      "compute",
+      "simplified",
+      "predictable-pricing"
+    ],
     "icon": "server",
     "category": "compute",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/aws/ec2.svg"
   },
   {
     "id": "aws-systems-manager",
@@ -487,12 +738,20 @@
     "resource_type": "ssm",
     "version": "v2.0.0",
     "cost_estimate": "$0-$50/mo",
-    "tags": ["operations", "patching", "automation"],
+    "tags": [
+      "operations",
+      "patching",
+      "automation"
+    ],
     "icon": "settings",
     "category": "observability",
-    "compliance_tags": ["SOC2", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/aws/secretsmanager.svg"
   },
   {
     "id": "aws-config",
@@ -502,12 +761,21 @@
     "resource_type": "awsconfig",
     "version": "v1.3.0",
     "cost_estimate": "$5-$100/mo",
-    "tags": ["compliance", "governance", "configuration"],
+    "tags": [
+      "compliance",
+      "governance",
+      "configuration"
+    ],
     "icon": "clipboard-check",
     "category": "security",
-    "compliance_tags": ["SOC2", "FedRAMP", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP",
+      "PCI"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/aws/guardduty.svg"
   },
   {
     "id": "aws-cloudformation",
@@ -517,12 +785,19 @@
     "resource_type": "cloudformation",
     "version": "v2.1.0",
     "cost_estimate": "$0/mo",
-    "tags": ["iac", "automation", "drift-detection"],
+    "tags": [
+      "iac",
+      "automation",
+      "drift-detection"
+    ],
     "icon": "layers",
     "category": "cicd",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/aws/lambda.svg"
   },
   {
     "id": "aws-elastic-beanstalk",
@@ -532,12 +807,19 @@
     "resource_type": "elasticbeanstalk",
     "version": "v1.4.0",
     "cost_estimate": "$10-$300/mo",
-    "tags": ["paas", "deployment", "auto-scaling"],
+    "tags": [
+      "paas",
+      "deployment",
+      "auto-scaling"
+    ],
     "icon": "globe",
     "category": "compute",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~8 min"
+    "provisioning_time": "~8 min",
+    "icon_path": "/icons/services/aws/ec2.svg"
   },
   {
     "id": "aws-emr",
@@ -547,12 +829,20 @@
     "resource_type": "emr",
     "version": "v1.5.0",
     "cost_estimate": "$50-$2000/mo",
-    "tags": ["analytics", "spark", "hadoop"],
+    "tags": [
+      "analytics",
+      "spark",
+      "hadoop"
+    ],
     "icon": "cpu",
     "category": "analytics",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~15 min"
+    "provisioning_time": "~15 min",
+    "icon_path": "/icons/services/aws/ec2.svg"
   },
   {
     "id": "aws-quicksight",
@@ -562,12 +852,20 @@
     "resource_type": "quicksight",
     "version": "v1.3.0",
     "cost_estimate": "$25-$500/mo",
-    "tags": ["analytics", "bi", "visualization"],
+    "tags": [
+      "analytics",
+      "bi",
+      "visualization"
+    ],
     "icon": "bar-chart-3",
     "category": "analytics",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/aws/dynamodb.svg"
   },
   {
     "id": "aws-transfer-family",
@@ -577,12 +875,21 @@
     "resource_type": "transfer",
     "version": "v1.2.0",
     "cost_estimate": "$20-$300/mo",
-    "tags": ["storage", "sftp", "managed-transfer"],
+    "tags": [
+      "storage",
+      "sftp",
+      "managed-transfer"
+    ],
     "icon": "upload",
     "category": "storage",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/aws/s3.svg"
   },
   {
     "id": "aws-fsx",
@@ -592,12 +899,20 @@
     "resource_type": "fsx",
     "version": "v1.3.0",
     "cost_estimate": "$100-$2000/mo",
-    "tags": ["storage", "file-system", "high-throughput"],
+    "tags": [
+      "storage",
+      "file-system",
+      "high-throughput"
+    ],
     "icon": "hard-drive",
     "category": "storage",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~15 min"
+    "provisioning_time": "~15 min",
+    "icon_path": "/icons/services/aws/s3.svg"
   },
   {
     "id": "aws-efs",
@@ -607,12 +922,20 @@
     "resource_type": "efs",
     "version": "v1.4.0",
     "cost_estimate": "$10-$500/mo",
-    "tags": ["storage", "nfs", "serverless"],
+    "tags": [
+      "storage",
+      "nfs",
+      "serverless"
+    ],
     "icon": "hard-drive",
     "category": "storage",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/aws/s3.svg"
   },
   {
     "id": "aws-backup",
@@ -622,12 +945,21 @@
     "resource_type": "awsbackup",
     "version": "v1.3.0",
     "cost_estimate": "$5-$200/mo",
-    "tags": ["backup", "compliance", "cross-region"],
+    "tags": [
+      "backup",
+      "compliance",
+      "cross-region"
+    ],
     "icon": "save",
     "category": "storage",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/aws/s3.svg"
   },
   {
     "id": "aws-route53",
@@ -637,12 +969,19 @@
     "resource_type": "route53",
     "version": "v1.5.0",
     "cost_estimate": "$1-$50/mo",
-    "tags": ["network", "dns", "health-checks"],
+    "tags": [
+      "network",
+      "dns",
+      "health-checks"
+    ],
     "icon": "globe",
     "category": "network",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/aws/route53.svg"
   },
   {
     "id": "aws-global-accelerator",
@@ -652,12 +991,20 @@
     "resource_type": "globalaccelerator",
     "version": "v1.2.0",
     "cost_estimate": "$18-$300/mo",
-    "tags": ["network", "anycast", "performance"],
+    "tags": [
+      "network",
+      "anycast",
+      "performance"
+    ],
     "icon": "zap",
     "category": "network",
-    "compliance_tags": ["SOC2", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/aws/cloudfront.svg"
   },
   {
     "id": "aws-transit-gateway",
@@ -667,12 +1014,20 @@
     "resource_type": "transitgateway",
     "version": "v1.3.0",
     "cost_estimate": "$50-$500/mo",
-    "tags": ["network", "hub-spoke", "routing"],
+    "tags": [
+      "network",
+      "hub-spoke",
+      "routing"
+    ],
     "icon": "git-merge",
     "category": "network",
-    "compliance_tags": ["SOC2", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~10 min"
+    "provisioning_time": "~10 min",
+    "icon_path": "/icons/services/aws/vpc.svg"
   },
   {
     "id": "aws-privatelink",
@@ -682,12 +1037,21 @@
     "resource_type": "privatelink",
     "version": "v1.2.0",
     "cost_estimate": "$7-$150/mo",
-    "tags": ["network", "private-connectivity", "endpoint"],
+    "tags": [
+      "network",
+      "private-connectivity",
+      "endpoint"
+    ],
     "icon": "lock",
     "category": "network",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/aws/vpc.svg"
   },
   {
     "id": "aws-direct-connect",
@@ -697,12 +1061,21 @@
     "resource_type": "directconnect",
     "version": "v1.2.0",
     "cost_estimate": "$200-$3000/mo",
-    "tags": ["network", "hybrid", "dedicated"],
+    "tags": [
+      "network",
+      "hybrid",
+      "dedicated"
+    ],
     "icon": "cable",
     "category": "network",
-    "compliance_tags": ["SOC2", "FedRAMP", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~30 min"
+    "provisioning_time": "~30 min",
+    "icon_path": "/icons/services/aws/vpc.svg"
   },
   {
     "id": "aws-outposts",
@@ -712,12 +1085,20 @@
     "resource_type": "outposts",
     "version": "v1.1.0",
     "cost_estimate": "$5000-$50000/mo",
-    "tags": ["hybrid", "on-premises", "rack"],
+    "tags": [
+      "hybrid",
+      "on-premises",
+      "rack"
+    ],
     "icon": "server",
     "category": "compute",
-    "compliance_tags": ["SOC2", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~days"
+    "provisioning_time": "~days",
+    "icon_path": "/icons/services/aws/ec2.svg"
   },
   {
     "id": "aws-batch",
@@ -727,12 +1108,19 @@
     "resource_type": "awsbatch",
     "version": "v1.3.0",
     "cost_estimate": "$10-$1000/mo",
-    "tags": ["compute", "batch", "hpc"],
+    "tags": [
+      "compute",
+      "batch",
+      "hpc"
+    ],
     "icon": "cpu",
     "category": "compute",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/aws/ec2.svg"
   },
   {
     "id": "aws-timestream",
@@ -742,12 +1130,19 @@
     "resource_type": "timestream",
     "version": "v1.2.0",
     "cost_estimate": "$10-$300/mo",
-    "tags": ["database", "time-series", "serverless"],
+    "tags": [
+      "database",
+      "time-series",
+      "serverless"
+    ],
     "icon": "clock",
     "category": "database",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/aws/dynamodb.svg"
   },
   {
     "id": "azure-aks",
@@ -757,12 +1152,20 @@
     "resource_type": "aks",
     "version": "v1.8.2",
     "cost_estimate": "$50-$800/mo",
-    "tags": ["kubernetes", "rbac", "private"],
+    "tags": [
+      "kubernetes",
+      "rbac",
+      "private"
+    ],
     "icon": "box",
     "category": "container",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~12 min"
+    "provisioning_time": "~12 min",
+    "icon_path": "/icons/services/azure/aks.svg"
   },
   {
     "id": "azure-blob",
@@ -772,12 +1175,21 @@
     "resource_type": "blob",
     "version": "v2.1.0",
     "cost_estimate": "$2-$60/mo",
-    "tags": ["storage", "immutable", "lifecycle"],
+    "tags": [
+      "storage",
+      "immutable",
+      "lifecycle"
+    ],
     "icon": "hard-drive",
     "category": "storage",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/azure/blob-storage.svg"
   },
   {
     "id": "azure-sql",
@@ -787,12 +1199,21 @@
     "resource_type": "azuresql",
     "version": "v1.6.0",
     "cost_estimate": "$30-$500/mo",
-    "tags": ["database", "sql", "geo-replication"],
+    "tags": [
+      "database",
+      "sql",
+      "geo-replication"
+    ],
     "icon": "database",
     "category": "database",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~10 min"
+    "provisioning_time": "~10 min",
+    "icon_path": "/icons/services/azure/sql-database.svg"
   },
   {
     "id": "azure-functions",
@@ -802,12 +1223,19 @@
     "resource_type": "functions",
     "version": "v1.4.0",
     "cost_estimate": "$0-$40/mo",
-    "tags": ["serverless", "managed-identity", "monitoring"],
+    "tags": [
+      "serverless",
+      "managed-identity",
+      "monitoring"
+    ],
     "icon": "zap",
     "category": "serverless",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/azure/functions.svg"
   },
   {
     "id": "azure-vnet",
@@ -817,12 +1245,20 @@
     "resource_type": "vnet",
     "version": "v2.0.0",
     "cost_estimate": "$20-$100/mo",
-    "tags": ["network", "nsg", "private-link"],
+    "tags": [
+      "network",
+      "nsg",
+      "private-link"
+    ],
     "icon": "network",
     "category": "network",
-    "compliance_tags": ["SOC2", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/azure/vnet.svg"
   },
   {
     "id": "azure-appservice",
@@ -832,12 +1268,20 @@
     "resource_type": "appservice",
     "version": "v1.7.0",
     "cost_estimate": "$15-$300/mo",
-    "tags": ["paas", "deployment-slots", "auto-scale"],
+    "tags": [
+      "paas",
+      "deployment-slots",
+      "auto-scale"
+    ],
     "icon": "globe",
     "category": "compute",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~4 min"
+    "provisioning_time": "~4 min",
+    "icon_path": "/icons/services/azure/app-service.svg"
   },
   {
     "id": "azure-cosmosdb",
@@ -847,12 +1291,20 @@
     "resource_type": "cosmosdb",
     "version": "v1.3.0",
     "cost_estimate": "$25-$600/mo",
-    "tags": ["nosql", "global", "multi-region"],
+    "tags": [
+      "nosql",
+      "global",
+      "multi-region"
+    ],
     "icon": "layers",
     "category": "database",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~6 min"
+    "provisioning_time": "~6 min",
+    "icon_path": "/icons/services/azure/cosmos-db.svg"
   },
   {
     "id": "azure-container-apps",
@@ -862,12 +1314,19 @@
     "resource_type": "containerapps",
     "version": "v1.2.0",
     "cost_estimate": "$10-$250/mo",
-    "tags": ["containers", "serverless", "dapr"],
+    "tags": [
+      "containers",
+      "serverless",
+      "dapr"
+    ],
     "icon": "container",
     "category": "container",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/azure/container-instances.svg"
   },
   {
     "id": "azure-sentinel",
@@ -877,12 +1336,21 @@
     "resource_type": "sentinel",
     "version": "v1.4.0",
     "cost_estimate": "$100-$5000/mo",
-    "tags": ["security", "siem", "threat-response"],
+    "tags": [
+      "security",
+      "siem",
+      "threat-response"
+    ],
     "icon": "shield",
     "category": "security",
-    "compliance_tags": ["SOC2", "FedRAMP", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~15 min"
+    "provisioning_time": "~15 min",
+    "icon_path": "/icons/services/azure/monitor.svg"
   },
   {
     "id": "azure-monitor",
@@ -892,12 +1360,19 @@
     "resource_type": "monitor",
     "version": "v2.1.0",
     "cost_estimate": "$10-$500/mo",
-    "tags": ["observability", "metrics", "alerting"],
+    "tags": [
+      "observability",
+      "metrics",
+      "alerting"
+    ],
     "icon": "activity",
     "category": "observability",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/azure/monitor.svg"
   },
   {
     "id": "azure-ml",
@@ -907,12 +1382,20 @@
     "resource_type": "azureml",
     "version": "v1.6.0",
     "cost_estimate": "$50-$3000/mo",
-    "tags": ["ai-ml", "automl", "responsible-ai"],
+    "tags": [
+      "ai-ml",
+      "automl",
+      "responsible-ai"
+    ],
     "icon": "cpu",
     "category": "ai-ml",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~12 min"
+    "provisioning_time": "~12 min",
+    "icon_path": "/icons/services/azure/app-service.svg"
   },
   {
     "id": "azure-devops-pipeline",
@@ -922,12 +1405,19 @@
     "resource_type": "azurepipelines",
     "version": "v1.2.0",
     "cost_estimate": "$0-$40/mo",
-    "tags": ["cicd", "yaml-pipelines", "artifacts"],
+    "tags": [
+      "cicd",
+      "yaml-pipelines",
+      "artifacts"
+    ],
     "icon": "git-branch",
     "category": "cicd",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/azure/functions.svg"
   },
   {
     "id": "azure-keyvault",
@@ -937,12 +1427,21 @@
     "resource_type": "keyvault",
     "version": "v2.0.0",
     "cost_estimate": "$0-$50/mo",
-    "tags": ["security", "secrets", "hsm"],
+    "tags": [
+      "security",
+      "secrets",
+      "hsm"
+    ],
     "icon": "shield",
     "category": "security",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/azure/key-vault.svg"
   },
   {
     "id": "azure-event-hubs",
@@ -952,12 +1451,20 @@
     "resource_type": "eventhubs",
     "version": "v1.5.0",
     "cost_estimate": "$10-$500/mo",
-    "tags": ["messaging", "kafka", "streaming"],
+    "tags": [
+      "messaging",
+      "kafka",
+      "streaming"
+    ],
     "icon": "radio",
     "category": "messaging",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/azure/event-hubs.svg"
   },
   {
     "id": "azure-service-bus",
@@ -967,12 +1474,20 @@
     "resource_type": "servicebus",
     "version": "v1.4.0",
     "cost_estimate": "$10-$200/mo",
-    "tags": ["messaging", "queuing", "enterprise"],
+    "tags": [
+      "messaging",
+      "queuing",
+      "enterprise"
+    ],
     "icon": "mail",
     "category": "messaging",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/azure/event-hubs.svg"
   },
   {
     "id": "azure-logic-apps",
@@ -982,12 +1497,19 @@
     "resource_type": "logicapps",
     "version": "v1.3.0",
     "cost_estimate": "$0-$100/mo",
-    "tags": ["serverless", "integration", "automation"],
+    "tags": [
+      "serverless",
+      "integration",
+      "automation"
+    ],
     "icon": "workflow",
     "category": "serverless",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/azure/functions.svg"
   },
   {
     "id": "azure-api-management",
@@ -997,12 +1519,20 @@
     "resource_type": "apim",
     "version": "v2.0.0",
     "cost_estimate": "$50-$800/mo",
-    "tags": ["api", "gateway", "developer-portal"],
+    "tags": [
+      "api",
+      "gateway",
+      "developer-portal"
+    ],
     "icon": "code-2",
     "category": "serverless",
-    "compliance_tags": ["SOC2", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~45 min"
+    "provisioning_time": "~45 min",
+    "icon_path": "/icons/services/azure/front-door.svg"
   },
   {
     "id": "azure-cognitive-services",
@@ -1012,12 +1542,20 @@
     "resource_type": "cognitiveservices",
     "version": "v1.5.0",
     "cost_estimate": "$0-$500/mo",
-    "tags": ["ai-ml", "vision", "speech"],
+    "tags": [
+      "ai-ml",
+      "vision",
+      "speech"
+    ],
     "icon": "cpu",
     "category": "ai-ml",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/azure/app-service.svg"
   },
   {
     "id": "azure-purview",
@@ -1027,12 +1565,21 @@
     "resource_type": "purview",
     "version": "v1.2.0",
     "cost_estimate": "$50-$1000/mo",
-    "tags": ["governance", "data-catalog", "compliance"],
+    "tags": [
+      "governance",
+      "data-catalog",
+      "compliance"
+    ],
     "icon": "clipboard-check",
     "category": "analytics",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~10 min"
+    "provisioning_time": "~10 min",
+    "icon_path": "/icons/services/azure/monitor.svg"
   },
   {
     "id": "azure-data-factory",
@@ -1042,12 +1589,20 @@
     "resource_type": "datafactory",
     "version": "v2.1.0",
     "cost_estimate": "$10-$500/mo",
-    "tags": ["etl", "integration", "data-movement"],
+    "tags": [
+      "etl",
+      "integration",
+      "data-movement"
+    ],
     "icon": "shuffle",
     "category": "analytics",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/azure/cosmos-db.svg"
   },
   {
     "id": "azure-synapse",
@@ -1057,12 +1612,20 @@
     "resource_type": "synapse",
     "version": "v1.4.0",
     "cost_estimate": "$100-$3000/mo",
-    "tags": ["analytics", "data-warehouse", "spark"],
+    "tags": [
+      "analytics",
+      "data-warehouse",
+      "spark"
+    ],
     "icon": "bar-chart-3",
     "category": "analytics",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~15 min"
+    "provisioning_time": "~15 min",
+    "icon_path": "/icons/services/azure/cosmos-db.svg"
   },
   {
     "id": "azure-redis-cache",
@@ -1072,12 +1635,20 @@
     "resource_type": "rediscache",
     "version": "v1.5.0",
     "cost_estimate": "$15-$600/mo",
-    "tags": ["cache", "redis", "high-availability"],
+    "tags": [
+      "cache",
+      "redis",
+      "high-availability"
+    ],
     "icon": "zap",
     "category": "database",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~8 min"
+    "provisioning_time": "~8 min",
+    "icon_path": "/icons/services/azure/cosmos-db.svg"
   },
   {
     "id": "azure-front-door",
@@ -1087,12 +1658,20 @@
     "resource_type": "frontdoor",
     "version": "v2.0.0",
     "cost_estimate": "$25-$500/mo",
-    "tags": ["cdn", "waf", "load-balancer"],
+    "tags": [
+      "cdn",
+      "waf",
+      "load-balancer"
+    ],
     "icon": "globe",
     "category": "network",
-    "compliance_tags": ["SOC2", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~10 min"
+    "provisioning_time": "~10 min",
+    "icon_path": "/icons/services/azure/front-door.svg"
   },
   {
     "id": "azure-application-gateway",
@@ -1102,12 +1681,20 @@
     "resource_type": "appgateway",
     "version": "v2.1.0",
     "cost_estimate": "$30-$400/mo",
-    "tags": ["network", "waf", "load-balancer"],
+    "tags": [
+      "network",
+      "waf",
+      "load-balancer"
+    ],
     "icon": "shield",
     "category": "network",
-    "compliance_tags": ["SOC2", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~10 min"
+    "provisioning_time": "~10 min",
+    "icon_path": "/icons/services/azure/front-door.svg"
   },
   {
     "id": "azure-dns-zones",
@@ -1117,12 +1704,19 @@
     "resource_type": "dnszones",
     "version": "v1.2.0",
     "cost_estimate": "$1-$20/mo",
-    "tags": ["network", "dns", "private-zones"],
+    "tags": [
+      "network",
+      "dns",
+      "private-zones"
+    ],
     "icon": "globe",
     "category": "network",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/azure/vnet.svg"
   },
   {
     "id": "azure-bastion",
@@ -1132,12 +1726,20 @@
     "resource_type": "bastion",
     "version": "v1.3.0",
     "cost_estimate": "$140-$300/mo",
-    "tags": ["security", "bastion", "rdp"],
+    "tags": [
+      "security",
+      "bastion",
+      "rdp"
+    ],
     "icon": "lock",
     "category": "security",
-    "compliance_tags": ["SOC2", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/azure/vnet.svg"
   },
   {
     "id": "azure-firewall",
@@ -1147,12 +1749,21 @@
     "resource_type": "firewall",
     "version": "v2.0.0",
     "cost_estimate": "$900-$3000/mo",
-    "tags": ["security", "firewall", "network"],
+    "tags": [
+      "security",
+      "firewall",
+      "network"
+    ],
     "icon": "shield",
     "category": "security",
-    "compliance_tags": ["SOC2", "FedRAMP", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~15 min"
+    "provisioning_time": "~15 min",
+    "icon_path": "/icons/services/azure/vnet.svg"
   },
   {
     "id": "azure-private-link",
@@ -1162,12 +1773,21 @@
     "resource_type": "privatelink",
     "version": "v1.2.0",
     "cost_estimate": "$7-$100/mo",
-    "tags": ["network", "private-connectivity", "security"],
+    "tags": [
+      "network",
+      "private-connectivity",
+      "security"
+    ],
     "icon": "lock",
     "category": "network",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/azure/vnet.svg"
   },
   {
     "id": "azure-log-analytics",
@@ -1177,12 +1797,20 @@
     "resource_type": "loganalytics",
     "version": "v1.5.0",
     "cost_estimate": "$10-$600/mo",
-    "tags": ["observability", "logs", "kql"],
+    "tags": [
+      "observability",
+      "logs",
+      "kql"
+    ],
     "icon": "search",
     "category": "observability",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/azure/monitor.svg"
   },
   {
     "id": "azure-data-explorer",
@@ -1192,12 +1820,19 @@
     "resource_type": "dataexplorer",
     "version": "v1.3.0",
     "cost_estimate": "$50-$2000/mo",
-    "tags": ["analytics", "time-series", "kql"],
+    "tags": [
+      "analytics",
+      "time-series",
+      "kql"
+    ],
     "icon": "bar-chart-3",
     "category": "analytics",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~10 min"
+    "provisioning_time": "~10 min",
+    "icon_path": "/icons/services/azure/cosmos-db.svg"
   },
   {
     "id": "azure-signalr",
@@ -1207,12 +1842,19 @@
     "resource_type": "signalr",
     "version": "v1.2.0",
     "cost_estimate": "$50-$500/mo",
-    "tags": ["messaging", "real-time", "websockets"],
+    "tags": [
+      "messaging",
+      "real-time",
+      "websockets"
+    ],
     "icon": "radio",
     "category": "messaging",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/azure/event-hubs.svg"
   },
   {
     "id": "azure-static-web-apps",
@@ -1222,12 +1864,19 @@
     "resource_type": "staticwebapps",
     "version": "v1.2.0",
     "cost_estimate": "$0-$9/mo",
-    "tags": ["hosting", "static", "cicd"],
+    "tags": [
+      "hosting",
+      "static",
+      "cicd"
+    ],
     "icon": "globe",
     "category": "compute",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/azure/app-service.svg"
   },
   {
     "id": "azure-container-instances",
@@ -1237,12 +1886,19 @@
     "resource_type": "containerinstances",
     "version": "v1.3.0",
     "cost_estimate": "$5-$200/mo",
-    "tags": ["containers", "serverless", "on-demand"],
+    "tags": [
+      "containers",
+      "serverless",
+      "on-demand"
+    ],
     "icon": "container",
     "category": "container",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/azure/container-instances.svg"
   },
   {
     "id": "azure-iot-hub",
@@ -1252,12 +1908,20 @@
     "resource_type": "iothub",
     "version": "v1.4.0",
     "cost_estimate": "$25-$1000/mo",
-    "tags": ["iot", "messaging", "device-management"],
+    "tags": [
+      "iot",
+      "messaging",
+      "device-management"
+    ],
     "icon": "cpu",
     "category": "messaging",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/azure/event-hubs.svg"
   },
   {
     "id": "azure-managed-grafana",
@@ -1267,12 +1931,19 @@
     "resource_type": "managedgrafana",
     "version": "v1.1.0",
     "cost_estimate": "$65-$300/mo",
-    "tags": ["observability", "dashboards", "grafana"],
+    "tags": [
+      "observability",
+      "dashboards",
+      "grafana"
+    ],
     "icon": "bar-chart-3",
     "category": "observability",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/azure/monitor.svg"
   },
   {
     "id": "azure-managed-prometheus",
@@ -1282,12 +1953,19 @@
     "resource_type": "managedprometheus",
     "version": "v1.0.0",
     "cost_estimate": "$20-$300/mo",
-    "tags": ["observability", "prometheus", "metrics"],
+    "tags": [
+      "observability",
+      "prometheus",
+      "metrics"
+    ],
     "icon": "activity",
     "category": "observability",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/azure/monitor.svg"
   },
   {
     "id": "azure-postgresql-flexible",
@@ -1297,12 +1975,21 @@
     "resource_type": "postgresqlflexible",
     "version": "v1.4.0",
     "cost_estimate": "$25-$800/mo",
-    "tags": ["database", "postgresql", "high-availability"],
+    "tags": [
+      "database",
+      "postgresql",
+      "high-availability"
+    ],
     "icon": "database",
     "category": "database",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~8 min"
+    "provisioning_time": "~8 min",
+    "icon_path": "/icons/services/azure/sql-database.svg"
   },
   {
     "id": "azure-mysql-flexible",
@@ -1312,12 +1999,20 @@
     "resource_type": "mysqlflexible",
     "version": "v1.3.0",
     "cost_estimate": "$20-$600/mo",
-    "tags": ["database", "mysql", "high-availability"],
+    "tags": [
+      "database",
+      "mysql",
+      "high-availability"
+    ],
     "icon": "database",
     "category": "database",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~8 min"
+    "provisioning_time": "~8 min",
+    "icon_path": "/icons/services/azure/sql-database.svg"
   },
   {
     "id": "azure-notification-hubs",
@@ -1327,12 +2022,19 @@
     "resource_type": "notificationhubs",
     "version": "v1.1.0",
     "cost_estimate": "$0-$100/mo",
-    "tags": ["messaging", "push-notifications", "mobile"],
+    "tags": [
+      "messaging",
+      "push-notifications",
+      "mobile"
+    ],
     "icon": "bell",
     "category": "messaging",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/azure/event-hubs.svg"
   },
   {
     "id": "azure-batch",
@@ -1342,12 +2044,19 @@
     "resource_type": "azurebatch",
     "version": "v1.2.0",
     "cost_estimate": "$20-$2000/mo",
-    "tags": ["compute", "batch", "hpc"],
+    "tags": [
+      "compute",
+      "batch",
+      "hpc"
+    ],
     "icon": "cpu",
     "category": "compute",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/azure/vm.svg"
   },
   {
     "id": "azure-cdn",
@@ -1357,12 +2066,19 @@
     "resource_type": "azurecdn",
     "version": "v1.3.0",
     "cost_estimate": "$5-$200/mo",
-    "tags": ["cdn", "performance", "caching"],
+    "tags": [
+      "cdn",
+      "performance",
+      "caching"
+    ],
     "icon": "globe",
     "category": "network",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/azure/front-door.svg"
   },
   {
     "id": "azure-backup",
@@ -1372,12 +2088,20 @@
     "resource_type": "azurebackup",
     "version": "v1.4.0",
     "cost_estimate": "$5-$300/mo",
-    "tags": ["backup", "disaster-recovery", "compliance"],
+    "tags": [
+      "backup",
+      "disaster-recovery",
+      "compliance"
+    ],
     "icon": "save",
     "category": "storage",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/azure/blob-storage.svg"
   },
   {
     "id": "azure-site-recovery",
@@ -1387,12 +2111,20 @@
     "resource_type": "siterecovery",
     "version": "v1.3.0",
     "cost_estimate": "$25-$500/mo",
-    "tags": ["disaster-recovery", "failover", "replication"],
+    "tags": [
+      "disaster-recovery",
+      "failover",
+      "replication"
+    ],
     "icon": "refresh-cw",
     "category": "storage",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~15 min"
+    "provisioning_time": "~15 min",
+    "icon_path": "/icons/services/azure/blob-storage.svg"
   },
   {
     "id": "azure-arc",
@@ -1402,12 +2134,20 @@
     "resource_type": "arc",
     "version": "v1.3.0",
     "cost_estimate": "$0-$200/mo",
-    "tags": ["hybrid", "multi-cloud", "governance"],
+    "tags": [
+      "hybrid",
+      "multi-cloud",
+      "governance"
+    ],
     "icon": "globe",
     "category": "compute",
-    "compliance_tags": ["SOC2", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~10 min"
+    "provisioning_time": "~10 min",
+    "icon_path": "/icons/services/azure/vm.svg"
   },
   {
     "id": "azure-policy",
@@ -1417,12 +2157,21 @@
     "resource_type": "azurepolicy",
     "version": "v2.0.0",
     "cost_estimate": "$0/mo",
-    "tags": ["governance", "compliance", "policy-as-code"],
+    "tags": [
+      "governance",
+      "compliance",
+      "policy-as-code"
+    ],
     "icon": "clipboard-check",
     "category": "security",
-    "compliance_tags": ["SOC2", "FedRAMP", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP",
+      "HIPAA"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/azure/monitor.svg"
   },
   {
     "id": "azure-cost-management",
@@ -1432,12 +2181,19 @@
     "resource_type": "costmanagement",
     "version": "v1.2.0",
     "cost_estimate": "$0/mo",
-    "tags": ["finops", "cost", "budgets"],
+    "tags": [
+      "finops",
+      "cost",
+      "budgets"
+    ],
     "icon": "dollar-sign",
     "category": "observability",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/azure/monitor.svg"
   },
   {
     "id": "gcp-gke",
@@ -1447,12 +2203,20 @@
     "resource_type": "gke",
     "version": "v1.6.0",
     "cost_estimate": "$50-$800/mo",
-    "tags": ["kubernetes", "autopilot", "workload-identity"],
+    "tags": [
+      "kubernetes",
+      "autopilot",
+      "workload-identity"
+    ],
     "icon": "box",
     "category": "container",
-    "compliance_tags": ["SOC2", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~12 min"
+    "provisioning_time": "~12 min",
+    "icon_path": "/icons/services/gcp/gke.svg"
   },
   {
     "id": "gcp-gcs",
@@ -1462,12 +2226,21 @@
     "resource_type": "gcs",
     "version": "v2.0.0",
     "cost_estimate": "$2-$50/mo",
-    "tags": ["storage", "cmek", "retention"],
+    "tags": [
+      "storage",
+      "cmek",
+      "retention"
+    ],
     "icon": "hard-drive",
     "category": "storage",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/gcp/cloud-storage.svg"
   },
   {
     "id": "gcp-cloudsql",
@@ -1477,12 +2250,20 @@
     "resource_type": "cloudsql",
     "version": "v1.9.0",
     "cost_estimate": "$25-$400/mo",
-    "tags": ["database", "private-ip", "high-availability"],
+    "tags": [
+      "database",
+      "private-ip",
+      "high-availability"
+    ],
     "icon": "database",
     "category": "database",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~10 min"
+    "provisioning_time": "~10 min",
+    "icon_path": "/icons/services/gcp/cloud-sql.svg"
   },
   {
     "id": "gcp-functions",
@@ -1492,12 +2273,19 @@
     "resource_type": "cloudfunctions",
     "version": "v2.1.0",
     "cost_estimate": "$0-$30/mo",
-    "tags": ["serverless", "event-driven", "vpc-connector"],
+    "tags": [
+      "serverless",
+      "event-driven",
+      "vpc-connector"
+    ],
     "icon": "zap",
     "category": "serverless",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/gcp/cloud-functions.svg"
   },
   {
     "id": "gcp-vpc",
@@ -1507,12 +2295,20 @@
     "resource_type": "vpc",
     "version": "v1.5.0",
     "cost_estimate": "$20-$100/mo",
-    "tags": ["network", "shared-vpc", "flow-logs"],
+    "tags": [
+      "network",
+      "shared-vpc",
+      "flow-logs"
+    ],
     "icon": "network",
     "category": "network",
-    "compliance_tags": ["SOC2", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/gcp/vpc-network.svg"
   },
   {
     "id": "gcp-cloudrun",
@@ -1522,12 +2318,19 @@
     "resource_type": "cloudrun",
     "version": "v1.4.0",
     "cost_estimate": "$0-$200/mo",
-    "tags": ["containers", "serverless", "auto-scaling"],
+    "tags": [
+      "containers",
+      "serverless",
+      "auto-scaling"
+    ],
     "icon": "container",
     "category": "container",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/gcp/cloud-run.svg"
   },
   {
     "id": "gcp-bigquery",
@@ -1537,12 +2340,20 @@
     "resource_type": "bigquery",
     "version": "v1.2.0",
     "cost_estimate": "$0-$500/mo",
-    "tags": ["analytics", "data-warehouse", "streaming"],
+    "tags": [
+      "analytics",
+      "data-warehouse",
+      "streaming"
+    ],
     "icon": "bar-chart-3",
     "category": "analytics",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/gcp/bigquery.svg"
   },
   {
     "id": "gcp-chronicle",
@@ -1552,12 +2363,20 @@
     "resource_type": "chronicle",
     "version": "v1.1.0",
     "cost_estimate": "$200-$5000/mo",
-    "tags": ["security", "siem", "threat-intel"],
+    "tags": [
+      "security",
+      "siem",
+      "threat-intel"
+    ],
     "icon": "shield",
     "category": "security",
-    "compliance_tags": ["SOC2", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~20 min"
+    "provisioning_time": "~20 min",
+    "icon_path": "/icons/services/gcp/cloud-logging.svg"
   },
   {
     "id": "gcp-monitoring",
@@ -1567,12 +2386,19 @@
     "resource_type": "monitoring",
     "version": "v1.3.0",
     "cost_estimate": "$0-$300/mo",
-    "tags": ["observability", "slo", "prometheus"],
+    "tags": [
+      "observability",
+      "slo",
+      "prometheus"
+    ],
     "icon": "activity",
     "category": "observability",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/gcp/cloud-logging.svg"
   },
   {
     "id": "gcp-vertexai",
@@ -1582,12 +2408,20 @@
     "resource_type": "vertexai",
     "version": "v1.4.0",
     "cost_estimate": "$50-$5000/mo",
-    "tags": ["ai-ml", "automl", "generative-ai"],
+    "tags": [
+      "ai-ml",
+      "automl",
+      "generative-ai"
+    ],
     "icon": "cpu",
     "category": "ai-ml",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~8 min"
+    "provisioning_time": "~8 min",
+    "icon_path": "/icons/services/gcp/compute-engine.svg"
   },
   {
     "id": "gcp-cloudbuild",
@@ -1597,12 +2431,19 @@
     "resource_type": "cloudbuild",
     "version": "v1.2.0",
     "cost_estimate": "$0-$50/mo",
-    "tags": ["cicd", "serverless-ci", "supply-chain"],
+    "tags": [
+      "cicd",
+      "serverless-ci",
+      "supply-chain"
+    ],
     "icon": "git-branch",
     "category": "cicd",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/gcp/cloud-run.svg"
   },
   {
     "id": "gcp-pubsub",
@@ -1612,12 +2453,20 @@
     "resource_type": "pubsub",
     "version": "v1.5.0",
     "cost_estimate": "$0-$100/mo",
-    "tags": ["messaging", "pub-sub", "event-driven"],
+    "tags": [
+      "messaging",
+      "pub-sub",
+      "event-driven"
+    ],
     "icon": "radio",
     "category": "messaging",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/gcp/pub-sub.svg"
   },
   {
     "id": "gcp-functions-gen2",
@@ -1627,12 +2476,19 @@
     "resource_type": "cloudfunctionsgen2",
     "version": "v1.0.0",
     "cost_estimate": "$0-$50/mo",
-    "tags": ["serverless", "event-driven", "concurrency"],
+    "tags": [
+      "serverless",
+      "event-driven",
+      "concurrency"
+    ],
     "icon": "zap",
     "category": "serverless",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/gcp/cloud-functions.svg"
   },
   {
     "id": "gcp-cloud-tasks",
@@ -1642,12 +2498,19 @@
     "resource_type": "cloudtasks",
     "version": "v1.3.0",
     "cost_estimate": "$0-$20/mo",
-    "tags": ["messaging", "async", "queuing"],
+    "tags": [
+      "messaging",
+      "async",
+      "queuing"
+    ],
     "icon": "list",
     "category": "messaging",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/gcp/pub-sub.svg"
   },
   {
     "id": "gcp-cloud-scheduler",
@@ -1657,12 +2520,19 @@
     "resource_type": "cloudscheduler",
     "version": "v1.2.0",
     "cost_estimate": "$0-$5/mo",
-    "tags": ["serverless", "cron", "scheduling"],
+    "tags": [
+      "serverless",
+      "cron",
+      "scheduling"
+    ],
     "icon": "clock",
     "category": "serverless",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/gcp/cloud-functions.svg"
   },
   {
     "id": "gcp-dataflow",
@@ -1672,12 +2542,20 @@
     "resource_type": "dataflow",
     "version": "v1.4.0",
     "cost_estimate": "$20-$1000/mo",
-    "tags": ["analytics", "streaming", "batch-processing"],
+    "tags": [
+      "analytics",
+      "streaming",
+      "batch-processing"
+    ],
     "icon": "shuffle",
     "category": "analytics",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~10 min"
+    "provisioning_time": "~10 min",
+    "icon_path": "/icons/services/gcp/bigquery.svg"
   },
   {
     "id": "gcp-dataproc",
@@ -1687,12 +2565,19 @@
     "resource_type": "dataproc",
     "version": "v1.5.0",
     "cost_estimate": "$30-$2000/mo",
-    "tags": ["analytics", "spark", "hadoop"],
+    "tags": [
+      "analytics",
+      "spark",
+      "hadoop"
+    ],
     "icon": "cpu",
     "category": "analytics",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~10 min"
+    "provisioning_time": "~10 min",
+    "icon_path": "/icons/services/gcp/bigquery.svg"
   },
   {
     "id": "gcp-composer",
@@ -1702,12 +2587,19 @@
     "resource_type": "composer",
     "version": "v2.1.0",
     "cost_estimate": "$300-$2000/mo",
-    "tags": ["orchestration", "airflow", "workflows"],
+    "tags": [
+      "orchestration",
+      "airflow",
+      "workflows"
+    ],
     "icon": "workflow",
     "category": "analytics",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~20 min"
+    "provisioning_time": "~20 min",
+    "icon_path": "/icons/services/gcp/cloud-run.svg"
   },
   {
     "id": "gcp-memorystore",
@@ -1717,12 +2609,20 @@
     "resource_type": "memorystore",
     "version": "v1.4.0",
     "cost_estimate": "$20-$500/mo",
-    "tags": ["cache", "redis", "private-ip"],
+    "tags": [
+      "cache",
+      "redis",
+      "private-ip"
+    ],
     "icon": "zap",
     "category": "database",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/gcp/memorystore.svg"
   },
   {
     "id": "gcp-filestore",
@@ -1732,12 +2632,19 @@
     "resource_type": "filestore",
     "version": "v1.3.0",
     "cost_estimate": "$200-$5000/mo",
-    "tags": ["storage", "nfs", "file-system"],
+    "tags": [
+      "storage",
+      "nfs",
+      "file-system"
+    ],
     "icon": "hard-drive",
     "category": "storage",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/gcp/cloud-storage.svg"
   },
   {
     "id": "gcp-artifact-registry",
@@ -1747,12 +2654,19 @@
     "resource_type": "artifactregistry",
     "version": "v1.3.0",
     "cost_estimate": "$1-$50/mo",
-    "tags": ["cicd", "registry", "supply-chain"],
+    "tags": [
+      "cicd",
+      "registry",
+      "supply-chain"
+    ],
     "icon": "package",
     "category": "cicd",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/gcp/artifact-registry.svg"
   },
   {
     "id": "gcp-cloud-deploy",
@@ -1762,12 +2676,19 @@
     "resource_type": "clouddeploy",
     "version": "v1.2.0",
     "cost_estimate": "$0-$30/mo",
-    "tags": ["cicd", "continuous-delivery", "canary"],
+    "tags": [
+      "cicd",
+      "continuous-delivery",
+      "canary"
+    ],
     "icon": "git-branch",
     "category": "cicd",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/gcp/cloud-run.svg"
   },
   {
     "id": "gcp-apigee",
@@ -1777,12 +2698,20 @@
     "resource_type": "apigee",
     "version": "v1.3.0",
     "cost_estimate": "$500-$5000/mo",
-    "tags": ["api", "gateway", "enterprise"],
+    "tags": [
+      "api",
+      "gateway",
+      "enterprise"
+    ],
     "icon": "code-2",
     "category": "serverless",
-    "compliance_tags": ["SOC2", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~30 min"
+    "provisioning_time": "~30 min",
+    "icon_path": "/icons/services/gcp/cloud-cdn.svg"
   },
   {
     "id": "gcp-firestore",
@@ -1792,12 +2721,20 @@
     "resource_type": "firestore",
     "version": "v1.4.0",
     "cost_estimate": "$0-$100/mo",
-    "tags": ["database", "nosql", "real-time"],
+    "tags": [
+      "database",
+      "nosql",
+      "real-time"
+    ],
     "icon": "database",
     "category": "database",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/gcp/bigquery.svg"
   },
   {
     "id": "gcp-spanner",
@@ -1807,12 +2744,21 @@
     "resource_type": "spanner",
     "version": "v1.5.0",
     "cost_estimate": "$700-$10000/mo",
-    "tags": ["database", "global", "acid"],
+    "tags": [
+      "database",
+      "global",
+      "acid"
+    ],
     "icon": "database",
     "category": "database",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~10 min"
+    "provisioning_time": "~10 min",
+    "icon_path": "/icons/services/gcp/cloud-sql.svg"
   },
   {
     "id": "gcp-alloydb",
@@ -1822,12 +2768,20 @@
     "resource_type": "alloydb",
     "version": "v1.1.0",
     "cost_estimate": "$400-$3000/mo",
-    "tags": ["database", "postgresql", "analytics"],
+    "tags": [
+      "database",
+      "postgresql",
+      "analytics"
+    ],
     "icon": "database",
     "category": "database",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~15 min"
+    "provisioning_time": "~15 min",
+    "icon_path": "/icons/services/gcp/cloud-sql.svg"
   },
   {
     "id": "gcp-bigtable",
@@ -1837,12 +2791,20 @@
     "resource_type": "bigtable",
     "version": "v1.3.0",
     "cost_estimate": "$400-$5000/mo",
-    "tags": ["database", "nosql", "time-series"],
+    "tags": [
+      "database",
+      "nosql",
+      "time-series"
+    ],
     "icon": "layers",
     "category": "database",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~10 min"
+    "provisioning_time": "~10 min",
+    "icon_path": "/icons/services/gcp/bigquery.svg"
   },
   {
     "id": "gcp-cloud-armor",
@@ -1852,12 +2814,20 @@
     "resource_type": "cloudarmor",
     "version": "v1.4.0",
     "cost_estimate": "$5-$200/mo",
-    "tags": ["security", "waf", "ddos"],
+    "tags": [
+      "security",
+      "waf",
+      "ddos"
+    ],
     "icon": "shield",
     "category": "security",
-    "compliance_tags": ["SOC2", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/gcp/cloud-armor.svg"
   },
   {
     "id": "gcp-secret-manager",
@@ -1867,12 +2837,21 @@
     "resource_type": "secretmanager",
     "version": "v1.3.0",
     "cost_estimate": "$0-$10/mo",
-    "tags": ["security", "secrets", "rotation"],
+    "tags": [
+      "security",
+      "secrets",
+      "rotation"
+    ],
     "icon": "key",
     "category": "security",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/gcp/secret-manager.svg"
   },
   {
     "id": "gcp-kms",
@@ -1882,12 +2861,22 @@
     "resource_type": "cloudkms",
     "version": "v1.4.0",
     "cost_estimate": "$1-$30/mo",
-    "tags": ["security", "encryption", "hsm"],
+    "tags": [
+      "security",
+      "encryption",
+      "hsm"
+    ],
     "icon": "lock",
     "category": "security",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI",
+      "FedRAMP"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/gcp/secret-manager.svg"
   },
   {
     "id": "gcp-certificate-manager",
@@ -1897,12 +2886,20 @@
     "resource_type": "certificatemanager",
     "version": "v1.1.0",
     "cost_estimate": "$0-$10/mo",
-    "tags": ["security", "certificates", "tls"],
+    "tags": [
+      "security",
+      "certificates",
+      "tls"
+    ],
     "icon": "badge-check",
     "category": "security",
-    "compliance_tags": ["SOC2", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "PCI"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/gcp/secret-manager.svg"
   },
   {
     "id": "gcp-cloud-dns",
@@ -1912,12 +2909,19 @@
     "resource_type": "clouddns",
     "version": "v1.3.0",
     "cost_estimate": "$1-$20/mo",
-    "tags": ["network", "dns", "private-zones"],
+    "tags": [
+      "network",
+      "dns",
+      "private-zones"
+    ],
     "icon": "globe",
     "category": "network",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/gcp/vpc-network.svg"
   },
   {
     "id": "gcp-cloud-nat",
@@ -1927,12 +2931,19 @@
     "resource_type": "cloudnat",
     "version": "v1.2.0",
     "cost_estimate": "$5-$100/mo",
-    "tags": ["network", "nat", "private-egress"],
+    "tags": [
+      "network",
+      "nat",
+      "private-egress"
+    ],
     "icon": "arrow-right-from-line",
     "category": "network",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/gcp/vpc-network.svg"
   },
   {
     "id": "gcp-cloud-interconnect",
@@ -1942,12 +2953,20 @@
     "resource_type": "cloudinterconnect",
     "version": "v1.2.0",
     "cost_estimate": "$500-$5000/mo",
-    "tags": ["network", "hybrid", "dedicated"],
+    "tags": [
+      "network",
+      "hybrid",
+      "dedicated"
+    ],
     "icon": "cable",
     "category": "network",
-    "compliance_tags": ["SOC2", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~days"
+    "provisioning_time": "~days",
+    "icon_path": "/icons/services/gcp/vpc-network.svg"
   },
   {
     "id": "gcp-cloud-cdn",
@@ -1957,12 +2976,19 @@
     "resource_type": "cloudcdn",
     "version": "v1.3.0",
     "cost_estimate": "$5-$200/mo",
-    "tags": ["cdn", "caching", "performance"],
+    "tags": [
+      "cdn",
+      "caching",
+      "performance"
+    ],
     "icon": "globe",
     "category": "network",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/gcp/cloud-cdn.svg"
   },
   {
     "id": "gcp-anthos",
@@ -1972,12 +2998,20 @@
     "resource_type": "anthos",
     "version": "v1.4.0",
     "cost_estimate": "$300-$5000/mo",
-    "tags": ["multi-cloud", "kubernetes", "service-mesh"],
+    "tags": [
+      "multi-cloud",
+      "kubernetes",
+      "service-mesh"
+    ],
     "icon": "box",
     "category": "container",
-    "compliance_tags": ["SOC2", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~20 min"
+    "provisioning_time": "~20 min",
+    "icon_path": "/icons/services/gcp/gke.svg"
   },
   {
     "id": "gcp-binary-authorization",
@@ -1987,12 +3021,20 @@
     "resource_type": "binaryauthorization",
     "version": "v1.2.0",
     "cost_estimate": "$0-$20/mo",
-    "tags": ["security", "supply-chain", "containers"],
+    "tags": [
+      "security",
+      "supply-chain",
+      "containers"
+    ],
     "icon": "shield",
     "category": "security",
-    "compliance_tags": ["SOC2", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/gcp/cloud-armor.svg"
   },
   {
     "id": "gcp-security-command-center",
@@ -2002,12 +3044,21 @@
     "resource_type": "securitycommandcenter",
     "version": "v1.3.0",
     "cost_estimate": "$0-$2000/mo",
-    "tags": ["security", "cspm", "compliance"],
+    "tags": [
+      "security",
+      "cspm",
+      "compliance"
+    ],
     "icon": "shield",
     "category": "security",
-    "compliance_tags": ["SOC2", "FedRAMP", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "FedRAMP",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/gcp/cloud-armor.svg"
   },
   {
     "id": "gcp-cloud-logging",
@@ -2017,12 +3068,21 @@
     "resource_type": "cloudlogging",
     "version": "v1.3.0",
     "cost_estimate": "$0-$300/mo",
-    "tags": ["observability", "logs", "audit"],
+    "tags": [
+      "observability",
+      "logs",
+      "audit"
+    ],
     "icon": "scroll",
     "category": "observability",
-    "compliance_tags": ["SOC2", "HIPAA", "FedRAMP"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "FedRAMP"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/gcp/cloud-logging.svg"
   },
   {
     "id": "gcp-cloud-trace",
@@ -2032,12 +3092,19 @@
     "resource_type": "cloudtrace",
     "version": "v1.2.0",
     "cost_estimate": "$0-$50/mo",
-    "tags": ["observability", "tracing", "performance"],
+    "tags": [
+      "observability",
+      "tracing",
+      "performance"
+    ],
     "icon": "git-fork",
     "category": "observability",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/gcp/cloud-logging.svg"
   },
   {
     "id": "gcp-looker",
@@ -2047,12 +3114,20 @@
     "resource_type": "looker",
     "version": "v1.2.0",
     "cost_estimate": "$500-$5000/mo",
-    "tags": ["analytics", "bi", "semantic-layer"],
+    "tags": [
+      "analytics",
+      "bi",
+      "semantic-layer"
+    ],
     "icon": "bar-chart-3",
     "category": "analytics",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~30 min"
+    "provisioning_time": "~30 min",
+    "icon_path": "/icons/services/gcp/bigquery.svg"
   },
   {
     "id": "gcp-data-catalog",
@@ -2062,12 +3137,20 @@
     "resource_type": "datacatalog",
     "version": "v1.2.0",
     "cost_estimate": "$0-$100/mo",
-    "tags": ["governance", "data-catalog", "discovery"],
+    "tags": [
+      "governance",
+      "data-catalog",
+      "discovery"
+    ],
     "icon": "clipboard-check",
     "category": "analytics",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/gcp/bigquery.svg"
   },
   {
     "id": "gcp-dlp",
@@ -2077,12 +3160,21 @@
     "resource_type": "dlp",
     "version": "v1.3.0",
     "cost_estimate": "$0-$200/mo",
-    "tags": ["security", "data-classification", "pii"],
+    "tags": [
+      "security",
+      "data-classification",
+      "pii"
+    ],
     "icon": "eye-off",
     "category": "security",
-    "compliance_tags": ["SOC2", "HIPAA", "PCI"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA",
+      "PCI"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~2 min"
+    "provisioning_time": "~2 min",
+    "icon_path": "/icons/services/gcp/cloud-armor.svg"
   },
   {
     "id": "gcp-healthcare-api",
@@ -2092,12 +3184,20 @@
     "resource_type": "healthcareapi",
     "version": "v1.2.0",
     "cost_estimate": "$50-$2000/mo",
-    "tags": ["healthcare", "fhir", "hipaa"],
+    "tags": [
+      "healthcare",
+      "fhir",
+      "hipaa"
+    ],
     "icon": "heart-pulse",
     "category": "database",
-    "compliance_tags": ["HIPAA", "SOC2"],
+    "compliance_tags": [
+      "HIPAA",
+      "SOC2"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/gcp/cloud-run.svg"
   },
   {
     "id": "gcp-dialogflow",
@@ -2107,12 +3207,20 @@
     "resource_type": "dialogflow",
     "version": "v1.3.0",
     "cost_estimate": "$0-$500/mo",
-    "tags": ["ai-ml", "conversational-ai", "chatbot"],
+    "tags": [
+      "ai-ml",
+      "conversational-ai",
+      "chatbot"
+    ],
     "icon": "message-circle",
     "category": "ai-ml",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~5 min"
+    "provisioning_time": "~5 min",
+    "icon_path": "/icons/services/gcp/cloud-run.svg"
   },
   {
     "id": "gcp-document-ai",
@@ -2122,12 +3230,20 @@
     "resource_type": "documentai",
     "version": "v1.2.0",
     "cost_estimate": "$10-$500/mo",
-    "tags": ["ai-ml", "ocr", "document-processing"],
+    "tags": [
+      "ai-ml",
+      "ocr",
+      "document-processing"
+    ],
     "icon": "file-scan",
     "category": "ai-ml",
-    "compliance_tags": ["SOC2", "HIPAA"],
+    "compliance_tags": [
+      "SOC2",
+      "HIPAA"
+    ],
     "auto_approved": false,
-    "provisioning_time": "~3 min"
+    "provisioning_time": "~3 min",
+    "icon_path": "/icons/services/gcp/cloud-run.svg"
   },
   {
     "id": "gcp-translation",
@@ -2137,12 +3253,19 @@
     "resource_type": "translation",
     "version": "v1.2.0",
     "cost_estimate": "$0-$100/mo",
-    "tags": ["ai-ml", "translation", "nlp"],
+    "tags": [
+      "ai-ml",
+      "translation",
+      "nlp"
+    ],
     "icon": "languages",
     "category": "ai-ml",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/gcp/cloud-run.svg"
   },
   {
     "id": "gcp-vision-ai",
@@ -2152,11 +3275,18 @@
     "resource_type": "visionai",
     "version": "v1.3.0",
     "cost_estimate": "$0-$200/mo",
-    "tags": ["ai-ml", "computer-vision", "image-analysis"],
+    "tags": [
+      "ai-ml",
+      "computer-vision",
+      "image-analysis"
+    ],
     "icon": "scan",
     "category": "ai-ml",
-    "compliance_tags": ["SOC2"],
+    "compliance_tags": [
+      "SOC2"
+    ],
     "auto_approved": true,
-    "provisioning_time": "~1 min"
+    "provisioning_time": "~1 min",
+    "icon_path": "/icons/services/gcp/compute-engine.svg"
   }
 ]

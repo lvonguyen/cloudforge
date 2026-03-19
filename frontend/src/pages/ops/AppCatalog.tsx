@@ -6,6 +6,7 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Database, AppWindow, Filter, Search, X } from 'lucide-react'
+import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import appCatalogData from '@/lib/mock/app-catalog.json'
 
 // Lazy-load existing DataClassification page content
@@ -172,7 +173,7 @@ export default function AppCatalog() {
                         <TableCell>
                           <Badge variant="outline" className="text-[10px]">{app.data_classification}</Badge>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{app.csp_hosting}</TableCell>
+                        <TableCell>{app.csp_hosting !== 'SaaS' ? <ProviderBadge provider={app.csp_hosting.toLowerCase()} /> : <span className="text-xs text-muted-foreground">SaaS</span>}</TableCell>
                       </TableRow>
                     ))
                   )}
