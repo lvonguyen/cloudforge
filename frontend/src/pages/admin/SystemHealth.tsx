@@ -34,13 +34,13 @@ const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; 
 }
 
 const STATIC_FALLBACK: ServiceStatus[] = [
-  { name: 'OPA Policy Engine', description: 'Policy evaluation sidecar', status: 'healthy', latency_ms: 4, uptime: '99.98%', last_check: '—' },
-  { name: 'AI Agent Runtime', description: 'Agent orchestration layer', status: 'healthy', latency_ms: 18, uptime: '99.91%', last_check: '—' },
-  { name: 'Findings Ingestion', description: 'CSPM/SIEM feed processor', status: 'healthy', latency_ms: 22, uptime: '99.95%', last_check: '—' },
-  { name: 'Remediation Dispatcher', description: 'Async remediation queue', status: 'degraded', latency_ms: 340, uptime: '97.4%', last_check: '—' },
-  { name: 'Compliance Engine', description: 'Framework mapping + scoring', status: 'healthy', latency_ms: 11, uptime: '100%', last_check: '—' },
-  { name: 'API Gateway', description: 'REST API + auth middleware', status: 'healthy', latency_ms: 6, uptime: '99.99%', last_check: '—' },
-  { name: 'Trace Collector', description: 'OTEL span ingestion', status: 'healthy', latency_ms: 8, uptime: '99.97%', last_check: '—' },
+  { name: 'OPA Policy Engine', description: 'Policy evaluation sidecar', status: 'healthy', latency_ms: 4, uptime: '99.98%', last_check: '2m ago' },
+  { name: 'AI Agent Runtime', description: 'Agent orchestration layer', status: 'healthy', latency_ms: 18, uptime: '99.91%', last_check: '5m ago' },
+  { name: 'Findings Ingestion', description: 'CSPM/SIEM feed processor', status: 'healthy', latency_ms: 22, uptime: '99.95%', last_check: '1m ago' },
+  { name: 'Remediation Dispatcher', description: 'Async remediation queue', status: 'degraded', latency_ms: 340, uptime: '97.4%', last_check: '12m ago' },
+  { name: 'Compliance Engine', description: 'Framework mapping + scoring', status: 'healthy', latency_ms: 11, uptime: '100%', last_check: '3m ago' },
+  { name: 'API Gateway', description: 'REST API + auth middleware', status: 'healthy', latency_ms: 6, uptime: '99.99%', last_check: '30s ago' },
+  { name: 'Trace Collector', description: 'OTEL span ingestion', status: 'healthy', latency_ms: 8, uptime: '99.97%', last_check: '45s ago' },
   { name: 'Cost Analyzer', description: 'FinOps aggregation pipeline', status: 'down', latency_ms: undefined, uptime: '—', last_check: '—' },
 ]
 

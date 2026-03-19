@@ -1,6 +1,6 @@
 import { brandEmail } from '@/lib/mock-data-utils'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -64,6 +64,7 @@ const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; className: stri
 export default function MyRequests() {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const { data: exceptions } = useMyExceptions()
+  const navigate = useNavigate()
 
   const REQUESTS = exceptions?.map(mapExceptionToRow) ?? MOCK_REQUESTS
 
@@ -125,9 +126,9 @@ export default function MyRequests() {
               {filtered.map(req => {
                 const { icon: Icon, className, badge } = STATUS_CONFIG[req.status] ?? STATUS_CONFIG.PENDING
                 return (
-                  <TableRow key={req.id} className="hover:bg-muted/30">
+                  <TableRow key={req.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/portal/requests/${req.id}`)}>
                     <TableCell className="pl-4">
-                      <Link to={`/portal/requests/${req.id}`} className="text-xs font-mono text-primary hover:underline">
+                      <Link to={`/portal/requests/${req.id}`} className="text-xs font-mono text-primary hover:underline" onClick={e => e.stopPropagation()}>
                         {req.id}
                       </Link>
                     </TableCell>

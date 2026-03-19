@@ -2,13 +2,28 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { KeyRound, Search, ChevronDown, ChevronRight, AlertTriangle, FileCode, ShieldAlert } from 'lucide-react'
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table'
+import { KeyRound, Search, ChevronDown, ChevronRight, AlertTriangle, FileCode, ShieldAlert, CheckCircle2 } from 'lucide-react'
 import { useStartOrgScan } from '@/hooks/useOrgScan'
 import type { OrgScanResult, RepoResult } from '@/hooks/useOrgScan'
 import { useAuth } from '@/lib/auth'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
+
+const RECENT_SCANS = [
+  { id: 'scan-001', org: 'contoso', repos: 12, secrets: 3, critical: 1, high: 2, date: '2026-03-18T14:30:00Z' },
+  { id: 'scan-002', org: 'contoso', repos: 12, secrets: 0, critical: 0, high: 0, date: '2026-03-15T09:15:00Z' },
+  { id: 'scan-003', org: 'acme-corp', repos: 8, secrets: 7, critical: 3, high: 4, date: '2026-03-12T16:45:00Z' },
+  { id: 'scan-004', org: 'contoso', repos: 12, secrets: 1, critical: 0, high: 1, date: '2026-03-08T11:00:00Z' },
+]
+
+function formatScanDate(iso: string): string {
+  try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }
+  catch { return iso }
+}
 
 const SEVERITY_COLORS: Record<string, string> = {
   critical: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
@@ -131,6 +146,54 @@ export default function OrgSecretsScan() {
             <KeyRound className="h-3.5 w-3.5" />
             {scanMutation.isPending ? 'Scanning...' : !scanCooldown.canFire ? 'Cooldown...' : 'Scan'}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Recent Scans */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Recent Scans</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs pl-4">Date</TableHead>
+                <TableHead className="text-xs">Organization</TableHead>
+                <TableHead className="text-xs text-right">Repos</TableHead>
+                <TableHead className="text-xs text-right">Secrets Found</TableHead>
+                <TableHead className="text-xs">Severity</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {RECENT_SCANS.map(scan => (
+                <TableRow key={scan.id}>
+                  <TableCell className="text-xs pl-4 text-muted-foreground">{formatScanDate(scan.date)}</TableCell>
+                  <TableCell className="text-xs font-medium">{scan.org}</TableCell>
+                  <TableCell className="text-xs text-right">{scan.repos}</TableCell>
+                  <TableCell className="text-xs text-right">{scan.secrets}</TableCell>
+                  <TableCell>
+                    {scan.secrets === 0 ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                    ) : (
+                      <div className="flex gap-1">
+                        {scan.critical > 0 && (
+                          <Badge variant="outline" className="text-[10px] bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                            {scan.critical} CRIT
+                          </Badge>
+                        )}
+                        {scan.high > 0 && (
+                          <Badge variant="outline" className="text-[10px] bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
+                            {scan.high} HIGH
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 

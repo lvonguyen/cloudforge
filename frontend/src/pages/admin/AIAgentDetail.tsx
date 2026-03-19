@@ -235,7 +235,50 @@ export default function AIAgentDetail() {
   const [signalFilter, setSignalFilter] = useState<string>('all')
 
   if (agentLoading || tracesLoading) {
-    return <div className="text-sm text-muted-foreground p-6">Loading agent data…</div>
+    return (
+      <div className="space-y-6 max-w-6xl mx-auto pb-10">
+        {/* Back button placeholder */}
+        <div className="h-8 w-24 bg-muted animate-pulse rounded" />
+
+        {/* Agent header skeleton */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="h-12 w-12 bg-muted animate-pulse rounded-none shrink-0" />
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="h-6 w-48 bg-muted animate-pulse rounded" />
+                <div className="h-5 w-20 bg-muted animate-pulse rounded-full" />
+                <div className="h-5 w-20 bg-muted animate-pulse rounded-full" />
+              </div>
+              <div className="h-4 w-96 bg-muted animate-pulse rounded" />
+              <div className="flex items-center gap-3">
+                <div className="h-5 w-20 bg-muted animate-pulse rounded" />
+                <div className="h-5 w-20 bg-muted animate-pulse rounded" />
+                <div className="h-5 w-20 bg-muted animate-pulse rounded" />
+              </div>
+            </div>
+          </div>
+          {/* Quick stats skeleton */}
+          <div className="flex gap-3 shrink-0">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="text-center px-4 py-2 bg-muted/50 rounded-none min-w-[64px] space-y-1">
+                <div className="h-6 w-8 bg-muted animate-pulse rounded mx-auto" />
+                <div className="h-3 w-10 bg-muted animate-pulse rounded mx-auto" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Separator placeholder */}
+        <div className="h-px w-full bg-muted animate-pulse" />
+
+        {/* Tab bar placeholder */}
+        <div className="h-9 w-full bg-muted animate-pulse rounded" />
+
+        {/* Content area placeholder */}
+        <div className="h-48 w-full bg-muted animate-pulse rounded" />
+      </div>
+    )
   }
   if (!agent) {
     return <div className="text-sm text-muted-foreground p-6">Agent not found.</div>

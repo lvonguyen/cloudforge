@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { Link2, Plus, Trash2, ChevronRight, X, CheckCircle2, XCircle, Clock } from 'lucide-react'
+import { Link2, Plus, Trash2, ChevronRight, X, CheckCircle2, XCircle, Clock, Zap } from 'lucide-react'
 import { useWebhooks, useCreateWebhook, useDeleteWebhook, useWebhookDeliveries, WEBHOOK_EVENTS } from '@/hooks/useWebhooks'
 import type { WebhookEndpoint } from '@/hooks/useWebhooks'
 import { useToast } from '@/hooks/useToast'
+import { useActionCooldown } from '@/hooks/useActionCooldown'
 import { ToastStack } from '@/components/ui/ToastStack'
 
 const STATUS_FILTERS = ['all', 'active', 'failed'] as const
@@ -152,7 +153,8 @@ export default function Webhooks() {
   const [showRegister, setShowRegister] = useState(false)
   const [selectedEndpoint, setSelectedEndpoint] = useState<WebhookEndpoint | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
-  const { toasts, dismiss } = useToast()
+  const { toasts, toast, dismiss } = useToast()
+  const testCooldown = useActionCooldown({ key: 'webhook-test', cooldownMs: 5_000 })
 
   const filtered = statusFilter === 'all'
     ? endpoints
@@ -245,6 +247,18 @@ export default function Webhooks() {
                     <TableCell className="text-xs text-muted-foreground">{formatDate(ep.created_at)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => {
+                            if (!testCooldown.canFire) return
+                            testCooldown.fire()
+                            toast(`Test webhook sent to ${ep.url}`, 'info')
+                          }}
+                          disabled={!testCooldown.canFire}
+                          className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground disabled:opacity-40 transition-colors"
+                          aria-label={`Send test to ${ep.url}`}
+                        >
+                          <Zap className="h-3 w-3" />Test
+                        </button>
                         <button
                           onClick={() => setSelectedEndpoint(ep)}
                           className="p-1 text-muted-foreground hover:text-foreground"

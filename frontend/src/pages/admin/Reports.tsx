@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { BarChart3, Download, FileText, Shield, Wrench } from 'lucide-react'
 import { exportCSV } from '@/lib/export-csv'
+import { useToast } from '@/hooks/useToast'
+import { ToastStack } from '@/components/ui/ToastStack'
 
 const REPORT_CARDS = [
   {
@@ -30,10 +32,22 @@ const REPORT_CARDS = [
 
 export default function Reports() {
   const { data: findings = [] } = useFindings()
+  const { toasts, toast, dismiss } = useToast()
 
   const handleCSVExport = () => {
     if (findings.length === 0) return
     exportCSV(findings)
+  }
+
+  const handleGenerateReport = (title: string) => {
+    toast(`Report generation started — ${title} CSV will download shortly`, 'info')
+    setTimeout(() => {
+      if (findings.length > 0) {
+        exportCSV(findings)
+      } else {
+        toast('No findings available for export', 'error')
+      }
+    }, 1500)
   }
 
   return (
@@ -67,7 +81,7 @@ export default function Reports() {
                   size="sm"
                   variant="outline"
                   className="gap-1.5 text-xs w-full"
-                  onClick={() => window.print()}
+                  onClick={() => handleGenerateReport(report.title)}
                 >
                   <BarChart3 className="h-3.5 w-3.5" />Generate Report
                 </Button>
@@ -109,6 +123,7 @@ export default function Reports() {
           </div>
         </CardContent>
       </Card>
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   )
 }

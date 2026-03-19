@@ -25,7 +25,8 @@ describe('AIAgentDetail', () => {
       </Routes>,
       { route: '/admin/ai-agents/agent-001' },
     )
-    expect(screen.getByText(/loading agent data/i)).toBeInTheDocument()
+    // H-06: loading state now uses shimmer skeleton instead of text
+    expect(document.querySelector('.animate-pulse')).toBeInTheDocument()
   })
 })
 

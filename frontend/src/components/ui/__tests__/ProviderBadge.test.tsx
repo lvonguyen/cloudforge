@@ -24,10 +24,10 @@ describe('ProviderBadge', () => {
     expect(screen.getByTitle('UNKNOWN')).toBeInTheDocument()
   })
 
-  it('uses neutral stone palette for whitelabel', () => {
-    expect(PROVIDER_COLORS.aws).toContain('bg-stone-200/60')
-    expect(PROVIDER_COLORS.azure).toContain('bg-stone-200/60')
-    expect(PROVIDER_COLORS.gcp).toContain('bg-stone-200/60')
+  it('uses neutral zinc palette for whitelabel', () => {
+    expect(PROVIDER_COLORS.aws).toContain('bg-zinc-100')
+    expect(PROVIDER_COLORS.azure).toContain('bg-zinc-100')
+    expect(PROVIDER_COLORS.gcp).toContain('bg-zinc-100')
   })
 
   it('applies custom className', () => {

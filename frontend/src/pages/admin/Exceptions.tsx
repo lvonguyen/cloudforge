@@ -2,11 +2,12 @@ import { useState, useMemo } from 'react'
 import { useExceptions } from '@/hooks/useExceptions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { EXCEPTION_STATUS_COLORS as STATUS_COLORS } from '@/lib/severity'
-import { ListChecks, Filter } from 'lucide-react'
+import { ListChecks, Filter, X } from 'lucide-react'
 import type { ExceptionRequest, Approver } from '@/types/grc'
 
 const STATUS_FILTERS = ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'EXPIRED'] as const
@@ -33,9 +34,105 @@ function formatDate(iso: string): string {
   }
 }
 
+function ExceptionDetailDrawer({ exc, onClose }: { exc: ExceptionRequest; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-md bg-background border-l border-border h-full overflow-y-auto shadow-xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h2 className="text-sm font-semibold">Exception {exc.id}</h2>
+          <button onClick={onClose} className="p-1 hover:bg-muted rounded" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-5">
+          {/* Key fields */}
+          <div className="space-y-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Application</p>
+              <p className="text-sm font-medium">{exc.application_id}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Type</p>
+              <Badge variant="outline" className="text-[10px]">{exc.request_type}</Badge>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Resource</p>
+              <p className="text-sm">{exc.resource_requested}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Requestor</p>
+              <p className="text-sm">{exc.requestor_email}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Status</p>
+              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-none ${STATUS_COLORS[exc.status] ?? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300'}`}>
+                {exc.status}
+              </span>
+            </div>
+            <div className="flex gap-6">
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Created</p>
+                <p className="text-xs">{formatDate(exc.created_at)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Updated</p>
+                <p className="text-xs">{formatDate(exc.updated_at)}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Business case */}
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Business Case</p>
+            <p className="text-sm leading-relaxed bg-muted/30 p-3 border border-border">{exc.business_case}</p>
+          </div>
+
+          {/* Approver chain */}
+          {exc.approver_chain.length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Approver Chain</p>
+              <div className="space-y-2">
+                {exc.approver_chain.map((a, i) => (
+                  <div key={i} className="flex items-center justify-between bg-muted/20 p-2 border border-border">
+                    <div>
+                      <p className="text-xs font-medium">{a.email}</p>
+                      <p className="text-[10px] text-muted-foreground">{a.role}</p>
+                    </div>
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-none ${STATUS_COLORS[a.decision] ?? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300'}`}>
+                      {a.decision}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          {exc.status === 'PENDING' && (
+            <div className="flex gap-2 pt-2">
+              <Button size="sm" className="flex-1 text-xs" onClick={onClose}>
+                Approve
+              </Button>
+              <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={onClose}>
+                Reject
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Exceptions() {
   const { data: exceptions } = useExceptions()
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
+  const [selectedExc, setSelectedExc] = useState<ExceptionRequest | null>(null)
 
   const items = exceptions && exceptions.length > 0 ? exceptions : FALLBACK_EXCEPTIONS
   const usingFallback = !exceptions || exceptions.length === 0
@@ -110,7 +207,7 @@ export default function Exceptions() {
                 </TableRow>
               ) : (
                 filtered.map(exc => (
-                  <TableRow key={exc.id}>
+                  <TableRow key={exc.id} className="cursor-pointer hover:bg-muted/30" onClick={() => setSelectedExc(exc)}>
                     <TableCell className="text-xs font-mono pl-4">{exc.id}</TableCell>
                     <TableCell className="text-xs font-medium">{exc.application_id}</TableCell>
                     <TableCell><Badge variant="outline" className="text-[10px]">{exc.request_type}</Badge></TableCell>
@@ -129,6 +226,8 @@ export default function Exceptions() {
           </Table>
         </CardContent>
       </Card>
+
+      {selectedExc && <ExceptionDetailDrawer exc={selectedExc} onClose={() => setSelectedExc(null)} />}
     </div>
   )
 }

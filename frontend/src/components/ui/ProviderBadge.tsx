@@ -2,9 +2,9 @@ import { cn } from '@/lib/utils'
 import { ProviderIcon } from '@/components/ui/ProviderIcon'
 
 export const PROVIDER_COLORS: Record<string, string> = {
-  aws: 'bg-stone-200/60 dark:bg-stone-700/40',
-  azure: 'bg-stone-200/60 dark:bg-stone-700/40',
-  gcp: 'bg-stone-200/60 dark:bg-stone-700/40',
+  aws: 'bg-zinc-100 dark:bg-zinc-800',
+  azure: 'bg-zinc-100 dark:bg-zinc-800',
+  gcp: 'bg-zinc-100 dark:bg-zinc-800',
 }
 
 export function ProviderBadge({ provider, className }: { provider: string; className?: string }) {

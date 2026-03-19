@@ -1,9 +1,10 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '@/lib/api'
 import { AuthProvider } from '@/lib/auth'
 import { ConfigProvider } from '@/lib/config-context'
+import { branding } from '@/lib/branding'
 import { TracePanelProvider } from '@/lib/trace-panel-context'
 import { AppShell } from '@/components/layout/AppShell'
 import { ExecutionTracePanel } from '@/components/layout/ExecutionTracePanel'
@@ -62,6 +63,10 @@ function PageFallback() {
 }
 
 export default function App() {
+  useEffect(() => {
+    document.title = `${branding.productName} — Cloud Security Platform`
+  }, [])
+
   return (
     <ConfigProvider>
     <QueryClientProvider client={queryClient}>

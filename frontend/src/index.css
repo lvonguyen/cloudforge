@@ -2,34 +2,34 @@
 @import "tailwindcss";
 
 @theme {
-  /* Platform design tokens — light mode */
-  --color-background: #E7E7E6;
-  --color-foreground: #1F2822;
-  --color-card: #CFCBBF;
-  --color-card-foreground: #1F2822;
-  --color-popover: #CFCBBF;
-  --color-popover-foreground: #1F2822;
-  --color-primary: #1F2822;
-  --color-primary-foreground: #E7E7E6;
-  --color-secondary: #CFCBBF;
-  --color-secondary-foreground: #1F2822;
-  --color-muted: #CFCBBF;
-  --color-muted-foreground: #4E4A3E;
-  --color-accent: #F5D288;
-  --color-accent-foreground: #1F2822;
+  /* Platform design tokens — light mode (neutral preset) */
+  --color-background: #F4F4F5;
+  --color-foreground: #18181B;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #18181B;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #18181B;
+  --color-primary: #18181B;
+  --color-primary-foreground: #FAFAFA;
+  --color-secondary: #F4F4F5;
+  --color-secondary-foreground: #18181B;
+  --color-muted: #F4F4F5;
+  --color-muted-foreground: #71717A;
+  --color-accent: #3B82F6;
+  --color-accent-foreground: #FFFFFF;
   --color-destructive: #DC2626;
-  --color-destructive-foreground: #E7E7E6;
-  --color-border: #B8B19C;
-  --color-input: #B8B19C;
-  --color-ring: #F5D288;
-  --color-sidebar-background: #CFCBBF;
-  --color-sidebar-foreground: #1F2822;
-  --color-sidebar-primary: #1F2822;
-  --color-sidebar-primary-foreground: #E7E7E6;
-  --color-sidebar-accent: #B8B19C;
-  --color-sidebar-accent-foreground: #1F2822;
-  --color-sidebar-border: #B8B19C;
-  --color-sidebar-ring: #F5D288;
+  --color-destructive-foreground: #FAFAFA;
+  --color-border: #E4E4E7;
+  --color-input: #E4E4E7;
+  --color-ring: #3B82F6;
+  --color-sidebar-background: #FAFAFA;
+  --color-sidebar-foreground: #18181B;
+  --color-sidebar-primary: #18181B;
+  --color-sidebar-primary-foreground: #FAFAFA;
+  --color-sidebar-accent: #F4F4F5;
+  --color-sidebar-accent-foreground: #18181B;
+  --color-sidebar-border: #E4E4E7;
+  --color-sidebar-ring: #3B82F6;
   --radius: 0px;
 
   /* Typography */
@@ -56,32 +56,32 @@
   }
 
   .dark {
-    --color-background: #1A1D1A;
-    --color-foreground: #E7E7E6;
-    --color-card: #252A25;
-    --color-card-foreground: #E7E7E6;
-    --color-popover: #252A25;
-    --color-popover-foreground: #E7E7E6;
-    --color-primary: #E7E7E6;
-    --color-primary-foreground: #1A1D1A;
-    --color-secondary: #252A25;
-    --color-secondary-foreground: #E7E7E6;
-    --color-muted: #252A25;
-    --color-muted-foreground: #9B9588;
-    --color-accent: #F5D288;
-    --color-accent-foreground: #1A1D1A;
+    --color-background: #09090B;
+    --color-foreground: #FAFAFA;
+    --color-card: #18181B;
+    --color-card-foreground: #FAFAFA;
+    --color-popover: #18181B;
+    --color-popover-foreground: #FAFAFA;
+    --color-primary: #FAFAFA;
+    --color-primary-foreground: #09090B;
+    --color-secondary: #27272A;
+    --color-secondary-foreground: #FAFAFA;
+    --color-muted: #27272A;
+    --color-muted-foreground: #A1A1AA;
+    --color-accent: #3B82F6;
+    --color-accent-foreground: #FFFFFF;
     --color-destructive: #EF4444;
-    --color-destructive-foreground: #E7E7E6;
-    --color-border: #3D3B34;
-    --color-input: #3D3B34;
-    --color-ring: #F5D288;
-    --color-sidebar-background: #252A25;
-    --color-sidebar-foreground: #E7E7E6;
-    --color-sidebar-primary: #E7E7E6;
-    --color-sidebar-primary-foreground: #1A1D1A;
-    --color-sidebar-accent: #3D3B34;
-    --color-sidebar-accent-foreground: #E7E7E6;
-    --color-sidebar-border: #3D3B34;
-    --color-sidebar-ring: #F5D288;
+    --color-destructive-foreground: #FAFAFA;
+    --color-border: #27272A;
+    --color-input: #27272A;
+    --color-ring: #3B82F6;
+    --color-sidebar-background: #18181B;
+    --color-sidebar-foreground: #FAFAFA;
+    --color-sidebar-primary: #FAFAFA;
+    --color-sidebar-primary-foreground: #09090B;
+    --color-sidebar-accent: #27272A;
+    --color-sidebar-accent-foreground: #FAFAFA;
+    --color-sidebar-border: #27272A;
+    --color-sidebar-ring: #3B82F6;
   }
 }

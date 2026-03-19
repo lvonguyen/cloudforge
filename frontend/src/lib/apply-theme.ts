@@ -200,7 +200,7 @@ export function applyTheme(
 export function initTheme(runtimeTheme?: string): void {
   const preset = runtimeTheme
     ?? (import.meta.env.VITE_THEME as string | undefined)
-    ?? 'sage'
+    ?? 'neutral'
 
   const overrides = branding.themeColors
   const hasOverrides = overrides.primary || overrides.secondary || overrides.accent

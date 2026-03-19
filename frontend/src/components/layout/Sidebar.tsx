@@ -91,7 +91,16 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
 function NavContent({ collapsed }: { collapsed: boolean }) {
   const { role } = useAuth()
   const location = useLocation()
-  const sections = NAV_BY_ROLE[role]
+
+  // Derive nav context from route prefix, falling back to role-based default
+  const effectiveRole: Role = location.pathname.startsWith('/portal')
+    ? 'requester'
+    : location.pathname.startsWith('/ops')
+      ? 'operator'
+      : location.pathname.startsWith('/admin')
+        ? 'admin'
+        : role
+  const sections = NAV_BY_ROLE[effectiveRole]
 
   const platformActive = location.pathname === '/'
 
