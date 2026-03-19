@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useExceptions } from '@/hooks/useExceptions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -35,10 +35,19 @@ function formatDate(iso: string): string {
 }
 
 function ExceptionDetailDrawer({ exc, onClose }: { exc: ExceptionRequest; onClose: () => void }) {
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', h)
+    return () => document.removeEventListener('keydown', h)
+  }, [onClose])
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Exception details"
         className="relative w-full max-w-md bg-background border-l border-border h-full overflow-y-auto shadow-xl"
         onClick={e => e.stopPropagation()}
       >
@@ -93,7 +102,7 @@ function ExceptionDetailDrawer({ exc, onClose }: { exc: ExceptionRequest; onClos
           </div>
 
           {/* Approver chain */}
-          {exc.approver_chain.length > 0 && (
+          {(exc.approver_chain?.length ?? 0) > 0 && (
             <div>
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Approver Chain</p>
               <div className="space-y-2">

@@ -40,14 +40,12 @@ export default function Reports() {
   }
 
   const handleGenerateReport = (title: string) => {
-    toast(`Report generation started — ${title} CSV will download shortly`, 'info')
-    setTimeout(() => {
-      if (findings.length > 0) {
-        exportCSV(findings)
-      } else {
-        toast('No findings available for export', 'error')
-      }
-    }, 1500)
+    if (findings.length > 0) {
+      exportCSV(findings)
+      toast(`${title} CSV exported`, 'info')
+    } else {
+      toast('No findings available for export', 'error')
+    }
   }
 
   return (

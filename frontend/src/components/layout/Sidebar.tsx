@@ -92,14 +92,16 @@ function NavContent({ collapsed }: { collapsed: boolean }) {
   const { role } = useAuth()
   const location = useLocation()
 
-  // Derive nav context from route prefix, falling back to role-based default
-  const effectiveRole: Role = location.pathname.startsWith('/portal')
+  // Derive nav context from route prefix, clamped to user's actual role
+  const ROLE_RANK: Record<Role, number> = { viewer: 0, requester: 1, operator: 2, admin: 3 }
+  const urlRole: Role = location.pathname.startsWith('/portal')
     ? 'requester'
     : location.pathname.startsWith('/ops')
       ? 'operator'
       : location.pathname.startsWith('/admin')
         ? 'admin'
         : role
+  const effectiveRole: Role = ROLE_RANK[urlRole] <= ROLE_RANK[role] ? urlRole : role
   const sections = NAV_BY_ROLE[effectiveRole]
 
   const platformActive = location.pathname === '/'
