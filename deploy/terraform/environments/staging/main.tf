@@ -17,8 +17,8 @@ terraform {
   }
 
   backend "gcs" {
-    bucket = "cloudforge-tfstate"
-    prefix = "cloudforge/staging"
+    bucket = "aegis-tfstate"
+    prefix = "aegis/staging"
   }
 }
 
@@ -65,15 +65,15 @@ module "redis" {
   region         = var.region
 }
 
-# ─── Compute: CloudForge API ───────────────────────────────────────────────
+# ─── Compute: Cloud Aegis API ───────────────────────────────────────────────
 
-module "cloudforge_api" {
+module "aegis_api" {
   source          = "../../modules/compute"
   cloud_provider  = var.cloud_provider
   project_name    = var.project_name
   environment     = "staging"
   service_name    = "api"
-  container_image = var.cloudforge_image
+  container_image = var.aegis_image
   vpc_id          = module.network.vpc_id
   subnet_ids      = module.network.subnet_ids
   min_instances   = 2
@@ -90,9 +90,9 @@ module "cloudforge_api" {
   }
 
   secrets = {
-    DATABASE_URL              = "cloudforge-staging-db-url"
-    CLOUDFORGE_JWT_SECRET     = "cloudforge-staging-jwt-secret"
-    CLOUDFORGE_REDIS_PASSWORD = "cloudforge-staging-redis-password"
+    DATABASE_URL              = "aegis-staging-db-url"
+    AEGIS_JWT_SECRET     = "aegis-staging-jwt-secret"
+    AEGIS_REDIS_PASSWORD = "aegis-staging-redis-password"
   }
 
   tags = {

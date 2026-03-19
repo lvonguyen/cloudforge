@@ -21,7 +21,7 @@ func (s *Server) registerWebhook(w http.ResponseWriter, r *http.Request) {
 
 	ep, err := s.webhookEngine.RegisterEndpoint(r.Context(), req)
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+		writeErrorResponse(w, "webhook registration failed", http.StatusBadRequest)
 		return
 	}
 
@@ -47,7 +47,7 @@ func (s *Server) listWebhooks(w http.ResponseWriter, r *http.Request) {
 func (s *Server) deleteWebhook(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	if err := s.webhookEngine.DeleteEndpoint(r.Context(), id); err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusNotFound)
+		writeErrorResponse(w, "webhook endpoint not found", http.StatusNotFound)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

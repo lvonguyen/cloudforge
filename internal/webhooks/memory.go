@@ -8,7 +8,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -40,6 +43,10 @@ func NewMemoryEngine(logger *zap.Logger) Engine {
 func (e *memoryEngine) RegisterEndpoint(_ context.Context, req RegisterEndpointRequest) (*Endpoint, error) {
 	if req.URL == "" {
 		return nil, fmt.Errorf("url is required")
+	}
+
+	if err := validateWebhookURL(req.URL); err != nil {
+		return nil, fmt.Errorf("invalid webhook URL: %w", err)
 	}
 
 	e.mu.Lock()
@@ -187,4 +194,41 @@ func containsEvent(events []string, target string) bool {
 		}
 	}
 	return false
+}
+
+// validateWebhookURL rejects URLs that target internal/private networks (SSRF protection).
+func validateWebhookURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("malformed URL: %w", err)
+	}
+
+	scheme := strings.ToLower(u.Scheme)
+	if scheme != "https" && scheme != "http" {
+		return fmt.Errorf("unsupported scheme %q: must be http or https", scheme)
+	}
+
+	host := u.Hostname()
+	if host == "" {
+		return fmt.Errorf("missing hostname")
+	}
+
+	// Block well-known internal hostnames
+	lower := strings.ToLower(host)
+	if lower == "localhost" || lower == "metadata.google.internal" {
+		return fmt.Errorf("internal hostname %q is not allowed", host)
+	}
+
+	ip := net.ParseIP(host)
+	if ip != nil {
+		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+			return fmt.Errorf("private/internal IP %s is not allowed", ip)
+		}
+		// Block AWS metadata endpoint
+		if ip.Equal(net.ParseIP("169.254.169.254")) {
+			return fmt.Errorf("metadata endpoint %s is not allowed", ip)
+		}
+	}
+
+	return nil
 }

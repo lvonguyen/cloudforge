@@ -7,7 +7,7 @@ variable "cloud_provider" {
 variable "project_name" {
   description = "Project name for resource naming"
   type        = string
-  default     = "cloudforge"
+  default     = "aegis"
 }
 
 variable "region" {
@@ -16,8 +16,8 @@ variable "region" {
   default     = "us-central1"
 }
 
-variable "cloudforge_image" {
-  description = "Container image URI for CloudForge API"
+variable "aegis_image" {
+  description = "Container image URI for Cloud Aegis API"
   type        = string
-  default     = "ghcr.io/lvonguyen/cloudforge:latest"
+  default     = "ghcr.io/lvonguyen/aegis:latest"
 }

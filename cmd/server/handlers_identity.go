@@ -18,7 +18,7 @@ func (s *Server) listIdentityUsers(w http.ResponseWriter, r *http.Request) {
 
 	users, providerName, err := s.identitySvc.ListUsers(r.Context(), provider, identity.UserFilter{})
 	if err != nil {
-		writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+		writeErrorResponse(w, "failed to list users", http.StatusBadRequest)
 		return
 	}
 

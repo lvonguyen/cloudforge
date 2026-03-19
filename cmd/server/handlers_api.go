@@ -213,6 +213,7 @@ func (s *Server) patchRemediation(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Status string `json:"status"`
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeErrorResponse(w, "invalid request body", http.StatusBadRequest)
 		return

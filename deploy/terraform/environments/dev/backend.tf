@@ -17,7 +17,7 @@ terraform {
   }
 
   backend "gcs" {
-    bucket = "cloudforge-tfstate"
-    prefix = "cloudforge/dev"
+    bucket = "aegis-tfstate"
+    prefix = "aegis/dev"
   }
 }

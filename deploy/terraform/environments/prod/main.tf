@@ -17,8 +17,8 @@ terraform {
   }
 
   backend "gcs" {
-    bucket = "cloudforge-tfstate"
-    prefix = "cloudforge/prod"
+    bucket = "aegis-tfstate"
+    prefix = "aegis/prod"
   }
 }
 
@@ -65,15 +65,15 @@ module "redis" {
   region         = var.region
 }
 
-# ─── Compute: CloudForge API ───────────────────────────────────────────────
+# ─── Compute: Cloud Aegis API ───────────────────────────────────────────────
 
-module "cloudforge_api" {
+module "aegis_api" {
   source          = "../../modules/compute"
   cloud_provider  = var.cloud_provider
   project_name    = var.project_name
   environment     = "prod"
   service_name    = "api"
-  container_image = var.cloudforge_image
+  container_image = var.aegis_image
   vpc_id          = module.network.vpc_id
   subnet_ids      = module.network.subnet_ids
   min_instances   = 3            # Always-on for production traffic
@@ -90,9 +90,9 @@ module "cloudforge_api" {
   }
 
   secrets = {
-    DATABASE_URL              = "cloudforge-prod-db-url"
-    CLOUDFORGE_JWT_SECRET     = "cloudforge-prod-jwt-secret"
-    CLOUDFORGE_REDIS_PASSWORD = "cloudforge-prod-redis-password"
+    DATABASE_URL              = "aegis-prod-db-url"
+    AEGIS_JWT_SECRET     = "aegis-prod-jwt-secret"
+    AEGIS_REDIS_PASSWORD = "aegis-prod-redis-password"
   }
 
   tags = {

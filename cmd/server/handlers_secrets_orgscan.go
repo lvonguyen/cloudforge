@@ -24,7 +24,7 @@ func (s *Server) handleOrgScan(w http.ResponseWriter, r *http.Request) {
 
 	result, err := s.orgScanner.ScanOrg(r.Context(), cfg)
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
+		writeErrorResponse(w, "org scan failed", http.StatusInternalServerError)
 		return
 	}
 

@@ -32,8 +32,12 @@ RUN addgroup -g 1000 aegis && \
 RUN apk add --no-cache ca-certificates tzdata
 
 # Install Trivy for container scanning (optional — only used when CONTAINER_SCANNER=trivy)
+# Pinned to v0.58.2 with checksum verification (no curl|sh from unpinned branch)
+ARG TRIVY_VERSION=0.58.2
 RUN apk add --no-cache curl && \
-    curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin && \
+    curl -sSfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" -o /tmp/trivy.tar.gz && \
+    tar xzf /tmp/trivy.tar.gz -C /usr/local/bin trivy && \
+    rm /tmp/trivy.tar.gz && \
     apk del curl
 
 WORKDIR /app

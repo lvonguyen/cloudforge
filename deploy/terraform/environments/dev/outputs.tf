@@ -1,6 +1,6 @@
 output "api_url" {
-  description = "CloudForge API service URL"
-  value       = module.cloudforge_api.service_url
+  description = "Cloud Aegis API service URL"
+  value       = module.aegis_api.service_url
 }
 
 output "database_connection" {

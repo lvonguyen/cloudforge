@@ -1,7 +1,7 @@
-# CloudForge QA Context
+# Cloud Aegis QA Context
 
 ## Application URL
-https://cloudforge-demo.lvonguyen.com/
+http://localhost:5173/
 
 ## Roles
 Three roles available via header dropdown (RoleSwitcher component, dev mode).
@@ -29,59 +29,59 @@ Three roles available via header dropdown (RoleSwitcher component, dev mode).
 
 ## Known WIP (mark SKIPPED, not FAIL)
 - G-08 heatmap readability (deferred — cosmetic)
-- G-10 R2 data re-upload pending
-- /ops/attack-paths — shows 0 paths (data exists but runtime computation returns 0)
-- /ops/graph — visible in sidebar but may be placeholder
-- Sprint G routes not yet deployed: /admin/exceptions, /admin/reports, /admin/app-catalog
+- G-10 R2 data re-upload pending (demo findings regeneration needed)
 - Mock data is non-deterministic — finding totals may vary between loads (6,001 → 6,620 → 6,645 observed)
-- Admin "View All →" links may point to Sprint G routes that 404 on deployed
 
 ## Search Queries (T11)
 - "critical GCP" → should return GCP findings with critical severity
 - "S3 bucket" → should return AWS S3 findings
 - "open GCP misconfigs" → should match NLQ short-circuit (instant result, no API call)
 
-## Route Coverage — Deployed Site (verified via QA run 2026-03-17)
+## Route Coverage — Local Dev (updated 2026-03-18, post-rename + Sprint G/H)
 
-### Operator (/ops/*) — 10 routes
+### Operator (/ops/*) — 8 routes
 - /ops (Command Center — home for Operator role)
 - /ops/findings (Finding list — 6K+ items, filterable)
 - /ops/remediation (Remediation queue — List/Kanban toggle)
 - /ops/costs (Cost dashboard)
 - /ops/compliance (Compliance frameworks — 6 frameworks)
-- /ops/attack-paths (Attack paths — currently shows 0, SKIPPED)
-- /ops/containers (Container security — proper empty state)
-- /ops/graph (Security graph — may be placeholder)
+- /ops/containers (Container security)
 - /ops/data-classification (Data classification)
 - /ops/investigations (Investigation workflows)
 
 ### Portal (/portal/*) — 4 routes
 - /portal (My Dashboard)
 - /portal/request (New Request form)
-- /portal/requests (My Requests — was documented as /portal/my-exceptions, CORRECTED)
+- /portal/requests (My Requests)
 - /portal/catalog (Application Catalog)
 
-### Admin (/admin/*) — 6 routes (deployed), 9 planned
+### Admin (/admin/*) — 9 routes
 - /admin (Dashboard — NOT /admin/dashboard, that 404s)
 - /admin/policies (Policy management)
 - /admin/ai-agents (AI Agent management)
 - /admin/users (User management)
 - /admin/audit-log (Audit log)
 - /admin/system (System configuration)
-- ~~/admin/exceptions~~ (Sprint G — not deployed)
-- ~~/admin/reports~~ (Sprint G — not deployed)
-- ~~/admin/app-catalog~~ (Sprint G — not deployed)
+- /admin/exceptions (Exception queue — Sprint G)
+- /admin/reports (Reports + CSV export — Sprint G)
+- /admin/app-catalog (Application Catalog — Sprint G)
 
 ### Shared
 - / (redirects to role home: /ops for Operator, / for Requester, /admin for Admin)
 
-**Total deployed:** 20 routes (+ 3 pending Sprint G deploy)
+**Total:** 21 routes + landing
 
 ## Scope
-- All 20 deployed routes × 3 roles
+- All 21 routes × 3 roles
 - Light + dark mode
 - Full T1-T11 suite (75+ tests)
 - T4: Classify every button/filter by action type — FAIL as UNWIRED if no state change
 - T9: Verify every sidebar link navigates correctly per role
 - T10: Compare Command Center counts vs Findings page counts
 - T11: Test NLQ search bar + all filter dropdowns on /ops/findings
+
+## Rename Validation (2026-03-18)
+- Verify NO "CloudForge" text appears in any UI element (nav, headings, footer, title bar)
+- Verify "Cloud Aegis" appears where product name is expected
+- Verify logo loads from /icons/aegis-logo.svg
+- Verify sessionStorage keys use "aegis_" prefix (not "cloudforge_")

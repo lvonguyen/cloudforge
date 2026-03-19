@@ -3,12 +3,14 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"sync"
 
 	"aegis/internal/asm"
 )
 
 // asmService encapsulates ASM scanning state (mirrors finopsService pattern).
 type asmService struct {
+	mu      sync.RWMutex
 	scanner asm.ASMScanner
 	assets  []asm.Asset // cached from last scan
 }
@@ -30,12 +32,14 @@ func (s *Server) handleASMScan(w http.ResponseWriter, r *http.Request) {
 
 	result, err := s.asmSvc.scanner.ScanDomain(r.Context(), req.Domain)
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
+		writeErrorResponse(w, "ASM scan failed", http.StatusInternalServerError)
 		return
 	}
 
 	// Cache assets from the latest scan
+	s.asmSvc.mu.Lock()
 	s.asmSvc.assets = result.Assets
+	s.asmSvc.mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(result)
@@ -44,7 +48,9 @@ func (s *Server) handleASMScan(w http.ResponseWriter, r *http.Request) {
 // handleASMAssets returns cached assets from the most recent scan.
 // GET /api/v1/asm/assets
 func (s *Server) handleASMAssets(w http.ResponseWriter, r *http.Request) {
+	s.asmSvc.mu.RLock()
 	assets := s.asmSvc.assets
+	s.asmSvc.mu.RUnlock()
 	if assets == nil {
 		assets = make([]asm.Asset, 0)
 	}

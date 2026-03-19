@@ -9,16 +9,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// complianceFinding is the API response shape for a mapped finding.
-type complianceFinding struct {
-	FrameworkID   string `json:"framework_id"`
-	FrameworkName string `json:"framework_name"`
-	ControlID     string `json:"control_id"`
-	ControlTitle  string `json:"control_title"`
-	Section       string `json:"section"`
-	Severity      string `json:"severity"`
-}
-
 // getCompliancePosture returns all registered frameworks with control counts.
 func (s *Server) getCompliancePosture(w http.ResponseWriter, r *http.Request) {
 	type frameworkSummary struct {
@@ -81,16 +71,4 @@ func (s *Server) getComplianceControls(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(controls)
-}
-
-// toComplianceFinding maps a compliance.ComplianceMapping to the API response shape.
-func toComplianceFinding(m compliance.ComplianceMapping) complianceFinding {
-	return complianceFinding{
-		FrameworkID:   m.FrameworkID,
-		FrameworkName: m.FrameworkName,
-		ControlID:     m.ControlID,
-		ControlTitle:  m.ControlTitle,
-		Section:       m.Section,
-		Severity:      m.Severity,
-	}
 }

@@ -45,13 +45,13 @@ module "redis" {
   region         = var.region
 }
 
-module "cloudforge_api" {
+module "aegis_api" {
   source          = "../../modules/compute"
   cloud_provider  = var.cloud_provider
   project_name    = var.project_name
   environment     = "dev"
   service_name    = "api"
-  container_image = var.cloudforge_image
+  container_image = var.aegis_image
   vpc_id          = var.vpc_id
   subnet_ids      = var.subnet_ids
   min_instances   = 1
@@ -65,9 +65,9 @@ module "cloudforge_api" {
   }
 
   secrets = {
-    DATABASE_URL              = "cloudforge-dev-db-url"
-    CLOUDFORGE_JWT_SECRET     = "cloudforge-dev-jwt-secret"
-    CLOUDFORGE_REDIS_PASSWORD = "cloudforge-dev-redis-password"
+    DATABASE_URL              = "aegis-dev-db-url"
+    AEGIS_JWT_SECRET     = "aegis-dev-jwt-secret"
+    AEGIS_REDIS_PASSWORD = "aegis-dev-redis-password"
   }
 
   tags = {

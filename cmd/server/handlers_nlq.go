@@ -79,6 +79,7 @@ func (s *Server) queryNLQ(w http.ResponseWriter, r *http.Request) {
 	nlqRateLimiter.Unlock()
 
 	var req NLQRequest
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
 		return

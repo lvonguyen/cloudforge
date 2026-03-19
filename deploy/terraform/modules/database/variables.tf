@@ -46,7 +46,7 @@ variable "instance_tier" {
 variable "db_name" {
   description = "Name of the default database to create"
   type        = string
-  default     = "cloudforge"
+  default     = "aegis"
 }
 
 variable "db_version" {

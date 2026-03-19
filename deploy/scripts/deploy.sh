@@ -20,7 +20,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo "[*] CloudForge Deploy"
+echo "[*] Cloud Aegis Deploy"
 echo "    Environment : ${ENV}"
 echo "    Provider    : ${PROVIDER}"
 echo "    Execute     : ${EXECUTE}"
@@ -43,7 +43,7 @@ fi
 # Step 2: Apply
 TERRAFORM_DIR="${SCRIPT_DIR}/../terraform"
 ENV_DIR="${TERRAFORM_DIR}/environments/${ENV}"
-PLAN_FILE="${TMPDIR:-/tmp}/cloudforge-plan-${ENV}.tfplan"
+PLAN_FILE="${TMPDIR:-/tmp}/aegis-plan-${ENV}.tfplan"
 
 echo "[>] Applying..."
 terraform -chdir="${ENV_DIR}" apply "${PLAN_FILE}"

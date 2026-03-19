@@ -28,7 +28,7 @@ var defaultConfigResponse = configResponse{
 	EmailDomain:    "contoso.com",
 	RepoPrefix:     "contoso",
 	EnabledModules: []string{"cspm", "grc", "finops", "identity", "attack-paths"},
-	StoragePrefix:  "cf",
+	StoragePrefix:  "aegis",
 	Theme: map[string]string{
 		"primaryColor": "#f59e0b",
 		"accentColor":  "#f97316",

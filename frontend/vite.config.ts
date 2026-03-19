@@ -69,6 +69,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      allowedHosts: ['host.docker.internal', 'localhost'],
       proxy: {
         '/api': {
           target: 'http://localhost:8080',
