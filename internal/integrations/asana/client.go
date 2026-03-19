@@ -200,16 +200,20 @@ func (c *Client) doJSON(ctx context.Context, method, path string, body, dst inte
 			return fmt.Errorf("asana API %s %s: HTTP %d after %d retries", method, path, resp.StatusCode, maxRetries)
 		}
 
-		defer resp.Body.Close()
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			errBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+			resp.Body.Close()
 			return fmt.Errorf("asana API %s %s: HTTP %d: %s", method, path, resp.StatusCode, string(errBody))
 		}
 
 		if dst != nil {
-			if err := json.NewDecoder(resp.Body).Decode(dst); err != nil {
+			err = json.NewDecoder(resp.Body).Decode(dst)
+			resp.Body.Close()
+			if err != nil {
 				return fmt.Errorf("decoding response: %w", err)
 			}
+		} else {
+			resp.Body.Close()
 		}
 		return nil
 	}

@@ -10,7 +10,7 @@ type OrgScanner interface {
 // OrgConfig is the input for an org-wide secrets scan.
 type OrgConfig struct {
 	OrgName    string   `json:"org_name"`
-	Repos      []string `json:"repos,omitempty"`      // Empty = all repos
+	Repos      []string `json:"repos,omitempty"`       // Empty = all repos
 	MaxWorkers int      `json:"max_workers,omitempty"` // Parallelism (default 5)
 }
 

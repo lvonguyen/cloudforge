@@ -77,6 +77,6 @@ func domainSeed(domain string) uint64 {
 }
 
 func syntheticIP(seed uint64, offset int) string {
-	s := seed + uint64(offset)*7919
+	s := seed + uint64(offset)*7919 //nolint:gosec // offset is always small and positive (mock data index)
 	return fmt.Sprintf("10.%d.%d.%d", (s>>16)%256, (s>>8)%256, s%256)
 }
