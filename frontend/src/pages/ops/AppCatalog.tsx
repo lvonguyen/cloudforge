@@ -97,10 +97,11 @@ export default function AppCatalog() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search applications..."
+                aria-label="Search applications"
                 className="w-full pl-7 pr-7 py-1.5 text-xs bg-muted/50 border border-border outline-none"
               />
               {search && (
-                <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2">
+                <button onClick={() => setSearch('')} aria-label="Clear search" className="absolute right-2 top-1/2 -translate-y-1/2">
                   <X className="h-3 w-3 text-muted-foreground" />
                 </button>
               )}
@@ -173,7 +174,7 @@ export default function AppCatalog() {
                         <TableCell>
                           <Badge variant="outline" className="text-[10px]">{app.data_classification}</Badge>
                         </TableCell>
-                        <TableCell>{app.csp_hosting !== 'SaaS' ? <ProviderBadge provider={app.csp_hosting.toLowerCase()} /> : <span className="text-xs text-muted-foreground">SaaS</span>}</TableCell>
+                        <TableCell>{['AWS', 'Azure', 'GCP'].includes(app.csp_hosting) ? <ProviderBadge provider={app.csp_hosting.toLowerCase()} /> : <span className="text-xs text-muted-foreground">{app.csp_hosting}</span>}</TableCell>
                       </TableRow>
                     ))
                   )}

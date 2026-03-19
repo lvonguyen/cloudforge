@@ -160,8 +160,9 @@ export default function Catalog() {
                     <div className="flex items-center gap-2">
                       <div className="h-8 w-8 rounded-none bg-muted flex items-center justify-center shrink-0">
                         {module.icon_path
-                          ? <img src={module.icon_path} alt="" className="h-5 w-5 object-contain" />
-                          : <Icon className="h-4 w-4 text-muted-foreground" />}
+                          ? <img src={module.icon_path} alt="" className="h-5 w-5 object-contain" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden') }} />
+                          : null}
+                        <Icon className={`h-4 w-4 text-muted-foreground${module.icon_path ? ' hidden' : ''}`} />
                       </div>
                       <div>
                         <CardTitle className="text-sm leading-snug">{module.name}</CardTitle>
