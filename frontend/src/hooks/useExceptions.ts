@@ -153,7 +153,7 @@ export function useException(id: string) {
       } catch (err) {
         if (err instanceof ApiError && err.status < 500) throw err
         console.warn(`[useException] API unavailable for ${id}, using mock data`)
-        return MOCK_EXCEPTIONS.find(e => e.id === id) ?? null as unknown as ExceptionRequest
+        return MOCK_EXCEPTIONS.find(e => e.id === id)
       }
     },
     enabled: Boolean(id),

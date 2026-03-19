@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import {
@@ -81,7 +81,18 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   }
 
   const sections = ['Navigate', 'Actions'] as const
-  let globalIdx = -1
+
+  const groupedItems = useMemo(() => {
+    const groups: { section: string; items: { item: CommandItem; globalIndex: number }[] }[] = []
+    let idx = 0
+    for (const section of sections) {
+      const sItems = filtered.filter(i => i.section === section)
+      if (sItems.length > 0) {
+        groups.push({ section, items: sItems.map(item => ({ item, globalIndex: idx++ })) })
+      }
+    }
+    return groups
+  }, [filtered])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -105,33 +116,27 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           {filtered.length === 0 && (
             <p className="py-6 text-center text-sm text-muted-foreground">No results found.</p>
           )}
-          {sections.map(section => {
-            const sectionItems = filtered.filter(i => i.section === section)
-            if (sectionItems.length === 0) return null
-            return (
-              <div key={section}>
-                <p className="px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{section}</p>
-                {sectionItems.map(item => {
-                  globalIdx++
-                  const idx = globalIdx
-                  const Icon = item.icon
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => execute(item)}
-                      className={`flex w-full items-center gap-3 px-3 py-2 text-sm ${
-                        idx === selectedIndex ? 'bg-accent text-accent-foreground' : 'text-foreground hover:bg-accent/50'
-                      }`}
-                    >
-                      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span>{item.label}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            )
-          })}
+          {groupedItems.map(({ section, items: groupItems }) => (
+            <div key={section}>
+              <p className="px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{section}</p>
+              {groupItems.map(({ item, globalIndex }) => {
+                const Icon = item.icon
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => execute(item)}
+                    className={`flex w-full items-center gap-3 px-3 py-2 text-sm ${
+                      globalIndex === selectedIndex ? 'bg-accent text-accent-foreground' : 'text-foreground hover:bg-accent/50'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span>{item.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ))}
         </div>
       </DialogContent>
     </Dialog>

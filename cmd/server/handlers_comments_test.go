@@ -6,10 +6,13 @@ import (
 	"testing"
 )
 
+// testFindingID is a real ID from the trimmed test fixture (findings_test.json).
+const testFindingID = "f-14868"
+
 func TestListComments_Empty(t *testing.T) {
 	_, router := testServer(t)
 
-	rr := doRequest(t, router, "GET", "/api/v1/findings/f-123/comments", "", adminJWT(t))
+	rr := doRequest(t, router, "GET", "/api/v1/findings/"+testFindingID+"/comments", "", adminJWT(t))
 	assertStatus(t, rr, http.StatusOK)
 
 	var comments []FindingComment
@@ -23,7 +26,7 @@ func TestAddComment_Success(t *testing.T) {
 	_, router := testServer(t)
 
 	body := `{"body":"test comment"}`
-	rr := doRequest(t, router, "POST", "/api/v1/findings/f-123/comments", body, operatorJWT(t))
+	rr := doRequest(t, router, "POST", "/api/v1/findings/"+testFindingID+"/comments", body, operatorJWT(t))
 	assertStatus(t, rr, http.StatusCreated)
 
 	var comment FindingComment
@@ -34,8 +37,8 @@ func TestAddComment_Success(t *testing.T) {
 	if comment.Author != "test-operator" {
 		t.Errorf("author = %q, want %q", comment.Author, "test-operator")
 	}
-	if comment.FindingID != "f-123" {
-		t.Errorf("finding_id = %q, want %q", comment.FindingID, "f-123")
+	if comment.FindingID != testFindingID {
+		t.Errorf("finding_id = %q, want %q", comment.FindingID, testFindingID)
 	}
 	if comment.ID == "" {
 		t.Error("expected non-empty comment ID")
@@ -47,10 +50,10 @@ func TestAddComment_ThenList(t *testing.T) {
 	_ = srv // server used implicitly via shared router
 
 	body := `{"body":"hello world"}`
-	rr := doRequest(t, router, "POST", "/api/v1/findings/f-456/comments", body, adminJWT(t))
+	rr := doRequest(t, router, "POST", "/api/v1/findings/f-02024/comments", body, adminJWT(t))
 	assertStatus(t, rr, http.StatusCreated)
 
-	rr = doRequest(t, router, "GET", "/api/v1/findings/f-456/comments", "", adminJWT(t))
+	rr = doRequest(t, router, "GET", "/api/v1/findings/f-02024/comments", "", adminJWT(t))
 	assertStatus(t, rr, http.StatusOK)
 
 	var comments []FindingComment
@@ -67,7 +70,7 @@ func TestAddComment_EmptyBody(t *testing.T) {
 	_, router := testServer(t)
 
 	body := `{"body":""}`
-	rr := doRequest(t, router, "POST", "/api/v1/findings/f-123/comments", body, operatorJWT(t))
+	rr := doRequest(t, router, "POST", "/api/v1/findings/"+testFindingID+"/comments", body, operatorJWT(t))
 	assertStatus(t, rr, http.StatusBadRequest)
 }
 
@@ -75,7 +78,7 @@ func TestAddComment_ViewerForbidden(t *testing.T) {
 	_, router := testServer(t)
 
 	body := `{"body":"viewer comment"}`
-	rr := doRequest(t, router, "POST", "/api/v1/findings/f-123/comments", body, viewerJWT(t))
+	rr := doRequest(t, router, "POST", "/api/v1/findings/"+testFindingID+"/comments", body, viewerJWT(t))
 	assertStatus(t, rr, http.StatusForbidden)
 }
 
@@ -84,22 +87,22 @@ func TestDeleteComment_AdminOnly(t *testing.T) {
 
 	// Create a comment with admin
 	body := `{"body":"to be deleted"}`
-	rr := doRequest(t, router, "POST", "/api/v1/findings/f-del/comments", body, adminJWT(t))
+	rr := doRequest(t, router, "POST", "/api/v1/findings/f-00486/comments", body, adminJWT(t))
 	assertStatus(t, rr, http.StatusCreated)
 
 	var created FindingComment
 	assertJSON(t, rr, &created)
 
 	// Operator cannot delete
-	rr = doRequest(t, router, "DELETE", "/api/v1/findings/f-del/comments/"+created.ID, "", operatorJWT(t))
+	rr = doRequest(t, router, "DELETE", "/api/v1/findings/f-00486/comments/"+created.ID, "", operatorJWT(t))
 	assertStatus(t, rr, http.StatusForbidden)
 
 	// Admin can delete
-	rr = doRequest(t, router, "DELETE", "/api/v1/findings/f-del/comments/"+created.ID, "", adminJWT(t))
+	rr = doRequest(t, router, "DELETE", "/api/v1/findings/f-00486/comments/"+created.ID, "", adminJWT(t))
 	assertStatus(t, rr, http.StatusNoContent)
 
 	// Verify comment is gone
-	rr = doRequest(t, router, "GET", "/api/v1/findings/f-del/comments", "", adminJWT(t))
+	rr = doRequest(t, router, "GET", "/api/v1/findings/f-00486/comments", "", adminJWT(t))
 	assertStatus(t, rr, http.StatusOK)
 
 	var remaining []FindingComment
@@ -107,6 +110,14 @@ func TestDeleteComment_AdminOnly(t *testing.T) {
 	if len(remaining) != 0 {
 		t.Errorf("expected 0 comments after delete, got %d", len(remaining))
 	}
+}
+
+func TestAddComment_NonExistentFinding(t *testing.T) {
+	_, router := testServer(t)
+
+	body := `{"body":"orphan comment"}`
+	rr := doRequest(t, router, "POST", "/api/v1/findings/DOES-NOT-EXIST/comments", body, operatorJWT(t))
+	assertStatus(t, rr, http.StatusNotFound)
 }
 
 func TestDeleteComment_NotFound(t *testing.T) {

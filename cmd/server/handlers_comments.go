@@ -37,6 +37,9 @@ func NewCommentsStore() *CommentsStore {
 // maxCommentBodyLen caps the comment body length.
 const maxCommentBodyLen = 4096
 
+// maxCommentsPerFinding caps the number of comments per finding to prevent memory exhaustion.
+const maxCommentsPerFinding = 500
+
 // listComments returns all comments for a finding.
 func (s *Server) listComments(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listComments")
@@ -66,6 +69,11 @@ func (s *Server) addComment(w http.ResponseWriter, r *http.Request) {
 
 	findingID := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("finding.id", findingID))
+
+	if _, ok := s.data.FindingsByID[findingID]; !ok {
+		writeErrorResponse(w, "finding not found", http.StatusNotFound)
+		return
+	}
 
 	claims, ok := api.GetClaimsFromContext(r.Context())
 	if !ok || claims.Subject == "" {
@@ -97,6 +105,11 @@ func (s *Server) addComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.comments.mu.Lock()
+	if len(s.comments.comments[findingID]) >= maxCommentsPerFinding {
+		s.comments.mu.Unlock()
+		writeErrorResponse(w, "comment limit reached for this finding", http.StatusConflict)
+		return
+	}
 	s.comments.comments[findingID] = append(s.comments.comments[findingID], comment)
 	s.comments.mu.Unlock()
 

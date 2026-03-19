@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 // CatalogModule represents a Terraform golden module in the service catalogue.
@@ -138,6 +139,7 @@ func loadTestMockData(basePath string) (*MockData, error) {
 // Extracted from Server to decouple data access from HTTP wiring.
 type DataStore struct {
 	*MockData
+	mu               sync.RWMutex // protects mutable fields (RemediationsByID writes)
 	FindingsByID     map[string]*Finding
 	AgentsByID       map[string]*Agent
 	TracesByAgentID  map[string][]AgentTrace

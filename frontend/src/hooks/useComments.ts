@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient } from '@/lib/api'
+import { apiClient, ApiError } from '@/lib/api'
 
 export interface FindingComment {
   id: string
@@ -15,7 +15,9 @@ export function useComments(findingId: string) {
     queryFn: async () => {
       try {
         return await apiClient.get<FindingComment[]>(`/findings/${findingId}/comments`)
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useComments] API unavailable, using empty fallback')
         return [] as FindingComment[]
       }
     },

@@ -334,7 +334,7 @@ func (h *GRCHandler) WithdrawException(w http.ResponseWriter, r *http.Request) {
 	}
 
 	role := api.RoleFromClaims(claims)
-	if claims.Subject != exc.RequestorEmail && role != api.RoleAdmin {
+	if claims.Email != exc.RequestorEmail && role != api.RoleAdmin {
 		writeErrorResponse(w, "forbidden: only the requestor or an admin can withdraw", http.StatusForbidden)
 		return
 	}

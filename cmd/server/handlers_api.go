@@ -227,14 +227,17 @@ func (s *Server) patchRemediation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s.data.mu.Lock()
 	rem, ok := s.data.RemediationsByID[id]
 	if !ok {
+		s.data.mu.Unlock()
 		writeErrorResponse(w, "remediation not found", http.StatusNotFound)
 		return
 	}
 
 	rem.Status = body.Status
 	rem.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	s.data.mu.Unlock()
 
 	s.logAuditEvent(r, "remediation.update_status", "remediation", id, "success")
 

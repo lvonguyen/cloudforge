@@ -20,7 +20,7 @@ interface ExceptionLifecycle {
   requestor: string
   team: string
   business_case: string
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED'
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'REVOKED'
   created: string
   updated: string
   expiry?: string
@@ -128,6 +128,7 @@ const STATUS_BADGE: Record<string, string> = {
   APPROVED: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
   REJECTED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
   EXPIRED: 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400',
+  REVOKED: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
 }
 
 export default function RequestDetail() {

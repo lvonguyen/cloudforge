@@ -7,14 +7,25 @@ import { useComments, useAddComment } from '@/hooks/useComments'
 import { apiClient } from '@/lib/api'
 import type { FindingComment } from '@/hooks/useComments'
 
-vi.mock('@/lib/api', () => ({
-  apiClient: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-  },
-}))
+vi.mock('@/lib/api', () => {
+  class _ApiError extends Error {
+    status: number
+    constructor(status: number, message: string) {
+      super(message)
+      this.status = status
+      this.name = 'ApiError'
+    }
+  }
+  return {
+    apiClient: {
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    },
+    ApiError: _ApiError,
+  }
+})
 
 function makeWrapper() {
   const client = new QueryClient({
