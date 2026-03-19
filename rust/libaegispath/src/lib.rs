@@ -8,6 +8,9 @@ use std::slice;
 /// Prevents a single call from OOM-ing the shared Go/Rust process.
 const MAX_INPUT_BYTES: usize = 64 * 1024 * 1024;
 
+/// Maximum filter buffer size (64KB — filter JSON is tiny).
+const MAX_FILTER_BYTES: usize = 64 * 1024;
+
 /// Compute attack paths from a JSON array of findings.
 ///
 /// # Safety
@@ -79,7 +82,7 @@ pub unsafe extern "C" fn aegis_load_and_serialize_findings(
         Err(_) => return std::ptr::null_mut(),
     };
 
-    let filter = if !filter_ptr.is_null() && filter_len > 0 {
+    let filter = if !filter_ptr.is_null() && filter_len > 0 && filter_len <= MAX_FILTER_BYTES {
         let filter_bytes = unsafe { slice::from_raw_parts(filter_ptr, filter_len) };
         serde_json::from_slice::<loader::FindingsFilter>(filter_bytes).ok()
     } else {
@@ -162,5 +165,51 @@ mod tests {
         let ptr =
             unsafe { aegis_compute_attack_paths(bad.as_ptr(), bad.len(), &mut out_len) };
         assert!(ptr.is_null());
+    }
+
+    #[test]
+    fn ffi_rejects_oversized_input() {
+        let small = b"[]";
+        let mut out_len: usize = 0;
+        // Pass a json_len exceeding MAX_INPUT_BYTES — guard returns null before deref
+        let ptr = unsafe {
+            aegis_compute_attack_paths(small.as_ptr(), MAX_INPUT_BYTES + 1, &mut out_len)
+        };
+        assert!(ptr.is_null());
+    }
+
+    #[test]
+    fn ffi_loader_round_trip() {
+        let input = r#"[{
+            "id":"f-1","source":"test","source_finding_id":"sf","type":"vuln",
+            "title":"T","description":"D","resource_type":"storage",
+            "resource_id":"r1","resource_name":"S3","platform":"aws",
+            "cloud_provider":"AWS","region":"us-east-1","account_id":"acct-1",
+            "account_name":"prod","environment_type":"production",
+            "static_severity":"HIGH","severity":"HIGH","category":"DATA","status":"ACTIVE"
+        }]"#;
+
+        let bytes = input.as_bytes();
+        let mut out_len: usize = 0;
+
+        let result_ptr = unsafe {
+            aegis_load_and_serialize_findings(
+                bytes.as_ptr(),
+                bytes.len(),
+                std::ptr::null(),
+                0,
+                &mut out_len,
+            )
+        };
+
+        assert!(!result_ptr.is_null());
+        assert!(out_len > 0);
+
+        let result_bytes = unsafe { std::slice::from_raw_parts(result_ptr, out_len) };
+        let parsed: Vec<loader::FullFinding> = serde_json::from_slice(result_bytes).unwrap();
+        assert_eq!(parsed.len(), 1);
+        assert_eq!(parsed[0].id, "f-1");
+
+        unsafe { aegis_free(result_ptr, out_len) };
     }
 }

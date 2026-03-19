@@ -171,7 +171,7 @@ pub fn serialize_findings(
             });
 
             let offset = f.offset.unwrap_or(0);
-            let limit = f.limit.unwrap_or(MAX_SERIALIZATION_LIMIT);
+            let limit = f.limit.unwrap_or(MAX_SERIALIZATION_LIMIT).min(MAX_SERIALIZATION_LIMIT);
 
             let filtered: Vec<&FullFinding> = iter.skip(offset).take(limit).collect();
             serde_json::to_vec(&filtered)

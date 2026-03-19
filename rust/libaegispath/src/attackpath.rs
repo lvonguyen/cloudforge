@@ -519,4 +519,15 @@ mod tests {
             result.stats.total_findings
         );
     }
+
+    #[test]
+    fn edge_type_label_passthrough() {
+        assert_eq!(edge_type_label("network_reachable"), "network access");
+        assert_eq!(edge_type_label("data_access"), "data access");
+        assert_eq!(edge_type_label("iam_trust"), "IAM trust");
+        assert_eq!(edge_type_label("lateral_movement"), "lateral movement");
+        // Unknown types pass through (matches Go behavior)
+        assert_eq!(edge_type_label("custom_type"), "custom_type");
+        assert_eq!(edge_type_label(""), "");
+    }
 }
