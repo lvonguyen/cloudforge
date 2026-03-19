@@ -152,7 +152,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Self-service portal: React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui — 21 route pages across Admin, Operator, and Requester role views
 - Dark mode with CSS variable overrides and anti-flash script
-- Cloudflare Pages deployment (cloudforge-demo.lvonguyen.com)
+- Cloudflare Pages deployment (cloudaegis-demo.lvonguyen.com)
 - Terraform networking module (`deploy/terraform/modules/network/`) — AWS VPC, Azure VNet, GCP VPC
 - Staging and production Terraform environments
 - Temporal workflow testing: 23 tests (concurrent + lifecycle + error cases)
