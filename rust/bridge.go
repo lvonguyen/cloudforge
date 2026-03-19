@@ -1,3 +1,5 @@
+//go:build cgo && rust
+
 // Package aegispath provides a CGo bridge to the Rust libaegispath library
 // for high-performance attack path computation and data loading.
 //
@@ -5,9 +7,9 @@
 //
 //	cd rust/libaegispath && cargo build --release
 //
-// Then run Go with CGo enabled:
+// Then run Go with the rust build tag:
 //
-//	CGO_ENABLED=1 go test ./rust/... -v
+//	CGO_ENABLED=1 go build -tags rust ./...
 package aegispath
 
 /*
