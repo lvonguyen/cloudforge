@@ -107,6 +107,7 @@ interface AuthContextValue {
   role: Role
   setRole: (role: Role) => void
   login: () => Promise<void>
+  loginAsDemo: () => Promise<void>
   logout: () => void
   isAuthenticated: boolean
   exchangeCode: (code: string) => Promise<void>
@@ -158,6 +159,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       state,
       nonce,
     })
+    window.location.href = `${OKTA_ISSUER}/v1/authorize?${params}`
+  }, [])
+
+  const loginAsDemo = useCallback(async () => {
+    if (!OKTA_ISSUER || !OKTA_CLIENT_ID) {
+      console.warn('[auth] Okta not configured, skipping demo login')
+      return
+    }
+    const { verifier, challenge } = await createPKCEChallenge()
+    sessionStorage.setItem(VERIFIER_KEY, verifier)
+
+    const state = crypto.randomUUID()
+    sessionStorage.setItem(STATE_KEY, state)
+
+    const nonce = generateRandomString(32)
+    sessionStorage.setItem(NONCE_KEY, nonce)
+
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: OKTA_CLIENT_ID,
+      redirect_uri: `${window.location.origin}/callback`,
+      scope: 'openid profile email groups',
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+      state,
+      nonce,
+    })
+
+    // Pre-fill the Okta login form with the demo viewer email
+    if (branding.demoAccess.email) {
+      params.set('login_hint', branding.demoAccess.email)
+    }
+
     window.location.href = `${OKTA_ISSUER}/v1/authorize?${params}`
   }, [])
 
@@ -248,6 +282,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     role: user.role,
     setRole,
     login,
+    loginAsDemo,
     logout,
     isAuthenticated,
     exchangeCode,
