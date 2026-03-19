@@ -17,15 +17,19 @@ import (
 	"cloudforge/internal/ai-governance/opa"
 	"cloudforge/internal/api"
 	"cloudforge/internal/api/gateway"
+	"cloudforge/internal/asm"
 	"cloudforge/internal/audit"
+	"cloudforge/internal/compliance"
 	"cloudforge/internal/container"
 	"cloudforge/internal/grc"
 	"cloudforge/internal/identity"
 	"cloudforge/internal/ingestion"
+	"cloudforge/internal/integrations"
 	"cloudforge/internal/observability"
 	"cloudforge/internal/secrets"
 	"cloudforge/internal/tenant"
 	"cloudforge/internal/waf"
+	"cloudforge/internal/webhooks"
 	"cloudforge/internal/workflow"
 
 	"github.com/gorilla/mux"
@@ -92,6 +96,13 @@ type Server struct {
 	secretsProvider  *secrets.MemoryProvider
 	secretsManager   *secrets.Manager
 	containerScanner container.Scanner
+
+	// Integration layer (Sprint: Integration Stubs)
+	integrationHandler *IntegrationHandler
+	webhookEngine      webhooks.Engine
+	complianceMgr      *compliance.Manager
+	asmSvc             *asmService
+	orgScanner         secrets.OrgScanner
 }
 
 func main() {
@@ -339,6 +350,22 @@ func main() {
 		wsServerURL:      cfg.WSServerURL,
 		wsPublishKey:     cfg.WSPublishKey,
 		deployTracker:    newDeployTracker(),
+
+		// Integration layer
+		integrationHandler: &IntegrationHandler{
+			provider: integrations.NewMockProvider(logger.Named("integrations.mock")),
+			router:   integrations.NewRoutingEngine(integrations.DefaultRules()),
+			workflow: workflowEngine,
+			auditLogger: audit.NewZapAuditLogger(
+				logger.Named("audit.integrations"),
+				audit.NewMemoryAuditLogger(),
+			),
+			logger: logger.Named("integrations"),
+		},
+		webhookEngine: webhooks.NewMemoryEngine(logger.Named("webhooks")),
+		complianceMgr: compliance.NewManager(logger.Named("compliance")),
+		asmSvc:        &asmService{scanner: asm.NewMockScanner()},
+		orgScanner:    secrets.NewMockOrgScanner(),
 	}
 
 	logger.Info("Mock data loaded",

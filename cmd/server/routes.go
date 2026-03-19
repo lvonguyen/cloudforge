@@ -250,6 +250,54 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/workflows/{id}/approve",
 		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.approveWorkflow)),
 	).Methods("POST")
+
+	// --- Integration layer routes ---
+
+	// Remediation ticket routing (IntegrationHandler)
+	apiRouter.Handle("/findings/{id}/remediate",
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.integrationHandler.RemediateFinding)),
+	).Methods("POST")
+	apiRouter.Handle("/findings/{id}/ticket",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.integrationHandler.GetFindingTicket)),
+	).Methods("GET")
+
+	// Webhook management
+	apiRouter.Handle("/webhooks",
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.registerWebhook)),
+	).Methods("POST")
+	apiRouter.Handle("/webhooks",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listWebhooks)),
+	).Methods("GET")
+	apiRouter.Handle("/webhooks/{id}",
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.deleteWebhook)),
+	).Methods("DELETE")
+	apiRouter.Handle("/webhooks/{id}/deliveries",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listWebhookDeliveries)),
+	).Methods("GET")
+
+	// Compliance posture (wired from internal/compliance Manager)
+	apiRouter.Handle("/compliance/posture",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getCompliancePosture)),
+	).Methods("GET")
+	apiRouter.Handle("/compliance/controls/{fw}",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getComplianceControls)),
+	).Methods("GET")
+
+	// ASM scanning
+	apiRouter.Handle("/asm/scan",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleASMScan)),
+	).Methods("POST")
+	apiRouter.Handle("/asm/assets",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleASMAssets)),
+	).Methods("GET")
+
+	// Secrets org-wide scanning
+	apiRouter.Handle("/secrets/org-scan",
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.handleOrgScan)),
+	).Methods("POST")
+
+	// Asana webhook (unauthenticated handshake, HMAC-verified events)
+	s.router.HandleFunc("/api/v1/webhooks/asana", s.integrationHandler.AsanaWebhook).Methods("POST")
 }
 
 // getTierFromRequest extracts the API tier from the request.

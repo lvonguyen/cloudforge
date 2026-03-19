@@ -13,14 +13,18 @@ import (
 	"time"
 
 	"cloudforge/internal/api"
+	"cloudforge/internal/asm"
 	"cloudforge/internal/audit"
+	"cloudforge/internal/compliance"
 	"cloudforge/internal/container"
 	"cloudforge/internal/grc"
 	"cloudforge/internal/identity"
 	"cloudforge/internal/ingestion"
+	"cloudforge/internal/integrations"
 	"cloudforge/internal/observability"
 	"cloudforge/internal/secrets"
 	"cloudforge/internal/waf"
+	"cloudforge/internal/webhooks"
 	"cloudforge/internal/workflow"
 
 	"github.com/gorilla/mux"
@@ -132,6 +136,19 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		secretsManager:   secrets.NewManager(logger),
 		containerScanner: ctrScanner,
 		deployTracker:    newDeployTracker(),
+
+		// Integration layer
+		integrationHandler: &IntegrationHandler{
+			provider:    integrations.NewMockProvider(logger),
+			router:      integrations.NewRoutingEngine(integrations.DefaultRules()),
+			workflow:    wfEngine,
+			auditLogger: audit.NewMemoryAuditLogger(),
+			logger:      logger,
+		},
+		webhookEngine: webhooks.NewMemoryEngine(logger),
+		complianceMgr: compliance.NewManager(logger),
+		asmSvc:        &asmService{scanner: asm.NewMockScanner()},
+		orgScanner:    secrets.NewMockOrgScanner(),
 	}
 
 	srv.setupRoutes()
