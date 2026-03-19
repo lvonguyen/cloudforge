@@ -4,33 +4,30 @@ import { renderWithProviders } from '@/test/utils'
 import { ProviderBadge, PROVIDER_COLORS } from '../ProviderBadge'
 
 describe('ProviderBadge', () => {
-  it('renders AWS badge with provider text', () => {
+  it('renders AWS badge with title tooltip', () => {
     renderWithProviders(<ProviderBadge provider="aws" />)
-    expect(screen.getByText('AWS')).toBeInTheDocument()
+    expect(screen.getByTitle('AWS')).toBeInTheDocument()
   })
 
-  it('renders Azure badge with provider text', () => {
+  it('renders Azure badge with title tooltip', () => {
     renderWithProviders(<ProviderBadge provider="azure" />)
-    expect(screen.getByText('AZURE')).toBeInTheDocument()
+    expect(screen.getByTitle('AZURE')).toBeInTheDocument()
   })
 
-  it('renders GCP badge with provider text', () => {
+  it('renders GCP badge with title tooltip', () => {
     renderWithProviders(<ProviderBadge provider="gcp" />)
-    expect(screen.getByText('GCP')).toBeInTheDocument()
+    expect(screen.getByTitle('GCP')).toBeInTheDocument()
   })
 
-  it('renders text for unknown provider', () => {
+  it('renders icon for unknown provider', () => {
     renderWithProviders(<ProviderBadge provider="unknown" />)
-    expect(screen.getByText('UNKNOWN')).toBeInTheDocument()
+    expect(screen.getByTitle('UNKNOWN')).toBeInTheDocument()
   })
 
-  it('AWS badge has font-semibold for contrast', () => {
-    expect(PROVIDER_COLORS.aws).toContain('font-semibold')
-  })
-
-  it('AWS badge uses tinted background and light text', () => {
-    expect(PROVIDER_COLORS.aws).toContain('bg-orange-500/20')
-    expect(PROVIDER_COLORS.aws).toContain('text-orange-300')
+  it('uses neutral stone palette for whitelabel', () => {
+    expect(PROVIDER_COLORS.aws).toContain('bg-stone-200/60')
+    expect(PROVIDER_COLORS.azure).toContain('bg-stone-200/60')
+    expect(PROVIDER_COLORS.gcp).toContain('bg-stone-200/60')
   })
 
   it('applies custom className', () => {
