@@ -1,4 +1,4 @@
-# CloudForge
+# Cloud Aegis
 
 ![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -7,11 +7,11 @@
 
 ## Enterprise Cloud Governance Platform with Self-Service Provisioning
 
-CloudForge is a reference architecture and implementation for an Internal Developer Platform (IDP) that enables self-service cloud resource provisioning with built-in governance, compliance guardrails, and exception management workflows.
+Cloud Aegis is a reference architecture and implementation for an Internal Developer Platform (IDP) that enables self-service cloud resource provisioning with built-in governance, compliance guardrails, and exception management workflows.
 
-> **[Live Demo](https://cloudforge-demo.lvonguyen.com)** | **[API](https://cloudforge-api.fly.dev/health)**
+> **[Live Demo](https://cloudaegis-demo.lvonguyen.com)** | **[API](https://aegis-api.fly.dev/health)**
 
-> **About this project** — CloudForge demonstrates enterprise security patterns I've designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains throughout my career. My background has always been project-based: assess the current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — I don't stop at design docs, I ship working systems backed by threat models and ADRs (the [14 ADRs](docs/adr/) capture the same decision-making process I'd use to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. I use security-focused systems design as my core discipline and agentic coding workflows (Claude Code) as a force multiplier for delivery.
+> **About this project** — Cloud Aegis demonstrates enterprise security patterns I've designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains throughout my career. My background has always been project-based: assess the current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — I don't stop at design docs, I ship working systems backed by threat models and ADRs (the [14 ADRs](docs/adr/) capture the same decision-making process I'd use to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. I use security-focused systems design as my core discipline and agentic coding workflows (Claude Code) as a force multiplier for delivery.
 >
 > **Development rigor** — Code quality is enforced through a layered toolchain: `golangci-lint` with `gosec`/`gocritic`/`revive` in CI, shared coding standards governing Go patterns, error handling, and security rules across all repos, pre-commit hooks blocking credential leaks, and systematic multi-pass QA reviews (quality, security, bug discovery) before merge. The emphasis is on elegant, maintainable code paired with comprehensive documentation and detailed architecture diagrams — minimizing tech debt throughout the SDLC rather than accruing it for later.
 
@@ -82,9 +82,9 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 | Environment configs | Done | Dev environment with GCS remote state |
 | **Portal** | | |
 | React SPA (frontend/) | Done | React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui |
-| 26 route pages | Done | Admin, Operator, Requester role views + attack paths + containers |
+| 35 route pages | Done | Admin, Operator, Requester role views + attack paths + containers |
 | Dark mode | Done | CSS variable overrides, anti-flash script |
-| Cloudflare Pages deploy | Done | cloudforge-demo.lvonguyen.com |
+| Cloudflare Pages deploy | Done | cloudaegis-demo.lvonguyen.com |
 | API hook migration | Partial | MyRequests, useFindings (R2 fallback), useAttackPaths (mock fallback), useCostAnomalies cache fix, Execute/Retry mutations wired; remaining hooks fall back to mock on 401 in dev |
 | **Risk Intelligence** | | |
 | Contextual risk schema | Done | AttackPathContext, ToxicComboDetails, MITRE fields |
@@ -140,7 +140,7 @@ This is a **platform reference implementation**, not production software:
 1. **Temporal Workflows** — Workflow definitions exist, orchestration layer not wired into request flow
 2. **Stub Packages** — secrets, waf modules have interfaces and mock implementations but no production wiring
 3. **RoleViewer** — `RoleViewer` (rank 0) is implemented with read-only surface (`/findings`, `/compliance/frameworks`, `/agents` + traces); fine-grained per-resource viewer scoping is not yet enforced
-4. **Chrome QA Findings** — 26/26 routes passing with error states, focus rings, footer landmark, OG meta tags; React 19 lazy() context edge case under Playwright (pre-existing, not prod)
+4. **Chrome QA Findings** — 35/35 routes passing with error states, focus rings, footer landmark, OG meta tags; React 19 lazy() context edge case under Playwright (pre-existing, not prod)
 5. **OIDC Auth Flow** — JWT middleware is production-ready (HS256/RS256, JWKS); Okta JWKS URL auto-derives from `OKTA_DOMAIN` env var. Full SSO login flow requires Okta app configuration.
 
 **Production Requirements:**
@@ -160,7 +160,7 @@ Enterprise cloud environments face a constant tension:
 - **Finance** requires cost controls, tagging, and chargeback
 - **Compliance** demands policy enforcement and exception documentation
 
-CloudForge bridges these needs with a unified platform that provides:
+Cloud Aegis bridges these needs with a unified platform that provides:
 
 - Self-service portal for requesting cloud resources
 - Policy-as-code guardrails (OPA/Rego)
@@ -172,7 +172,7 @@ CloudForge bridges these needs with a unified platform that provides:
 
 ## [/] Architecture
 
-<img src="docs/diagrams/architecture.svg" alt="CloudForge Architecture" width="720">
+<img src="docs/diagrams/architecture.svg" alt="Cloud Aegis Architecture" width="720">
 
 ---
 
@@ -230,7 +230,7 @@ cloudforge/
 ├── configs/                       # Configuration templates
 ├── frontend/                      # Self-service portal (React 19 + Vite 7)
 │   ├── src/
-│   │   ├── pages/                 # 21 route pages (admin, ops, portal views)
+│   │   ├── pages/                 # 35 route pages (admin, ops, portal views)
 │   │   ├── components/            # shadcn/ui component layer
 │   │   ├── hooks/                 # Custom hooks (deploy preview, etc.)
 │   │   ├── lib/                   # API client, auth, utilities
@@ -281,7 +281,7 @@ Pluggable providers for enterprise GRC platforms:
 
 ### AI Governance (Merged from AgentGuard)
 
-- **Embedded OPA engine** — in-process Rego evaluation for AI agent tool and data-flow control (namespace: `cloudforge.ai.*`)
+- **Embedded OPA engine** — in-process Rego evaluation for AI agent tool and data-flow control (namespace: `aegis`)
 - **Agent registry** — lifecycle tracking, observability, status management across agent fleet
 - **Threat modeling** — STRIDE + ATLAS threat models per registered agent type
 - **Maturity assessment** — governance readiness scoring across 5 maturity dimensions
@@ -534,7 +534,7 @@ Built-in support for 20+ frameworks:
 - [x] Rego policy gate for IaC validation (5 policies, 25 rules)
 - [x] Deploy scripts with dry-run-by-default and policy violation gate
 - [x] Container Dockerfiles (frontend nginx + backend Go)
-- [x] Self-service portal UI (React 19 / Vite 7 + shadcn/ui) — deployed to cloudforge-demo.lvonguyen.com
+- [x] Self-service portal UI (React 19 / Vite 7 + shadcn/ui) — deployed to cloudaegis-demo.lvonguyen.com
 - [x] Temporal workflow testing and validation (23 tests, concurrent + lifecycle + error cases)
 - [x] Terraform networking module and staging/prod environments
 

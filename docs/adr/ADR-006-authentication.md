@@ -49,13 +49,14 @@ We will implement **OIDC/SAML federation** for human users and **API keys with s
 
 ### Roles
 
-| Role | Constant | Description | Findings | Reports | Config | Users |
-|------|----------|-------------|----------|---------|--------|-------|
-| requester | `RoleRequester` | Request resources | Read | Read | - | - |
-| operator | `RoleOperator` | SecOps team | Read/Update | Create | Read | - |
-| admin | `RoleAdmin` | Tenant admin | Full | Full | Full | Manage |
+| Role | Constant | Rank | Description | Findings | Reports | Config | Users |
+|------|----------|------|-------------|----------|---------|--------|-------|
+| viewer | `RoleViewer` | 0 | Read-only access | Read | - | - | - |
+| requester | `RoleRequester` | 1 | Request resources | Read | Read | - | - |
+| operator | `RoleOperator` | 2 | SecOps team | Read/Update | Create | Read | - |
+| admin | `RoleAdmin` | 3 | Tenant admin | Full | Full | Full | Manage |
 
-> **Note:** The frontend includes a fourth "viewer" role for read-only UI access, but the Go backend defines only three role constants (`RoleAdmin`, `RoleOperator`, `RoleRequester`). There is no `RoleViewer` in `internal/api/`. This mismatch is documented as a known limitation.|
+> **Note (updated Sprint B, 2026-03-16):** `RoleViewer` was added to the Go backend in Sprint B with rank 0 (lowest privilege). The viewer role has a read-only surface covering `/findings`, `/compliance/frameworks`, `/agents` + traces. 13+ RBAC tests verify viewer access controls. The `groupRoleMap` maps `aegis-viewer` group claims to `RoleViewer`. Fine-grained per-resource viewer scoping is not yet enforced.
 
 ### Permissions
 

@@ -1,8 +1,8 @@
-# CloudForge Portal
+# Cloud Aegis Portal
 
 Self-service cloud governance portal — React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui.
 
-**Live:** [cloudforge-demo.lvonguyen.com](https://cloudforge-demo.lvonguyen.com)
+**Live:** [cloudaegis-demo.lvonguyen.com](https://cloudaegis-demo.lvonguyen.com)
 
 ---
 
@@ -41,7 +41,7 @@ src/
 
 ## Deploy
 
-Hosted on Cloudflare Pages (`cloudforge-demo` project).
+Hosted on Cloudflare Pages (`cloudaegis-demo` project).
 
 ```bash
 npm run deploy    # Uses wrangler@latest

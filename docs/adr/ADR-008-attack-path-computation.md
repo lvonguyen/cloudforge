@@ -84,8 +84,23 @@ Separate service dedicated to graph computation, communicating via gRPC.
 
 **Deferred because**: Adds operational complexity (another container, service discovery) without proportional benefit at demo scale. Can extract later if the engine grows.
 
+## Rust FFI Acceleration (Sprint I+1, 2026-03-18)
+
+The BFS attack path computation was reimplemented in Rust via CGo FFI to address performance at scale:
+
+- **libaegispath** reimplements the BFS graph engine in Rust with `rayon` parallelism for concurrent path computation across account partitions
+- **CGo bridge** at `rust/bridge.go` exposes two functions: `ComputeAttackPaths` (runs the Rust BFS engine) and `LoadAndSerializeFindings` (JSON serialization for FFI boundary)
+- **Performance**: Go baseline measures 119.5s for 20K findings; Rust projected 15-25s (5-8x speedup) due to zero-copy graph construction and parallel BFS
+- **Feature flag**: enabled via `AEGIS_RUST_PATHS=true` environment variable with Go build tag `rust` (falls back to pure-Go engine when disabled)
+- **Testing**: 17 Rust unit tests covering graph construction, BFS traversal, edge classification, and empty/degenerate inputs; Criterion benchmarks for regression tracking
+- **QA hardening** (Sprint I+4): Vec capacity UB fix, edge_type passthrough, 64MB FFI input cap, C.int truncation fix, staticlib for deployment, strip_prefix ID renumbering
+
+The Rust engine maintains identical output semantics to the Go engine — same JSON response types, same path ordering — ensuring transparent substitution behind the feature flag.
+
 ## References
 
 - `docs/research/wiz-attack-path-enhancements.md` — full Wiz-adjacent architecture roadmap
 - `internal/cspm/normalizer/schema.go` — AttackPathContext struct
 - `internal/cspm/scoring/risk_scorer.go` — risk scoring with attack path context
+- `rust/aegispath/` — Rust library source (lib.rs, Cargo.toml)
+- `rust/bridge.go` — CGo FFI bridge functions

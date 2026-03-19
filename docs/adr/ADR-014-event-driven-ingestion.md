@@ -2,15 +2,19 @@
 
 ## Status
 
-Proposed
+Accepted
 
 ## Date
 
 2026-03-12
 
+## Implementation Note
+
+> **Phase 1** (JSON file ingestion) and **Phase 2** (API-based ingestion via `POST /api/v1/findings/ingest` with SHA-256 dedup cache, 24h TTL, admin-only) are **implemented**. Phase 3 (event-driven via SQS/Pub-Sub/Event Hub) and Phase 4 (cross-account ingestion) remain on the roadmap.
+
 ## Context
 
-CloudForge currently loads findings from JSON files at startup (`./findings/auto_remediation/*.json`). This architecture works for MVP and demo environments but has several production limitations:
+Cloud Aegis currently loads findings from JSON files at startup (`./findings/auto_remediation/*.json`). This architecture works for MVP and demo environments but has several production limitations:
 
 ### Current Architecture Limitations
 
@@ -78,7 +82,7 @@ graph LR
 
 #### 1. Finding Normalizer
 
-**Purpose**: Convert CSPM-specific finding formats to CloudForge's unified schema.
+**Purpose**: Convert CSPM-specific finding formats to Cloud Aegis's unified schema.
 
 **Input**: Native finding format (SecurityHub JSON, Defender webhook payload, SCC Pub/Sub message)
 
@@ -198,7 +202,7 @@ Use Kafka as central event bus for all findings.
 
 ### Alternative 2: Direct API Push (Webhook)
 
-CSPM sources push findings directly to CloudForge API endpoint.
+CSPM sources push findings directly to Cloud Aegis API endpoint.
 
 **Pros**:
 - Simpler architecture (no queue)
@@ -292,9 +296,9 @@ func (s *server) handleIngestFinding(w http.ResponseWriter, r *http.Request) {
 #### AWS Implementation
 
 1. **EventBridge Rule**: `aws.securityhub` → Filter by `findingType` → Target: SQS queue
-2. **SQS Queue**: `cloudforge-findings-ingest` (Standard queue, 7-day retention)
-3. **Lambda Normalizer**: Triggered by SQS, writes to `cloudforge-findings-normalized` queue
-4. **Lambda Scorer**: Triggered by normalized queue, writes to `cloudforge-findings-remediation` queue
+2. **SQS Queue**: `aegis-findings-ingest` (Standard queue, 7-day retention)
+3. **Lambda Normalizer**: Triggered by SQS, writes to `aegis-findings-normalized` queue
+4. **Lambda Scorer**: Triggered by normalized queue, writes to `aegis-findings-remediation` queue
 5. **Dispatcher Workers**: EC2/ECS/Lambda pulling from remediation queue
 
 **CloudFormation Stack**:
@@ -303,7 +307,7 @@ Resources:
   FindingIngestQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: cloudforge-findings-ingest
+      QueueName: aegis-findings-ingest
       MessageRetentionPeriod: 604800  # 7 days
       VisibilityTimeout: 300
       RedrivePolicy:
@@ -318,27 +322,27 @@ Resources:
         detail-type: ["Security Hub Findings - Imported"]
       Targets:
         - Arn: !GetAtt FindingIngestQueue.Arn
-          Id: CloudForgeFindingIngest
+          Id: AegisFindingIngest
 ```
 
 #### GCP Implementation
 
-1. **Pub/Sub Topic**: `cloudforge-findings-ingest` (7-day retention)
+1. **Pub/Sub Topic**: `aegis-findings-ingest` (7-day retention)
 2. **SCC Export**: Configure SCC to publish to Pub/Sub topic
-3. **Cloud Run Normalizer**: Subscribes to topic, writes to `cloudforge-findings-normalized`
+3. **Cloud Run Normalizer**: Subscribes to topic, writes to `aegis-findings-normalized`
 4. **Cloud Run Scorer**: Subscribes to normalized topic, writes to Firestore
 5. **Dispatcher Workers**: Cloud Run services polling Firestore for `status = ready_for_remediation`
 
 **Terraform Module**:
 ```hcl
 resource "google_pubsub_topic" "findings_ingest" {
-  name = "cloudforge-findings-ingest"
+  name = "aegis-findings-ingest"
 
   message_retention_duration = "604800s"  # 7 days
 }
 
 resource "google_pubsub_subscription" "normalizer" {
-  name  = "cloudforge-normalizer-sub"
+  name  = "aegis-normalizer-sub"
   topic = google_pubsub_topic.findings_ingest.name
 
   ack_deadline_seconds = 300
@@ -356,7 +360,7 @@ resource "google_pubsub_subscription" "normalizer" {
 
 #### Azure Implementation
 
-1. **Event Hub**: `cloudforge-findings-ingest` (7-day retention)
+1. **Event Hub**: `aegis-findings-ingest` (7-day retention)
 2. **Defender Continuous Export**: Configure to send to Event Hub
 3. **Container App Normalizer**: Consumes Event Hub, writes to Service Bus queue
 4. **Container App Scorer**: Consumes normalized queue, writes to Cosmos DB
@@ -371,17 +375,17 @@ resource "google_pubsub_subscription" "normalizer" {
 Support ingesting findings from 50+ AWS accounts, Azure subscriptions, and GCP projects.
 
 **AWS Multi-Account**:
-- Central account hosts CloudForge infrastructure
+- Central account hosts Cloud Aegis infrastructure
 - Member accounts send findings to central EventBridge bus via cross-account EventBridge
 - Normalizer Lambda uses STS AssumeRole to query resources in member accounts
 
 **Azure Multi-Subscription**:
-- Central subscription hosts CloudForge infrastructure
+- Central subscription hosts Cloud Aegis infrastructure
 - Member subscriptions send findings to central Event Hub via Azure Monitor
 - Normalizer uses Azure Lighthouse for cross-subscription access
 
 **GCP Multi-Project**:
-- Central project hosts CloudForge infrastructure
+- Central project hosts Cloud Aegis infrastructure
 - Member projects send findings to central Pub/Sub topic via Organization-level SCC export
 - Normalizer uses service account impersonation for cross-project access
 

@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to CloudForge are documented in this file.
+All notable changes to Cloud Aegis are documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
@@ -9,6 +9,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+
+- Rust hot-path library (`libaegispath`) for attack path BFS computation via CGo FFI with rayon parallelism (Sprint I+1)
+- `ComputeAttackPaths()` and `LoadAndSerializeFindings()` Go bridge functions (Sprint I+2)
+- Criterion benchmarks for Rust attack path computation (Sprint I+1)
+- ws-server connection pooling + health check registration (Sprint I+3)
+- Performance baseline document with Go vs Rust benchmark comparison (Sprint I+5)
+- Cloud service icons for resource catalogue items (Sprint N+6)
+- ProviderBadge enhanced with inline ProviderIcon SVGs (Sprint N+6)
+
+### Fixed
+
+- QA iteration 2: Vec capacity UB, edge_type passthrough, 64MB FFI input cap, serialization limit (Sprint I+4)
+- QA iteration 3: C.int truncation fix, staticlib for deployment, strip_prefix ID renumbering (Sprint I+4)
+
+### Changed
+
+- Renamed CloudForge to Cloud Aegis across README, ADRs, and frontend README (Sprint N+6)
+- Custom domain updated to cloudaegis-demo.lvonguyen.com (Sprint N+6)
+
+### Added (prior sprints)
 
 - **Sprint E**: Client-side mock attack path generator for standalone demo; `AttackPathMiniGraph` embedded in `FindingDetail` Investigation tab (Wiz pattern) (Sprint E)
 - **Sprint E**: `SecurityGraph` focus mode — BFS 2-hop subgraph from selected node; connected-only default (hides isolated nodes) (Sprint E)
