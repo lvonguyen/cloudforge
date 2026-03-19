@@ -19,6 +19,7 @@
  */
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { loadRuntimeConfig, type RuntimeConfig } from '@/lib/runtime-config'
+import { initTheme } from '@/lib/apply-theme'
 
 interface ConfigContextValue {
   /** Runtime config, or null if loading / unavailable */
@@ -46,6 +47,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     loadRuntimeConfig().then((cfg) => {
       setConfig(cfg)
+      initTheme()
       setLoading(false)
     })
   }, [])

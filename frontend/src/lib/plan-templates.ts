@@ -21,7 +21,7 @@ function planForS3(config: DeployPreviewConfig): TerraformPlan {
               after: {
                 bucket: bucketName,
                 force_destroy: true,
-                tags: { team: String(config.configuration.tagTeam ?? 'platform'), environment: String(config.configuration.tagEnvironment ?? 'dev'), 'cost-center': String(config.configuration.tagCostCenter ?? 'CC-0000'), managed_by: 'cloudforge' },
+                tags: { team: String(config.configuration.tagTeam ?? 'platform'), environment: String(config.configuration.tagEnvironment ?? 'dev'), 'cost-center': String(config.configuration.tagCostCenter ?? 'CC-0000'), managed_by: branding.storagePrefix },
               },
             },
           },
@@ -82,7 +82,7 @@ function planForEC2(config: DeployPreviewConfig): TerraformPlan {
                 ami: String(config.configuration.amiId || 'ami-0c02fb55956c7d316'),
                 instance_type: String(config.configuration.instanceType || 't3.medium'),
                 subnet_id: String(config.configuration.subnetId || 'subnet-0abc1234'),
-                vpc_security_group_ids: ['sg-cloudforge-demo'],
+                vpc_security_group_ids: ['sg-platform-demo'],
                 tags: { Name: `cf-demo-${config.appId}`, team: String(config.configuration.tagTeam ?? ''), environment: String(config.configuration.tagEnvironment ?? 'dev') },
                 metadata_options: { http_tokens: 'required', http_endpoint: 'enabled' },
                 root_block_device: { encrypted: true, volume_type: 'gp3', volume_size: 20 },

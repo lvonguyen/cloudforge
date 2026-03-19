@@ -28,7 +28,7 @@ export function TerminalOutput({ events, isRunning }: { events: DeployEvent[]; i
           <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
           <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
         </div>
-        <span className="text-[10px] text-[#8b949e] ml-2">cloudforge deploy-preview</span>
+        <span className="text-[10px] text-[#8b949e] ml-2">deploy-preview</span>
         {isRunning && (
           <span className="ml-auto text-[10px] text-green-400 animate-pulse">RUNNING</span>
         )}

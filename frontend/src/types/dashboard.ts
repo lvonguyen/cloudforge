@@ -1,3 +1,5 @@
+import { branding } from '@/lib/branding'
+
 export type WidgetId =
   | 'kpi-cards'
   | 'sla-compliance'
@@ -33,7 +35,7 @@ export const WIDGET_PRESETS: WidgetPreset[] = [
   },
 ]
 
-const STORAGE_KEY = 'cloudforge-dashboard-layout'
+const STORAGE_KEY = `${branding.storagePrefix}-dashboard-layout`
 
 export function loadDashboardLayout(): WidgetId[] | null {
   try {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { TOKEN_KEY } from '@/lib/auth'
+import { branding } from '@/lib/branding'
 
 export interface Envelope {
   channel: string
@@ -39,7 +40,7 @@ async function fetchTicket(): Promise<string | null> {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${jwt}`,
       },
-      body: JSON.stringify({ user_id: 'cloudforge' }),
+      body: JSON.stringify({ user_id: branding.storagePrefix }),
     })
     if (!res.ok) return null
     const data = (await res.json()) as { ticket?: string }
