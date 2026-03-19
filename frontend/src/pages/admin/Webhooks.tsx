@@ -94,7 +94,7 @@ function RegisterModal({ onClose }: { onClose: () => void }) {
       <div className="relative bg-background border border-border shadow-lg w-full max-w-md p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold">Register Webhook</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
         </div>
         <div className="space-y-3">
           <div>

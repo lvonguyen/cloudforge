@@ -1,16 +1,16 @@
 .PHONY: build run dev test clean docker-build docker-up docker-down migrate lint fmt help build-cspm run-cspm test-cspm bedrock-auth bedrock-check bedrock-export dev-ai health smoke bench profile generate-attack-paths load-test-smoke load-test-stress
 
 # Variables
-BINARY_NAME=cloudforge
+BINARY_NAME=aegis
 GO=go
 DOCKER_COMPOSE=docker-compose
 
 # Secret management — pulls from 1Password, falls back for CI/offline dev
-CF_JWT_SECRET ?= $(shell op read "op://Development/cloudforge-dev-jwt-secret/password" 2>/dev/null || echo "dev-secret-fallback")
+CF_JWT_SECRET ?= $(shell op read "op://Development/aegis-dev-jwt-secret/password" 2>/dev/null || echo "dev-secret-fallback")
 
 # Default target
 help:
-	@echo "CloudForge - Enterprise Cloud Governance Platform"
+	@echo "Cloud Aegis - Enterprise Cloud Governance Platform"
 	@echo ""
 	@echo "Usage:"
 	@echo "  make build        Build the binary"
@@ -47,14 +47,14 @@ run:
 # Run backend + frontend dev servers (Ctrl-C kills both)
 dev:
 	@trap 'kill 0' EXIT; \
-	CLOUDFORGE_JWT_SECRET=$(CF_JWT_SECRET) GRC_PROVIDER=memory $(GO) run ./cmd/server & \
+	AEGIS_JWT_SECRET=$(CF_JWT_SECRET) GRC_PROVIDER=memory $(GO) run ./cmd/server & \
 	cd frontend && npm run dev & \
 	wait
 
 # Run with Postgres (requires local postgres)
 run-postgres:
 	GRC_PROVIDER=postgres \
-	DATABASE_URL="postgres://cloudforge:cloudforge@localhost:5432/cloudforge?sslmode=disable" \
+	DATABASE_URL="postgres://aegis:aegis@localhost:5432/aegis?sslmode=disable" \
 	$(GO) run ./cmd/server
 
 # Run tests
@@ -77,7 +77,7 @@ fmt:
 
 # Build Docker image
 docker-build:
-	docker build -t cloudforge:latest .
+	docker build -t aegis:latest .
 
 # Start all services
 docker-up:
@@ -146,9 +146,9 @@ bedrock-export:
 dev-ai:
 	@trap 'kill 0' EXIT; \
 	AWS_PROFILE=$${AWS_PROFILE:-lvn-personal} \
-	CLOUDFORGE_AI_ENABLED=true \
-	CLOUDFORGE_AI_REGION=$${CLOUDFORGE_AI_REGION:-us-east-1} \
-	CLOUDFORGE_JWT_SECRET=$(CF_JWT_SECRET) \
+	AEGIS_AI_ENABLED=true \
+	AEGIS_AI_REGION=$${AEGIS_AI_REGION:-us-east-1} \
+	AEGIS_JWT_SECRET=$(CF_JWT_SECRET) \
 	GRC_PROVIDER=memory \
 	$(GO) run ./cmd/server & \
 	cd frontend && npm run dev & \
@@ -167,7 +167,7 @@ generate-attack-paths:  ## Regenerate attack path data for R2 upload
 	@echo "[*] To regenerate and upload attack path data:"
 	@echo "  1. Start server: make run"
 	@echo "  2. Export: curl -s http://localhost:8080/api/v1/attack-paths?per_page=100 -H 'Authorization: Bearer <TOKEN>' | jq '.items' > attack-paths.json"
-	@echo "  3. Upload: wrangler r2 object put cloudforge-demo-data/mock/attack-paths.json --file attack-paths.json"
+	@echo "  3. Upload: wrangler r2 object put aegis-demo-data/mock/attack-paths.json --file attack-paths.json"
 	@echo ""
 	@echo "[!] Requires: wrangler CLI authenticated to Cloudflare account"
 
@@ -179,7 +179,7 @@ load-test-stress:  ## Run k6 stress test (ramp 0→50→0, 3min)
 
 smoke: build  ## Start backend, verify health, stop
 	@echo "Starting backend for smoke test..."
-	@CLOUDFORGE_JWT_SECRET=$(CF_JWT_SECRET) GRC_PROVIDER=memory ./bin/cloudforge &
+	@AEGIS_JWT_SECRET=$(CF_JWT_SECRET) GRC_PROVIDER=memory ./bin/$(BINARY_NAME) &
 	@sleep 2
 	@curl -sf http://localhost:8080/healthz && echo "Liveness: OK" || echo "Liveness: FAIL"
 	@curl -sf http://localhost:8080/ready && echo "Readiness: OK" || echo "Readiness: FAIL"

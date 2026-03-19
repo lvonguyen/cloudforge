@@ -17,7 +17,7 @@ async function fetchLocalMockFindings(): Promise<Finding[]> {
   return res.json()
 }
 
-const SESSION_SOURCE_KEY = 'cf_findings_source'
+const SESSION_SOURCE_KEY = 'aegis_findings_source'
 
 async function fetchMockFindings(): Promise<Finding[]> {
   const preferred = sessionStorage.getItem(SESSION_SOURCE_KEY)
