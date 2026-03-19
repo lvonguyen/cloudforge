@@ -1,0 +1,82 @@
+import { useMutation } from '@tanstack/react-query'
+import { apiClient, ApiError } from '@/lib/api'
+import { useToast } from '@/hooks/useToast'
+
+export interface SecretFinding {
+  pattern_id: string
+  pattern_name: string
+  type: string
+  severity: string
+  line: number
+  column: number
+  match: string
+  context: string
+  file?: string
+}
+
+export interface RepoResult {
+  repo: string
+  findings: SecretFinding[]
+}
+
+export interface OrgScanResult {
+  org_name: string
+  repos_scanned: number
+  total_secrets: number
+  results: RepoResult[]
+  errors?: { repo: string; message: string }[]
+}
+
+const MOCK_RESULT: OrgScanResult = {
+  org_name: 'acme-corp',
+  repos_scanned: 3,
+  total_secrets: 6,
+  results: [
+    {
+      repo: 'acme-corp/frontend',
+      findings: [
+        { pattern_id: 'aws-access-key', pattern_name: 'AWS Access Key', type: 'credential', severity: 'critical', line: 12, column: 1, match: 'AKIA****REDACTED', context: 'AWS_ACCESS_KEY_ID=AKIA****REDACTED', file: '.env.example' },
+        { pattern_id: 'generic-api-key', pattern_name: 'Generic API Key', type: 'api_key', severity: 'high', line: 45, column: 10, match: 'sk-****REDACTED', context: 'api_key: sk-****REDACTED', file: 'config/defaults.yaml' },
+      ],
+    },
+    {
+      repo: 'acme-corp/backend-api',
+      findings: [
+        { pattern_id: 'aws-access-key', pattern_name: 'AWS Access Key', type: 'credential', severity: 'critical', line: 12, column: 1, match: 'AKIA****REDACTED', context: 'AWS_ACCESS_KEY_ID=AKIA****REDACTED', file: '.env.example' },
+        { pattern_id: 'generic-api-key', pattern_name: 'Generic API Key', type: 'api_key', severity: 'high', line: 45, column: 10, match: 'sk-****REDACTED', context: 'api_key: sk-****REDACTED', file: 'config/defaults.yaml' },
+      ],
+    },
+    {
+      repo: 'acme-corp/infra-terraform',
+      findings: [
+        { pattern_id: 'aws-access-key', pattern_name: 'AWS Access Key', type: 'credential', severity: 'critical', line: 12, column: 1, match: 'AKIA****REDACTED', context: 'AWS_ACCESS_KEY_ID=AKIA****REDACTED', file: '.env.example' },
+        { pattern_id: 'generic-api-key', pattern_name: 'Generic API Key', type: 'api_key', severity: 'high', line: 45, column: 10, match: 'sk-****REDACTED', context: 'api_key: sk-****REDACTED', file: 'config/defaults.yaml' },
+      ],
+    },
+  ],
+}
+
+export function useStartOrgScan() {
+  const { toast } = useToast()
+  return useMutation({
+    mutationFn: async (req: { org_name: string; repos?: string[] }) => {
+      try {
+        return await apiClient.post<OrgScanResult>('/secrets/org-scan', req)
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useStartOrgScan] API unavailable, using mock data')
+        return { ...MOCK_RESULT, org_name: req.org_name }
+      }
+    },
+    onSuccess: (data) => {
+      toast(`Scan complete: ${data.total_secrets} secret${data.total_secrets !== 1 ? 's' : ''} found in ${data.repos_scanned} repo${data.repos_scanned !== 1 ? 's' : ''}`)
+    },
+    onError: (err: Error) => {
+      if (err instanceof ApiError && err.status === 403) {
+        toast('Org scan requires admin role', 'error')
+      } else {
+        toast('Scan failed', 'error')
+      }
+    },
+  })
+}

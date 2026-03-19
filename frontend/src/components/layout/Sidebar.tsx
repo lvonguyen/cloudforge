@@ -8,7 +8,8 @@ import {
   LayoutDashboard, FileText, Bot, Users, ClipboardList, Settings,
   Activity, AlertTriangle, Wrench, DollarSign, Shield,
   Home, PlusCircle, List, Package, Box, Database, Search,
-  ChevronLeft, ChevronRight, X, BarChart3, ListChecks, type LucideIcon,
+  ChevronLeft, ChevronRight, X, BarChart3, ListChecks, Link2,
+  KeyRound, Globe, Layers, type LucideIcon,
 } from 'lucide-react'
 
 interface NavItem {
@@ -36,6 +37,8 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
         { to: '/admin/exceptions', label: 'Exceptions', icon: ListChecks },
         { to: '/admin/audit-log', label: 'Audit Log', icon: ClipboardList },
         { to: '/admin/reports', label: 'Reports', icon: BarChart3 },
+        { to: '/admin/webhooks', label: 'Webhooks', icon: Link2 },
+        { to: '/admin/secrets-scan', label: 'Secrets Scan', icon: KeyRound },
         { to: '/admin/system', label: 'System', icon: Settings },
       ],
     },
@@ -57,6 +60,8 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
         { to: '/ops/containers', label: 'Containers', icon: Box },
         { to: '/ops/app-catalog', label: 'Application Catalog', icon: Database },
         { to: '/ops/investigations', label: 'Investigations', icon: Search },
+        { to: '/ops/attack-surface', label: 'Attack Surface', icon: Globe },
+        { to: '/ops/data-sources', label: 'Data Sources', icon: Layers },
       ],
     },
   ],

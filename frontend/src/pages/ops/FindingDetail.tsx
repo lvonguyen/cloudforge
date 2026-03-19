@@ -10,20 +10,22 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft, ExternalLink, CheckCircle2, Shield, AlertTriangle, Brain, Crosshair, Building2, Zap, Globe, Flame, Server, ChevronRight, Clock, MessageSquare, Search, CircleDot, Wrench, UserCheck, XCircle } from 'lucide-react'
+import { ArrowLeft, ExternalLink, CheckCircle2, Shield, AlertTriangle, Brain, Crosshair, Building2, Zap, Globe, Flame, Server, ChevronRight, Clock, MessageSquare, Search, CircleDot, Wrench, UserCheck, XCircle, Ticket as TicketIcon } from 'lucide-react'
 import { SeverityBadge } from '@/components/findings/SeverityBadge'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
 import { useCreateException } from '@/hooks/useExceptions'
 import { useComments, useAddComment } from '@/hooks/useComments'
+import { useFindingTicket, useRemediateFinding } from '@/hooks/useIntegrations'
+import type { Ticket } from '@/hooks/useIntegrations'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
 
 export default function FindingDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, role } = useAuth()
   const { data: finding, isLoading } = useFinding(id ?? '')
   const { openTimeline } = useTracePanel()
   const remediateCooldown = useActionCooldown({ key: `remediate-${id ?? ''}`, cooldownMs: 10_000 })
@@ -34,6 +36,8 @@ export default function FindingDetail() {
   const [commentText, setCommentText] = useState('')
   const { data: comments = [] } = useComments(id ?? '')
   const addComment = useAddComment(id ?? '')
+  const { data: ticket } = useFindingTicket(id ?? '')
+  const createTicket = useRemediateFinding()
 
   // Fetch attack paths to find any that include this finding
   const { data: attackPathsData } = useAttackPaths(1, 200)
@@ -365,6 +369,73 @@ export default function FindingDetail() {
               {suppressed ? 'Suppressed' : createException.isPending ? 'Suppressing\u2026' : !suppressCooldown.canFire ? 'Suppressing\u2026' : 'Suppress'}
             </Button>
           </div>
+
+          {/* Ticket tracking card */}
+          {ticket ? (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <div className="flex items-center gap-1.5"><TicketIcon className="h-3.5 w-3.5" />External Ticket</div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Provider</p>
+                    <p className="text-sm font-medium mt-0.5 capitalize">{ticket.provider}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Status</p>
+                    <span className={`text-[10px] font-medium px-2 py-0.5 mt-0.5 inline-block ${
+                      ticket.status === 'resolved' || ticket.status === 'closed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
+                      ticket.status === 'open' || ticket.status === 'in_progress' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
+                      'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300'
+                    }`}>{ticket.status}</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Priority</p>
+                    <p className="text-sm font-medium mt-0.5 capitalize">{ticket.priority}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">External ID</p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <code className="text-xs font-mono">{ticket.external_id}</code>
+                      {ticket.url && (
+                        <a href={ticket.url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground">
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <TicketIcon className="h-4 w-4" />
+                  <span className="text-xs">No external ticket linked to this finding.</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs gap-1.5"
+                  disabled={createTicket.isPending || role !== 'admin'}
+                  onClick={() => {
+                    createTicket.mutate({
+                      findingId: finding.id,
+                      severity: finding.severity,
+                      isChokePoint: false,
+                    })
+                  }}
+                >
+                  <TicketIcon className="h-3.5 w-3.5" />
+                  {createTicket.isPending ? 'Creating...' : 'Create Ticket'}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {finding.remediation_steps && finding.remediation_steps.length > 0 ? (
             <Card>

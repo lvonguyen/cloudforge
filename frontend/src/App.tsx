@@ -36,10 +36,14 @@ const Containers = lazy(() => import('@/pages/ops/Containers'))
 const DataClassification = lazy(() => import('@/pages/ops/DataClassification'))
 const Investigations = lazy(() => import('@/pages/ops/Investigations'))
 const AppCatalog = lazy(() => import('@/pages/ops/AppCatalog'))
+const AttackSurface = lazy(() => import('@/pages/ops/AttackSurface'))
+const DataSources = lazy(() => import('@/pages/ops/DataSources'))
 
 // Admin pages (lazy — added Sprint G)
 const Exceptions = lazy(() => import('@/pages/admin/Exceptions'))
 const Reports = lazy(() => import('@/pages/admin/Reports'))
+const Webhooks = lazy(() => import('@/pages/admin/Webhooks'))
+const OrgSecretsScan = lazy(() => import('@/pages/admin/OrgSecretsScan'))
 
 // Portal pages (lazy)
 const PortalDashboard = lazy(() => import('@/pages/portal/Dashboard'))
@@ -84,6 +88,8 @@ export default function App() {
                     <Route path="/admin/system" element={<SystemHealth />} />
                     <Route path="/admin/exceptions" element={<Exceptions />} />
                     <Route path="/admin/reports" element={<Reports />} />
+                    <Route path="/admin/webhooks" element={<Webhooks />} />
+                    <Route path="/admin/secrets-scan" element={<OrgSecretsScan />} />
                   </Route>
                 </Route>
 
@@ -109,6 +115,8 @@ export default function App() {
                     <Route path="/ops/data-classification" element={<DataClassification />} />
                     <Route path="/ops/app-catalog" element={<AppCatalog />} />
                     <Route path="/ops/investigations" element={<Investigations />} />
+                    <Route path="/ops/attack-surface" element={<AttackSurface />} />
+                    <Route path="/ops/data-sources" element={<DataSources />} />
                   </Route>
                 </Route>
 

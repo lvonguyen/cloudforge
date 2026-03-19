@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { RemediationTierBadge } from '@/components/remediation/RemediationTierBadge'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
-import { CheckCircle2, Play, Eye, RotateCcw, List, LayoutGrid } from 'lucide-react'
+import { CheckCircle2, Play, Eye, RotateCcw, List, LayoutGrid, Ticket } from 'lucide-react'
 import { useRemediations, useExecuteRemediation, usePatchRemediation } from '@/hooks/useRemediations'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
@@ -100,6 +100,11 @@ function QueueItemCard({ item }: { item: QueueItem }) {
               )}
               {item.dry_run_ok === false && (
                 <span className="text-[10px] text-red-600 dark:text-red-400">dry-run failed</span>
+              )}
+              {(item.status === 'in_progress' || item.status === 'completed') && (
+                <span className="text-[10px] text-purple-600 dark:text-purple-400 flex items-center gap-0.5">
+                  <Ticket className="h-3 w-3" />MOCK
+                </span>
               )}
             </div>
             <p className="text-sm font-medium leading-snug">{item.title}</p>
