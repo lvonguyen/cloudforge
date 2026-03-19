@@ -82,7 +82,7 @@ func (m *MockProvider) AddComment(_ context.Context, externalID, body string) (*
 		ID:         uuid.New().String(),
 		ExternalID: "comment-" + uuid.New().String()[:8],
 		Body:       body,
-		Author:     "cloudforge-bot",
+		Author:     "aegis-bot",
 		CreatedAt:  time.Now().UTC(),
 	}, nil
 }

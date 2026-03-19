@@ -1,4 +1,4 @@
-// Package ai provides LLM integration for CloudForge
+// Package ai provides LLM integration for Cloud Aegis
 package ai
 
 import (
@@ -76,7 +76,7 @@ func (p *AnthropicProvider) Complete(ctx context.Context, prompt string) (string
 
 // CompleteWithSystem sends a prompt with system context to Claude
 func (p *AnthropicProvider) CompleteWithSystem(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
-	ctx, span := otel.Tracer("cloudforge.ai").Start(ctx, "ai.analyze")
+	ctx, span := otel.Tracer("aegis.ai").Start(ctx, "ai.analyze")
 	defer span.End()
 	span.SetAttributes(
 		attribute.String("ai.model", p.model),

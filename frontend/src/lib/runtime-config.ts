@@ -52,12 +52,12 @@ let _loading: Promise<RuntimeConfig | null> | null = null
  */
 const DEFAULT_CONFIG: RuntimeConfig = {
   companyName: 'Contoso',
-  productName: 'CloudForge',
-  logoPath: '/icons/cloudforge-logo.svg',
+  productName: 'Cloud Aegis',
+  logoPath: '/icons/aegis-logo.svg',
   emailDomain: 'contoso.dev',
   repoPrefix: 'github.com/contoso',
-  enabledModules: ['cloudforge', 'cspm-aggregator'],
-  storagePrefix: 'cloudforge',
+  enabledModules: ['aegis', 'cspm-aggregator'],
+  storagePrefix: 'aegis',
 }
 
 /**

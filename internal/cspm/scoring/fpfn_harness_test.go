@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"cloudforge/internal/cspm/contextual"
-	"cloudforge/internal/cspm/scoring"
+	"aegis/internal/cspm/contextual"
+	"aegis/internal/cspm/scoring"
 )
 
 // fpfnSample mirrors the JSON schema used in testdata/fpfn/*.json.

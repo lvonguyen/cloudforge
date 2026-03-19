@@ -44,7 +44,7 @@ FROM alpine:3.20 AS production
 LABEL org.opencontainers.image.title="CSPM Aggregator" \
       org.opencontainers.image.description="Multi-cloud CSPM finding aggregator with AI-powered risk scoring" \
       org.opencontainers.image.vendor="Liem Vo-Nguyen" \
-      org.opencontainers.image.source="https://github.com/lvonguyen/cloudforge"
+      org.opencontainers.image.source="https://github.com/lvonguyen/aegis"
 
 # Install runtime dependencies
 RUN apk add --no-cache ca-certificates tzdata

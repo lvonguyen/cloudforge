@@ -1,4 +1,4 @@
-app = "cloudforge-api"
+app = "aegis-api"
 primary_region = "sjc"
 
 [build]
@@ -9,7 +9,7 @@ primary_region = "sjc"
   GRC_PROVIDER = "memory"
   APP_ENV = "production"
   RATE_LIMIT_ENABLED = "true"
-  CORS_ALLOWED_ORIGINS = "https://cloudforge-demo.lvonguyen.com"
+  CORS_ALLOWED_ORIGINS = "https://aegis-demo.lvonguyen.com"
 
 [http_service]
   internal_port = 8080

@@ -2,7 +2,7 @@
  * Theme preset system for whitelabel support.
  *
  * Each preset defines CSS custom property overrides for both light and dark modes.
- * The "sage" preset is the CloudForge identity (earthy green/tan/gold) — the values
+ * The "sage" preset is the Cloud Aegis identity (earthy green/tan/gold) — the values
  * in index.css @theme block. When sage is active, no overrides are applied (identity).
  *
  * Usage:
@@ -18,7 +18,7 @@ interface ThemePalette {
 }
 
 /**
- * Sage — the original CloudForge palette.
+ * Sage — the original Cloud Aegis palette.
  * Earthy greens, warm tans, gold accent. These are the index.css defaults,
  * so applying this preset is a no-op (clears any runtime overrides).
  */

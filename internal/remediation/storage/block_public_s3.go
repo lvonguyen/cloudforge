@@ -11,8 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3control"
 	s3controltypes "github.com/aws/aws-sdk-go-v2/service/s3control/types"
 
-	cspmscoring "cloudforge/internal/cspm/scoring"
-	"cloudforge/pkg/remediation"
+	cspmscoring "aegis/internal/cspm/scoring"
+	"aegis/pkg/remediation"
 )
 
 // s3ControlAPI defines the s3control operations used by this remediator.

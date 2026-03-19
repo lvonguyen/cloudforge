@@ -1,6 +1,6 @@
 # policies/common/network.rego
 # Network security policies for cloud resources
-package cloudforge.network
+package aegis.network
 
 import future.keywords.if
 import future.keywords.in

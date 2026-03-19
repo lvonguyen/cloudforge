@@ -12,8 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 
-	cspmscoring "cloudforge/internal/cspm/scoring"
-	"cloudforge/pkg/remediation"
+	cspmscoring "aegis/internal/cspm/scoring"
+	"aegis/pkg/remediation"
 )
 
 // ec2API defines the EC2 operations used by this remediator.

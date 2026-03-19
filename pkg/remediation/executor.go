@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	cspmscoring "cloudforge/internal/cspm/scoring"
+	cspmscoring "aegis/internal/cspm/scoring"
 )
 
 // Executor dispatches findings to appropriate remediation handlers.

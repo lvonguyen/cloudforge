@@ -12,20 +12,20 @@ import (
 	"testing"
 	"time"
 
-	"cloudforge/internal/api"
-	"cloudforge/internal/asm"
-	"cloudforge/internal/audit"
-	"cloudforge/internal/compliance"
-	"cloudforge/internal/container"
-	"cloudforge/internal/grc"
-	"cloudforge/internal/identity"
-	"cloudforge/internal/ingestion"
-	"cloudforge/internal/integrations"
-	"cloudforge/internal/observability"
-	"cloudforge/internal/secrets"
-	"cloudforge/internal/waf"
-	"cloudforge/internal/webhooks"
-	"cloudforge/internal/workflow"
+	"aegis/internal/api"
+	"aegis/internal/asm"
+	"aegis/internal/audit"
+	"aegis/internal/compliance"
+	"aegis/internal/container"
+	"aegis/internal/grc"
+	"aegis/internal/identity"
+	"aegis/internal/ingestion"
+	"aegis/internal/integrations"
+	"aegis/internal/observability"
+	"aegis/internal/secrets"
+	"aegis/internal/waf"
+	"aegis/internal/webhooks"
+	"aegis/internal/workflow"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -184,24 +184,24 @@ func makeJWT(t *testing.T, claims api.Claims) string {
 	return signingInput + "." + sig
 }
 
-// adminJWT returns a JWT with admin role (cloudforge-admin group).
+// adminJWT returns a JWT with admin role (aegis-admin group).
 func adminJWT(t *testing.T) string {
 	t.Helper()
 	return makeJWT(t, api.Claims{
 		Subject: "test-admin",
 		Email:   "admin@contoso.dev",
-		Groups:  []string{"cloudforge-admin"},
+		Groups:  []string{"aegis-admin"},
 		Scope:   "admin compliance",
 	})
 }
 
-// operatorJWT returns a JWT with operator role (cloudforge-operator group).
+// operatorJWT returns a JWT with operator role (aegis-operator group).
 func operatorJWT(t *testing.T) string {
 	t.Helper()
 	return makeJWT(t, api.Claims{
 		Subject: "test-operator",
 		Email:   "operator@contoso.dev",
-		Groups:  []string{"cloudforge-operator"},
+		Groups:  []string{"aegis-operator"},
 		Scope:   "operator",
 	})
 }
@@ -216,13 +216,13 @@ func requesterJWT(t *testing.T) string {
 	})
 }
 
-// viewerJWT returns a JWT with viewer role (cloudforge-viewer group).
+// viewerJWT returns a JWT with viewer role (aegis-viewer group).
 func viewerJWT(t *testing.T) string {
 	t.Helper()
 	return makeJWT(t, api.Claims{
 		Subject: "test-viewer",
 		Email:   "viewer@contoso.dev",
-		Groups:  []string{"cloudforge-viewer"},
+		Groups:  []string{"aegis-viewer"},
 		Scope:   "viewer",
 	})
 }

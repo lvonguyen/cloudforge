@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	cspmscoring "cloudforge/internal/cspm/scoring"
+	cspmscoring "aegis/internal/cspm/scoring"
 )
 
 func TestCovNewRotateIAMKeysRemediator(t *testing.T) {

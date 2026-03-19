@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # CloudForge API server
+  # Cloud Aegis API server
   api:
     build: .
     ports:
@@ -10,7 +10,7 @@ services:
       - PORT=8080
       - GRC_PROVIDER=postgres
       # [!] Production: set POSTGRES_PASSWORD via .env or secret manager
-      - DATABASE_URL=postgres://cloudforge:${POSTGRES_PASSWORD:-changeme}@postgres:5432/cloudforge?sslmode=prefer
+      - DATABASE_URL=postgres://aegis:${POSTGRES_PASSWORD:-changeme}@postgres:5432/aegis?sslmode=prefer
       - OPA_URL=http://opa:8181
       - APP_ENV=production
     depends_on:
@@ -24,16 +24,16 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: cloudforge
+      POSTGRES_USER: aegis
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
-      POSTGRES_DB: cloudforge
+      POSTGRES_DB: aegis
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cloudforge"]
+      test: ["CMD-SHELL", "pg_isready -U aegis"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -60,7 +60,7 @@ services:
     environment:
       - DB=postgresql
       - DB_PORT=5432
-      - POSTGRES_USER=cloudforge
+      - POSTGRES_USER=aegis
       - POSTGRES_PWD=${POSTGRES_PASSWORD:-changeme}
       - POSTGRES_SEEDS=postgres
     depends_on:

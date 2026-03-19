@@ -18,7 +18,7 @@ func minServer() *Server {
 }
 
 // echoHandler writes a fixed body so tests can assert on decompressed content.
-const echoBody = "hello cloudforge"
+const echoBody = "hello aegis"
 
 func echoHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

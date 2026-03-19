@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"cloudforge/internal/grc"
+	"aegis/internal/grc"
 )
 
 // TestIntegration_FullServerLifecycle boots a test server and exercises the

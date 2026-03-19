@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	cspmscoring "cloudforge/internal/cspm/scoring"
+	cspmscoring "aegis/internal/cspm/scoring"
 )
 
 // Remediator is the interface that all remediation handlers must implement.

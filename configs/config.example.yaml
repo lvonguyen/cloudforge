@@ -1,4 +1,4 @@
-# CloudForge Configuration
+# Cloud Aegis Configuration
 # Copy to config.yaml and customize for your environment
 #
 # SECURITY: All sensitive values should be loaded from environment variables.
@@ -18,10 +18,10 @@ grc:
   postgres:
     host: localhost
     port: 5432
-    database: cloudforge
-    username: cloudforge
+    database: aegis
+    username: aegis
     # Load password from environment variable (never hardcode)
-    password_env: CLOUDFORGE_DB_PASSWORD
+    password_env: AEGIS_DB_PASSWORD
     ssl_mode: require  # Use 'disable' for local development
 
   # RSA Archer provider settings (stub)
@@ -51,19 +51,19 @@ policy:
 # Temporal Workflow Engine
 workflow:
   temporal_host: localhost:7233
-  namespace: cloudforge
-  task_queue: cloudforge-tasks
+  namespace: aegis
+  task_queue: aegis-tasks
 
 # Authentication (OIDC/JWT)
 auth:
   enabled: true
   issuer_url: https://login.company.com
-  client_id: cloudforge
-  audience: cloudforge-api
+  client_id: aegis
+  audience: aegis-api
   # For HS256: set JWT secret via environment variable
-  jwt_secret_env: CLOUDFORGE_JWT_SECRET
+  jwt_secret_env: AEGIS_JWT_SECRET
   # For RS256/ES256: set JWKS endpoint via environment variable
-  jwks_url_env: CLOUDFORGE_JWKS_URL
+  jwks_url_env: AEGIS_JWKS_URL
 
 # Logging
 logging:
@@ -78,7 +78,7 @@ metrics:
 # Redis (for rate limiting and caching)
 redis:
   address: localhost:6379
-  password_env: CLOUDFORGE_REDIS_PASSWORD
+  password_env: AEGIS_REDIS_PASSWORD
   db: 0
 
 # Rate Limiting

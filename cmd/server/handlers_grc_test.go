@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	"cloudforge/internal/api"
-	"cloudforge/internal/grc"
+	"aegis/internal/api"
+	"aegis/internal/grc"
 )
 
 // --- GetExceptionsByApp ownership tests ---
@@ -33,7 +33,7 @@ func TestGetExceptionsByApp_MatchingSubject(t *testing.T) {
 	jwt := makeJWT(t, api.Claims{
 		Subject: "my-app",
 		Email:   "my-app@contoso.dev",
-		Groups:  []string{"cloudforge-operator"},
+		Groups:  []string{"aegis-operator"},
 		Scope:   "operator",
 	})
 
@@ -50,7 +50,7 @@ func TestGetExceptionsByApp_NonMatchingSubject(t *testing.T) {
 	jwt := makeJWT(t, api.Claims{
 		Subject: "test-operator",
 		Email:   "operator@contoso.dev",
-		Groups:  []string{"cloudforge-operator"},
+		Groups:  []string{"aegis-operator"},
 		Scope:   "operator",
 	})
 

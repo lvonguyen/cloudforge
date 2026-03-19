@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"cloudforge/internal/ai"
+	"aegis/internal/ai"
 
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	cspmscoring "cloudforge/internal/cspm/scoring"
+	cspmscoring "aegis/internal/cspm/scoring"
 
 	"go.uber.org/zap"
 )

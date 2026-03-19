@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"cloudforge/internal/integrations"
+	"aegis/internal/integrations"
 )
 
 func TestRemediateFinding_Success(t *testing.T) {

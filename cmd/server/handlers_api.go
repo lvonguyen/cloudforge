@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"cloudforge/internal/ai-governance/opa"
-	"cloudforge/internal/api"
-	"cloudforge/internal/audit"
+	"aegis/internal/ai-governance/opa"
+	"aegis/internal/api"
+	"aegis/internal/audit"
 
 	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel"
@@ -18,7 +18,7 @@ import (
 )
 
 func (s *Server) listFindings(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listFindings")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listFindings")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -57,7 +57,7 @@ func (s *Server) listFindings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getFinding(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getFinding")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getFinding")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -83,7 +83,7 @@ func (s *Server) getFinding(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listFrameworks(w http.ResponseWriter, r *http.Request) {
-	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listFrameworks")
+	_, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listFrameworks")
 	defer span.End()
 
 	page, perPage := parsePagination(r, 50, 200)
@@ -96,7 +96,7 @@ func (s *Server) listFrameworks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listAgents(w http.ResponseWriter, r *http.Request) {
-	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAgents")
+	_, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listAgents")
 	defer span.End()
 
 	span.SetAttributes(attribute.Int("agents.count", len(s.data.Agents)))
@@ -106,7 +106,7 @@ func (s *Server) listAgents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getAgent")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getAgent")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -123,7 +123,7 @@ func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getRemediation(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getRemediation")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getRemediation")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -140,7 +140,7 @@ func (s *Server) getRemediation(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listRemediations(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listRemediations")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listRemediations")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -182,7 +182,7 @@ func (s *Server) listRemediations(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) executeRemediation(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.executeRemediation")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.executeRemediation")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -203,7 +203,7 @@ func (s *Server) executeRemediation(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) patchRemediation(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.patchRemediation")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.patchRemediation")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -246,7 +246,7 @@ func (s *Server) patchRemediation(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listAgentTraces(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAgentTraces")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listAgentTraces")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -265,7 +265,7 @@ func (s *Server) listAgentTraces(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAuditLog")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listAuditLog")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -330,7 +330,7 @@ func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listUsers")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listUsers")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -354,7 +354,7 @@ func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listCatalogModules(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listCatalogModules")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listCatalogModules")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -402,7 +402,7 @@ func (s *Server) listCatalogModules(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listPolicies(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listPolicies")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listPolicies")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -430,7 +430,7 @@ func (s *Server) listPolicies(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getPolicy(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getPolicy")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getPolicy")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -449,7 +449,7 @@ func (s *Server) getPolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.enrichFinding")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.enrichFinding")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -466,7 +466,7 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 	if s.opaEngine != nil {
 		opaInput := &opa.EvaluationInput{
 			Agent: opa.AgentContext{
-				ID:          "cloudforge-api",
+				ID:          "aegis-api",
 				Name:        "enrichment",
 				Environment: getEnv("APP_ENV", "production"),
 			},
@@ -508,7 +508,7 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listDataClassificationAssets(w http.ResponseWriter, r *http.Request) {
-	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listDataClassificationAssets")
+	_, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listDataClassificationAssets")
 	defer span.End()
 
 	assets := []map[string]interface{}{

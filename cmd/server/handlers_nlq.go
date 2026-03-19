@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"cloudforge/internal/ai"
-	"cloudforge/internal/api"
+	"aegis/internal/ai"
+	"aegis/internal/api"
 )
 
 // nlqRateLimiter tracks per-user NLQ call timestamps to prevent AI budget drain.

@@ -15,7 +15,7 @@
  *
  *   // Any component
  *   const config = useConfig()
- *   console.log(config?.productName) // "CloudForge" or tenant override
+ *   console.log(config?.productName) // "Cloud Aegis" or tenant override
  */
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { loadRuntimeConfig, type RuntimeConfig } from '@/lib/runtime-config'

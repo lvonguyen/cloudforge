@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	cspmscoring "cloudforge/internal/cspm/scoring"
+	cspmscoring "aegis/internal/cspm/scoring"
 )
 
 func makeIAMFinding(id, userName string) *cspmscoring.PrioritizedFinding {

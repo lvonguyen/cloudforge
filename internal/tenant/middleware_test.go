@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"cloudforge/internal/api"
+	"aegis/internal/api"
 
 	"go.uber.org/zap"
 )
@@ -19,7 +19,7 @@ func seedStore(t *testing.T) Store {
 		Name: "Contoso Inc.",
 		Branding: Branding{
 			CompanyName:  "Contoso Inc.",
-			ProductName:  "CloudForge",
+			ProductName:  "Cloud Aegis",
 			LogoPath:     "/logo.svg",
 			PrimaryColor: "#f59e0b",
 		},
@@ -109,7 +109,7 @@ func TestMiddleware_Subdomain(t *testing.T) {
 	}))
 
 	req := httptest.NewRequest("GET", "/test", nil)
-	req.Host = "contoso.cloudforge.io"
+	req.Host = "contoso.aegis.io"
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
@@ -172,11 +172,11 @@ func TestExtractSubdomain(t *testing.T) {
 		host string
 		want string
 	}{
-		{"haea.cloudforge.io", "haea"},
-		{"contoso.cloudforge.io:8080", "contoso"},
-		{"cloudforge.io", ""},
+		{"haea.aegis.io", "haea"},
+		{"contoso.aegis.io:8080", "contoso"},
+		{"aegis.io", ""},
 		{"localhost:8080", ""},
-		{"www.cloudforge.io", ""},
+		{"www.aegis.io", ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.host, func(t *testing.T) {

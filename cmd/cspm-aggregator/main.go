@@ -17,12 +17,12 @@ import (
 
 	"go.uber.org/zap"
 
-	"cloudforge/internal/cspm/config"
-	"cloudforge/internal/cspm/normalizer"
-	awsprovider "cloudforge/internal/cspm/providers/aws"
-	// azureprovider "cloudforge/internal/cspm/providers/azure"
-	// gcpprovider "cloudforge/internal/cspm/providers/gcp"
-	// "cloudforge/internal/cspm/scoring"
+	"aegis/internal/cspm/config"
+	"aegis/internal/cspm/normalizer"
+	awsprovider "aegis/internal/cspm/providers/aws"
+	// azureprovider "aegis/internal/cspm/providers/azure"
+	// gcpprovider "aegis/internal/cspm/providers/gcp"
+	// "aegis/internal/cspm/scoring"
 )
 
 // Version information (injected at build time via ldflags)

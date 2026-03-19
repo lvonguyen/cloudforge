@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"cloudforge/internal/api"
-	"cloudforge/internal/audit"
+	"aegis/internal/api"
+	"aegis/internal/audit"
 
 	"go.uber.org/zap"
 )

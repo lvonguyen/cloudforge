@@ -126,13 +126,13 @@ func (e *memoryEngine) deliver(ep *Endpoint, event Event) {
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-CloudForge-Event", string(event.Type))
+	req.Header.Set("X-Aegis-Event", string(event.Type))
 
 	if ep.Secret != "" {
 		mac := hmac.New(sha256.New, []byte(ep.Secret))
 		mac.Write(body)
 		sig := hex.EncodeToString(mac.Sum(nil))
-		req.Header.Set("X-CloudForge-Signature", sig)
+		req.Header.Set("X-Aegis-Signature", sig)
 	}
 
 	resp, err := e.client.Do(req)

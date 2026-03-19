@@ -1,4 +1,4 @@
-// Package policy provides OPA policy evaluation for CloudForge
+// Package policy provides OPA policy evaluation for Cloud Aegis
 package policy
 
 import (
@@ -75,7 +75,7 @@ func (e *Evaluator) Evaluate(ctx context.Context, input PolicyInput) (*PolicyRes
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST",
-		fmt.Sprintf("%s/v1/data/cloudforge/provisioning", e.opaURL),
+		fmt.Sprintf("%s/v1/data/aegis/provisioning", e.opaURL),
 		bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -161,7 +161,7 @@ func (e *Evaluator) EvaluateException(ctx context.Context, applicationID, policy
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST",
-		fmt.Sprintf("%s/v1/data/cloudforge/exception", e.opaURL),
+		fmt.Sprintf("%s/v1/data/aegis/exception", e.opaURL),
 		bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)

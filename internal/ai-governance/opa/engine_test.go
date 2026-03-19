@@ -19,13 +19,13 @@ func writeTempPolicy(t *testing.T, dir, filename, content string) string {
 }
 
 const policyAllow = `
-package cloudforge.ai.group_a
+package aegis.ai.group_a
 
 default allow = true
 `
 
 const policyDeny = `
-package cloudforge.ai.group_b
+package aegis.ai.group_b
 
 default allow = false
 `

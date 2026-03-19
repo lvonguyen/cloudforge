@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"cloudforge/internal/cspm/scoring"
+	"aegis/internal/cspm/scoring"
 )
 
 // NVDStatusChecker abstracts NVD CVE status lookups.

@@ -40,7 +40,7 @@ export const POLICY_DETAILS: Record<string, PolicyDetailData> = {
   'pol-001': {
     id: 'pol-001',
     name: 'approved-regions',
-    namespace: 'cloudforge.provisioning',
+    namespace: 'aegis.provisioning',
     status: 'active',
     category: 'provisioning',
     evaluations: 4821,
@@ -49,7 +49,7 @@ export const POLICY_DETAILS: Record<string, PolicyDetailData> = {
     created: '2025-09-14',
     version: '2.1.0',
     description: 'Restricts provisioning to a pre-approved set of cloud regions. Blocks any deployment request targeting a region not in the approved list.',
-    rego: `package cloudforge.provisioning.approved_regions
+    rego: `package aegis.provisioning.approved_regions
 
 import future.keywords.in
 
@@ -88,7 +88,7 @@ allow {
   'pol-002': {
     id: 'pol-002',
     name: 'instance-size-limits',
-    namespace: 'cloudforge.provisioning',
+    namespace: 'aegis.provisioning',
     status: 'active',
     category: 'provisioning',
     evaluations: 2103,
@@ -97,7 +97,7 @@ allow {
     created: '2025-10-02',
     version: '1.3.0',
     description: 'Enforces maximum instance sizes per environment tier. Prevents over-provisioning in non-production environments.',
-    rego: `package cloudforge.provisioning.instance_size_limits
+    rego: `package aegis.provisioning.instance_size_limits
 
 import future.keywords.in
 
@@ -158,7 +158,7 @@ allow {
   'pol-003': {
     id: 'pol-003',
     name: 'required-tags',
-    namespace: 'cloudforge.tagging',
+    namespace: 'aegis.tagging',
     status: 'active',
     category: 'tagging',
     evaluations: 9347,
@@ -167,7 +167,7 @@ allow {
     created: '2025-08-20',
     version: '3.0.1',
     description: 'Enforces mandatory tagging on all provisioned resources. Requires environment, owner, cost-center, and project tags.',
-    rego: `package cloudforge.tagging.required_tags
+    rego: `package aegis.tagging.required_tags
 
 import future.keywords.in
 
@@ -194,7 +194,7 @@ deny[msg] {
   'pol-004': {
     id: 'pol-004',
     name: 'ai-agent-tool-allow',
-    namespace: 'cloudforge.ai.tools',
+    namespace: 'aegis.ai.tools',
     status: 'active',
     category: 'ai-governance',
     evaluations: 1203,
@@ -203,7 +203,7 @@ deny[msg] {
     created: '2026-01-10',
     version: '1.0.2',
     description: 'Controls which cloud API tools an AI agent can invoke. Maintains an allowlist of safe operations per agent scope.',
-    rego: `package cloudforge.ai.tools.allow
+    rego: `package aegis.ai.tools.allow
 
 import future.keywords.in
 
@@ -235,7 +235,7 @@ deny[msg] {
   'pol-005': {
     id: 'pol-005',
     name: 'ai-agent-scope-limit',
-    namespace: 'cloudforge.ai.agents',
+    namespace: 'aegis.ai.agents',
     status: 'active',
     category: 'ai-governance',
     evaluations: 892,
@@ -244,7 +244,7 @@ deny[msg] {
     created: '2026-01-10',
     version: '1.1.0',
     description: 'Limits AI agent blast radius by restricting the accounts and environments an agent can operate in.',
-    rego: `package cloudforge.ai.agents.scope_limit
+    rego: `package aegis.ai.agents.scope_limit
 
 import future.keywords.in
 
@@ -274,7 +274,7 @@ deny[msg] {
   'pol-006': {
     id: 'pol-006',
     name: 'public-s3-deny',
-    namespace: 'cloudforge.storage',
+    namespace: 'aegis.storage',
     status: 'active',
     category: 'security',
     evaluations: 3441,
@@ -283,7 +283,7 @@ deny[msg] {
     created: '2025-07-01',
     version: '2.0.0',
     description: 'Prevents creation of S3 buckets with public access enabled. Blocks any bucket policy or ACL that grants public read/write.',
-    rego: `package cloudforge.storage.public_s3_deny
+    rego: `package aegis.storage.public_s3_deny
 
 import future.keywords.in
 
@@ -340,7 +340,7 @@ allow {
   'pol-007': {
     id: 'pol-007',
     name: 'mfa-enforcement',
-    namespace: 'cloudforge.identity',
+    namespace: 'aegis.identity',
     status: 'draft',
     category: 'identity',
     evaluations: 0,
@@ -349,7 +349,7 @@ allow {
     created: '2026-02-20',
     version: '0.1.0',
     description: 'Requires MFA for all IAM users with console access. Draft policy pending security review.',
-    rego: `package cloudforge.identity.mfa_enforcement
+    rego: `package aegis.identity.mfa_enforcement
 
 deny[msg] {
   input.user.console_access == true
@@ -362,7 +362,7 @@ deny[msg] {
   'pol-008': {
     id: 'pol-008',
     name: 'legacy-tls-deny',
-    namespace: 'cloudforge.network',
+    namespace: 'aegis.network',
     status: 'inactive',
     category: 'network',
     evaluations: 0,
@@ -371,7 +371,7 @@ deny[msg] {
     created: '2025-11-15',
     version: '1.0.0',
     description: 'Blocks resources configured with TLS versions below 1.2. Currently inactive pending migration of legacy services.',
-    rego: `package cloudforge.network.legacy_tls_deny
+    rego: `package aegis.network.legacy_tls_deny
 
 import future.keywords.in
 
@@ -390,7 +390,7 @@ deny[msg] {
 // ── Generator for uncurated policies ────────────────────────────────────────
 
 export function generatePolicyDetail(summary: typeof policiesData[number]): PolicyDetailData {
-  const packagePath = summary.namespace || `cloudforge.${summary.category}`
+  const packagePath = summary.namespace || `aegis.${summary.category}`
 
   const regoTemplates: Record<string, string> = {
     encryption: `package ${packagePath}

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"cloudforge/internal/secrets"
+	"aegis/internal/secrets"
 )
 
 func TestOrgScan_Success(t *testing.T) {

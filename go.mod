@@ -1,4 +1,4 @@
-module cloudforge
+module aegis
 
 go 1.25.0
 

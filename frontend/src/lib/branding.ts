@@ -10,10 +10,10 @@ export const branding = {
   companyName: import.meta.env.VITE_COMPANY_NAME || 'Contoso',
 
   /** Product name shown in nav, headings, and title bar. */
-  productName: import.meta.env.VITE_PRODUCT_NAME || 'CloudForge',
+  productName: import.meta.env.VITE_PRODUCT_NAME || 'Cloud Aegis',
 
   /** Path to the primary logo SVG (relative to /public). */
-  logoPath: import.meta.env.VITE_LOGO_PATH || '/icons/cloudforge-logo.svg',
+  logoPath: import.meta.env.VITE_LOGO_PATH || '/icons/aegis-logo.svg',
 
   /** Email domain used for default/demo user emails. */
   emailDomain: import.meta.env.VITE_EMAIL_DOMAIN || 'contoso.dev',
@@ -26,7 +26,7 @@ export const branding = {
    * Controls which project cards appear on the landing page.
    * Default shows both core modules.
    */
-  enabledModules: (import.meta.env.VITE_ENABLED_MODULES || 'cloudforge,cspm-aggregator')
+  enabledModules: (import.meta.env.VITE_ENABLED_MODULES || 'aegis,cspm-aggregator')
     .split(',')
     .map((s: string) => s.trim()),
 
@@ -34,7 +34,7 @@ export const branding = {
    * Prefix for localStorage/sessionStorage keys.
    * Prevents key collisions when multiple tenants share a browser in dev.
    */
-  storagePrefix: import.meta.env.VITE_STORAGE_PREFIX || 'cloudforge',
+  storagePrefix: import.meta.env.VITE_STORAGE_PREFIX || 'aegis',
 
   /**
    * Brand theme colors (CSS hex values).

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"cloudforge/internal/finops"
+	"aegis/internal/finops"
 )
 
 var (

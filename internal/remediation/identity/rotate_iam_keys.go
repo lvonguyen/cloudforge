@@ -11,8 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 
-	cspmscoring "cloudforge/internal/cspm/scoring"
-	"cloudforge/pkg/remediation"
+	cspmscoring "aegis/internal/cspm/scoring"
+	"aegis/pkg/remediation"
 )
 
 // iamAPI is the subset of IAM operations needed by this remediator.

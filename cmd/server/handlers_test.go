@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"cloudforge/internal/grc"
+	"aegis/internal/grc"
 )
 
 func TestHealthCheck(t *testing.T) {

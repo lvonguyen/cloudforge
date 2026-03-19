@@ -1,4 +1,4 @@
-# CloudForge Backend — deploy/docker variant
+# Cloud Aegis Backend — deploy/docker variant
 # This file exists for deploy/docker/ convention.
 # The canonical Dockerfile is at the repository root.
 #
@@ -7,10 +7,10 @@
 #   - User shell: /sbin/nologin (root uses /bin/sh)
 #
 # Usage:
-#   docker build -f deploy/docker/Dockerfile.backend -t cloudforge-api .
+#   docker build -f deploy/docker/Dockerfile.backend -t aegis-api .
 #
 # Or use the root Dockerfile directly:
-#   docker build -t cloudforge-api .
+#   docker build -t aegis-api .
 
 # Re-use root Dockerfile via build context
 FROM golang:1.25-alpine AS builder
@@ -28,29 +28,29 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-w -s -X main.Version=${VERSION}" \
-    -o /cloudforge \
+    -o /aegis \
     ./cmd/server
 
 FROM alpine:3.20
 
-RUN addgroup -g 1000 cloudforge && \
-    adduser -u 1000 -G cloudforge -s /sbin/nologin -D cloudforge
+RUN addgroup -g 1000 aegis && \
+    adduser -u 1000 -G aegis -s /sbin/nologin -D aegis
 
 RUN apk add --no-cache ca-certificates tzdata
 
 WORKDIR /app
 
-COPY --from=builder /cloudforge /app/cloudforge
+COPY --from=builder /aegis /app/aegis
 COPY --from=builder /app/frontend/src/lib/mock /app/frontend/src/lib/mock
 COPY configs/config.example.yaml /app/configs/config.yaml
 
-RUN chown -R cloudforge:cloudforge /app
+RUN chown -R aegis:aegis /app
 
-USER cloudforge
+USER aegis
 
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD wget -qO- http://localhost:8080/health || exit 1
 
-ENTRYPOINT ["/app/cloudforge"]
+ENTRYPOINT ["/app/aegis"]

@@ -18,7 +18,6 @@ import { useActionCooldown } from '@/hooks/useActionCooldown'
 import { useCreateException } from '@/hooks/useExceptions'
 import { useComments, useAddComment } from '@/hooks/useComments'
 import { useFindingTicket, useRemediateFinding } from '@/hooks/useIntegrations'
-import type { Ticket } from '@/hooks/useIntegrations'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
 

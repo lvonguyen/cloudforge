@@ -9,9 +9,9 @@ import (
 const validHexKey = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 func TestEncryptedStateStore_RoundTrip(t *testing.T) {
-	t.Setenv("CLOUDFORGE_STATE_ENCRYPTION_KEY", validHexKey)
+	t.Setenv("AEGIS_STATE_ENCRYPTION_KEY", validHexKey)
 
-	store, err := NewEncryptedStateStore("CLOUDFORGE_STATE_ENCRYPTION_KEY")
+	store, err := NewEncryptedStateStore("AEGIS_STATE_ENCRYPTION_KEY")
 	if err != nil {
 		t.Fatalf("NewEncryptedStateStore: %v", err)
 	}
@@ -34,8 +34,8 @@ func TestEncryptedStateStore_RoundTrip(t *testing.T) {
 }
 
 func TestEncryptedStateStore_WrongKey(t *testing.T) {
-	t.Setenv("CLOUDFORGE_STATE_ENCRYPTION_KEY", validHexKey)
-	store1, err := NewEncryptedStateStore("CLOUDFORGE_STATE_ENCRYPTION_KEY")
+	t.Setenv("AEGIS_STATE_ENCRYPTION_KEY", validHexKey)
+	store1, err := NewEncryptedStateStore("AEGIS_STATE_ENCRYPTION_KEY")
 	if err != nil {
 		t.Fatalf("store1: %v", err)
 	}
@@ -46,8 +46,8 @@ func TestEncryptedStateStore_WrongKey(t *testing.T) {
 	}
 
 	// Create second store with a different key
-	t.Setenv("CLOUDFORGE_STATE_ENCRYPTION_KEY", "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789")
-	store2, err := NewEncryptedStateStore("CLOUDFORGE_STATE_ENCRYPTION_KEY")
+	t.Setenv("AEGIS_STATE_ENCRYPTION_KEY", "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789")
+	store2, err := NewEncryptedStateStore("AEGIS_STATE_ENCRYPTION_KEY")
 	if err != nil {
 		t.Fatalf("store2: %v", err)
 	}
@@ -59,8 +59,8 @@ func TestEncryptedStateStore_WrongKey(t *testing.T) {
 }
 
 func TestEncryptedStateStore_CiphertextNotJSON(t *testing.T) {
-	t.Setenv("CLOUDFORGE_STATE_ENCRYPTION_KEY", validHexKey)
-	store, err := NewEncryptedStateStore("CLOUDFORGE_STATE_ENCRYPTION_KEY")
+	t.Setenv("AEGIS_STATE_ENCRYPTION_KEY", validHexKey)
+	store, err := NewEncryptedStateStore("AEGIS_STATE_ENCRYPTION_KEY")
 	if err != nil {
 		t.Fatalf("NewEncryptedStateStore: %v", err)
 	}
@@ -79,16 +79,16 @@ func TestEncryptedStateStore_CiphertextNotJSON(t *testing.T) {
 }
 
 func TestEncryptedStateStore_MissingEnvVar(t *testing.T) {
-	t.Setenv("CLOUDFORGE_STATE_ENCRYPTION_KEY", "")
-	_, err := NewEncryptedStateStore("CLOUDFORGE_STATE_ENCRYPTION_KEY")
+	t.Setenv("AEGIS_STATE_ENCRYPTION_KEY", "")
+	_, err := NewEncryptedStateStore("AEGIS_STATE_ENCRYPTION_KEY")
 	if err == nil {
 		t.Fatal("expected error for missing env var, got nil")
 	}
 }
 
 func TestEncryptedStateStore_InvalidHex(t *testing.T) {
-	t.Setenv("CLOUDFORGE_STATE_ENCRYPTION_KEY", "not-valid-hex")
-	_, err := NewEncryptedStateStore("CLOUDFORGE_STATE_ENCRYPTION_KEY")
+	t.Setenv("AEGIS_STATE_ENCRYPTION_KEY", "not-valid-hex")
+	_, err := NewEncryptedStateStore("AEGIS_STATE_ENCRYPTION_KEY")
 	if err == nil {
 		t.Fatal("expected error for invalid hex, got nil")
 	}
@@ -96,16 +96,16 @@ func TestEncryptedStateStore_InvalidHex(t *testing.T) {
 
 func TestEncryptedStateStore_WrongKeyLength(t *testing.T) {
 	// 16-byte key (32 hex chars) — valid AES-128 but not AES-256
-	t.Setenv("CLOUDFORGE_STATE_ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef")
-	_, err := NewEncryptedStateStore("CLOUDFORGE_STATE_ENCRYPTION_KEY")
+	t.Setenv("AEGIS_STATE_ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef")
+	_, err := NewEncryptedStateStore("AEGIS_STATE_ENCRYPTION_KEY")
 	if err == nil {
 		t.Fatal("expected error for 16-byte key, got nil")
 	}
 }
 
 func TestEncryptedStateStore_TruncatedCiphertext(t *testing.T) {
-	t.Setenv("CLOUDFORGE_STATE_ENCRYPTION_KEY", validHexKey)
-	store, err := NewEncryptedStateStore("CLOUDFORGE_STATE_ENCRYPTION_KEY")
+	t.Setenv("AEGIS_STATE_ENCRYPTION_KEY", validHexKey)
+	store, err := NewEncryptedStateStore("AEGIS_STATE_ENCRYPTION_KEY")
 	if err != nil {
 		t.Fatalf("NewEncryptedStateStore: %v", err)
 	}
@@ -118,8 +118,8 @@ func TestEncryptedStateStore_TruncatedCiphertext(t *testing.T) {
 }
 
 func TestEncryptedStateStore_UniqueNonce(t *testing.T) {
-	t.Setenv("CLOUDFORGE_STATE_ENCRYPTION_KEY", validHexKey)
-	store, err := NewEncryptedStateStore("CLOUDFORGE_STATE_ENCRYPTION_KEY")
+	t.Setenv("AEGIS_STATE_ENCRYPTION_KEY", validHexKey)
+	store, err := NewEncryptedStateStore("AEGIS_STATE_ENCRYPTION_KEY")
 	if err != nil {
 		t.Fatalf("NewEncryptedStateStore: %v", err)
 	}

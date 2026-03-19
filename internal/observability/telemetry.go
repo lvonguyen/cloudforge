@@ -196,7 +196,7 @@ func (t *Telemetry) initTracer() error {
 
 // initMetrics initializes Prometheus metrics
 func (t *Telemetry) initMetrics() *Metrics {
-	namespace := "cloudforge"
+	namespace := "aegis"
 
 	return &Metrics{
 		RequestsTotal: promauto.NewCounterVec(

@@ -236,7 +236,7 @@ func (rs *RiskScorer) WithRuleEngines(fp FPEvaluator, fn FNEvaluator) *RiskScore
 
 // ScoreFinding performs contextual risk assessment on a finding.
 func (rs *RiskScorer) ScoreFinding(ctx context.Context, finding *Finding) (*RiskAssessment, error) {
-	ctx, span := otel.Tracer("cloudforge.cspm").Start(ctx, "cspm.score")
+	ctx, span := otel.Tracer("aegis.cspm").Start(ctx, "cspm.score")
 	defer span.End()
 	span.SetAttributes(
 		attribute.String("finding.id", finding.ID),

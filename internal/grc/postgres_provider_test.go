@@ -237,7 +237,7 @@ func TestPostgresGRCProvider_Integration(t *testing.T) {
 
 func getTestDSN() string {
 	// Default test DSN for local development
-	return "postgres://postgres:postgres@localhost:5432/cloudforge_test?sslmode=disable"
+	return "postgres://postgres:postgres@localhost:5432/aegis_test?sslmode=disable"
 }
 
 func setupTestSchema(db *sql.DB) error {

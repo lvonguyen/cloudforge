@@ -10,8 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 
-	cspmscoring "cloudforge/internal/cspm/scoring"
-	"cloudforge/pkg/remediation"
+	cspmscoring "aegis/internal/cspm/scoring"
+	"aegis/pkg/remediation"
 )
 
 // OSPatchRemediator checks and reports OS patch compliance via AWS SSM.

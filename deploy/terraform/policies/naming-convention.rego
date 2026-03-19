@@ -24,7 +24,7 @@ named_resource_types := {
 valid_environments := {"dev", "staging", "prod", "sandbox"}
 
 # Pattern: {project}-{env}-{service}
-# Example: cloudforge-prod-api, cloudforge-staging-opa
+# Example: aegis-prod-api, aegis-staging-opa
 name_valid(name) if {
     parts := split(name, "-")
     count(parts) >= 3

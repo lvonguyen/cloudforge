@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"cloudforge/internal/cspm/scoring"
+	"aegis/internal/cspm/scoring"
 )
 
 // cidrPattern matches IPv4 CIDR notation within a string (e.g., "10.0.0.0/8").

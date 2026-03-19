@@ -13,24 +13,24 @@ import (
 	"syscall"
 	"time"
 
-	"cloudforge/internal/ai"
-	"cloudforge/internal/ai-governance/opa"
-	"cloudforge/internal/api"
-	"cloudforge/internal/api/gateway"
-	"cloudforge/internal/asm"
-	"cloudforge/internal/audit"
-	"cloudforge/internal/compliance"
-	"cloudforge/internal/container"
-	"cloudforge/internal/grc"
-	"cloudforge/internal/identity"
-	"cloudforge/internal/ingestion"
-	"cloudforge/internal/integrations"
-	"cloudforge/internal/observability"
-	"cloudforge/internal/secrets"
-	"cloudforge/internal/tenant"
-	"cloudforge/internal/waf"
-	"cloudforge/internal/webhooks"
-	"cloudforge/internal/workflow"
+	"aegis/internal/ai"
+	"aegis/internal/ai-governance/opa"
+	"aegis/internal/api"
+	"aegis/internal/api/gateway"
+	"aegis/internal/asm"
+	"aegis/internal/audit"
+	"aegis/internal/compliance"
+	"aegis/internal/container"
+	"aegis/internal/grc"
+	"aegis/internal/identity"
+	"aegis/internal/ingestion"
+	"aegis/internal/integrations"
+	"aegis/internal/observability"
+	"aegis/internal/secrets"
+	"aegis/internal/tenant"
+	"aegis/internal/waf"
+	"aegis/internal/webhooks"
+	"aegis/internal/workflow"
 
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
@@ -122,17 +122,17 @@ func main() {
 	cfg := Config{
 		Port:             getEnv("PORT", "8080"),
 		GRCProvider:      providerType,
-		JWTSecretEnv:     getEnv("JWT_SECRET_ENV", "CLOUDFORGE_JWT_SECRET"),
+		JWTSecretEnv:     getEnv("JWT_SECRET_ENV", "AEGIS_JWT_SECRET"),
 		JWTIssuer:        getEnv("JWT_ISSUER", ""),
 		JWTAudience:      getEnv("JWT_AUDIENCE", ""),
 		TLSCertFile:      getEnv("TLS_CERT_FILE", ""),
 		TLSKeyFile:       getEnv("TLS_KEY_FILE", ""),
 		RedisAddr:        getEnv("REDIS_ADDR", "localhost:6379"),
-		RedisPasswordEnv: getEnv("REDIS_PASSWORD_ENV", "CLOUDFORGE_REDIS_PASSWORD"),
+		RedisPasswordEnv: getEnv("REDIS_PASSWORD_ENV", "AEGIS_REDIS_PASSWORD"),
 		RateLimitEnabled: getEnv("RATE_LIMIT_ENABLED", "true") == "true",
-		AIEnabled:        getEnv("CLOUDFORGE_AI_ENABLED", "false") == "true",
-		AIRegion:         getEnv("CLOUDFORGE_AI_REGION", "us-east-1"),
-		AIModel:          getEnv("CLOUDFORGE_AI_MODEL", ""),
+		AIEnabled:        getEnv("AEGIS_AI_ENABLED", "false") == "true",
+		AIRegion:         getEnv("AEGIS_AI_REGION", "us-east-1"),
+		AIModel:          getEnv("AEGIS_AI_MODEL", ""),
 		CORSOrigins:      getEnv("CORS_ALLOWED_ORIGINS", ""),
 		WSServerURL:      getEnv("WS_SERVER_URL", ""),
 		WSPublishKey:     getEnv("WS_PUBLISH_KEY", ""),
@@ -147,17 +147,17 @@ func main() {
 	}
 
 	// Auto-derive JWKS URL from Okta domain when not explicitly set.
-	// This removes the need to manually configure CLOUDFORGE_JWKS_URL alongside OKTA_DOMAIN.
-	if domain := os.Getenv("OKTA_DOMAIN"); domain != "" && os.Getenv("CLOUDFORGE_JWKS_URL") == "" {
+	// This removes the need to manually configure AEGIS_JWKS_URL alongside OKTA_DOMAIN.
+	if domain := os.Getenv("OKTA_DOMAIN"); domain != "" && os.Getenv("AEGIS_JWKS_URL") == "" {
 		jwksURL := "https://" + domain + "/oauth2/default/v1/keys"
-		os.Setenv("CLOUDFORGE_JWKS_URL", jwksURL)
+		os.Setenv("AEGIS_JWKS_URL", jwksURL)
 		logger.Info("Auto-derived JWKS URL from OKTA_DOMAIN", zap.String("jwks_url", jwksURL))
 	}
 
 	// Initialize authentication middleware
 	authMiddleware, err := api.NewAuthMiddleware(api.AuthConfig{
 		JWTSecretEnv: cfg.JWTSecretEnv,
-		JWKSURLEnv:   "CLOUDFORGE_JWKS_URL",
+		JWKSURLEnv:   "AEGIS_JWKS_URL",
 		Issuer:       cfg.JWTIssuer,
 		Audience:     cfg.JWTAudience,
 		SkipPaths:    []string{"/health", "/healthz", "/ready", "/api/v1/config", "/config.json"},
@@ -477,12 +477,12 @@ func main() {
 	// Start server in goroutine
 	go func() {
 		if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
-			logger.Info("CloudForge API server starting with TLS", zap.String("port", cfg.Port))
+			logger.Info("Cloud Aegis API server starting with TLS", zap.String("port", cfg.Port))
 			if err := httpServer.ListenAndServeTLS(cfg.TLSCertFile, cfg.TLSKeyFile); err != nil && err != http.ErrServerClosed {
 				logger.Fatal("Server error", zap.Error(err))
 			}
 		} else {
-			logger.Warn("CloudForge API server starting without TLS", zap.String("port", cfg.Port))
+			logger.Warn("Cloud Aegis API server starting without TLS", zap.String("port", cfg.Port))
 			if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				logger.Fatal("Server error", zap.Error(err))
 			}
@@ -521,7 +521,7 @@ func seedTenants(logger *zap.Logger) tenant.Store {
 		Name: "Contoso Inc.",
 		Branding: tenant.Branding{
 			CompanyName:  "Contoso Inc.",
-			ProductName:  "CloudForge",
+			ProductName:  "Cloud Aegis",
 			LogoPath:     "/logo.svg",
 			EmailDomain:  "contoso.com",
 			PrimaryColor: "#f59e0b",

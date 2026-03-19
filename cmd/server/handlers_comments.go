@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"cloudforge/internal/api"
+	"aegis/internal/api"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -42,7 +42,7 @@ const maxCommentsPerFinding = 500
 
 // listComments returns all comments for a finding.
 func (s *Server) listComments(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listComments")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listComments")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -63,7 +63,7 @@ func (s *Server) listComments(w http.ResponseWriter, r *http.Request) {
 
 // addComment creates a new comment on a finding.
 func (s *Server) addComment(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.addComment")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.addComment")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -120,7 +120,7 @@ func (s *Server) addComment(w http.ResponseWriter, r *http.Request) {
 
 // deleteComment removes a comment by ID. Admin only.
 func (s *Server) deleteComment(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.deleteComment")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.deleteComment")
 	defer span.End()
 	r = r.WithContext(ctx)
 

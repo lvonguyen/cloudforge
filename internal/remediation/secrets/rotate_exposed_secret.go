@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	cspmscoring "cloudforge/internal/cspm/scoring"
-	"cloudforge/pkg/remediation"
+	cspmscoring "aegis/internal/cspm/scoring"
+	"aegis/pkg/remediation"
 )
 
 // RotateExposedSecretRemediator handles findings for exposed secrets.

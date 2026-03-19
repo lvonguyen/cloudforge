@@ -34,7 +34,7 @@ describe('ProtectedRoute', () => {
   })
 
   it('redirects to home when user role is not in allowed roles', async () => {
-    sessionStorage.setItem('cloudforge_role', 'viewer')
+    sessionStorage.setItem('aegis_role', 'viewer')
 
     renderWithAuth(
       <ProtectedRoute roles={['admin']}>
@@ -49,7 +49,7 @@ describe('ProtectedRoute', () => {
   })
 
   it('allows operator access to operator-only routes', () => {
-    sessionStorage.setItem('cloudforge_role', 'operator')
+    sessionStorage.setItem('aegis_role', 'operator')
 
     renderWithAuth(
       <ProtectedRoute roles={['operator']}>
@@ -61,7 +61,7 @@ describe('ProtectedRoute', () => {
   })
 
   it('allows requester access to requester routes', () => {
-    sessionStorage.setItem('cloudforge_role', 'requester')
+    sessionStorage.setItem('aegis_role', 'requester')
 
     renderWithAuth(
       <ProtectedRoute roles={['requester']}>
@@ -73,7 +73,7 @@ describe('ProtectedRoute', () => {
   })
 
   it('allows multiple roles to access the same route', () => {
-    sessionStorage.setItem('cloudforge_role', 'operator')
+    sessionStorage.setItem('aegis_role', 'operator')
 
     renderWithAuth(
       <ProtectedRoute roles={['admin', 'operator', 'requester']}>
@@ -95,13 +95,13 @@ describe('ProtectedRoute', () => {
       { route: '/findings?severity=HIGH' }
     )
 
-    const returnPath = sessionStorage.getItem('cloudforge_login_return')
+    const returnPath = sessionStorage.getItem('aegis_login_return')
     expect(returnPath).toBe('/findings?severity=HIGH')
   })
 
   it('displays redirecting message in production when not authenticated', () => {
     vi.stubEnv('DEV', false)
-    sessionStorage.removeItem('cloudforge_access_token')
+    sessionStorage.removeItem('aegis_access_token')
 
     renderWithAuth(
       <ProtectedRoute roles={['admin']}>

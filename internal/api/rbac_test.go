@@ -158,7 +158,7 @@ func TestRoleFromClaims_Default(t *testing.T) {
 func TestRoleFromClaims_ViewerBelowRequester(t *testing.T) {
 	claims := &Claims{
 		Subject: "viewer1",
-		Groups:  []string{"cloudforge-viewer"},
+		Groups:  []string{"aegis-viewer"},
 	}
 	if role := RoleFromClaims(claims); role != RoleViewer {
 		t.Errorf("viewer group should yield viewer role, got: %s", role)
@@ -174,7 +174,7 @@ func TestRoleFromClaims_NoGroupsOutranksViewer(t *testing.T) {
 	// group restricts their access relative to having no group at all.
 	// Rationale: requester can submit exceptions; viewer cannot.
 	noGroups := &Claims{Subject: "user1"}
-	viewerGroup := &Claims{Subject: "viewer1", Groups: []string{"cloudforge-viewer"}}
+	viewerGroup := &Claims{Subject: "viewer1", Groups: []string{"aegis-viewer"}}
 	if RoleFromClaims(noGroups) != RoleRequester {
 		t.Fatal("no groups should default to requester")
 	}
@@ -189,7 +189,7 @@ func TestRoleFromClaims_NoGroupsOutranksViewer(t *testing.T) {
 func TestRoleFromClaims_HighestWins(t *testing.T) {
 	claims := &Claims{
 		Subject: "user1",
-		Groups:  []string{"cloudforge-operator", "cloudforge-admin"},
+		Groups:  []string{"aegis-operator", "aegis-admin"},
 	}
 	if role := RoleFromClaims(claims); role != RoleAdmin {
 		t.Errorf("highest role should be admin, got: %s", role)

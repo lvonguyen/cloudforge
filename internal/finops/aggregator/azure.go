@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	"cloudforge/internal/finops"
+	"aegis/internal/finops"
 )
 
 // AzureConfig holds configuration for the Azure Cost Management client.

@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"time"
 
-	"cloudforge/internal/finops"
+	"aegis/internal/finops"
 )
 
 // AWSConfig holds configuration for the AWS Cost Explorer client.

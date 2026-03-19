@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"cloudforge/internal/finops"
+	"aegis/internal/finops"
 )
 
 func uniformRecords(service, provider string, count int, costPerDay float64) []finops.CostRecord {

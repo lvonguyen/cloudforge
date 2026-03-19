@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	cspmscoring "cloudforge/internal/cspm/scoring"
+	cspmscoring "aegis/internal/cspm/scoring"
 )
 
 // mockRemediator implements the Remediator interface for testing.

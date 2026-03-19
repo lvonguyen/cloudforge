@@ -6,15 +6,15 @@ import (
 	"net/http"
 	"strings"
 
-	"cloudforge/internal/api"
-	"cloudforge/internal/rql"
+	"aegis/internal/api"
+	"aegis/internal/rql"
 
 	"go.opentelemetry.io/otel"
 )
 
 // queryFindings evaluates an RQL query against all findings.
 func (s *Server) queryFindings(w http.ResponseWriter, r *http.Request) {
-	_, span := otel.Tracer("cloudforge").Start(r.Context(), "queryFindings")
+	_, span := otel.Tracer("aegis").Start(r.Context(), "queryFindings")
 	defer span.End()
 
 	q := r.URL.Query().Get("q")

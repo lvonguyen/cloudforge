@@ -2,7 +2,7 @@
   {
     "id": "pol-001",
     "name": "approved-regions",
-    "namespace": "cloudforge.provisioning",
+    "namespace": "aegis.provisioning",
     "status": "active",
     "category": "provisioning",
     "evaluations": 4821,
@@ -12,7 +12,7 @@
   {
     "id": "pol-002",
     "name": "instance-size-limits",
-    "namespace": "cloudforge.provisioning",
+    "namespace": "aegis.provisioning",
     "status": "active",
     "category": "provisioning",
     "evaluations": 2103,
@@ -22,7 +22,7 @@
   {
     "id": "pol-003",
     "name": "required-tags",
-    "namespace": "cloudforge.tagging",
+    "namespace": "aegis.tagging",
     "status": "active",
     "category": "tagging",
     "evaluations": 9347,
@@ -32,7 +32,7 @@
   {
     "id": "pol-004",
     "name": "ai-agent-tool-allow",
-    "namespace": "cloudforge.ai.governance",
+    "namespace": "aegis.ai.governance",
     "status": "active",
     "category": "ai-governance",
     "evaluations": 1203,
@@ -42,7 +42,7 @@
   {
     "id": "pol-005",
     "name": "ai-agent-scope-limit",
-    "namespace": "cloudforge.ai.governance",
+    "namespace": "aegis.ai.governance",
     "status": "active",
     "category": "ai-governance",
     "evaluations": 892,
@@ -52,7 +52,7 @@
   {
     "id": "pol-006",
     "name": "public-s3-deny",
-    "namespace": "cloudforge.security",
+    "namespace": "aegis.security",
     "status": "active",
     "category": "security",
     "evaluations": 3441,
@@ -62,7 +62,7 @@
   {
     "id": "pol-007",
     "name": "mfa-enforcement",
-    "namespace": "cloudforge.identity",
+    "namespace": "aegis.identity",
     "status": "draft",
     "category": "identity",
     "evaluations": 0,
@@ -72,7 +72,7 @@
   {
     "id": "pol-008",
     "name": "legacy-tls-deny",
-    "namespace": "cloudforge.network",
+    "namespace": "aegis.network",
     "status": "inactive",
     "category": "network",
     "evaluations": 0,
@@ -82,7 +82,7 @@
   {
     "id": "pol-009",
     "name": "encryption-at-rest-require",
-    "namespace": "cloudforge.encryption",
+    "namespace": "aegis.encryption",
     "status": "active",
     "category": "encryption",
     "evaluations": 7823,
@@ -92,7 +92,7 @@
   {
     "id": "pol-010",
     "name": "cost-budget-threshold",
-    "namespace": "cloudforge.cost",
+    "namespace": "aegis.cost",
     "status": "active",
     "category": "cost",
     "evaluations": 3210,
@@ -102,7 +102,7 @@
   {
     "id": "pol-011",
     "name": "container-image-allowlist",
-    "namespace": "cloudforge.container",
+    "namespace": "aegis.container",
     "status": "active",
     "category": "container",
     "evaluations": 5641,
@@ -112,7 +112,7 @@
   {
     "id": "pol-012",
     "name": "network-egress-restrict",
-    "namespace": "cloudforge.network",
+    "namespace": "aegis.network",
     "status": "active",
     "category": "network",
     "evaluations": 4102,
@@ -122,7 +122,7 @@
   {
     "id": "pol-013",
     "name": "data-residency-enforce",
-    "namespace": "cloudforge.compliance",
+    "namespace": "aegis.compliance",
     "status": "active",
     "category": "compliance",
     "evaluations": 2987,
@@ -132,7 +132,7 @@
   {
     "id": "pol-014",
     "name": "iam-admin-mfa-require",
-    "namespace": "cloudforge.identity",
+    "namespace": "aegis.identity",
     "status": "active",
     "category": "identity",
     "evaluations": 1456,
@@ -142,7 +142,7 @@
   {
     "id": "pol-015",
     "name": "backup-retention-minimum",
-    "namespace": "cloudforge.storage",
+    "namespace": "aegis.storage",
     "status": "active",
     "category": "storage",
     "evaluations": 1890,
@@ -152,7 +152,7 @@
   {
     "id": "pol-016",
     "name": "secrets-rotation-enforce",
-    "namespace": "cloudforge.security",
+    "namespace": "aegis.security",
     "status": "active",
     "category": "security",
     "evaluations": 6234,
@@ -162,7 +162,7 @@
   {
     "id": "pol-017",
     "name": "waf-required",
-    "namespace": "cloudforge.network",
+    "namespace": "aegis.network",
     "status": "active",
     "category": "network",
     "evaluations": 2345,
@@ -172,7 +172,7 @@
   {
     "id": "pol-018",
     "name": "logging-mandatory",
-    "namespace": "cloudforge.compliance",
+    "namespace": "aegis.compliance",
     "status": "active",
     "category": "compliance",
     "evaluations": 8912,
@@ -182,7 +182,7 @@
   {
     "id": "pol-019",
     "name": "ai-model-version-pin",
-    "namespace": "cloudforge.ai.models",
+    "namespace": "aegis.ai.models",
     "status": "active",
     "category": "ai-governance",
     "evaluations": 567,
@@ -192,7 +192,7 @@
   {
     "id": "pol-020",
     "name": "storage-lifecycle-require",
-    "namespace": "cloudforge.storage",
+    "namespace": "aegis.storage",
     "status": "active",
     "category": "storage",
     "evaluations": 3678,
@@ -202,7 +202,7 @@
   {
     "id": "pol-021",
     "name": "kms-key-rotation",
-    "namespace": "cloudforge.encryption",
+    "namespace": "aegis.encryption",
     "status": "active",
     "category": "encryption",
     "evaluations": 4521,
@@ -212,7 +212,7 @@
   {
     "id": "pol-022",
     "name": "container-privileged-deny",
-    "namespace": "cloudforge.container",
+    "namespace": "aegis.container",
     "status": "active",
     "category": "container",
     "evaluations": 14203,
@@ -222,7 +222,7 @@
   {
     "id": "pol-023",
     "name": "cost-idle-resource-flag",
-    "namespace": "cloudforge.cost",
+    "namespace": "aegis.cost",
     "status": "draft",
     "category": "cost",
     "evaluations": 0,
@@ -232,7 +232,7 @@
   {
     "id": "pol-024",
     "name": "cross-account-deny",
-    "namespace": "cloudforge.security",
+    "namespace": "aegis.security",
     "status": "active",
     "category": "security",
     "evaluations": 2156,
@@ -242,7 +242,7 @@
   {
     "id": "pol-025",
     "name": "tag-cost-center-require",
-    "namespace": "cloudforge.tagging",
+    "namespace": "aegis.tagging",
     "status": "active",
     "category": "tagging",
     "evaluations": 11045,
@@ -252,7 +252,7 @@
   {
     "id": "pol-026",
     "name": "vpc-flow-logs-enable",
-    "namespace": "cloudforge.network",
+    "namespace": "aegis.network",
     "status": "draft",
     "category": "network",
     "evaluations": 0,
@@ -262,7 +262,7 @@
   {
     "id": "pol-027",
     "name": "service-account-key-deny",
-    "namespace": "cloudforge.identity",
+    "namespace": "aegis.identity",
     "status": "active",
     "category": "identity",
     "evaluations": 987,
@@ -272,7 +272,7 @@
   {
     "id": "pol-028",
     "name": "compliance-soc2-controls",
-    "namespace": "cloudforge.compliance",
+    "namespace": "aegis.compliance",
     "status": "inactive",
     "category": "compliance",
     "evaluations": 0,
@@ -282,7 +282,7 @@
   {
     "id": "pol-029",
     "name": "ai-prompt-injection-guard",
-    "namespace": "cloudforge.ai.security",
+    "namespace": "aegis.ai.security",
     "status": "inactive",
     "category": "ai-governance",
     "evaluations": 0,
@@ -292,7 +292,7 @@
   {
     "id": "pol-030",
     "name": "disk-encryption-enforce",
-    "namespace": "cloudforge.encryption",
+    "namespace": "aegis.encryption",
     "status": "inactive",
     "category": "encryption",
     "evaluations": 0,

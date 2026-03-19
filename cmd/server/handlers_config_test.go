@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"cloudforge/internal/tenant"
+	"aegis/internal/tenant"
 
 	"go.uber.org/zap"
 )
@@ -20,7 +20,7 @@ func newTestServerWithTenants(t *testing.T) (*Server, tenant.Store) {
 		Name: "Contoso Inc.",
 		Branding: tenant.Branding{
 			CompanyName:  "Contoso Inc.",
-			ProductName:  "CloudForge",
+			ProductName:  "Cloud Aegis",
 			LogoPath:     "/logo.svg",
 			PrimaryColor: "#f59e0b",
 			AccentColor:  "#f97316",
@@ -68,8 +68,8 @@ func TestHandleConfig_DefaultTenant(t *testing.T) {
 	if resp.CompanyName != "Contoso Inc." {
 		t.Errorf("expected company name 'Contoso Inc.', got %q", resp.CompanyName)
 	}
-	if resp.ProductName != "CloudForge" {
-		t.Errorf("expected product name 'CloudForge', got %q", resp.ProductName)
+	if resp.ProductName != "Cloud Aegis" {
+		t.Errorf("expected product name 'Cloud Aegis', got %q", resp.ProductName)
 	}
 
 	cacheControl := rr.Header().Get("Cache-Control")

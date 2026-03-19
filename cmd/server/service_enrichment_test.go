@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"cloudforge/internal/ai"
+	"aegis/internal/ai"
 
 	"go.uber.org/zap"
 )

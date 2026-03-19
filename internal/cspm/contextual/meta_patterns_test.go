@@ -3,7 +3,7 @@ package contextual
 import (
 	"testing"
 
-	"cloudforge/internal/cspm/scoring"
+	"aegis/internal/cspm/scoring"
 )
 
 // stubEPSSClient implements a minimal EPSS-like interface for testing.

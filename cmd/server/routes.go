@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"cloudforge/internal/api"
-	"cloudforge/internal/tenant"
+	"aegis/internal/api"
+	"aegis/internal/tenant"
 )
 
 func (s *Server) setupRoutes() {

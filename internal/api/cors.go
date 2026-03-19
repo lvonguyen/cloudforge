@@ -27,7 +27,7 @@ func CORSMiddleware(allowedOrigins []string, devMode bool) func(http.Handler) ht
 					w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 					allowHeaders := "Authorization, Content-Type"
 					if devMode {
-						allowHeaders += ", X-CloudForge-Role"
+						allowHeaders += ", X-Aegis-Role"
 					}
 					w.Header().Set("Access-Control-Allow-Headers", allowHeaders)
 					w.Header().Set("Access-Control-Max-Age", "86400")

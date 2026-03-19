@@ -1,8 +1,8 @@
 package main
 
 import (
-	"cloudforge/internal/api"
-	"cloudforge/internal/audit"
+	"aegis/internal/api"
+	"aegis/internal/audit"
 	"context"
 	"net/http"
 	"testing"
@@ -538,7 +538,7 @@ func scopedAdminJWT(t *testing.T, accountIDs []string) string {
 	return makeJWT(t, api.Claims{
 		Subject: "scoped-admin",
 		Email:   "scoped@contoso.dev",
-		Groups:  []string{"cloudforge-admin"},
+		Groups:  []string{"aegis-admin"},
 		Scope:   "admin",
 		ResourceScope: &api.ResourceScope{
 			AccountIDs: accountIDs,

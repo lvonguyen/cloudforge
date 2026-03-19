@@ -63,7 +63,7 @@ func (p *PagerDutyChannel) Send(ctx context.Context, alert BudgetAlert) error {
 		DedupKey:    alert.ID,
 		Payload: pdPayload{
 			Summary:   fmt.Sprintf("Budget Alert: %s — $%.2f / $%.2f (%.0f%%)", alert.BudgetName, alert.ActualUSD, alert.BudgetUSD, alert.ThresholdPct),
-			Source:    "cloudforge-finops",
+			Source:    "aegis-finops",
 			Severity:  severity,
 			Component: alert.Provider,
 			CustomDetails: map[string]string{

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"cloudforge/internal/api"
+	"aegis/internal/api"
 
 	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel"
@@ -45,7 +45,7 @@ func attackPathInScope(scope *api.ResourceScope, path *AttackPath) bool {
 }
 
 func (svc *AttackPathService) listAttackPaths(w http.ResponseWriter, r *http.Request) {
-	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.listAttackPaths")
+	_, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listAttackPaths")
 	defer span.End()
 
 	claims, _ := api.GetClaimsFromContext(r.Context())
@@ -75,7 +75,7 @@ func (svc *AttackPathService) listAttackPaths(w http.ResponseWriter, r *http.Req
 }
 
 func (svc *AttackPathService) getAttackPath(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getAttackPath")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getAttackPath")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -107,7 +107,7 @@ func (svc *AttackPathService) getAttackPath(w http.ResponseWriter, r *http.Reque
 }
 
 func (svc *AttackPathService) getAttackPathStats(w http.ResponseWriter, r *http.Request) {
-	_, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getAttackPathStats")
+	_, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getAttackPathStats")
 	defer span.End()
 
 	claims, _ := api.GetClaimsFromContext(r.Context())

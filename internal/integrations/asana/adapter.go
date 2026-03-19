@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"cloudforge/internal/integrations"
+	"aegis/internal/integrations"
 
 	"go.uber.org/zap"
 )
@@ -24,7 +24,7 @@ func NewAdapter(client *Client, logger *zap.Logger) integrations.TicketProvider 
 func (a *Adapter) Name() string { return "asana" }
 
 func (a *Adapter) CreateTicket(ctx context.Context, req integrations.CreateTicketRequest) (*integrations.Ticket, error) {
-	notes := fmt.Sprintf("CloudForge Finding: %s\n\n%s", req.FindingID, req.Description)
+	notes := fmt.Sprintf("Cloud Aegis Finding: %s\n\n%s", req.FindingID, req.Description)
 	resp, err := a.client.CreateTask(ctx, req.Title, notes, req.Assignee, req.DueDate)
 	if err != nil {
 		return nil, fmt.Errorf("creating asana task: %w", err)

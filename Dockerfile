@@ -18,15 +18,15 @@ COPY . .
 # Build binary with version info
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-w -s -X main.Version=${VERSION}" \
-    -o /cloudforge \
+    -o /aegis \
     ./cmd/server
 
 # Final stage - minimal runtime image
 FROM alpine:3.20
 
 # Security: Run as non-root user
-RUN addgroup -g 1000 cloudforge && \
-    adduser -u 1000 -G cloudforge -s /bin/sh -D cloudforge
+RUN addgroup -g 1000 aegis && \
+    adduser -u 1000 -G aegis -s /bin/sh -D aegis
 
 # Install runtime dependencies
 RUN apk add --no-cache ca-certificates tzdata
@@ -39,7 +39,7 @@ RUN apk add --no-cache curl && \
 WORKDIR /app
 
 # Copy binary from builder
-COPY --from=builder /cloudforge /app/cloudforge
+COPY --from=builder /aegis /app/aegis
 
 # Copy mock data files required by the in-memory GRC provider
 COPY --from=builder /app/frontend/src/lib/mock /app/frontend/src/lib/mock
@@ -52,9 +52,9 @@ COPY configs/config.example.yaml /app/config.example.yaml
 RUN mkdir -p /app/policies
 
 # Set ownership
-RUN chown -R cloudforge:cloudforge /app
+RUN chown -R aegis:aegis /app
 
-USER cloudforge
+USER aegis
 
 # Expose API port
 EXPOSE 8080
@@ -63,4 +63,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD wget -qO- http://localhost:8080/health || exit 1
 
-ENTRYPOINT ["/app/cloudforge"]
+ENTRYPOINT ["/app/aegis"]

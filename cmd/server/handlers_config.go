@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"cloudforge/internal/tenant"
+	"aegis/internal/tenant"
 )
 
 // configResponse matches the frontend RuntimeConfig interface for branding.
@@ -23,7 +23,7 @@ type configResponse struct {
 // Default Contoso branding (fallback when no tenant is resolved).
 var defaultConfigResponse = configResponse{
 	CompanyName:    "Contoso Inc.",
-	ProductName:    "CloudForge",
+	ProductName:    "Cloud Aegis",
 	LogoPath:       "/logo.svg",
 	EmailDomain:    "contoso.com",
 	RepoPrefix:     "contoso",

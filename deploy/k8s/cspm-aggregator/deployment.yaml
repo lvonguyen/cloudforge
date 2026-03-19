@@ -118,7 +118,7 @@ spec:
           
           containers:
             - name: aggregator
-              image: ghcr.io/lvonguyen/cloudforge:latest
+              image: ghcr.io/lvonguyen/aegis:latest
               imagePullPolicy: Always
               
               args:

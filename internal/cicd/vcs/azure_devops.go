@@ -456,7 +456,7 @@ func (p *AzureDevOpsProvider) CreateCheckRun(ctx context.Context, _, repo, sha s
 		"description": check.Summary,
 		"context": map[string]string{
 			"name":  check.Name,
-			"genre": "cloudforge-security",
+			"genre": "aegis-security",
 		}["name"],
 	}
 

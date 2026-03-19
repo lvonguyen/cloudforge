@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"cloudforge/internal/audit"
-	"cloudforge/internal/integrations"
-	"cloudforge/internal/workflow"
+	"aegis/internal/audit"
+	"aegis/internal/integrations"
+	"aegis/internal/workflow"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -69,7 +69,7 @@ func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Req
 	// Create ticket in external system
 	ticket, err := h.provider.CreateTicket(r.Context(), integrations.CreateTicketRequest{
 		FindingID:   findingID,
-		Title:       fmt.Sprintf("[CloudForge] Remediate finding %s", findingID),
+		Title:       fmt.Sprintf("[Cloud Aegis] Remediate finding %s", findingID),
 		Description: fmt.Sprintf("Priority: %s | Team: %s | SLA: %dh", decision.Priority, decision.Team, decision.SLAHours),
 		Priority:    decision.Priority,
 		Assignee:    body.Assignee,

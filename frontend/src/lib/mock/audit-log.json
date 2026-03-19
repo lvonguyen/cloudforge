@@ -285,7 +285,7 @@
     "actor": "lena.johansson@contoso.dev",
     "actor_role": "admin",
     "action": "user.login",
-    "resource": "cloudforge-portal",
+    "resource": "aegis-portal",
     "result": "denied",
     "ip": "10.0.1.55"
   },
@@ -375,7 +375,7 @@
     "actor": "kofi.asante@contoso.dev",
     "actor_role": "requester",
     "action": "user.login",
-    "resource": "cloudforge-portal",
+    "resource": "aegis-portal",
     "result": "success",
     "ip": "10.0.3.34"
   },
@@ -555,7 +555,7 @@
     "actor": "user2@contoso.dev",
     "actor_role": "requester",
     "action": "user.login",
-    "resource": "cloudforge-portal",
+    "resource": "aegis-portal",
     "result": "denied",
     "ip": "10.0.3.22"
   },

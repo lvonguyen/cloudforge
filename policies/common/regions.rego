@@ -1,6 +1,6 @@
 # policies/common/regions.rego
 # Region restriction policies for data residency and compliance
-package cloudforge.regions
+package aegis.regions
 
 import future.keywords.if
 import future.keywords.in

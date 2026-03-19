@@ -1345,11 +1345,11 @@ func TestMockOkta_ProviderMethods(t *testing.T) {
 	}
 
 	// GetGroup
-	group, err := p.GetGroup(ctx, "cloudforge-admin")
+	group, err := p.GetGroup(ctx, "aegis-admin")
 	if err != nil {
 		t.Fatalf("GetGroup: %v", err)
 	}
-	if group.Name != "cloudforge-admin" {
+	if group.Name != "aegis-admin" {
 		t.Errorf("group.Name = %q", group.Name)
 	}
 	// GetGroup not found
@@ -1358,7 +1358,7 @@ func TestMockOkta_ProviderMethods(t *testing.T) {
 	}
 
 	// GetGroupMembers
-	members, err := p.GetGroupMembers(ctx, "cloudforge-admin")
+	members, err := p.GetGroupMembers(ctx, "aegis-admin")
 	if err != nil {
 		t.Fatalf("GetGroupMembers: %v", err)
 	}
@@ -1476,11 +1476,11 @@ func TestMockEntra_ProviderMethods(t *testing.T) {
 	}
 
 	// GetGroup (mock groups are keyed by name)
-	grp, err := p.GetGroup(ctx, "sg-cloudforge-admin")
+	grp, err := p.GetGroup(ctx, "sg-aegis-admin")
 	if err != nil {
 		t.Fatalf("GetGroup: %v", err)
 	}
-	if grp.Name != "sg-cloudforge-admin" {
+	if grp.Name != "sg-aegis-admin" {
 		t.Errorf("Name = %q", grp.Name)
 	}
 	if _, err := p.GetGroup(ctx, "nonexistent"); err == nil {
@@ -1488,7 +1488,7 @@ func TestMockEntra_ProviderMethods(t *testing.T) {
 	}
 
 	// GetGroupMembers
-	members, err := p.GetGroupMembers(ctx, "sg-cloudforge-admin")
+	members, err := p.GetGroupMembers(ctx, "sg-aegis-admin")
 	if err != nil {
 		t.Fatalf("GetGroupMembers: %v", err)
 	}

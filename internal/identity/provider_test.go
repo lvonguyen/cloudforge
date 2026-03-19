@@ -66,10 +66,10 @@ func TestMockOktaProvider_ListGroupMemberships_AdminUser(t *testing.T) {
 
 	hasAdmin := false
 	for _, m := range memberships {
-		if m.GroupName == "cloudforge-admin" {
+		if m.GroupName == "aegis-admin" {
 			hasAdmin = true
 			if m.Role != "admin" {
-				t.Errorf("expected Role=admin for cloudforge-admin, got %q", m.Role)
+				t.Errorf("expected Role=admin for aegis-admin, got %q", m.Role)
 			}
 		}
 		if m.GroupID == "" {
@@ -77,7 +77,7 @@ func TestMockOktaProvider_ListGroupMemberships_AdminUser(t *testing.T) {
 		}
 	}
 	if !hasAdmin {
-		t.Error("expected alice to be in cloudforge-admin group")
+		t.Error("expected alice to be in aegis-admin group")
 	}
 }
 
@@ -171,10 +171,10 @@ func TestMockEntraIDProvider_ListGroupMemberships_AdminUser(t *testing.T) {
 
 	hasAdmin := false
 	for _, m := range memberships {
-		if m.GroupName == "sg-cloudforge-admin" {
+		if m.GroupName == "sg-aegis-admin" {
 			hasAdmin = true
 			if m.Role != "admin" {
-				t.Errorf("expected Role=admin for sg-cloudforge-admin, got %q", m.Role)
+				t.Errorf("expected Role=admin for sg-aegis-admin, got %q", m.Role)
 			}
 			// Entra ID groups should have UUID-format IDs.
 			if len(m.GroupID) < 10 {
@@ -183,7 +183,7 @@ func TestMockEntraIDProvider_ListGroupMemberships_AdminUser(t *testing.T) {
 		}
 	}
 	if !hasAdmin {
-		t.Error("expected carol to be in sg-cloudforge-admin group")
+		t.Error("expected carol to be in sg-aegis-admin group")
 	}
 }
 

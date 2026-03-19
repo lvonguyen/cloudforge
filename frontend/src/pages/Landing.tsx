@@ -25,7 +25,7 @@ interface ProjectCard {
 const PROJECTS: ProjectCard[] = [
   {
     name: branding.productName,
-    slug: 'cloudforge',
+    slug: 'aegis',
     tier: 'flagship',
     description:
       'Enterprise cloud security platform — policy-as-code provisioning, AI-powered risk scoring, automated remediation, and multi-cloud compliance across AWS, Azure, and GCP.',
@@ -40,7 +40,7 @@ const PROJECTS: ProjectCard[] = [
       { label: 'Test Coverage', value: '85%' },
     ],
     link: '/admin',
-    repo: `${branding.repoPrefix}/cloudforge`,
+    repo: `${branding.repoPrefix}/aegis`,
   },
   {
     name: 'CSPM Aggregator',

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"cloudforge/internal/asm"
+	"aegis/internal/asm"
 )
 
 func TestASMScan_Success(t *testing.T) {

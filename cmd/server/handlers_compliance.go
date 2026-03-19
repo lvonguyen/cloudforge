@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"cloudforge/internal/compliance"
+	"aegis/internal/compliance"
 
 	"github.com/gorilla/mux"
 )

@@ -7,9 +7,9 @@ import (
 	"net/mail"
 	"strings"
 
-	"cloudforge/internal/api"
-	"cloudforge/internal/audit"
-	"cloudforge/internal/grc"
+	"aegis/internal/api"
+	"aegis/internal/audit"
+	"aegis/internal/grc"
 
 	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel"
@@ -82,7 +82,7 @@ type ValidateExceptionRequest struct {
 }
 
 func (h *GRCHandler) CreateException(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.createException")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.createException")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -136,7 +136,7 @@ func (h *GRCHandler) CreateException(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GRCHandler) GetException(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getException")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getException")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -171,7 +171,7 @@ func (h *GRCHandler) GetException(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GRCHandler) SubmitApproval(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.submitApproval")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.submitApproval")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -209,7 +209,7 @@ func (h *GRCHandler) SubmitApproval(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GRCHandler) GetPendingApprovals(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getPendingApprovals")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getPendingApprovals")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -238,7 +238,7 @@ func (h *GRCHandler) GetPendingApprovals(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *GRCHandler) GetMyExceptions(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getMyExceptions")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getMyExceptions")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -259,7 +259,7 @@ func (h *GRCHandler) GetMyExceptions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GRCHandler) GetExpiringExceptions(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getExpiringExceptions")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getExpiringExceptions")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -274,7 +274,7 @@ func (h *GRCHandler) GetExpiringExceptions(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *GRCHandler) GetExceptionsByApp(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.getExceptionsByApp")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getExceptionsByApp")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -304,7 +304,7 @@ func (h *GRCHandler) GetExceptionsByApp(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *GRCHandler) WithdrawException(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.withdrawException")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.withdrawException")
 	defer span.End()
 	r = r.WithContext(ctx)
 
@@ -352,7 +352,7 @@ func (h *GRCHandler) WithdrawException(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GRCHandler) ValidateException(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer("cloudforge.api").Start(r.Context(), "handler.validateException")
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.validateException")
 	defer span.End()
 	r = r.WithContext(ctx)
 

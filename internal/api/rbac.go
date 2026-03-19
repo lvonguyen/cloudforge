@@ -72,7 +72,7 @@ func ScopeFromContext(claims *Claims) *ResourceScope {
 	return claims.ResourceScope
 }
 
-// Role represents a CloudForge authorization role.
+// Role represents a Cloud Aegis authorization role.
 type Role string
 
 const (
@@ -82,11 +82,11 @@ const (
 	RoleViewer    Role = "viewer"
 )
 
-// groupRoleMap maps IdP/CF Access group names to roles (first match wins).
+// groupRoleMap maps IdP group names to roles (first match wins).
 var groupRoleMap = map[string]Role{
-	"cloudforge-admin":    RoleAdmin,
-	"cloudforge-operator": RoleOperator,
-	"cloudforge-viewer":   RoleViewer,
+	"aegis-admin":    RoleAdmin,
+	"aegis-operator": RoleOperator,
+	"aegis-viewer":   RoleViewer,
 }
 
 // roleRank defines privilege ordering for highest-privilege-wins resolution.
@@ -123,7 +123,7 @@ type RoleEnforcer struct {
 
 // Require returns middleware that enforces the request's role is in the allowed set.
 // Must run after AuthMiddleware (claims in context).
-// In dev mode only, the X-CloudForge-Role header overrides the JWT-derived role
+// In dev mode only, the X-Aegis-Role header overrides the JWT-derived role
 // to support the frontend demo role switcher.
 func (re *RoleEnforcer) Require(roles ...Role) func(http.Handler) http.Handler {
 	allowed := make(map[Role]bool, len(roles))
@@ -146,11 +146,11 @@ func (re *RoleEnforcer) Require(roles ...Role) func(http.Handler) http.Handler {
 
 			role := RoleFromClaims(claims)
 
-			// Dev override: allow X-CloudForge-Role header to set role for demo.
+			// Dev override: allow X-Aegis-Role header to set role for demo.
 			// Only enabled when APP_ENV=="development" was read at startup.
 			// Only valid canonical roles are accepted; invalid values are ignored.
 			if re.DevMode {
-				if override := r.Header.Get("X-CloudForge-Role"); override != "" {
+				if override := r.Header.Get("X-Aegis-Role"); override != "" {
 					candidate := Role(strings.ToLower(override))
 					if _, valid := roleRank[candidate]; valid {
 						role = candidate

@@ -1,14 +1,14 @@
 # policies/main.rego
-# Main entry point for CloudForge policy evaluation
-package cloudforge
+# Main entry point for Cloud Aegis policy evaluation
+package aegis
 
 import future.keywords.if
 import future.keywords.in
 import future.keywords.contains
 
-import data.cloudforge.regions
-import data.cloudforge.cost
-import data.cloudforge.network
+import data.aegis.regions
+import data.aegis.cost
+import data.aegis.network
 
 # Aggregate all deny messages from sub-policies
 deny contains msg if {

@@ -1,7 +1,7 @@
 // Package opa provides an in-process OPA policy engine for AI agent governance.
 //
 // This engine evaluates tool access and data flow policies for AI agents using
-// embedded Rego policies. It complements CloudForge's existing HTTP-based policy
+// embedded Rego policies. It complements Cloud Aegis's existing HTTP-based policy
 // evaluator (internal/policy/) which handles cloud provisioning governance.
 //
 // Migrated from AgentGuard — selective merge of the in-process OPA evaluation
@@ -113,7 +113,7 @@ func (e *Engine) LoadPolicies(ctx context.Context, paths []string) error {
 	// needed on the store (rego.Load requires a write transaction; rego.Module
 	// does not, allowing multiple policy groups to coexist in one engine).
 	opts := []func(*rego.Rego){
-		rego.Query("data.cloudforge.ai"),
+		rego.Query("data.aegis.ai"),
 		rego.Store(e.store),
 	}
 	for _, p := range paths {
@@ -133,7 +133,7 @@ func (e *Engine) LoadPolicies(ctx context.Context, paths []string) error {
 
 	// Key by the first path so each policy group is independently addressable.
 	e.queries[paths[0]] = &pq
-	// Default is last-writer-wins. In CloudForge, LoadPolicies is called once
+	// Default is last-writer-wins. In Cloud Aegis, LoadPolicies is called once
 	// at startup; if called again, the last-loaded policy becomes the fallback
 	// for any unregistered policyPath in Evaluate.
 	e.queries["default"] = &pq
@@ -146,7 +146,7 @@ func (e *Engine) LoadPolicyBundle(ctx context.Context, bundlePath string) error 
 	defer e.mu.Unlock()
 
 	r := rego.New(
-		rego.Query("data.cloudforge.ai.allow"),
+		rego.Query("data.aegis.ai.allow"),
 		rego.Store(e.store),
 		rego.LoadBundle(bundlePath),
 	)
@@ -226,7 +226,7 @@ func (e *Engine) EvaluateToolAccess(ctx context.Context, agent *AgentContext, to
 		Agent: *agent,
 		Tool:  tool,
 	}
-	return e.Evaluate(ctx, "cloudforge.ai.tool_access.allow", input)
+	return e.Evaluate(ctx, "aegis.ai.tool_access.allow", input)
 }
 
 // EvaluateDataFlow evaluates data flow policy for an AI agent.
@@ -235,7 +235,7 @@ func (e *Engine) EvaluateDataFlow(ctx context.Context, agent *AgentContext, data
 		Agent: *agent,
 		Data:  data,
 	}
-	return e.Evaluate(ctx, "cloudforge.ai.data_flow.allow", input)
+	return e.Evaluate(ctx, "aegis.ai.data_flow.allow", input)
 }
 
 func getString(m map[string]any, key string) string {
@@ -247,7 +247,7 @@ func getString(m map[string]any, key string) string {
 
 // BaseToolAccessPolicy is the default Rego policy for AI agent tool access control.
 const BaseToolAccessPolicy = `
-package cloudforge.ai.tool_access
+package aegis.ai.tool_access
 
 import future.keywords.in
 
@@ -315,7 +315,7 @@ denial_reasons[reason] {
 
 // BaseDataFlowPolicy is the default Rego policy for AI agent data flow control.
 const BaseDataFlowPolicy = `
-package cloudforge.ai.data_flow
+package aegis.ai.data_flow
 
 import future.keywords.in
 

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"cloudforge/internal/cspm/scoring"
-	"cloudforge/internal/cspm/threatintel"
+	"aegis/internal/cspm/scoring"
+	"aegis/internal/cspm/threatintel"
 )
 
 // severityLevels is the ordered list of severity strings from most to least severe.

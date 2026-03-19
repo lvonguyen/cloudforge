@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"cloudforge/internal/api"
-	"cloudforge/internal/audit"
-	"cloudforge/internal/grc"
-	"cloudforge/internal/identity"
-	"cloudforge/internal/observability"
+	"aegis/internal/api"
+	"aegis/internal/audit"
+	"aegis/internal/grc"
+	"aegis/internal/identity"
+	"aegis/internal/observability"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -117,7 +117,7 @@ func adminClaims() api.Claims {
 	return api.Claims{
 		Subject: "bench-admin",
 		Email:   "admin@contoso.dev",
-		Groups:  []string{"cloudforge-admin"},
+		Groups:  []string{"aegis-admin"},
 		Scope:   "admin",
 	}
 }

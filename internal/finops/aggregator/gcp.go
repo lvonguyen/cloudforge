@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	"cloudforge/internal/finops"
+	"aegis/internal/finops"
 )
 
 // GCPConfig holds configuration for the GCP Cloud Billing client.

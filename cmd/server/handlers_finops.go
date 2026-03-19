@@ -9,9 +9,9 @@ import (
 	"sort"
 	"time"
 
-	"cloudforge/internal/finops"
-	"cloudforge/internal/finops/anomaly"
-	"cloudforge/internal/finops/chargeback"
+	"aegis/internal/finops"
+	"aegis/internal/finops/anomaly"
+	"aegis/internal/finops/chargeback"
 
 	"go.uber.org/zap"
 )

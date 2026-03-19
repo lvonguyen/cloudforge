@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"cloudforge/internal/identity"
+	"aegis/internal/identity"
 )
 
 // IdentityService encapsulates identity provider operations,

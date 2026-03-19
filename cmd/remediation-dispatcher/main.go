@@ -15,15 +15,15 @@ import (
 	"strings"
 	"time"
 
-	cspmscoring "cloudforge/internal/cspm/scoring"
-	"cloudforge/internal/remediation/compute"
-	"cloudforge/internal/remediation/identity"
-	"cloudforge/internal/remediation/network"
-	"cloudforge/internal/remediation/patching"
-	"cloudforge/internal/remediation/secrets"
-	"cloudforge/internal/remediation/security_services"
-	"cloudforge/internal/remediation/storage"
-	"cloudforge/pkg/remediation"
+	cspmscoring "aegis/internal/cspm/scoring"
+	"aegis/internal/remediation/compute"
+	"aegis/internal/remediation/identity"
+	"aegis/internal/remediation/network"
+	"aegis/internal/remediation/patching"
+	"aegis/internal/remediation/secrets"
+	"aegis/internal/remediation/security_services"
+	"aegis/internal/remediation/storage"
+	"aegis/pkg/remediation"
 
 	"go.uber.org/zap"
 )
@@ -393,14 +393,14 @@ func printSummary(logger *zap.Logger, results []*remediation.RemediationResult) 
 
 // authorizeRollback verifies the caller has permission to perform rollback operations.
 // Rollbacks re-open security remediations, so they require explicit authorization via
-// the CLOUDFORGE_ROLLBACK_TOKEN environment variable set by the deployment pipeline.
+// the AEGIS_ROLLBACK_TOKEN environment variable set by the deployment pipeline.
 func authorizeRollback(logger *zap.Logger) error {
-	token := os.Getenv("CLOUDFORGE_ROLLBACK_TOKEN")
+	token := os.Getenv("AEGIS_ROLLBACK_TOKEN")
 	if token == "" {
-		return fmt.Errorf("CLOUDFORGE_ROLLBACK_TOKEN environment variable is required for rollback operations")
+		return fmt.Errorf("AEGIS_ROLLBACK_TOKEN environment variable is required for rollback operations")
 	}
 	if len(token) < 16 {
-		return fmt.Errorf("CLOUDFORGE_ROLLBACK_TOKEN is too short (minimum 16 characters)")
+		return fmt.Errorf("AEGIS_ROLLBACK_TOKEN is too short (minimum 16 characters)")
 	}
 	logger.Info("rollback authorization verified")
 	return nil

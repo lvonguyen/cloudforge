@@ -1,6 +1,6 @@
 version: 2
 
-project_name: cloudforge
+project_name: aegis
 
 before:
   hooks:
@@ -8,9 +8,9 @@ before:
     - go mod verify
 
 builds:
-  - id: cloudforge
+  - id: aegis
     main: ./cmd/server
-    binary: cloudforge
+    binary: aegis
     env:
       - CGO_ENABLED=0
     goos:
@@ -93,7 +93,7 @@ changelog:
 release:
   github:
     owner: lvonguyen
-    name: cloudforge
+    name: aegis
   draft: false
   prerelease: auto
   name_template: "{{.Tag}}"

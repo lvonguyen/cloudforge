@@ -1,6 +1,6 @@
 # policies/common/cost.rego
 # Cost control policies for cloud resource provisioning
-package cloudforge.cost
+package aegis.cost
 
 import future.keywords.if
 import future.keywords.in

@@ -9,9 +9,9 @@ describe('Landing', () => {
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
   })
 
-  it('shows the CloudForge Platform heading', () => {
+  it('shows the Cloud Aegis Platform heading', () => {
     renderWithProviders(<Landing />)
-    expect(screen.getByText(/CloudForge Platform/i)).toBeInTheDocument()
+    expect(screen.getByText(/Cloud Aegis Platform/i)).toBeInTheDocument()
   })
 
   it('shows the Tier 1 — Flagship section heading', () => {
@@ -36,7 +36,7 @@ describe('Landing', () => {
 
   it('renders the 2 core project tiles', () => {
     renderWithProviders(<Landing />)
-    expect(screen.getByText('CloudForge')).toBeInTheDocument()
+    expect(screen.getByText('Cloud Aegis')).toBeInTheDocument()
     expect(screen.getByText('CSPM Aggregator')).toBeInTheDocument()
   })
 

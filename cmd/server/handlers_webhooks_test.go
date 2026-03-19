@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"cloudforge/internal/webhooks"
+	"aegis/internal/webhooks"
 )
 
 func TestRegisterWebhook_Success(t *testing.T) {

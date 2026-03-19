@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"cloudforge/internal/api"
+	"aegis/internal/api"
 
 	"go.uber.org/zap"
 )
@@ -68,7 +68,7 @@ func Middleware(store Store, logger *zap.Logger) func(http.Handler) http.Handler
 }
 
 // extractSubdomain returns the first subdomain from a host string.
-// For example, "haea.cloudforge.io" returns "haea".
+// For example, "haea.aegis.io" returns "haea".
 // Returns empty string for bare domains (no subdomain).
 func extractSubdomain(host string) string {
 	// Strip port

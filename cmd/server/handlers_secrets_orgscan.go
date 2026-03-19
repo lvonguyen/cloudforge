@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"cloudforge/internal/secrets"
+	"aegis/internal/secrets"
 )
 
 // handleOrgScan runs an org-wide secrets scan.

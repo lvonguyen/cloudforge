@@ -50,7 +50,7 @@ func NewMockOktaProvider() *MockOktaProvider {
 				LastLogin:   &lastLogin,
 				CreatedAt:   now.Add(-365 * 24 * time.Hour),
 				UpdatedAt:   now,
-				Groups:      []string{"cloudforge-admin", "platform-engineers"},
+				Groups:      []string{"aegis-admin", "platform-engineers"},
 				Roles:       []string{"ADMIN"},
 				Attributes:  map[string]string{"provider": "okta", "org": "integrator-3493576"},
 			},
@@ -65,24 +65,24 @@ func NewMockOktaProvider() *MockOktaProvider {
 				LastLogin:   &lastLogin,
 				CreatedAt:   now.Add(-180 * 24 * time.Hour),
 				UpdatedAt:   now,
-				Groups:      []string{"cloudforge-operator", "security-team"},
+				Groups:      []string{"aegis-operator", "security-team"},
 				Roles:       []string{"OPERATOR"},
 				Attributes:  map[string]string{"provider": "okta", "org": "integrator-3493576"},
 			},
 		},
 		groups: map[string]*Group{
-			"cloudforge-admin": {
-				ID:          "00g1cloudforgeadmin",
-				Name:        "cloudforge-admin",
-				Description: "CloudForge administrators",
+			"aegis-admin": {
+				ID:          "00g1aegisadmin",
+				Name:        "aegis-admin",
+				Description: "Cloud Aegis administrators",
 				Type:        "security",
 				MemberCount: 1,
 				CreatedAt:   now.Add(-365 * 24 * time.Hour),
 			},
-			"cloudforge-operator": {
-				ID:          "00g2cloudforgeoperator",
-				Name:        "cloudforge-operator",
-				Description: "CloudForge operators (read + limited write)",
+			"aegis-operator": {
+				ID:          "00g2aegisoperator",
+				Name:        "aegis-operator",
+				Description: "Cloud Aegis operators (read + limited write)",
 				Type:        "security",
 				MemberCount: 1,
 				CreatedAt:   now.Add(-365 * 24 * time.Hour),
@@ -289,7 +289,7 @@ func (p *MockOktaProvider) ListGroupMemberships(_ context.Context, userID string
 	for _, gName := range u.Groups {
 		g, gOk := p.groups[gName]
 		role := "member"
-		if gOk && gName == "cloudforge-admin" {
+		if gOk && gName == "aegis-admin" {
 			role = "admin"
 		}
 		gID := gName
@@ -334,7 +334,7 @@ func NewMockEntraIDProvider() *MockEntraIDProvider {
 				LastLogin:   &lastLogin,
 				CreatedAt:   now.Add(-400 * 24 * time.Hour),
 				UpdatedAt:   now,
-				Groups:      []string{"sg-cloudforge-admin", "sg-cloud-infra"},
+				Groups:      []string{"sg-aegis-admin", "sg-cloud-infra"},
 				Roles:       []string{"ADMIN"},
 				Attributes:  map[string]string{"provider": "entra_id", "tenant": "example.onmicrosoft.com"},
 			},
@@ -349,24 +349,24 @@ func NewMockEntraIDProvider() *MockEntraIDProvider {
 				LastLogin:   &lastLogin,
 				CreatedAt:   now.Add(-200 * 24 * time.Hour),
 				UpdatedAt:   now,
-				Groups:      []string{"sg-cloudforge-operator", "sg-devops"},
+				Groups:      []string{"sg-aegis-operator", "sg-devops"},
 				Roles:       []string{"OPERATOR"},
 				Attributes:  map[string]string{"provider": "entra_id", "tenant": "example.onmicrosoft.com"},
 			},
 		},
 		groups: map[string]*Group{
-			"sg-cloudforge-admin": {
+			"sg-aegis-admin": {
 				ID:          "11111111-2222-3333-4444-555555555555",
-				Name:        "sg-cloudforge-admin",
-				Description: "CloudForge Administrators (Entra ID)",
+				Name:        "sg-aegis-admin",
+				Description: "Cloud Aegis Administrators (Entra ID)",
 				Type:        "security",
 				MemberCount: 1,
 				CreatedAt:   now.Add(-400 * 24 * time.Hour),
 			},
-			"sg-cloudforge-operator": {
+			"sg-aegis-operator": {
 				ID:          "66666666-7777-8888-9999-aaaaaaaaaaaa",
-				Name:        "sg-cloudforge-operator",
-				Description: "CloudForge Operators (Entra ID)",
+				Name:        "sg-aegis-operator",
+				Description: "Cloud Aegis Operators (Entra ID)",
 				Type:        "security",
 				MemberCount: 1,
 				CreatedAt:   now.Add(-400 * 24 * time.Hour),
@@ -570,7 +570,7 @@ func (p *MockEntraIDProvider) ListGroupMemberships(_ context.Context, userID str
 	for _, gName := range u.Groups {
 		g, gOk := p.groups[gName]
 		role := "member"
-		if gOk && gName == "sg-cloudforge-admin" {
+		if gOk && gName == "sg-aegis-admin" {
 			role = "admin"
 		}
 		gID := gName
