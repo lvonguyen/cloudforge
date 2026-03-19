@@ -32,6 +32,7 @@ const VERIFIER_KEY = `${branding.storagePrefix}_pkce_verifier`
 export const STATE_KEY = `${branding.storagePrefix}_oauth_state`
 const NONCE_KEY = `${branding.storagePrefix}_oauth_nonce`
 export const LOGIN_RETURN_KEY = `${branding.storagePrefix}_login_return`
+const DEMO_SESSION_KEY = `${branding.storagePrefix}_demo_session`
 
 const OKTA_ISSUER = import.meta.env.VITE_OKTA_ISSUER as string | undefined
 const OKTA_CLIENT_ID = import.meta.env.VITE_OKTA_CLIENT_ID as string | undefined
@@ -187,10 +188,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       nonce,
     })
 
-    // Pre-fill the Okta login form with the demo viewer email
+    // Pre-fill the Okta login form with the demo email
     if (branding.demoAccess.email) {
       params.set('login_hint', branding.demoAccess.email)
     }
+
+    // Flag this as a demo session so the callback grants full admin access
+    sessionStorage.setItem(DEMO_SESSION_KEY, 'true')
 
     window.location.href = `${OKTA_ISSUER}/v1/authorize?${params}`
   }, [])
@@ -203,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(STATE_KEY)
     sessionStorage.removeItem(NONCE_KEY)
     sessionStorage.removeItem(ROLE_KEY)
+    sessionStorage.removeItem(DEMO_SESSION_KEY)
 
     if (!isDev && OKTA_ISSUER && OKTA_CLIENT_ID) {
       const params = new URLSearchParams({
@@ -268,8 +273,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(STATE_KEY)
     sessionStorage.removeItem(NONCE_KEY)
 
+    // Demo sessions default to admin so the user can explore all views.
+    // The role switcher still lets them toggle between roles for demonstration.
+    const isDemo = sessionStorage.getItem(DEMO_SESSION_KEY) === 'true'
     const currentRole = sessionStorage.getItem(ROLE_KEY) as Role | null
-    const u = userFromToken(data.access_token, currentRole)
+    const effectiveRole = currentRole ?? (isDemo ? 'admin' : null)
+    const u = userFromToken(data.access_token, effectiveRole)
     setUser(u)
     setIsAuthenticated(true)
   }, [])
