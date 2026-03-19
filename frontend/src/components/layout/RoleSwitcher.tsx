@@ -9,12 +9,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ChevronDown, ShieldCheck, Terminal, UserCircle } from 'lucide-react'
+import { ChevronDown, Eye, ShieldCheck, Terminal, UserCircle } from 'lucide-react'
 
 const ROLES: { value: Role; label: string; icon: React.ReactNode; color: string }[] = [
   { value: 'admin', label: 'Admin', icon: <ShieldCheck className="h-4 w-4" />, color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
   { value: 'operator', label: 'Operator', icon: <Terminal className="h-4 w-4" />, color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
   { value: 'requester', label: 'Requester', icon: <UserCircle className="h-4 w-4" />, color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+  { value: 'viewer', label: 'Viewer', icon: <Eye className="h-4 w-4" />, color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300' },
 ]
 
 const ROLE_HOME: Record<Role, string> = {

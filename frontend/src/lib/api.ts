@@ -33,7 +33,16 @@ function authHeaders(): Record<string, string> {
   const token = isDev
     ? (import.meta.env.VITE_DEV_TOKEN as string | undefined)
     : sessionStorage.getItem(TOKEN_KEY)
-  return token ? { Authorization: `Bearer ${token}` } : {}
+  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
+
+  // In dev/demo mode, forward the frontend role override so the backend
+  // RoleEnforcer (which checks X-Aegis-Role in dev mode) stays in sync.
+  if (isDev) {
+    const role = sessionStorage.getItem(`${import.meta.env.VITE_STORAGE_PREFIX || 'aegis'}_role`)
+    if (role) headers['X-Aegis-Role'] = role
+  }
+
+  return headers
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {

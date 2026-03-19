@@ -1,11 +1,14 @@
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Shield, Cloud, Activity,
-  ArrowRight, GitBranch, Server,
+  ArrowRight, GitBranch, Server, Eye, Copy, Check,
 } from 'lucide-react'
+import { useState, useCallback } from 'react'
 import { branding } from '@/lib/branding'
+import { useAuth } from '@/lib/auth'
 
 interface ProjectCard {
   name: string
@@ -134,7 +137,81 @@ export default function Landing() {
           </div>
         </section>
       )}
+
+      {/* Demo Viewer Access */}
+      {branding.demoAccess.enabled && <DemoAccessCard />}
     </div>
+  )
+}
+
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const copy = useCallback(() => {
+    navigator.clipboard.writeText(value)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }, [value])
+
+  return (
+    <button
+      onClick={copy}
+      className="ml-2 p-0.5 rounded hover:bg-muted-foreground/10 transition-colors"
+      title="Copy to clipboard"
+    >
+      {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
+    </button>
+  )
+}
+
+function DemoAccessCard() {
+  const { loginAsDemo } = useAuth()
+  const { email, password } = branding.demoAccess
+
+  return (
+    <section>
+      <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Demo Access</h2>
+      <Card className="border-dashed border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
+        <CardContent className="p-5">
+          <div className="flex items-start gap-4">
+            <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
+              <Eye className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="flex-1 space-y-3">
+              <div>
+                <h3 className="text-sm font-semibold">Demo Viewer</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Read-only access via Okta SSO — explore findings, compliance dashboards, and AI agents.
+                </p>
+              </div>
+
+              {/* Credentials */}
+              {email && (
+                <div className="bg-background border rounded-md p-3 space-y-1.5 font-mono text-xs">
+                  <div className="flex items-center">
+                    <span className="text-muted-foreground w-16">Email</span>
+                    <span className="font-medium">{email}</span>
+                    <CopyButton value={email} />
+                  </div>
+                  {password && (
+                    <div className="flex items-center">
+                      <span className="text-muted-foreground w-16">Password</span>
+                      <span className="font-medium">{password}</span>
+                      <CopyButton value={password} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <Button size="sm" onClick={() => loginAsDemo()} className="gap-1.5">
+                <Shield className="h-3.5 w-3.5" />
+                Sign in as Demo Viewer
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </section>
   )
 }
 

@@ -46,6 +46,17 @@ export const branding = {
     secondary: import.meta.env.VITE_BRAND_SECONDARY || '',
     accent: import.meta.env.VITE_BRAND_ACCENT || '',
   },
+
+  /**
+   * Demo viewer access configuration.
+   * When enabled, the landing page shows a "Demo Viewer" card with
+   * pre-filled credentials that initiate the real Okta SSO flow.
+   */
+  demoAccess: {
+    enabled: import.meta.env.VITE_DEMO_ACCESS_ENABLED === 'true',
+    email: import.meta.env.VITE_DEMO_VIEWER_EMAIL || '',
+    password: import.meta.env.VITE_DEMO_VIEWER_PASSWORD || '',
+  },
 } as const
 
 export type Branding = typeof branding
