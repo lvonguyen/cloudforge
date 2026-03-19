@@ -549,8 +549,8 @@ func scopedAdminJWT(t *testing.T, accountIDs []string) string {
 func TestListFindings_ScopedByAccount(t *testing.T) {
 	_, router := testServer(t)
 
-	// f-00001 has account_id 847291036584
-	targetAccount := "847291036584"
+	// f-00001 has account_id sub-workload-001
+	targetAccount := "sub-workload-001"
 	jwt := scopedAdminJWT(t, []string{targetAccount})
 
 	rr := doRequest(t, router, "GET", "/api/v1/findings?per_page=200", "", jwt)
@@ -585,7 +585,7 @@ func TestListFindings_ScopedAdmin_SeesFewerThanUnscoped(t *testing.T) {
 	assertJSON(t, rr1, &allResp)
 
 	// Scoped admin sees subset
-	scopedJWT := scopedAdminJWT(t, []string{"847291036584"})
+	scopedJWT := scopedAdminJWT(t, []string{"sub-workload-001"})
 	rr2 := doRequest(t, router, "GET", "/api/v1/findings", "", scopedJWT)
 	assertStatus(t, rr2, http.StatusOK)
 	var scopedResp paginatedFindings
@@ -599,7 +599,7 @@ func TestListFindings_ScopedAdmin_SeesFewerThanUnscoped(t *testing.T) {
 func TestGetFinding_ScopeDenied(t *testing.T) {
 	_, router := testServer(t)
 
-	// f-00001 has account_id 847291036584
+	// f-00001 has account_id sub-workload-001
 	// Scope to a different account
 	jwt := scopedAdminJWT(t, []string{"999999999999"})
 
@@ -610,8 +610,8 @@ func TestGetFinding_ScopeDenied(t *testing.T) {
 func TestGetFinding_ScopeAllowed(t *testing.T) {
 	_, router := testServer(t)
 
-	// f-00001 has account_id 847291036584
-	jwt := scopedAdminJWT(t, []string{"847291036584"})
+	// f-00001 has account_id sub-workload-001
+	jwt := scopedAdminJWT(t, []string{"sub-workload-001"})
 
 	rr := doRequest(t, router, "GET", "/api/v1/findings/f-00001", "", jwt)
 	assertStatus(t, rr, http.StatusOK)

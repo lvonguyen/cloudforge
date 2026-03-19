@@ -85,6 +85,55 @@ func loadMockData(basePath string) (*MockData, error) {
 	return data, nil
 }
 
+// loadTestMockData loads a trimmed findings fixture (200 items, ~370KB) from
+// cmd/server/testdata/ instead of the full 20k (37MB) production mock.
+// All other mock files (agents, traces, policies, etc.) are loaded normally.
+// This cuts test setup from ~2min to <1s on CI.
+func loadTestMockData(basePath string) (*MockData, error) {
+	mockDir := filepath.Join(basePath, "frontend", "src", "lib", "mock")
+	testdataDir := filepath.Join(basePath, "cmd", "server", "testdata")
+
+	data := &MockData{}
+
+	// Use trimmed findings fixture instead of full 20k dataset
+	if err := loadJSON(filepath.Join(testdataDir, "findings_test.json"), &data.Findings); err != nil {
+		return nil, fmt.Errorf("loading test findings: %w", err)
+	}
+	if err := loadJSON(filepath.Join(mockDir, "agents.json"), &data.Agents); err != nil {
+		return nil, fmt.Errorf("loading agents: %w", err)
+	}
+	if err := loadJSON(filepath.Join(mockDir, "traces.json"), &data.Traces); err != nil {
+		return nil, fmt.Errorf("loading traces: %w", err)
+	}
+	if err := loadJSON(filepath.Join(mockDir, "frameworks.json"), &data.Frameworks); err != nil {
+		return nil, fmt.Errorf("loading frameworks: %w", err)
+	}
+	if err := loadJSON(filepath.Join(mockDir, "costs.json"), &data.Costs); err != nil {
+		return nil, fmt.Errorf("loading costs: %w", err)
+	}
+	if err := loadJSON(filepath.Join(mockDir, "remediations.json"), &data.Remediations); err != nil {
+		return nil, fmt.Errorf("loading remediations: %w", err)
+	}
+	if err := loadJSON(filepath.Join(mockDir, "audit-log.json"), &data.AuditEvents); err != nil {
+		return nil, fmt.Errorf("loading audit log: %w", err)
+	}
+	if err := loadJSON(filepath.Join(mockDir, "users.json"), &data.Users); err != nil {
+		return nil, fmt.Errorf("loading users: %w", err)
+	}
+	if err := loadJSON(filepath.Join(mockDir, "policies.json"), &data.Policies); err != nil {
+		return nil, fmt.Errorf("loading policies: %w", err)
+	}
+	if err := loadJSON(filepath.Join(mockDir, "catalog.json"), &data.CatalogModules); err != nil {
+		return nil, fmt.Errorf("loading catalog: %w", err)
+	}
+
+	for i := range data.Findings {
+		data.Findings[i].IntegrityHash = data.Findings[i].ComputeIntegrityHash()
+	}
+
+	return data, nil
+}
+
 // DataStore wraps MockData with O(1) lookup maps for hot-path handlers.
 // Extracted from Server to decouple data access from HTTP wiring.
 type DataStore struct {

@@ -27,9 +27,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// Shared test fixtures: loadMockData + computeAttackPaths are O(n^2) on 20k
-// findings. Caching them in a sync.Once drops the test suite from ~10min to
-// seconds (97 tests each called testServer which re-ran both).
+// Shared test fixtures: uses trimmed 200-finding fixture (not 20k production mock).
+// computeAttackPaths is O(n^2) so this cuts setup from ~2min to <1s.
 var (
 	sharedTestOnce      sync.Once
 	sharedTestMockData  *MockData
@@ -50,11 +49,10 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 	// Must be set before NewAuthMiddleware — it reads the env var at construction time.
 	t.Setenv("TEST_JWT_SECRET", testJWTSecret)
 
-	// Cache the two expensive operations: loading 42MB mock JSON and computing
-	// O(n^2) attack paths on 20k findings. Each test gets a shallow copy of
-	// MockData so mutations (e.g. ingest appending findings) stay isolated.
+	// Load trimmed 200-finding fixture + compute attack paths. Each test gets
+	// a shallow copy so mutations (e.g. ingest appending findings) stay isolated.
 	sharedTestOnce.Do(func() {
-		sharedTestMockData, sharedTestErr = loadMockData(mockDataDir())
+		sharedTestMockData, sharedTestErr = loadTestMockData(mockDataDir())
 		if sharedTestErr != nil {
 			return
 		}
