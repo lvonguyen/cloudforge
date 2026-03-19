@@ -36,6 +36,17 @@ import (
 	"unsafe"
 )
 
+// copyAndFree copies a Rust-owned buffer into Go memory, then frees the Rust side.
+// Uses unsafe.Slice to avoid C.int truncation on buffers >2GB.
+func copyAndFree(ptr *C.uint8_t, length C.size_t) []byte {
+	n := int(length)
+	goSlice := unsafe.Slice((*byte)(unsafe.Pointer(ptr)), n)
+	result := make([]byte, n)
+	copy(result, goSlice)
+	C.aegis_free(ptr, length)
+	return result
+}
+
 // ComputeAttackPaths calls the Rust BFS implementation via FFI.
 // Input: JSON-encoded []Finding. Output: JSON-encoded AttackPathResult.
 func ComputeAttackPaths(findingsJSON []byte) ([]byte, error) {
@@ -50,14 +61,10 @@ func ComputeAttackPaths(findingsJSON []byte) ([]byte, error) {
 		&outLen,
 	)
 	if resultPtr == nil {
-		return nil, fmt.Errorf("aegis_compute_attack_paths returned null (parse error or empty input)")
+		return nil, fmt.Errorf("aegis_compute_attack_paths returned null: input_len=%d", len(findingsJSON))
 	}
 
-	// Copy the Rust-owned buffer into Go memory before freeing.
-	result := C.GoBytes(unsafe.Pointer(resultPtr), C.int(outLen))
-	C.aegis_free(resultPtr, outLen)
-
-	return result, nil
+	return copyAndFree(resultPtr, outLen), nil
 }
 
 // LoadAndSerializeFindings deserializes findings JSON, applies an optional
@@ -84,11 +91,8 @@ func LoadAndSerializeFindings(findingsJSON, filterJSON []byte) ([]byte, error) {
 		&outLen,
 	)
 	if resultPtr == nil {
-		return nil, fmt.Errorf("aegis_load_and_serialize_findings returned null")
+		return nil, fmt.Errorf("aegis_load_and_serialize_findings returned null: input_len=%d", len(findingsJSON))
 	}
 
-	result := C.GoBytes(unsafe.Pointer(resultPtr), C.int(outLen))
-	C.aegis_free(resultPtr, outLen)
-
-	return result, nil
+	return copyAndFree(resultPtr, outLen), nil
 }

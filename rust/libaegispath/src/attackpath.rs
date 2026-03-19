@@ -335,18 +335,24 @@ pub fn compute_attack_paths(findings: &[Finding]) -> AttackPathResult {
             global_id += 1;
             let new_id = format!("ap-{global_id:03}");
 
-            // Rewrite all internal IDs to use global path ID
+            // Rewrite all internal IDs: strip old prefix, prepend new global ID.
+            // Uses strip_prefix instead of str::replace to avoid substring collisions.
             let old_id = path.id.clone();
             path.id = new_id.clone();
-            path.entry_point.id = path.entry_point.id.replace(&old_id, &new_id);
-            path.target.id = path.target.id.replace(&old_id, &new_id);
+            let rewrite = |s: &str| -> String {
+                s.strip_prefix(old_id.as_str())
+                    .map(|suffix| format!("{new_id}{suffix}"))
+                    .unwrap_or_else(|| s.to_string())
+            };
+            path.entry_point.id = rewrite(&path.entry_point.id);
+            path.target.id = rewrite(&path.target.id);
             for node in &mut path.nodes {
-                node.id = node.id.replace(&old_id, &new_id);
+                node.id = rewrite(&node.id);
             }
             for edge in &mut path.edges {
-                edge.id = edge.id.replace(&old_id, &new_id);
-                edge.source = edge.source.replace(&old_id, &new_id);
-                edge.target = edge.target.replace(&old_id, &new_id);
+                edge.id = rewrite(&edge.id);
+                edge.source = rewrite(&edge.source);
+                edge.target = rewrite(&edge.target);
             }
 
             all_paths.push(path);
