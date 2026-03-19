@@ -106,6 +106,9 @@ export-outputs/
 # Node modules (root-level stray from npx)
 node_modules/
 
+# Internal research (competitive intel, not for VCS)
+docs/research/INDUSTRY_LANDSCAPE.md
+
 # Generated sprint plans (superseded)
 tasks/next-sprint.md
 .claude/scheduled_tasks.lock
