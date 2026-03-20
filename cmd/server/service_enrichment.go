@@ -100,11 +100,14 @@ func (svc *EnrichmentService) Enabled() bool {
 	return svc.AI != nil || svc.ThreatIntel != nil
 }
 
-// GetCached returns a cached enrichment if available.
+// GetCached returns a cached enrichment if available and not expired.
 func (svc *EnrichmentService) GetCached(id string) (*FindingEnrichment, bool) {
 	svc.Mu.RLock()
 	defer svc.Mu.RUnlock()
 	cached, ok := svc.Cache[id]
+	if ok && time.Since(cached.CreatedAt) >= enrichmentCacheTTL {
+		return nil, false
+	}
 	return cached, ok
 }
 

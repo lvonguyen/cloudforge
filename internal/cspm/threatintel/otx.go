@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"sync"
 	"time"
@@ -111,7 +112,7 @@ func (c *OTXClient) GetIndicator(ctx context.Context, iocType OTXIndicatorType, 
 }
 
 func (c *OTXClient) fetchIndicator(ctx context.Context, iocType OTXIndicatorType, value string) (*OTXIndicator, error) {
-	reqURL := fmt.Sprintf("%sindicators/%s/%s/general", c.baseURL, iocType, value)
+	reqURL := fmt.Sprintf("%sindicators/%s/%s/general", c.baseURL, iocType, url.PathEscape(value))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {

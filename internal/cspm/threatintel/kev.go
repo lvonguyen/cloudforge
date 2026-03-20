@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"golang.org/x/sync/singleflight"
 )
 
 const (
@@ -42,11 +44,12 @@ type KEVCatalog struct {
 	httpClient      *http.Client
 	RefreshInterval time.Duration
 
-	mu          sync.RWMutex
-	index       map[string]bool // CVE ID -> exists
-	entries     []KEVVulnerability
-	lastRefresh time.Time
-	version     string
+	mu           sync.RWMutex
+	index        map[string]bool // CVE ID -> exists
+	entries      []KEVVulnerability
+	lastRefresh  time.Time
+	version      string
+	refreshGroup singleflight.Group
 }
 
 // NewKEVCatalog creates a new KEV catalog with the default refresh interval.
@@ -154,7 +157,8 @@ func (k *KEVCatalog) LastRefresh() time.Time {
 }
 
 // RefreshIfStale reloads the catalog if the refresh interval has elapsed.
-// Safe to call from multiple goroutines; only one fetch will occur at a time.
+// Safe to call from multiple goroutines; concurrent refreshes are
+// deduplicated via singleflight.
 func (k *KEVCatalog) RefreshIfStale() error {
 	k.mu.RLock()
 	stale := k.needsRefresh()
@@ -164,7 +168,17 @@ func (k *KEVCatalog) RefreshIfStale() error {
 		return nil
 	}
 
-	return k.LoadCatalog()
+	_, err, _ := k.refreshGroup.Do("refresh", func() (interface{}, error) {
+		// Re-check inside singleflight — another caller may have refreshed
+		k.mu.RLock()
+		stillStale := k.needsRefresh()
+		k.mu.RUnlock()
+		if !stillStale {
+			return nil, nil
+		}
+		return nil, k.LoadCatalog()
+	})
+	return err
 }
 
 // needsRefresh returns true if the catalog has never been loaded or is past the

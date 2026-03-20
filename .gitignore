@@ -59,6 +59,8 @@ temp/
 *.tfstate
 *.tfstate.*
 *.tfvars
+*.tfplan
+tfplan
 
 # Secrets
 /secrets/

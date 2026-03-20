@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 )
@@ -83,21 +84,28 @@ func (c *HIBPClient) GetBreachCount(ctx context.Context, email string) (int, err
 	}
 	c.mu.RUnlock()
 
-	// Rate limit: wait if last call was less than hibpMinDelay ago
+	// Rate limit: reserve a slot before unlocking to prevent TOCTOU race.
+	// Each goroutine advances lastCall before releasing the lock, so the
+	// next goroutine computes its wait from the reserved time.
 	c.rateMu.Lock()
-	elapsed := time.Since(c.lastCall)
-	if elapsed < hibpMinDelay {
-		wait := hibpMinDelay - elapsed
+	now := time.Now()
+	waitUntil := c.lastCall.Add(hibpMinDelay)
+	if now.Before(waitUntil) {
+		wait := waitUntil.Sub(now)
+		c.lastCall = waitUntil // reserve this slot
 		c.rateMu.Unlock()
+		timer := time.NewTimer(wait)
 		select {
-		case <-time.After(wait):
+		case <-timer.C:
 		case <-ctx.Done():
+			timer.Stop()
 			return 0, ctx.Err()
 		}
-		c.rateMu.Lock()
+		timer.Stop()
+	} else {
+		c.lastCall = now
+		c.rateMu.Unlock()
 	}
-	c.lastCall = time.Now()
-	c.rateMu.Unlock()
 
 	count, err := c.fetchBreachCount(ctx, email)
 	if err != nil {
@@ -112,7 +120,7 @@ func (c *HIBPClient) GetBreachCount(ctx context.Context, email string) (int, err
 }
 
 func (c *HIBPClient) fetchBreachCount(ctx context.Context, email string) (int, error) {
-	reqURL := c.baseURL + "breachedaccount/" + email + "?truncateResponse=true"
+	reqURL := c.baseURL + "breachedaccount/" + url.PathEscape(email) + "?truncateResponse=true"
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {

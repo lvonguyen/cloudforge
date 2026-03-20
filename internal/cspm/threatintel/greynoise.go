@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 )
@@ -167,7 +168,7 @@ func (c *GreyNoiseClient) BatchClassify(ctx context.Context, ips []string) (map[
 // fetchIP makes a single HTTP request to the GreyNoise Community API.
 // On 429 (rate limit), returns cached data if available or a zero-value result.
 func (c *GreyNoiseClient) fetchIP(ctx context.Context, ip string) (*GreyNoiseResult, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+ip, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+url.PathEscape(ip), nil)
 	if err != nil {
 		return nil, fmt.Errorf("greynoise: building request for %s: %w", ip, err)
 	}

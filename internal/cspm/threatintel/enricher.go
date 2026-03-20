@@ -81,7 +81,9 @@ func (e *Enricher) enrichKEV(cves []string, result *ThreatIntelEnrichment) {
 	if e.kev == nil || len(cves) == 0 {
 		return
 	}
-	_ = e.kev.RefreshIfStale()
+	if err := e.kev.RefreshIfStale(); err != nil {
+		e.logger.Warn("KEV refresh failed", zap.Error(err))
+	}
 	for _, cve := range cves {
 		if e.kev.IsKnownExploited(cve) {
 			result.KEVExploited = true
