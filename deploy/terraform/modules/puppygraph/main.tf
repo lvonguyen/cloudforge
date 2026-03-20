@@ -104,6 +104,13 @@ resource "aws_instance" "puppygraph" {
     encrypted   = true
   }
 
+  # Enforce IMDSv2 to prevent SSRF-based credential theft from instance metadata.
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+
   user_data = <<-USERDATA
     #!/bin/bash
     set -euo pipefail

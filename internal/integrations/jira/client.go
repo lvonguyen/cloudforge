@@ -11,10 +11,21 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"regexp"
 	"time"
 
 	"go.uber.org/zap"
 )
+
+// issueKeyPattern validates Jira issue keys (e.g. PROJ-123) to prevent path traversal.
+var issueKeyPattern = regexp.MustCompile(`^[A-Z][A-Z0-9_]+-\d+$`)
+
+func validateIssueKey(key string) error {
+	if !issueKeyPattern.MatchString(key) {
+		return fmt.Errorf("invalid Jira issue key: %q", key)
+	}
+	return nil
+}
 
 // Config holds Jira connection parameters (all from env vars).
 type Config struct {
@@ -58,6 +69,9 @@ func NewClient(cfg Config, logger *zap.Logger) (*Client, error) {
 	}
 	if cfg.APIToken == "" {
 		return nil, fmt.Errorf("JIRA_API_TOKEN is required")
+	}
+	if cfg.Username == "" {
+		return nil, fmt.Errorf("JIRA_USERNAME is required (email for Jira Cloud)")
 	}
 	return &Client{
 		baseURL:    cfg.BaseURL,
@@ -223,6 +237,9 @@ func (c *Client) CreateIssue(ctx context.Context, summary, description, priority
 
 // GetIssue retrieves an issue by key or ID.
 func (c *Client) GetIssue(ctx context.Context, issueKey string) (*jiraIssueResponse, error) {
+	if err := validateIssueKey(issueKey); err != nil {
+		return nil, err
+	}
 	var resp jiraIssueResponse
 	if err := c.doJSON(ctx, http.MethodGet, "/rest/api/3/issue/"+issueKey, nil, &resp); err != nil {
 		return nil, fmt.Errorf("getting issue %s: %w", issueKey, err)
@@ -232,6 +249,9 @@ func (c *Client) GetIssue(ctx context.Context, issueKey string) (*jiraIssueRespo
 
 // AddComment adds a comment to an issue.
 func (c *Client) AddComment(ctx context.Context, issueKey, text string) (*jiraCommentResponse, error) {
+	if err := validateIssueKey(issueKey); err != nil {
+		return nil, err
+	}
 	payload := jiraCommentRequest{
 		Body: newADFText(text),
 	}
@@ -245,6 +265,9 @@ func (c *Client) AddComment(ctx context.Context, issueKey, text string) (*jiraCo
 
 // GetTransitions retrieves available transitions for an issue (for future status sync).
 func (c *Client) GetTransitions(ctx context.Context, issueKey string) ([]jiraTransition, error) {
+	if err := validateIssueKey(issueKey); err != nil {
+		return nil, err
+	}
 	var resp jiraTransitionsResponse
 	if err := c.doJSON(ctx, http.MethodGet, "/rest/api/3/issue/"+issueKey+"/transitions", nil, &resp); err != nil {
 		return nil, fmt.Errorf("getting transitions for %s: %w", issueKey, err)

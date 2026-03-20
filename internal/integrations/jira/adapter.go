@@ -32,7 +32,10 @@ func (a *Adapter) CreateTicket(ctx context.Context, req integrations.CreateTicke
 		return nil, fmt.Errorf("creating jira issue: %w", err)
 	}
 
-	createdAt, _ := time.Parse("2006-01-02T15:04:05.000-0700", resp.Fields.Created)
+	createdAt, err := time.Parse("2006-01-02T15:04:05.000-0700", resp.Fields.Created)
+	if err != nil {
+		a.logger.Warn("parsing jira timestamp", zap.String("raw", resp.Fields.Created), zap.Error(err))
+	}
 
 	return &integrations.Ticket{
 		ID:         resp.Key,
@@ -59,8 +62,14 @@ func (a *Adapter) GetTicket(ctx context.Context, externalID string) (*integratio
 	status := mapStatusFromJira(resp.Fields.Status.StatusCategory.Key)
 	priority := mapPriorityFromJira(resp.Fields.Priority)
 
-	createdAt, _ := time.Parse("2006-01-02T15:04:05.000-0700", resp.Fields.Created)
-	updatedAt, _ := time.Parse("2006-01-02T15:04:05.000-0700", resp.Fields.Updated)
+	createdAt, err := time.Parse("2006-01-02T15:04:05.000-0700", resp.Fields.Created)
+	if err != nil {
+		a.logger.Warn("parsing jira timestamp", zap.String("raw", resp.Fields.Created), zap.Error(err))
+	}
+	updatedAt, err := time.Parse("2006-01-02T15:04:05.000-0700", resp.Fields.Updated)
+	if err != nil {
+		a.logger.Warn("parsing jira timestamp", zap.String("raw", resp.Fields.Updated), zap.Error(err))
+	}
 
 	var assignee string
 	if resp.Fields.Assignee != nil {
@@ -87,7 +96,10 @@ func (a *Adapter) AddComment(ctx context.Context, externalID, body string) (*int
 		return nil, fmt.Errorf("adding jira comment: %w", err)
 	}
 
-	createdAt, _ := time.Parse("2006-01-02T15:04:05.000-0700", resp.Created)
+	createdAt, err := time.Parse("2006-01-02T15:04:05.000-0700", resp.Created)
+	if err != nil {
+		a.logger.Warn("parsing jira timestamp", zap.String("raw", resp.Created), zap.Error(err))
+	}
 
 	var author string
 	if resp.Author != nil {

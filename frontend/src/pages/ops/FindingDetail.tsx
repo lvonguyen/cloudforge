@@ -165,7 +165,7 @@ export default function FindingDetail() {
           <Wrench className="h-3.5 w-3.5" />Remediate
         </Button>
         <Button size="sm" variant="outline" className="text-xs gap-1.5"
-          disabled={!suppressCooldown.canFire || createException.isPending || suppressed}
+          disabled={!suppressCooldown.canFire || createException.isPending || suppressed || role !== 'admin'}
           onClick={() => {
             if (!suppressCooldown.canFire || createException.isPending) return
             suppressCooldown.fire()
@@ -181,7 +181,7 @@ export default function FindingDetail() {
               },
               {
                 onSuccess: () => { setSuppressed(true); toast('Finding suppressed — exception created') },
-                onError: () => { setSuppressed(true); toast('Suppressed (demo — API unavailable)', 'info') },
+                onError: () => toast('Suppress failed — check permissions', 'error'),
               },
             )
           }}

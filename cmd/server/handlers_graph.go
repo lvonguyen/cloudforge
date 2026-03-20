@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"regexp"
+	"strings"
 
 	"aegis/internal/graph"
 
@@ -21,13 +23,23 @@ type graphQueryResponse struct {
 	Elapsed string          `json:"elapsed"`
 }
 
+// maxGraphQueryLen caps the query string length to prevent abuse.
+const maxGraphQueryLen = 4096
+
+// graphMutationPattern rejects Gremlin/Cypher mutation keywords.
+var graphMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|drop|property\s*\(|CREATE\b|MERGE\b|DELETE\b|DETACH\b|SET\b|REMOVE\b)`)
+
 // handleGraphQuery proxies graph queries to PuppyGraph.
 // Feature-flagged: returns 501 when PUPPYGRAPH_URL is not configured.
+// Read-only: mutation keywords are rejected.
 func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 	if s.graphClient == nil {
 		http.Error(w, `{"error":"graph query engine not configured (set PUPPYGRAPH_URL)"}`, http.StatusNotImplemented)
 		return
 	}
+
+	// Limit request body size (consistent with all other POST handlers).
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB
 
 	var req graphQueryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -42,6 +54,18 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 
 	if req.Language != "gremlin" && req.Language != "cypher" {
 		http.Error(w, `{"error":"language must be gremlin or cypher"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Enforce query length cap.
+	if len(req.Query) > maxGraphQueryLen {
+		http.Error(w, `{"error":"query exceeds maximum length"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Block mutation keywords — read-only proxy.
+	if graphMutationPattern.MatchString(strings.TrimSpace(req.Query)) {
+		http.Error(w, `{"error":"mutation queries are not permitted (read-only)"}`, http.StatusForbidden)
 		return
 	}
 
@@ -64,5 +88,7 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		s.logger.Warn("encoding graph response", zap.Error(err))
+	}
 }
