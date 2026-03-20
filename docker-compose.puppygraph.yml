@@ -1,0 +1,27 @@
+# PuppyGraph Enterprise trial — zero-ETL graph query engine over Postgres.
+# Usage: docker compose -f docker-compose.puppygraph.yml up -d
+# Docs: https://docs.puppygraph.com
+services:
+  puppygraph:
+    image: puppygraph/puppygraph-enterprise:latest
+    container_name: puppygraph
+    ports:
+      - "8081:8081"   # Web UI
+      - "8182:8182"   # Gremlin WebSocket
+      - "8184:8184"   # openCypher HTTP
+    environment:
+      - PG_HOST=host.docker.internal
+      - PG_PORT=5432
+      - PG_DATABASE=aegis
+      - PG_USER=${PG_USER:-aegis}
+      - PG_PASSWORD=${PG_PASSWORD:-aegis}
+    volumes:
+      - ./deploy/docker/puppygraph/schema.json:/opt/puppygraph/config/schema.json:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
