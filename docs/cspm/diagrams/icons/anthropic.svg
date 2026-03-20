@@ -1,10 +1,1 @@
-<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
-  <!-- Anthropic "A\" logo - the distinctive A with backslash -->
-  <rect width="128" height="128" rx="16" fill="#CC785C"/>
-  <!-- Left half of A -->
-  <path d="M44 104L64 24L84 104H70L66 90H50L44 104Z" fill="white"/>
-  <!-- Inner triangle cutout -->
-  <path d="M58 78L64 58L70 78H58Z" fill="#CC785C"/>
-  <!-- Backslash element -->
-  <path d="M76 24L100 104H86L62 24H76Z" fill="white"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><g fill="currentColor"><path d="M34.609 7.082h-7.344l13.392 33.837H48zM13.392 7.082 0 40.919h7.488l2.74-7.106h14.01l2.739 7.106h7.488L21.073 7.082zm-.743 20.447 4.583-11.892 4.583 11.892z"/></g></svg>
