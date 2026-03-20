@@ -38,8 +38,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-        with:
-          lfs: true
+
+      - name: Fetch findings from R2 (skip LFS bandwidth)
+        run: |
+          mkdir -p frontend/public/mock
+          curl -sfL https://pub-878a225fb2464e2ab2e3b08d0603e04b.r2.dev/mock/findings.json \
+            -o frontend/public/mock/findings.json
+          echo "Downloaded $(wc -c < frontend/public/mock/findings.json) bytes from R2"
 
       - name: Set up Go
         uses: actions/setup-go@v6
