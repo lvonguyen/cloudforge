@@ -348,4 +348,4 @@ jobs:
       - name: Verify deployment health
         run: |
           sleep 10
-          curl -sf https://aegis-api.fly.dev/health || exit 1
+          curl -sf https://cloudforge-api.fly.dev/health || exit 1
