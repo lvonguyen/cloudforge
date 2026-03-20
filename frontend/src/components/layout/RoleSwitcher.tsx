@@ -22,7 +22,7 @@ const ROLE_HOME: Record<Role, string> = {
   admin: '/admin',
   operator: '/ops',
   requester: '/portal',
-  viewer: '/admin',
+  viewer: '/ops/findings',
 }
 
 export function RoleSwitcher() {
@@ -38,7 +38,7 @@ export function RoleSwitcher() {
         <ChevronDown className="h-3 w-3 opacity-60" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">Dev: Switch Role</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs text-muted-foreground">Switch Role</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {ROLES.map(r => (
           <DropdownMenuItem

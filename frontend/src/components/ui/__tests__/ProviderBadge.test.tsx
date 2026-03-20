@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { screen } from '@testing-library/react'
 import { renderWithProviders } from '@/test/utils'
-import { ProviderBadge, PROVIDER_COLORS } from '../ProviderBadge'
+import { ProviderBadge } from '../ProviderBadge'
 
 describe('ProviderBadge', () => {
   it('renders AWS badge with title tooltip', () => {
@@ -19,15 +19,20 @@ describe('ProviderBadge', () => {
     expect(screen.getByTitle('GCP')).toBeInTheDocument()
   })
 
+  it('renders correct SVG viewBox per provider', () => {
+    const { unmount } = renderWithProviders(<ProviderBadge provider="aws" />)
+    expect(screen.getByLabelText('AWS').getAttribute('viewBox')).toBe('0 0 120.4 72')
+    unmount()
+    renderWithProviders(<ProviderBadge provider="azure" />)
+    expect(screen.getByLabelText('Azure').getAttribute('viewBox')).toBe('0 0 16 16')
+    unmount()
+    renderWithProviders(<ProviderBadge provider="gcp" />)
+    expect(screen.getByLabelText('GCP').getAttribute('viewBox')).toBe('0 10 128 108')
+  })
+
   it('renders icon for unknown provider', () => {
     renderWithProviders(<ProviderBadge provider="unknown" />)
     expect(screen.getByTitle('UNKNOWN')).toBeInTheDocument()
-  })
-
-  it('uses neutral zinc palette for whitelabel', () => {
-    expect(PROVIDER_COLORS.aws).toContain('bg-zinc-100')
-    expect(PROVIDER_COLORS.azure).toContain('bg-zinc-100')
-    expect(PROVIDER_COLORS.gcp).toContain('bg-zinc-100')
   })
 
   it('applies custom className', () => {

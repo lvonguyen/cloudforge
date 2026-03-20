@@ -24,7 +24,7 @@ export function ResourceCatalogCard({ item, onSelect }: { item: CatalogItem; onS
       <CardHeader className="pb-2">
         <div className="flex items-start gap-2">
           {item.icon_path ? (
-            <img src={item.icon_path} alt="" className="h-8 w-8 shrink-0 object-contain" />
+            <img src={item.icon_path} alt="" className="h-7 w-7 shrink-0 object-contain" />
           ) : null}
           <CardTitle className="text-sm truncate flex-1">{item.name}</CardTitle>
           <ProviderBadge provider={item.provider} />
