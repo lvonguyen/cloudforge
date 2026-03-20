@@ -25,7 +25,7 @@ func logAuditEvent(r *http.Request, logger audit.AuditLogger, action, resource, 
 		actor = claims.Subject
 		actorRole = string(api.RoleFromClaims(claims))
 	}
-	_ = logger.Log(r.Context(), audit.AuditEntry{
+	if err := logger.Log(r.Context(), audit.AuditEntry{
 		Actor:      actor,
 		ActorRole:  actorRole,
 		Action:     action,
@@ -33,7 +33,9 @@ func logAuditEvent(r *http.Request, logger audit.AuditLogger, action, resource, 
 		ResourceID: resourceID,
 		Result:     result,
 		IP:         r.RemoteAddr,
-	})
+	}); err != nil {
+		zap.L().Warn("audit log write failed", zap.String("action", action), zap.Error(err))
+	}
 }
 
 // logAuditEvent on Server delegates to the package-level function.
@@ -70,7 +72,9 @@ func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}, log
 		default:
 			msg = "invalid request body"
 		}
-		logger.Warn("JSON decode error", zap.Error(err))
+		if logger != nil {
+			logger.Warn("JSON decode error", zap.Error(err))
+		}
 		writeErrorResponse(w, msg, http.StatusBadRequest)
 		return false
 	}

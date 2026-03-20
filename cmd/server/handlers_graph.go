@@ -34,7 +34,7 @@ var graphMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|drop|property\s*
 // Read-only: mutation keywords are rejected.
 func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 	if s.graphClient == nil {
-		writeErrorResponse(w, "graph query engine not configured (set PUPPYGRAPH_URL)", http.StatusNotImplemented)
+		writeErrorResponse(w, "graph query engine not configured", http.StatusNotImplemented)
 		return
 	}
 

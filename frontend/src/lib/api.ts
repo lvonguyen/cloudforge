@@ -72,9 +72,13 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 /**
- * Fetch from API with automatic mock-data fallback for dev/demo mode.
- * Re-throws client errors (4xx) so they surface in the UI; swallows 5xx /
- * network errors and returns the mock data instead.
+ * Fetch from API with automatic mock-data fallback in dev/demo mode.
+ * Re-throws client errors (4xx) so they surface in the UI. In dev mode,
+ * swallows 5xx / network errors and returns mock data. In production,
+ * propagates all errors so React Query retry/error UI handles them.
+ *
+ * For single-item lookups that need post-filtering, use the inline
+ * try/catch pattern instead (see useAgent, usePolicy).
  */
 export async function fetchWithMockFallback<T>(
   path: string,
@@ -85,9 +89,15 @@ export async function fetchWithMockFallback<T>(
     return await apiClient.get<T>(path)
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
+    if (!import.meta.env.DEV) throw err
     console.warn(`[${label}] API unavailable, using mock data`)
-    const mod = await mockImport()
-    return mod.default
+    try {
+      const mod = await mockImport()
+      return mod.default
+    } catch {
+      console.error(`[${label}] Mock import also failed`)
+      throw err
+    }
   }
 }
 
