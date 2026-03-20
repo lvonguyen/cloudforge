@@ -87,6 +87,41 @@ export function useEnrichFinding() {
   })
 }
 
+export interface ThreatIntelEnrichment {
+  epss_score: number
+  epss_percentile: number
+  kev_exploited: boolean
+  kev_date_added?: string
+  greynoise_classification?: string
+  greynoise_noise: boolean
+  hibp_breach_count?: number
+  otx_pulse_count?: number
+  otx_tags?: string[]
+  enriched_at: string
+}
+
+interface FindingEnrichmentResponse {
+  finding_id: string
+  root_cause: string
+  impact: string
+  remediation: string
+  related_controls: string[]
+  threat_intel?: ThreatIntelEnrichment
+  enriched_at: string
+}
+
+export function useFindingEnrichment(findingId: string) {
+  return useQuery({
+    queryKey: ['enrichment', findingId],
+    queryFn: async () => {
+      return apiClient.post<FindingEnrichmentResponse>(`/findings/${findingId}/enrich`, {})
+    },
+    enabled: Boolean(findingId),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  })
+}
+
 export function useFinding(id: string) {
   return useQuery({
     queryKey: ['findings', id],

@@ -10,20 +10,22 @@ import (
 	"time"
 
 	"aegis/internal/ai"
+	"aegis/internal/cspm/threatintel"
 
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 )
 
-// FindingEnrichment holds cached AI analysis for a single finding.
+// FindingEnrichment holds cached AI analysis and threat intel for a single finding.
 type FindingEnrichment struct {
-	FindingID       string    `json:"finding_id"`
-	RootCause       string    `json:"root_cause"`
-	Impact          string    `json:"impact"`
-	Remediation     string    `json:"remediation"`
-	RelatedControls []string  `json:"related_controls"`
-	EnrichedAt      string    `json:"enriched_at"`
-	CreatedAt       time.Time `json:"-"` // cache eviction timestamp
+	FindingID       string                             `json:"finding_id"`
+	RootCause       string                             `json:"root_cause"`
+	Impact          string                             `json:"impact"`
+	Remediation     string                             `json:"remediation"`
+	RelatedControls []string                           `json:"related_controls"`
+	ThreatIntel     *threatintel.ThreatIntelEnrichment `json:"threat_intel,omitempty"`
+	EnrichedAt      string                             `json:"enriched_at"`
+	CreatedAt       time.Time                          `json:"-"` // cache eviction timestamp
 }
 
 const findingEnrichSystemPrompt = `You are a cloud security analyst. Given a security finding, provide:
@@ -85,16 +87,17 @@ const (
 // thread-safe cache. Extracted from Server to isolate the AI provider,
 // cache map, and mutex into a cohesive unit.
 type EnrichmentService struct {
-	AI     ai.Provider
-	Cache  map[string]*FindingEnrichment
-	Mu     sync.RWMutex
-	Logger *zap.Logger
-	group  singleflight.Group
+	AI          ai.Provider
+	ThreatIntel *threatintel.Enricher // nil = threat intel disabled
+	Cache       map[string]*FindingEnrichment
+	Mu          sync.RWMutex
+	Logger      *zap.Logger
+	group       singleflight.Group
 }
 
-// Enabled returns true when an AI provider is configured.
+// Enabled returns true when AI or threat intel enrichment is available.
 func (svc *EnrichmentService) Enabled() bool {
-	return svc.AI != nil
+	return svc.AI != nil || svc.ThreatIntel != nil
 }
 
 // GetCached returns a cached enrichment if available.
@@ -105,7 +108,7 @@ func (svc *EnrichmentService) GetCached(id string) (*FindingEnrichment, bool) {
 	return cached, ok
 }
 
-// Enrich calls the AI provider to analyze a finding, caching the result.
+// Enrich calls AI and/or threat intel providers to analyze a finding, caching the result.
 // Returns the cached result if already enriched. Concurrent calls for the
 // same finding ID are deduplicated via singleflight.
 func (svc *EnrichmentService) Enrich(ctx context.Context, finding *Finding) (*FindingEnrichment, error) {
@@ -114,8 +117,8 @@ func (svc *EnrichmentService) Enrich(ctx context.Context, finding *Finding) (*Fi
 		return cached, nil
 	}
 
-	if svc.AI == nil {
-		return nil, fmt.Errorf("AI enrichment is not enabled")
+	if svc.AI == nil && svc.ThreatIntel == nil {
+		return nil, fmt.Errorf("enrichment is not enabled (no AI provider or threat intel)")
 	}
 
 	// Deduplicate concurrent requests for the same finding
@@ -125,29 +128,55 @@ func (svc *EnrichmentService) Enrich(ctx context.Context, finding *Finding) (*Fi
 			return cached, nil
 		}
 
-		callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		defer cancel()
+		now := time.Now().UTC()
+		enrichment := &FindingEnrichment{
+			FindingID:  finding.ID,
+			EnrichedAt: now.Format(time.RFC3339),
+			CreatedAt:  now,
+		}
 
-		prompt := fmt.Sprintf(`Finding: %s
+		// AI enrichment (optional — skipped when AI provider is nil)
+		if svc.AI != nil {
+			callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			defer cancel()
+
+			prompt := fmt.Sprintf(`Finding: %s
 Severity: %s | Category: %s | Provider: %s
 Resource: %s (%s) in %s
 Status: %s
 Description: %s`,
-			finding.Title,
-			finding.Severity, finding.Category, finding.CloudProvider,
-			finding.ResourceName, finding.ResourceType, finding.Region,
-			finding.Status,
-			finding.Remediation,
-		)
+				finding.Title,
+				finding.Severity, finding.Category, finding.CloudProvider,
+				finding.ResourceName, finding.ResourceType, finding.Region,
+				finding.Status,
+				finding.Remediation,
+			)
 
-		response, err := svc.AI.CompleteWithSystem(callCtx, findingEnrichSystemPrompt, prompt)
-		if err != nil {
-			return nil, fmt.Errorf("AI call failed: %w", err)
+			response, err := svc.AI.CompleteWithSystem(callCtx, findingEnrichSystemPrompt, prompt)
+			if err != nil {
+				svc.Logger.Warn("AI enrichment failed, continuing with threat intel only",
+					zap.String("finding_id", finding.ID), zap.Error(err))
+			} else {
+				parsed, err := parseFindingEnrichment(finding.ID, response)
+				if err != nil {
+					svc.Logger.Warn("parsing AI response failed",
+						zap.String("finding_id", finding.ID), zap.Error(err))
+				} else {
+					enrichment.RootCause = parsed.RootCause
+					enrichment.Impact = parsed.Impact
+					enrichment.Remediation = parsed.Remediation
+					enrichment.RelatedControls = parsed.RelatedControls
+				}
+			}
 		}
 
-		enrichment, err := parseFindingEnrichment(finding.ID, response)
-		if err != nil {
-			return nil, fmt.Errorf("parsing AI response: %w", err)
+		// Threat intel enrichment (optional — skipped when enricher is nil)
+		if svc.ThreatIntel != nil {
+			cves := make([]string, 0, len(finding.CVEs))
+			for _, cve := range finding.CVEs {
+				cves = append(cves, cve.ID)
+			}
+			enrichment.ThreatIntel = svc.ThreatIntel.Enrich(ctx, cves, nil, nil)
 		}
 
 		// Cache the result

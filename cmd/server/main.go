@@ -21,6 +21,7 @@ import (
 	"aegis/internal/audit"
 	"aegis/internal/compliance"
 	"aegis/internal/container"
+	"aegis/internal/cspm/threatintel"
 	"aegis/internal/graph"
 	"aegis/internal/grc"
 	"aegis/internal/identity"
@@ -241,6 +242,26 @@ func main() {
 		}
 	}
 
+	// Initialize threat intel clients (nil-safe — skip if no API key)
+	epssClient := threatintel.NewEPSSClient()
+	kevCatalog := threatintel.NewKEVCatalog()
+	var greynoiseClient *threatintel.GreyNoiseClient
+	if key := os.Getenv("GREYNOISE_API_KEY"); key != "" {
+		greynoiseClient = threatintel.NewGreyNoiseClient(key)
+		logger.Info("GreyNoise threat intel client initialized")
+	}
+	var hibpClient *threatintel.HIBPClient
+	if key := os.Getenv("HIBP_API_KEY"); key != "" {
+		hibpClient = threatintel.NewHIBPClient(key)
+		logger.Info("HIBP threat intel client initialized")
+	}
+	var otxClient *threatintel.OTXClient
+	if key := os.Getenv("OTX_API_KEY"); key != "" {
+		otxClient = threatintel.NewOTXClient(key)
+		logger.Info("OTX threat intel client initialized")
+	}
+	tiEnricher := threatintel.NewEnricher(epssClient, kevCatalog, greynoiseClient, hibpClient, otxClient, logger.Named("threatintel"))
+
 	// Initialize identity providers — use real providers when env vars are set,
 	// otherwise fall back to in-memory mocks for local development.
 	idProviders := make(map[string]identity.Provider, 2)
@@ -365,9 +386,10 @@ func main() {
 		auditLogger:    audit.NewZapAuditLogger(logger.Named("audit"), audit.NewMemoryAuditLogger()),
 		data:           dataStore,
 		enrichmentSvc: &EnrichmentService{
-			AI:     aiProvider,
-			Cache:  make(map[string]*FindingEnrichment),
-			Logger: logger.Named("enrichment"),
+			AI:          aiProvider,
+			ThreatIntel: tiEnricher,
+			Cache:       make(map[string]*FindingEnrichment),
+			Logger:      logger.Named("enrichment"),
 		},
 		opaEngine:        opaEngine,
 		comments:         NewCommentsStore(),
@@ -440,9 +462,19 @@ func main() {
 	// Start background eviction of stale enrichment cache entries.
 	srv.enrichmentSvc.StartEviction(serverCtx, 5*time.Minute)
 
+	// Load KEV catalog asynchronously (non-blocking — first enrich call triggers RefreshIfStale)
+	go func() {
+		if err := kevCatalog.LoadCatalog(); err != nil {
+			logger.Warn("KEV catalog initial load failed (will retry on next enrich)", zap.Error(err))
+		} else {
+			logger.Info("KEV catalog loaded", zap.Int("entries", kevCatalog.Count()))
+		}
+	}()
+
 	// Enrich attack paths with AI in the background to avoid blocking startup.
 	// Assign attackPathSvc before spawning so HTTP handlers always see the slice.
-	if srv.enrichmentSvc.Enabled() {
+	// Guard on AI specifically (attack path enrichment requires an LLM, not just threat intel).
+	if srv.enrichmentSvc.AI != nil {
 		go func() {
 			enrichCtx, enrichCancel := context.WithTimeout(serverCtx, 5*time.Minute)
 			defer enrichCancel()

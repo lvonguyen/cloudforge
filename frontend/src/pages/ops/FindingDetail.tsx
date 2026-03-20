@@ -2,7 +2,7 @@ import { brandEmail } from '@/lib/mock-data-utils'
 import { useState, useMemo } from 'react'
 import { useAuth } from '@/lib/auth'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useFinding } from '@/hooks/useFindings'
+import { useFinding, useFindingEnrichment } from '@/hooks/useFindings'
 import { useAttackPaths } from '@/hooks/useAttackPaths'
 import { AttackPathMiniGraph } from '@/components/attack-path/AttackPathMiniGraph'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,6 +26,7 @@ export default function FindingDetail() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { data: finding, isLoading } = useFinding(id ?? '')
+  const { data: enrichment } = useFindingEnrichment(id ?? '')
   const { openTimeline } = useTracePanel()
   const remediateCooldown = useActionCooldown({ key: `remediate-${id ?? ''}`, cooldownMs: 10_000 })
   const suppressCooldown = useActionCooldown({ key: `suppress-${id ?? ''}`, cooldownMs: 15_000 })
@@ -315,6 +316,61 @@ export default function FindingDetail() {
                     </div>
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {enrichment?.threat_intel && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <div className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" />Threat Intelligence</div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {enrichment.threat_intel.epss_score > 0 && (
+                    <Badge variant="outline" className={`text-[10px] ${
+                      enrichment.threat_intel.epss_percentile > 0.7 ? 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800' :
+                      enrichment.threat_intel.epss_percentile > 0.3 ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800' :
+                      'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800'
+                    }`}>
+                      EPSS {(enrichment.threat_intel.epss_score * 100).toFixed(1)}% (P{(enrichment.threat_intel.epss_percentile * 100).toFixed(0)})
+                    </Badge>
+                  )}
+                  {enrichment.threat_intel.kev_exploited && (
+                    <Badge variant="outline" className="text-[10px] bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800 font-medium">
+                      <AlertTriangle className="h-3 w-3 mr-1" />Actively Exploited (KEV{enrichment.threat_intel.kev_date_added ? ` ${enrichment.threat_intel.kev_date_added}` : ''})
+                    </Badge>
+                  )}
+                  {enrichment.threat_intel.greynoise_classification && (
+                    <Badge variant="outline" className={`text-[10px] ${
+                      enrichment.threat_intel.greynoise_classification === 'malicious' ? 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300' :
+                      enrichment.threat_intel.greynoise_classification === 'benign' ? 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300' :
+                      'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300'
+                    }`}>
+                      <Globe className="h-3 w-3 mr-1" />GreyNoise: {enrichment.threat_intel.greynoise_classification}
+                      {enrichment.threat_intel.greynoise_noise && ' (noise)'}
+                    </Badge>
+                  )}
+                  {(enrichment.threat_intel.hibp_breach_count ?? 0) > 0 && (
+                    <Badge variant="outline" className="text-[10px] bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800">
+                      HIBP: {enrichment.threat_intel.hibp_breach_count} breach{enrichment.threat_intel.hibp_breach_count === 1 ? '' : 'es'}
+                    </Badge>
+                  )}
+                  {(enrichment.threat_intel.otx_pulse_count ?? 0) > 0 && (
+                    <Badge variant="outline" className="text-[10px] bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800">
+                      OTX: {enrichment.threat_intel.otx_pulse_count} pulse{enrichment.threat_intel.otx_pulse_count === 1 ? '' : 's'}
+                    </Badge>
+                  )}
+                </div>
+                {enrichment.threat_intel.otx_tags && enrichment.threat_intel.otx_tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {enrichment.threat_intel.otx_tags.slice(0, 8).map(tag => (
+                      <Badge key={tag} variant="secondary" className="text-[10px]">{tag}</Badge>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
