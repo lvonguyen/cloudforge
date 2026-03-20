@@ -14,23 +14,21 @@ describe('Landing', () => {
     expect(screen.getByText(/Cloud Aegis Platform/i)).toBeInTheDocument()
   })
 
-  it('shows the Tier 1 — Flagship section heading', () => {
+  it('shows the Operational Modules section heading', () => {
     renderWithProviders(<Landing />)
-    expect(screen.getByText(/Tier 1.*Flagship/i)).toBeInTheDocument()
+    expect(screen.getByText(/Operational Modules/i)).toBeInTheDocument()
   })
 
-  it('shows the Tier 2 — Supporting section heading', () => {
+  it('shows the Supporting Modules section heading', () => {
     renderWithProviders(<Landing />)
-    expect(screen.getByText(/Tier 2.*Supporting/i)).toBeInTheDocument()
+    expect(screen.getByText(/Supporting Modules/i)).toBeInTheDocument()
   })
 
   it('renders architecture KPI card labels', () => {
     renderWithProviders(<Landing />)
-    // Use getAllByText since "Multi-Cloud" appears in both KPI label and tag badges
     expect(screen.getAllByText(/Multi-Cloud/i).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/Policy Engine/i).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/AI Providers/i).length).toBeGreaterThan(0)
-    // "Language" is unique to the KPI card
     expect(screen.getByText(/^Language$/i)).toBeInTheDocument()
   })
 
@@ -40,12 +38,10 @@ describe('Landing', () => {
     expect(screen.getByText('CSPM Aggregator')).toBeInTheDocument()
   })
 
-  it('displays flagship and supporting tier badges', () => {
+  it('displays real test count stats', () => {
     renderWithProviders(<Landing />)
-    const flagshipBadges = screen.getAllByText('flagship')
-    const supportingBadges = screen.getAllByText('supporting')
-    expect(flagshipBadges.length).toBeGreaterThan(0)
-    expect(supportingBadges.length).toBeGreaterThan(0)
+    expect(screen.getByText('1,474')).toBeInTheDocument()
+    expect(screen.getByText('420')).toBeInTheDocument()
   })
 
   it('displays project description text', () => {

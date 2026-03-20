@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { KeyRound, Search, ChevronDown, ChevronRight, AlertTriangle, FileCode, CheckCircle2 } from 'lucide-react'
+import { KeyRound, Search, ChevronDown, ChevronRight, AlertTriangle, FileCode, CheckCircle2, LayoutGrid, List } from 'lucide-react'
 import { useStartOrgScan } from '@/hooks/useOrgScan'
 import type { OrgScanResult, RepoResult } from '@/hooks/useOrgScan'
 import { useAuth } from '@/lib/auth'
@@ -76,6 +76,87 @@ function RepoSection({ result, defaultOpen }: { result: RepoResult; defaultOpen?
   )
 }
 
+const REPO_META: Record<string, { visibility: string; platform: string; rotation: string }> = {
+  'acme-corp/frontend':         { visibility: 'public',   platform: 'GitHub',  rotation: 'needs-rotation' },
+  'acme-corp/backend-api':      { visibility: 'private',  platform: 'GitHub',  rotation: 'expired' },
+  'acme-corp/infra-terraform':  { visibility: 'private',  platform: 'GitLab',  rotation: 'active' },
+  'contoso/web-app':            { visibility: 'internal', platform: 'GitHub',  rotation: 'active' },
+  'contoso/data-pipeline':      { visibility: 'private',  platform: 'GitHub',  rotation: 'needs-rotation' },
+}
+
+const VISIBILITY_COLORS: Record<string, string> = {
+  public:   'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  private:  'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  internal: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+}
+
+const ROTATION_COLORS: Record<string, string> = {
+  'needs-rotation': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+  expired:          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  active:           'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+}
+
+function MatrixView({ results }: { results: RepoResult[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-xs pl-4">Repository</TableHead>
+            <TableHead className="text-xs">Visibility</TableHead>
+            <TableHead className="text-xs">Platform</TableHead>
+            <TableHead className="text-xs text-right">Secrets</TableHead>
+            <TableHead className="text-xs">Secret Types</TableHead>
+            <TableHead className="text-xs">Severity Breakdown</TableHead>
+            <TableHead className="text-xs">Rotation Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {results.map(r => {
+            const meta = REPO_META[r.repo] ?? { visibility: 'private', platform: 'GitHub', rotation: 'active' }
+            const types = [...new Set(r.findings.map(f => f.type))]
+            const sevCounts = { critical: 0, high: 0, medium: 0, low: 0 } as Record<string, number>
+            for (const f of r.findings) sevCounts[f.severity] = (sevCounts[f.severity] ?? 0) + 1
+            return (
+              <TableRow key={r.repo}>
+                <TableCell className="text-xs pl-4 font-medium font-mono">{r.repo}</TableCell>
+                <TableCell>
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 ${VISIBILITY_COLORS[meta.visibility] ?? ''}`}>
+                    {meta.visibility}
+                  </span>
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">{meta.platform}</TableCell>
+                <TableCell className="text-xs text-right font-semibold">{r.findings.length}</TableCell>
+                <TableCell>
+                  <div className="flex gap-1 flex-wrap">
+                    {types.map(t => (
+                      <Badge key={t} variant="outline" className="text-[10px]">{t}</Badge>
+                    ))}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-1">
+                    {sevCounts.critical > 0 && <span className={`text-[10px] font-medium px-1.5 py-0.5 ${SEVERITY_COLORS.critical}`}>{sevCounts.critical}C</span>}
+                    {sevCounts.high > 0 && <span className={`text-[10px] font-medium px-1.5 py-0.5 ${SEVERITY_COLORS.high}`}>{sevCounts.high}H</span>}
+                    {sevCounts.medium > 0 && <span className={`text-[10px] font-medium px-1.5 py-0.5 ${SEVERITY_COLORS.medium}`}>{sevCounts.medium}M</span>}
+                    {sevCounts.low > 0 && <span className={`text-[10px] font-medium px-1.5 py-0.5 ${SEVERITY_COLORS.low}`}>{sevCounts.low}L</span>}
+                    {r.findings.length === 0 && <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 ${ROTATION_COLORS[meta.rotation] ?? ''}`}>
+                    {meta.rotation}
+                  </span>
+                </TableCell>
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}
+
 export default function OrgSecretsScan() {
   useAuth()
   const [orgName, setOrgName] = useState('')
@@ -86,6 +167,7 @@ export default function OrgSecretsScan() {
 
   const result: OrgScanResult | undefined = scanMutation.data
 
+  const [viewMode, setViewMode] = useState<'list' | 'matrix'>('list')
   // Role gate removed — demo viewers have full access (writes are ephemeral)
 
   function handleScan() {
@@ -187,6 +269,27 @@ export default function OrgSecretsScan() {
       {/* Results */}
       {result && (
         <>
+          {/* View toggle */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Scan Results — {result.org_name}
+            </h2>
+            <div className="flex border border-border">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors ${viewMode === 'list' ? 'bg-muted font-medium' : 'hover:bg-muted/50'}`}
+              >
+                <List className="h-3.5 w-3.5" /> List
+              </button>
+              <button
+                onClick={() => setViewMode('matrix')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs border-l border-border transition-colors ${viewMode === 'matrix' ? 'bg-muted font-medium' : 'hover:bg-muted/50'}`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" /> Matrix
+              </button>
+            </div>
+          </div>
+
           {/* Summary bar */}
           <div className="grid grid-cols-3 gap-3">
             <div className="border border-border p-3">
@@ -213,12 +316,20 @@ export default function OrgSecretsScan() {
             </div>
           </div>
 
-          {/* Repo results tree */}
-          <div className="space-y-2">
-            {result.results.map((r, i) => (
-              <RepoSection key={r.repo} result={r} defaultOpen={i === 0} />
-            ))}
-          </div>
+          {/* Repo results tree / matrix */}
+          {viewMode === 'list' ? (
+            <div className="space-y-2">
+              {result.results.map((r, i) => (
+                <RepoSection key={r.repo} result={r} defaultOpen={i === 0} />
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <MatrixView results={result.results} />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Errors */}
           {result.errors && result.errors.length > 0 && (

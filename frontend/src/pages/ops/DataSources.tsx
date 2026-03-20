@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Cloud, Box, Settings, CheckCircle2 } from 'lucide-react'
+import { Cloud, Box, Settings, CheckCircle2, Shield, AlertTriangle, Wifi, Mail, Globe } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 interface Adapter {
@@ -48,6 +48,76 @@ const ADAPTERS: Adapter[] = [
     formats: ['JSON', 'Config Rules'],
     status: 'available',
     sampleFindings: 1120,
+  },
+]
+
+interface ThreatFeed {
+  id: string
+  name: string
+  description: string
+  icon: LucideIcon
+  iconColor: string
+  iconBg: string
+  status: 'active' | 'available'
+  stat_label: string
+  stat_value: string
+}
+
+const THREAT_FEEDS: ThreatFeed[] = [
+  {
+    id: 'epss',
+    name: 'EPSS',
+    description: 'Probabilistic scoring of CVE exploitability. Prioritizes patching by likelihood of exploitation in the wild.',
+    icon: Shield,
+    iconColor: 'text-violet-600 dark:text-violet-400',
+    iconBg: 'bg-violet-50 dark:bg-violet-950/20',
+    status: 'active',
+    stat_label: 'CVEs scored',
+    stat_value: '~200K',
+  },
+  {
+    id: 'kev',
+    name: 'CISA KEV',
+    description: 'Known Exploited Vulnerabilities catalog. Actively exploited vulnerabilities mandated for federal remediation.',
+    icon: AlertTriangle,
+    iconColor: 'text-red-600 dark:text-red-400',
+    iconBg: 'bg-red-50 dark:bg-red-950/20',
+    status: 'active',
+    stat_label: 'Entries',
+    stat_value: '~1,100',
+  },
+  {
+    id: 'greynoise',
+    name: 'GreyNoise',
+    description: 'Internet-wide scan and attack traffic analysis. Separates targeted attacks from background noise.',
+    icon: Wifi,
+    iconColor: 'text-slate-600 dark:text-slate-400',
+    iconBg: 'bg-slate-50 dark:bg-slate-950/20',
+    status: 'available',
+    stat_label: 'IPs tracked',
+    stat_value: '300K+',
+  },
+  {
+    id: 'hibp',
+    name: 'HIBP',
+    description: 'Have I Been Pwned breach database. Email and domain exposure checking across known data breaches.',
+    icon: Mail,
+    iconColor: 'text-sky-600 dark:text-sky-400',
+    iconBg: 'bg-sky-50 dark:bg-sky-950/20',
+    status: 'available',
+    stat_label: 'Breaches indexed',
+    stat_value: '700+',
+  },
+  {
+    id: 'otx',
+    name: 'OTX',
+    description: 'AlienVault Open Threat Exchange. Community threat intelligence with IoC sharing and pulse subscriptions.',
+    icon: Globe,
+    iconColor: 'text-emerald-600 dark:text-emerald-400',
+    iconBg: 'bg-emerald-50 dark:bg-emerald-950/20',
+    status: 'available',
+    stat_label: 'Indicators',
+    stat_value: '25M+',
   },
 ]
 
@@ -126,6 +196,65 @@ export default function DataSources() {
                     <div className="flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400">
                       <CheckCircle2 className="h-3 w-3" />Connected
                     </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Threat Intelligence Feeds */}
+      <div className="pt-4">
+        <h2 className="text-lg font-semibold">Threat Intelligence Feeds</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Real-time threat data enrichment for finding risk scoring
+        </p>
+      </div>
+
+      <div className="border border-border px-3 py-2 text-sm text-muted-foreground tabular-nums">
+        {THREAT_FEEDS.length} feeds{' · '}
+        <span className="text-green-600 dark:text-green-400">
+          {THREAT_FEEDS.filter(f => f.status === 'active').length} active
+        </span>
+        {' · '}
+        <span className="text-blue-600 dark:text-blue-400">
+          {THREAT_FEEDS.filter(f => f.status === 'available').length} pending
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {THREAT_FEEDS.map(feed => {
+          const Icon = feed.icon
+          const statusCfg = STATUS_CONFIG[feed.status]
+          return (
+            <Card key={feed.id}>
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`p-2 rounded ${feed.iconBg}`}>
+                      <Icon className={`h-4 w-4 ${feed.iconColor}`} />
+                    </div>
+                    <CardTitle className="text-sm">{feed.name}</CardTitle>
+                  </div>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 ${statusCfg.color}`}>
+                    {statusCfg.label}
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground leading-relaxed">{feed.description}</p>
+                <div className="flex items-center justify-between pt-2 border-t border-border">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">{feed.stat_label}</p>
+                    <p className="text-sm font-semibold tabular-nums">{feed.stat_value}</p>
+                  </div>
+                  {feed.status === 'active' ? (
+                    <div className="flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400">
+                      <CheckCircle2 className="h-3 w-3" />Connected
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground italic">Pending finding field enrichment</p>
                   )}
                 </div>
               </CardContent>

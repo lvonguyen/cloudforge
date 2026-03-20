@@ -9,10 +9,12 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.41.4
 	github.com/aws/aws-sdk-go-v2/config v1.32.12
 	github.com/aws/aws-sdk-go-v2/service/bedrockruntime v1.50.2
+	github.com/aws/aws-sdk-go-v2/service/configservice v1.62.0
 	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.63.5
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.294.1
 	github.com/aws/aws-sdk-go-v2/service/guardduty v1.74.1
 	github.com/aws/aws-sdk-go-v2/service/iam v1.53.6
+	github.com/aws/aws-sdk-go-v2/service/rds v1.116.3
 	github.com/aws/aws-sdk-go-v2/service/s3control v1.68.3
 	github.com/aws/aws-sdk-go-v2/service/securityhub v1.68.2
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.68.3

@@ -132,7 +132,7 @@ async function fetchContainers(): Promise<TopologyResponse> {
     return await apiClient.get<TopologyResponse>('/containers')
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
-    if (import.meta.env.PROD) throw err
+    if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'true') throw err
     console.warn('[Containers] API unavailable, using dev mock topology')
     return DEV_TOPOLOGY
   }

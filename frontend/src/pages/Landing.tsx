@@ -38,9 +38,9 @@ const PROJECTS: ProjectCard[] = [
     bg: 'bg-blue-50 dark:bg-blue-900/30',
     tags: ['Go', 'OPA/Rego', 'React', 'Terraform', 'Multi-Cloud'],
     stats: [
-      { label: 'Policies', value: '42' },
-      { label: 'Handlers', value: '8' },
-      { label: 'Test Coverage', value: '85%' },
+      { label: 'Go Tests', value: '1,474' },
+      { label: 'Frontend Tests', value: '420' },
+      { label: 'Go Packages', value: '34' },
     ],
     link: '/admin',
     repo: `${branding.repoPrefix}/aegis`,
@@ -65,11 +65,6 @@ const PROJECTS: ProjectCard[] = [
     repo: `${branding.repoPrefix}/cspm-aggregator`,
   },
 ]
-
-const TIER_BADGE: Record<string, string> = {
-  flagship: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',
-  supporting: 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700',
-}
 
 export default function Landing() {
   // Filter projects by enabled modules from branding config
@@ -117,7 +112,7 @@ export default function Landing() {
       {/* Flagship projects */}
       {flagship.length > 0 && (
         <section>
-          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Tier 1 — Flagship</h2>
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Operational Modules</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {flagship.map(project => (
               <ProjectTile key={project.slug} project={project} />
@@ -129,7 +124,7 @@ export default function Landing() {
       {/* Supporting projects */}
       {supporting.length > 0 && (
         <section>
-          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Tier 2 — Supporting</h2>
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Supporting Modules</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {supporting.map(project => (
               <ProjectTile key={project.slug} project={project} />
@@ -220,7 +215,7 @@ function ProjectTile({ project }: { project: ProjectCard }) {
 
   return (
     <Link to={project.link} className="group">
-      <Card className="h-full transition-colors hover:border-primary/30 hover:shadow-sm">
+      <Card className="h-full min-h-[220px] transition-colors hover:border-primary/30 hover:shadow-sm">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2.5">
@@ -240,9 +235,6 @@ function ProjectTile({ project }: { project: ProjectCard }) {
               </div>
               <div>
                 <CardTitle className="text-sm font-semibold">{project.name}</CardTitle>
-                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${TIER_BADGE[project.tier]}`}>
-                  {project.tier}
-                </span>
               </div>
             </div>
             {project.link === '#' ? (

@@ -17,6 +17,13 @@ const DEFAULT_USER: User = {
   groups: [`${branding.storagePrefix}-admin`],
 }
 
+const DEMO_USER: User = {
+  name: 'Demo Viewer',
+  email: `demo@${branding.emailDomain}`,
+  role: 'viewer',
+  groups: [`${branding.storagePrefix}-viewer`],
+}
+
 const ANONYMOUS_USER: User = {
   name: 'Anonymous',
   email: '',
@@ -119,9 +126,11 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const savedRole = sessionStorage.getItem(ROLE_KEY) as Role | null
   const isDev = import.meta.env.DEV
+  const isDemo = import.meta.env.VITE_DEMO_MODE === 'true'
 
   const [user, setUser] = useState<User>(() => {
     if (isDev) return { ...DEFAULT_USER, role: savedRole ?? DEFAULT_USER.role }
+    if (isDemo) return { ...DEMO_USER, role: savedRole ?? DEMO_USER.role }
 
     const token = getStoredToken()
     if (token && !isTokenExpired(token)) {
@@ -131,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    if (isDev) return true
+    if (isDev || isDemo) return true
     const token = getStoredToken()
     return !!token && !isTokenExpired(token)
   })

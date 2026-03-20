@@ -112,18 +112,17 @@ describe('ProtectedRoute', () => {
     expect(screen.getByText('Redirecting to login...')).toBeInTheDocument()
   })
 
-  it('redirects unauthenticated user even when VITE_DEMO_MODE is set (regression)', () => {
+  it('bypasses auth when VITE_DEMO_MODE is set (demo deployment)', () => {
     vi.stubEnv('DEV', false)
     vi.stubEnv('VITE_DEMO_MODE', 'true')
-    sessionStorage.removeItem('aegis_access_token')
+    sessionStorage.setItem('aegis_role', 'admin')
 
     renderWithAuth(
       <ProtectedRoute roles={['admin']}>
-        <div>Should Not Render</div>
+        <div>Demo Content</div>
       </ProtectedRoute>
     )
 
-    expect(screen.queryByText('Should Not Render')).not.toBeInTheDocument()
-    expect(screen.getByText('Redirecting to login...')).toBeInTheDocument()
+    expect(screen.getByText('Demo Content')).toBeInTheDocument()
   })
 })

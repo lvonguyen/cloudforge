@@ -70,7 +70,7 @@ async function fetchAttackPaths(page: number, perPage: number): Promise<Paginate
     return await apiClient.get<PaginatedResponse<AttackPath>>(`/attack-paths?page=${page}&per_page=${perPage}`)
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
-    if (import.meta.env.PROD) throw err
+    if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'true') throw err
     console.warn('[useAttackPaths] API unavailable, using mock paths')
     const { paths } = await getMockAttackPaths()
     const start = (page - 1) * perPage
@@ -127,7 +127,7 @@ async function fetchAttackPathStats(): Promise<AttackPathStats> {
     return await apiClient.get<AttackPathStats>('/attack-paths/stats')
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
-    if (import.meta.env.PROD) throw err
+    if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'true') throw err
     console.warn('[useAttackPathStats] API unavailable, deriving stats from paths')
     const { paths } = await getMockAttackPaths()
     return computeStatsFromPaths(paths)
@@ -149,7 +149,7 @@ export function useAttackPath(id: string) {
         return await apiClient.get<AttackPath>(`/attack-paths/${id}`)
       } catch (err) {
         if (err instanceof ApiError && err.status < 500) throw err
-        if (import.meta.env.PROD) throw err
+        if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'true') throw err
         const { paths } = await getMockAttackPaths()
         return paths.find(p => p.id === id) ?? null
       }

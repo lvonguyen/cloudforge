@@ -39,7 +39,7 @@ const MOCK_TICKET: Ticket = {
   status: 'open',
   priority: 'high',
   assignee: 'security-ops',
-  url: 'https://mock.local/tickets/MOCK-a1b2c3d4',
+  url: undefined,
   created_at: '2026-03-18T10:00:00Z',
   updated_at: '2026-03-18T10:00:00Z',
 }
@@ -48,15 +48,22 @@ export function useRemediateFinding() {
   const qc = useQueryClient()
   const { toast } = useToast()
   return useMutation({
-    mutationFn: ({ findingId, severity, isChokePoint }: {
+    mutationFn: async ({ findingId, severity, isChokePoint }: {
       findingId: string
       severity: string
       isChokePoint?: boolean
-    }) =>
-      apiClient.post<RemediateResponse>(`/findings/${findingId}/remediate`, {
+    }) => {
+      if (import.meta.env.VITE_DEMO_MODE === 'true') {
+        return {
+          ticket: { ...MOCK_TICKET, finding_id: findingId, title: `Remediate ${findingId}` },
+          routing: { priority: severity === 'CRITICAL' ? 'P1' : 'P2', team: 'security-ops', sla_hours: severity === 'CRITICAL' ? 4 : 24, reason: 'Auto-routed' },
+        } as RemediateResponse
+      }
+      return apiClient.post<RemediateResponse>(`/findings/${findingId}/remediate`, {
         severity,
         is_choke_point: isChokePoint ?? false,
-      }),
+      })
+    },
     onSuccess: (data, variables) => {
       void qc.invalidateQueries({ queryKey: ['findings', variables.findingId] })
       void qc.invalidateQueries({ queryKey: ['ticket', variables.findingId] })
