@@ -478,7 +478,12 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 		}
 		decision, err := s.opaEngine.EvaluateToolAccess(ctx, &opaInput.Agent, opaInput.Tool)
 		if err != nil {
-			s.logger.Warn("OPA evaluation failed, allowing request", zap.Error(err))
+			s.logger.Error("OPA evaluation failed, denying request (fail-closed)",
+				zap.String("finding_id", id),
+				zap.Error(err),
+			)
+			writeErrorResponse(w, "policy evaluation unavailable", http.StatusServiceUnavailable)
+			return
 		} else if !decision.Allow {
 			s.logger.Warn("OPA denied enrichment",
 				zap.String("finding_id", id),
