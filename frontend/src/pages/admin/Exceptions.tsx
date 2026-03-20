@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useExceptions } from '@/hooks/useExceptions'
+import { useExceptions, useApproveException, useRejectException } from '@/hooks/useExceptions'
+import { useToast } from '@/hooks/useToast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -7,7 +8,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { EXCEPTION_STATUS_COLORS as STATUS_COLORS } from '@/lib/severity'
-import { ListChecks, Filter, X } from 'lucide-react'
+import { ListChecks, Filter, X, ChevronRight } from 'lucide-react'
 import type { ExceptionRequest, Approver } from '@/types/grc'
 
 const STATUS_FILTERS = ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'EXPIRED'] as const
@@ -34,7 +35,14 @@ function formatDate(iso: string): string {
   }
 }
 
-function ExceptionDetailDrawer({ exc, onClose }: { exc: ExceptionRequest; onClose: () => void }) {
+function ExceptionDetailDrawer({ exc, onClose, onApprove, onReject }: {
+  exc: ExceptionRequest
+  onClose: () => void
+  onApprove: () => void
+  onReject: () => void
+}) {
+  const [apiActionsOpen, setApiActionsOpen] = useState(false)
+
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', h)
@@ -121,13 +129,73 @@ function ExceptionDetailDrawer({ exc, onClose }: { exc: ExceptionRequest; onClos
             </div>
           )}
 
+          {/* API Actions (collapsible) */}
+          <div className="space-y-2">
+            <button
+              onClick={() => setApiActionsOpen(!apiActionsOpen)}
+              className="flex items-center gap-1.5 w-full text-left"
+            >
+              <ChevronRight className={`h-3 w-3 transition-transform ${apiActionsOpen ? 'rotate-90' : ''}`} />
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">API Actions</span>
+            </button>
+
+            {apiActionsOpen && (
+              <div className="space-y-3">
+                {/* Approve */}
+                <div className="bg-muted/20 border border-border p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 bg-emerald-900/50 text-emerald-300">POST</span>
+                    <span className="text-[10px] font-mono text-muted-foreground">/api/v1/exceptions/{'{'}id{'}'}/approve</span>
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase tracking-wide text-muted-foreground mb-1">Request Body</p>
+                    <pre className="text-[10px] font-mono text-gray-400 bg-black/20 p-2 border border-border overflow-x-auto">
+{JSON.stringify({ approver: "current_user", decision: "APPROVED", comments: "string?" }, null, 2)}
+                    </pre>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground">Response: <span className="text-emerald-400">200</span> → ExceptionRequest</p>
+                </div>
+
+                {/* Reject */}
+                <div className="bg-muted/20 border border-border p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 bg-emerald-900/50 text-emerald-300">POST</span>
+                    <span className="text-[10px] font-mono text-muted-foreground">/api/v1/exceptions/{'{'}id{'}'}/reject</span>
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase tracking-wide text-muted-foreground mb-1">Request Body</p>
+                    <pre className="text-[10px] font-mono text-gray-400 bg-black/20 p-2 border border-border overflow-x-auto">
+{JSON.stringify({ approver: "current_user", decision: "REJECTED", reason: "string", comments: "string?" }, null, 2)}
+                    </pre>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground">Response: <span className="text-emerald-400">200</span> → ExceptionRequest</p>
+                </div>
+
+                {/* Provision */}
+                <div className="bg-muted/20 border border-border p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 bg-emerald-900/50 text-emerald-300">POST</span>
+                    <span className="text-[10px] font-mono text-muted-foreground">/api/v1/exceptions/{'{'}id{'}'}/provision</span>
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase tracking-wide text-muted-foreground mb-1">Request Body</p>
+                    <pre className="text-[10px] font-mono text-gray-400 bg-black/20 p-2 border border-border overflow-x-auto">
+{JSON.stringify({ approved_by: "string", resource_config: {}, ttl_hours: 72, compensating_controls: ["string"] }, null, 2)}
+                    </pre>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground">Response: <span className="text-emerald-400">202</span> → ProvisioningTask</p>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Action buttons */}
           {exc.status === 'PENDING' && (
             <div className="flex gap-2 pt-2">
-              <Button size="sm" className="flex-1 text-xs" onClick={onClose}>
+              <Button size="sm" className="flex-1 text-xs" onClick={onApprove}>
                 Approve
               </Button>
-              <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={onClose}>
+              <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={onReject}>
                 Reject
               </Button>
             </div>
@@ -142,6 +210,31 @@ export default function Exceptions() {
   const { data: exceptions } = useExceptions()
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
   const [selectedExc, setSelectedExc] = useState<ExceptionRequest | null>(null)
+  const approveMutation = useApproveException()
+  const rejectMutation = useRejectException()
+  const { toasts, toast, dismiss } = useToast()
+
+  const handleApprove = () => {
+    if (!selectedExc) return
+    approveMutation.mutate(
+      { id: selectedExc.id, approver: { email: 'current_user@contoso.dev', role: 'SECURITY_LEAD', decision: 'APPROVED' } },
+      {
+        onSuccess: () => { toast('Exception approved', 'success'); setSelectedExc(null) },
+        onError: () => { toast('Failed to approve exception', 'error') },
+      },
+    )
+  }
+
+  const handleReject = () => {
+    if (!selectedExc) return
+    rejectMutation.mutate(
+      { id: selectedExc.id, approver: { email: 'current_user@contoso.dev', role: 'SECURITY_LEAD', decision: 'REJECTED' } },
+      {
+        onSuccess: () => { toast('Exception rejected', 'success'); setSelectedExc(null) },
+        onError: () => { toast('Failed to reject exception', 'error') },
+      },
+    )
+  }
 
   const items = exceptions && exceptions.length > 0 ? exceptions : FALLBACK_EXCEPTIONS
   const usingFallback = !exceptions || exceptions.length === 0
@@ -236,7 +329,33 @@ export default function Exceptions() {
         </CardContent>
       </Card>
 
-      {selectedExc && <ExceptionDetailDrawer exc={selectedExc} onClose={() => setSelectedExc(null)} />}
+      {selectedExc && (
+        <ExceptionDetailDrawer
+          exc={selectedExc}
+          onClose={() => setSelectedExc(null)}
+          onApprove={handleApprove}
+          onReject={handleReject}
+        />
+      )}
+
+      {/* Toasts */}
+      {toasts.length > 0 && (
+        <div className="fixed bottom-4 right-4 z-[60] space-y-2">
+          {toasts.map(t => (
+            <div
+              key={t.id}
+              className={`px-4 py-2 text-xs shadow-lg border ${
+                t.variant === 'success' ? 'bg-emerald-950 border-emerald-800 text-emerald-200' :
+                t.variant === 'error' ? 'bg-red-950 border-red-800 text-red-200' :
+                'bg-blue-950 border-blue-800 text-blue-200'
+              }`}
+              onClick={() => dismiss(t.id)}
+            >
+              {t.message}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

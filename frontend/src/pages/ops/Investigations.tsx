@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { type Node, type Edge, Position, MarkerType } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { BaseGraphView } from '@/components/ops/BaseGraphView'
 import { useFindings } from '@/hooks/useFindings'
 import { Badge } from '@/components/ui/badge'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Search, X, Shield, Server, Database, Key, Globe } from 'lucide-react'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS } from '@/lib/severity'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
@@ -46,8 +47,11 @@ const ENTITY_COLORS: Record<InvestigationEntityType, { bg: string; border: strin
 
 export default function Investigations() {
   const { data: findings = [], isLoading } = useFindings()
-  const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null)
+  const [searchParams] = useSearchParams()
+  const [selectedFindingId, setSelectedFindingId] = useState<string | null>(() => searchParams.get('findingId'))
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const navigate = useNavigate()
 
   const filteredFindings = useMemo(() => {
     if (!searchQuery) return findings.slice(0, 50)
@@ -96,11 +100,22 @@ export default function Investigations() {
             <div className="text-[9px] text-gray-400">{finding.severity} · {finding.category} · {finding.cloud_provider.toUpperCase()}</div>
           </div>
         ),
+        entityType: 'finding' as InvestigationEntityType,
+        entityData: {
+          id: finding.id,
+          title: finding.title,
+          severity: finding.severity,
+          category: finding.category,
+          cloud_provider: finding.cloud_provider,
+          resource_name: finding.resource_name,
+          resource_type: finding.resource_type,
+          recommendation: finding.remediation?.slice(0, 200),
+        },
       },
       style: { padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
     })
 
-    function addEntity(type: InvestigationEntityType, id: string, label: string, sublabel?: string) {
+    function addEntity(type: InvestigationEntityType, id: string, label: string, sublabel?: string, entityData?: Record<string, unknown>) {
       const angle = (entityIndex / totalEntities) * 2 * Math.PI - Math.PI / 2
       const x = 400 + radius * Math.cos(angle)
       const y = 300 + radius * Math.sin(angle)
@@ -118,6 +133,8 @@ export default function Investigations() {
               {sublabel && <div className="text-[9px] text-gray-500 truncate">{sublabel}</div>}
             </div>
           ),
+          entityType: type,
+          entityData: entityData ?? { label, sublabel },
         },
         style: { padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
       })
@@ -139,33 +156,153 @@ export default function Investigations() {
 
     // Assignee
     if (finding.assignee) {
-      addEntity('assignee', `assignee-${finding.assignee.user_id}`, finding.assignee.user_name, finding.assignee.team)
+      addEntity('assignee', `assignee-${finding.assignee.user_id}`, finding.assignee.user_name, finding.assignee.team, {
+        name: finding.assignee.user_name, email: finding.assignee.email, team: finding.assignee.team,
+        assigned_at: finding.assignee.assigned_at, due_date: finding.due_date,
+      })
     }
 
     // Technical contact
     if (finding.technical_contact) {
-      addEntity('technical_contact', `tc-${finding.technical_contact.email}`, finding.technical_contact.name, finding.technical_contact.team)
+      addEntity('technical_contact', `tc-${finding.technical_contact.email}`, finding.technical_contact.name, finding.technical_contact.team, {
+        name: finding.technical_contact.name, email: finding.technical_contact.email, team: finding.technical_contact.team,
+      })
     }
 
     // Primary resource
-    addEntity('resource', `res-${finding.resource_id}`, finding.resource_name, finding.resource_type)
+    addEntity('resource', `res-${finding.resource_id}`, finding.resource_name, finding.resource_type, {
+      name: finding.resource_name, type: finding.resource_type, region: finding.region, account_id: finding.account_id, finding_count: 1,
+    })
 
     // Compliance mappings
     if (finding.compliance_mappings) {
       for (const cm of finding.compliance_mappings.slice(0, 3)) {
-        addEntity('compliance_mapping', `comp-${cm.framework_id}-${cm.control_id}`, `${cm.framework_name} ${cm.control_id}`, cm.control_title?.slice(0, 40))
+        addEntity('compliance_mapping', `comp-${cm.framework_id}-${cm.control_id}`, `${cm.framework_name} ${cm.control_id}`, cm.control_title?.slice(0, 40), {
+          framework_name: cm.framework_name, control_id: cm.control_id, control_title: cm.control_title,
+          section: cm.section, subsection: cm.subsection, severity: cm.severity, url: cm.reference_url,
+        })
       }
     }
 
     // Impacted resources
     if (finding.impacted_resources) {
       for (const ir of finding.impacted_resources.slice(0, 3)) {
-        addEntity('impacted_resource', `ir-${ir.resource_id}`, ir.resource_name, ir.resource_type)
+        addEntity('impacted_resource', `ir-${ir.resource_id}`, ir.resource_name, ir.resource_type, {
+          name: ir.resource_name, type: ir.resource_type, relationship: ir.relationship, impact_level: ir.impact_level,
+        })
       }
     }
 
     return { graphNodes: nodes, graphEdges: edges }
   }, [findings, selectedFindingId])
+
+  const handleNodeClick = useCallback((nodeId: string) => {
+    setSelectedNodeId(prev => prev === nodeId ? null : nodeId)
+  }, [])
+
+  const selectedNodeData = useMemo(() => {
+    if (!selectedNodeId) return null
+    const node = graphNodes.find(n => n.id === selectedNodeId)
+    if (!node?.data) return null
+    return {
+      entityType: node.data.entityType as InvestigationEntityType,
+      entityData: node.data.entityData as Record<string, unknown>,
+    }
+  }, [selectedNodeId, graphNodes])
+
+  function renderNodeDetail(type: InvestigationEntityType, data: Record<string, unknown>) {
+    const field = (label: string, value: unknown) => {
+      if (!value) return null
+      return (
+        <div>
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+          <p className="text-xs font-medium">{String(value)}</p>
+        </div>
+      )
+    }
+
+    switch (type) {
+      case 'finding':
+        return (
+          <div className="space-y-2 text-xs">
+            <Badge variant="outline" className={`text-[10px] ${SEVERITY_COLORS[String(data.severity)] ?? ''}`}>
+              {String(data.severity)}
+            </Badge>
+            {field('Title', data.title)}
+            {field('Category', data.category)}
+            {field('Provider', data.cloud_provider)}
+            {field('Resource', data.resource_name)}
+            {field('Resource Type', data.resource_type)}
+            {data.recommendation && (
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Recommendation</p>
+                <p className="text-[10px] leading-relaxed text-muted-foreground bg-muted/30 p-2 border border-border">{String(data.recommendation)}</p>
+              </div>
+            )}
+            <button
+              onClick={() => navigate(`/ops/findings/${data.id}`)}
+              className="text-[10px] text-blue-400 hover:text-blue-300 underline"
+            >
+              View Finding →
+            </button>
+          </div>
+        )
+      case 'resource':
+        return (
+          <div className="space-y-2 text-xs">
+            {field('Name', data.name)}
+            {field('Type', data.type)}
+            {field('Region', data.region)}
+            {field('Account', data.account_id)}
+          </div>
+        )
+      case 'compliance_mapping':
+        return (
+          <div className="space-y-2 text-xs">
+            {field('Framework', data.framework_name)}
+            {field('Control', data.control_id)}
+            {field('Title', data.control_title)}
+            {field('Section', data.section)}
+            {field('Subsection', data.subsection)}
+            {data.severity && <Badge variant="outline" className="text-[10px]">{String(data.severity)}</Badge>}
+            {data.url && (
+              <a href={String(data.url)} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400 hover:text-blue-300 underline block">
+                Reference →
+              </a>
+            )}
+          </div>
+        )
+      case 'assignee':
+        return (
+          <div className="space-y-2 text-xs">
+            {field('Name', data.name)}
+            {field('Email', data.email)}
+            {field('Team', data.team)}
+            {field('Assigned', data.assigned_at)}
+            {field('Due Date', data.due_date)}
+          </div>
+        )
+      case 'technical_contact':
+        return (
+          <div className="space-y-2 text-xs">
+            {field('Name', data.name)}
+            {field('Email', data.email)}
+            {field('Team', data.team)}
+          </div>
+        )
+      case 'impacted_resource':
+        return (
+          <div className="space-y-2 text-xs">
+            {field('Name', data.name)}
+            {field('Type', data.type)}
+            {field('Relationship', data.relationship)}
+            {field('Impact Level', data.impact_level)}
+          </div>
+        )
+      default:
+        return null
+    }
+  }
 
   if (isLoading) return <div className="text-sm text-muted-foreground p-4">Loading investigations...</div>
 
@@ -195,7 +332,7 @@ export default function Investigations() {
           {filteredFindings.map(f => (
             <button
               key={f.id}
-              onClick={() => setSelectedFindingId(f.id)}
+              onClick={() => { setSelectedFindingId(f.id); setSelectedNodeId(null) }}
               className={`w-full text-left px-4 py-2.5 border-b border-border hover:bg-muted/30 transition-colors ${selectedFindingId === f.id ? 'bg-muted/50' : ''}`}
             >
               <div className="flex items-center gap-1.5 mb-0.5">
@@ -218,7 +355,7 @@ export default function Investigations() {
       {/* Graph area */}
       <div className="flex-1 relative">
         {selectedFindingId ? (
-          <BaseGraphView nodes={graphNodes} edges={graphEdges} height="h-full" />
+          <BaseGraphView nodes={graphNodes} edges={graphEdges} onNodeClick={handleNodeClick} height="h-full" />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             <div className="text-center">
@@ -229,6 +366,19 @@ export default function Investigations() {
           </div>
         )}
       </div>
+
+      {/* Right detail panel */}
+      {selectedNodeData && (
+        <div className="w-72 border-l border-border bg-background p-4 space-y-3 shrink-0 overflow-y-auto">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-semibold">{selectedNodeData.entityType.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())} Detail</h3>
+            <button onClick={() => setSelectedNodeId(null)} className="p-0.5 hover:bg-muted">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {renderNodeDetail(selectedNodeData.entityType, selectedNodeData.entityData)}
+        </div>
+      )}
     </div>
   )
 }

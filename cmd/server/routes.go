@@ -176,6 +176,11 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.attackPathSvc.getAttackPath)),
 	).Methods("GET")
 
+	// Graph query proxy (PuppyGraph — feature-flagged via PUPPYGRAPH_URL)
+	apiRouter.Handle("/graph/query",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleGraphQuery)),
+	).Methods("POST")
+
 	// Data classification (DSPM)
 	apiRouter.Handle("/data-classification/assets",
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listDataClassificationAssets)),

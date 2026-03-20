@@ -21,10 +21,12 @@ import (
 	"aegis/internal/audit"
 	"aegis/internal/compliance"
 	"aegis/internal/container"
+	"aegis/internal/graph"
 	"aegis/internal/grc"
 	"aegis/internal/identity"
 	"aegis/internal/ingestion"
 	"aegis/internal/integrations"
+	"aegis/internal/integrations/jira"
 	"aegis/internal/observability"
 	"aegis/internal/secrets"
 	"aegis/internal/tenant"
@@ -104,6 +106,9 @@ type Server struct {
 	complianceMgr      *compliance.Manager
 	asmSvc             *asmService
 	orgScanner         secrets.OrgScanner
+
+	// Graph query engine (PuppyGraph — feature-flagged via PUPPYGRAPH_URL)
+	graphClient *graph.Client
 }
 
 func main() {
@@ -273,6 +278,33 @@ func main() {
 		logger.Info("Using mock Entra ID identity provider (ENTRA_TENANT_ID not set)")
 	}
 
+	// Initialize Jira ticket provider when credentials are available
+	if jiraURL := os.Getenv("JIRA_URL"); jiraURL != "" {
+		jiraCfg := jira.ConfigFromEnv()
+		jiraClient, err := jira.NewClient(jiraCfg, logger.Named("jira"))
+		if err != nil {
+			logger.Warn("Jira client init failed, using mock ticket provider", zap.Error(err))
+		} else {
+			jiraAdapter := jira.NewAdapter(jiraClient, logger.Named("jira"))
+			logger.Info("Jira ticket provider initialized", zap.String("url", jiraURL))
+			// Will be wired to integrationHandler below
+			_ = jiraAdapter // placeholder — wire when integrationHandler accepts provider injection
+		}
+	}
+
+	// Initialize PuppyGraph client (feature-flagged — nil when PUPPYGRAPH_URL is empty)
+	var graphClient *graph.Client
+	if puppyURL := os.Getenv("PUPPYGRAPH_URL"); puppyURL != "" {
+		graphClient = graph.NewClient(puppyURL, logger.Named("graph"))
+		pingCtx, pingCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := graphClient.Ping(pingCtx); err != nil {
+			logger.Warn("PuppyGraph not reachable, graph queries will fail at runtime", zap.Error(err))
+		} else {
+			logger.Info("PuppyGraph connected", zap.String("url", puppyURL))
+		}
+		pingCancel()
+	}
+
 	// Load mock data and build O(1) lookup maps via DataStore
 	mockData, err := loadMockData(mockDataDir())
 	if err != nil {
@@ -375,6 +407,7 @@ func main() {
 		complianceMgr: compliance.NewManager(logger.Named("compliance")),
 		asmSvc:        &asmService{scanner: asm.NewMockScanner()},
 		orgScanner:    secrets.NewMockOrgScanner(),
+		graphClient:   graphClient,
 	}
 
 	logger.Info("Mock data loaded",

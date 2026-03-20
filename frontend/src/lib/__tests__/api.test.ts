@@ -132,6 +132,52 @@ describe('apiClient', () => {
   })
 })
 
+describe('authHeaders (via apiClient)', () => {
+  const originalFetch = global.fetch
+
+  beforeEach(() => {
+    global.fetch = vi.fn()
+    sessionStorage.clear()
+  })
+
+  afterEach(() => {
+    global.fetch = originalFetch
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+  })
+
+  it('includes X-Aegis-Role header in DEV mode when role is set', async () => {
+    vi.stubEnv('DEV', true)
+    sessionStorage.setItem('aegis_role', 'operator')
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true }), { status: 200 })
+    )
+
+    await apiClient.get('/test')
+
+    const callArgs = vi.mocked(global.fetch).mock.calls[0]
+    const options = callArgs[1] as RequestInit
+    const headers = options.headers as Record<string, string>
+    expect(headers['X-Aegis-Role']).toBe('operator')
+  })
+
+  it('omits X-Aegis-Role header in production mode', async () => {
+    vi.stubEnv('DEV', false)
+    sessionStorage.setItem('aegis_role', 'admin')
+    sessionStorage.setItem('aegis_access_token', 'fake-token')
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true }), { status: 200 })
+    )
+
+    await apiClient.get('/test')
+
+    const callArgs = vi.mocked(global.fetch).mock.calls[0]
+    const options = callArgs[1] as RequestInit
+    const headers = options.headers as Record<string, string>
+    expect(headers['X-Aegis-Role']).toBeUndefined()
+  })
+})
+
 describe('apiClient.delete', () => {
   const originalFetch = global.fetch
 

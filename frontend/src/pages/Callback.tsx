@@ -35,9 +35,11 @@ export default function Callback() {
 
     exchangeCode(code)
       .then(() => {
-        const raw = sessionStorage.getItem(LOGIN_RETURN_KEY) ?? '/ops'
+        const isDemo = sessionStorage.getItem(`${import.meta.env.VITE_STORAGE_PREFIX || 'aegis'}_demo_session`) === 'true'
+        const defaultPath = isDemo ? '/ops/findings' : '/ops'
+        const raw = sessionStorage.getItem(LOGIN_RETURN_KEY) ?? defaultPath
         sessionStorage.removeItem(LOGIN_RETURN_KEY)
-        const returnPath = (raw.startsWith('/') && !raw.startsWith('//')) ? raw : '/ops'
+        const returnPath = (raw.startsWith('/') && !raw.startsWith('//')) ? raw : defaultPath
         navigate(returnPath, { replace: true })
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Token exchange failed'))

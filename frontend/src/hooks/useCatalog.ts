@@ -17,7 +17,14 @@ export function useCatalog(filters?: { provider?: string; category?: string; sea
         if (err instanceof ApiError && err.status < 500) throw err
         console.warn('[useCatalog] API unavailable, using mock data')
         const mod = await import('@/lib/mock/catalog.json')
-        return mod.default as CatalogModule[]
+        let data = mod.default as CatalogModule[]
+        if (filters?.provider) data = data.filter(m => m.provider === filters.provider)
+        if (filters?.category) data = data.filter(m => m.category === filters.category)
+        if (filters?.search) {
+          const q = filters.search.toLowerCase()
+          data = data.filter(m => m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q))
+        }
+        return data
       }
     },
   })

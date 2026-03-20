@@ -120,6 +120,15 @@ export function useApproveException() {
   })
 }
 
+export function useRejectException() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, approver }: { id: string; approver: Approver }) =>
+      apiClient.post<ExceptionRequest>(`/exceptions/${id}/reject`, approver),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['exceptions'] }) },
+  })
+}
+
 export function useWithdrawException() {
   const qc = useQueryClient()
   return useMutation({

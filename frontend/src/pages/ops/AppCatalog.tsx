@@ -1,21 +1,21 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, lazy, Suspense } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Database, AppWindow, Filter, Search, X } from 'lucide-react'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import appCatalogData from '@/lib/mock/app-catalog.json'
 
-// Lazy-load existing DataClassification page content
-import { lazy, Suspense } from 'react'
 const DataClassification = lazy(() => import('@/pages/ops/DataClassification'))
 
 interface AppEntry {
   id: string
   name: string
+  vendor: string
   owner: string
   lob: string
   criticality: string
@@ -25,6 +25,15 @@ interface AppEntry {
   data_classification: string
   users_count: number
   csp_hosting: string
+  environments: string[]
+  tech_contact: string
+  business_contact: string
+  dependencies: string[]
+  compliance_frameworks: string[]
+  rto_hours: number
+  rpo_hours: number
+  last_pentest: string
+  lifecycle_status: string
 }
 
 const CRITICALITY_COLORS: Record<string, string> = {
@@ -51,10 +60,36 @@ function categoryFilter(app: AppEntry, category: string): boolean {
   return app.type === category.toLowerCase()
 }
 
+const LIFECYCLE_COLORS: Record<string, string> = {
+  active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+  deprecated: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  sunset: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+}
+
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  } catch {
+    return iso
+  }
+}
+
+function formatHours(h: number): string {
+  if (h < 1) return `${Math.round(h * 60)}min`
+  return `${h}h`
+}
+
 export default function AppCatalog() {
   const apps = appCatalogData as AppEntry[]
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('All')
+  const [selectedApp, setSelectedApp] = useState<AppEntry | null>(null)
+
+  const appNameMap = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const a of apps) map.set(a.id, a.name)
+    return map
+  }, [apps])
 
   const filtered = useMemo(() => {
     let result = apps
@@ -63,6 +98,7 @@ export default function AppCatalog() {
       const q = search.toLowerCase()
       result = result.filter(a =>
         a.name.toLowerCase().includes(q) ||
+        a.vendor.toLowerCase().includes(q) ||
         a.owner.toLowerCase().includes(q) ||
         a.lob.toLowerCase().includes(q)
       )
@@ -151,7 +187,7 @@ export default function AppCatalog() {
                     </TableRow>
                   ) : (
                     filtered.map(app => (
-                      <TableRow key={app.id}>
+                      <TableRow key={app.id} className="cursor-pointer hover:bg-muted/30" onClick={() => setSelectedApp(app)}>
                         <TableCell className="pl-4">
                           <div>
                             <p className="text-xs font-medium">{app.name}</p>
@@ -190,6 +226,153 @@ export default function AppCatalog() {
           </Suspense>
         </TabsContent>
       </Tabs>
+
+      {/* CMDB Detail Drawer */}
+      <Sheet open={!!selectedApp} onOpenChange={open => { if (!open) setSelectedApp(null) }}>
+        <SheetContent side="right" className="overflow-y-auto">
+          {selectedApp && (
+            <>
+              <SheetHeader>
+                <SheetTitle className="text-sm">{selectedApp.name}</SheetTitle>
+                <SheetDescription className="flex items-center gap-2 text-[10px]">
+                  <span className="text-muted-foreground">{selectedApp.vendor}</span>
+                  <Badge variant="outline" className={`text-[9px] ${TYPE_COLORS[selectedApp.type] ?? ''}`}>{selectedApp.type.toUpperCase()}</Badge>
+                  <Badge variant="outline" className={`text-[9px] ${CRITICALITY_COLORS[selectedApp.criticality] ?? ''}`}>{selectedApp.criticality}</Badge>
+                  <Badge variant="outline" className={`text-[9px] ${LIFECYCLE_COLORS[selectedApp.lifecycle_status] ?? ''}`}>{selectedApp.lifecycle_status.toUpperCase()}</Badge>
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="px-4 pb-6 space-y-5">
+                {/* Overview */}
+                <section>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Overview</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Description</p>
+                      <p className="text-xs">{selectedApp.description}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Owner</p>
+                        <p className="text-xs font-medium">{selectedApp.owner}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">LoB</p>
+                        <p className="text-xs">{selectedApp.lob}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Users</p>
+                        <p className="text-xs tabular-nums">{selectedApp.users_count.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Classification</p>
+                      <Badge variant="outline" className="text-[10px]">{selectedApp.data_classification}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Hosting</p>
+                      {['AWS', 'Azure', 'GCP'].includes(selectedApp.csp_hosting)
+                        ? <ProviderBadge provider={selectedApp.csp_hosting.toLowerCase()} />
+                        : <span className="text-xs">{selectedApp.csp_hosting}</span>
+                      }
+                    </div>
+                  </div>
+                </section>
+
+                {/* Contacts */}
+                <section>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Contacts</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Technical</p>
+                      <p className="text-xs font-mono">{selectedApp.tech_contact}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Business</p>
+                      <p className="text-xs font-mono">{selectedApp.business_contact}</p>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Environments */}
+                <section>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Environments</p>
+                  <div className="flex gap-1.5">
+                    {selectedApp.environments.map(env => (
+                      <Badge key={env} variant="outline" className="text-[10px]">{env}</Badge>
+                    ))}
+                  </div>
+                </section>
+
+                {/* SLA & Recovery */}
+                <section>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">SLA & Recovery</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-muted/30 border border-border p-2">
+                      <p className="text-[10px] text-muted-foreground">SLA</p>
+                      <p className="text-sm font-semibold tabular-nums">{formatHours(selectedApp.sla_hours)}</p>
+                    </div>
+                    <div className="bg-muted/30 border border-border p-2">
+                      <p className="text-[10px] text-muted-foreground">RTO</p>
+                      <p className="text-sm font-semibold tabular-nums">{formatHours(selectedApp.rto_hours)}</p>
+                    </div>
+                    <div className="bg-muted/30 border border-border p-2">
+                      <p className="text-[10px] text-muted-foreground">RPO</p>
+                      <p className="text-sm font-semibold tabular-nums">{formatHours(selectedApp.rpo_hours)}</p>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Compliance */}
+                {selectedApp.compliance_frameworks.length > 0 && (
+                  <section>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Compliance</p>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {selectedApp.compliance_frameworks.map(fw => (
+                        <Badge key={fw} variant="outline" className="text-[10px]">{fw}</Badge>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* Dependencies */}
+                {selectedApp.dependencies.length > 0 && (
+                  <section>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Dependencies</p>
+                    <div className="space-y-1">
+                      {selectedApp.dependencies.map(depId => (
+                        <p key={depId} className="text-xs text-muted-foreground">
+                          <span className="mr-1">&rarr;</span>
+                          <span className="font-medium text-foreground">{appNameMap.get(depId) ?? depId}</span>
+                        </p>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* Security */}
+                <section>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Security</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Last Pentest</p>
+                      <p className="text-xs">{formatDate(selectedApp.last_pentest)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Lifecycle</p>
+                      <Badge variant="outline" className={`text-[10px] ${LIFECYCLE_COLORS[selectedApp.lifecycle_status] ?? ''}`}>
+                        {selectedApp.lifecycle_status.toUpperCase()}
+                      </Badge>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

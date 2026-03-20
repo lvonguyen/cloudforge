@@ -52,4 +52,9 @@ describe('Landing', () => {
     renderWithProviders(<Landing />)
     expect(screen.getByText(/policy-as-code/i)).toBeInTheDocument()
   })
+
+  it('does not render Demo Access section when demoAccess is disabled', () => {
+    renderWithProviders(<Landing />)
+    expect(screen.queryByText('Demo Access')).not.toBeInTheDocument()
+  })
 })

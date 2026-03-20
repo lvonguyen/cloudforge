@@ -25,7 +25,7 @@ const WS_URL = (import.meta.env.VITE_WS_URL as string | undefined) ?? ''
 const MAX_BACKOFF = 30_000
 
 function getToken(): string | null {
-  const isDev = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true'
+  const isDev = import.meta.env.DEV
   if (isDev) return (import.meta.env.VITE_DEV_TOKEN as string | undefined) ?? null
   return sessionStorage.getItem(TOKEN_KEY)
 }

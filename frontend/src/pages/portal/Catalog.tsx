@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCatalog } from '@/hooks/useCatalog'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { ProviderIcon } from '@/components/ui/ProviderIcon'
-import type { CatalogModule } from '@/types/catalog'
+import type { CatalogModule, ServiceType } from '@/types/catalog'
 
 const ICON_MAP: Record<string, LucideIcon> = {
   'server': Server,
@@ -43,11 +43,13 @@ const COMPLIANCE_COLORS: Record<string, string> = {
 }
 
 const CATEGORIES = ['All', 'compute', 'storage', 'database', 'network', 'serverless', 'container', 'messaging', 'analytics', 'security', 'observability', 'ai-ml', 'cicd'] as const
+const SERVICE_TYPES: ('All' | ServiceType)[] = ['All', 'IaaS', 'PaaS', 'SaaS']
 
 export default function Catalog() {
   const navigate = useNavigate()
   const [providerFilter, setProviderFilter] = useState<string>('ALL')
   const [categoryFilter, setCategoryFilter] = useState<string>('All')
+  const [serviceTypeFilter, setServiceTypeFilter] = useState<'All' | ServiceType>('All')
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearch = useDebounce(searchTerm, 300)
   const deferredSearch = useDeferredValue(debouncedSearch)
@@ -58,6 +60,9 @@ export default function Catalog() {
 
   const filtered = useMemo(() => {
     let result = modules
+    if (serviceTypeFilter !== 'All') {
+      result = result.filter(m => m.service_type === serviceTypeFilter)
+    }
     if (categoryFilter !== 'All') {
       result = result.filter(m => m.category === categoryFilter)
     }
@@ -70,7 +75,7 @@ export default function Catalog() {
       )
     }
     return result
-  }, [modules, categoryFilter, deferredSearch])
+  }, [modules, serviceTypeFilter, categoryFilter, deferredSearch])
 
   const providerCounts = useMemo(() => {
     const counts: Record<string, number> = { ALL: modules.length }
@@ -127,6 +132,21 @@ export default function Catalog() {
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Service type pills */}
+      <div className="flex gap-1">
+        {SERVICE_TYPES.map(st => (
+          <button
+            key={st}
+            onClick={() => setServiceTypeFilter(st)}
+            className={`px-3 py-1 text-xs rounded-none font-medium transition-colors ${
+              serviceTypeFilter === st ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            {st}
+          </button>
+        ))}
       </div>
 
       {/* Category tabs */}

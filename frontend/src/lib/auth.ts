@@ -86,7 +86,7 @@ export function isTokenExpired(token: string): boolean {
   return payload.exp * 1000 < Date.now()
 }
 
-function userFromToken(token: string, savedRole: Role | null): User {
+export function userFromToken(token: string, savedRole: Role | null): User {
   const payload = parseJWTPayload(token)
   const email = (payload?.email as string) ?? ''
   const name = (payload?.name as string) || email
@@ -118,7 +118,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const savedRole = sessionStorage.getItem(ROLE_KEY) as Role | null
-  const isDev = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true'
+  const isDev = import.meta.env.DEV
 
   const [user, setUser] = useState<User>(() => {
     if (isDev) return { ...DEFAULT_USER, role: savedRole ?? DEFAULT_USER.role }
@@ -193,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       params.set('login_hint', branding.demoAccess.email)
     }
 
-    // Flag this as a demo session so the callback grants full admin access
+    // Flag this as a demo session for viewer-scoped access via Okta SSO
     sessionStorage.setItem(DEMO_SESSION_KEY, 'true')
 
     window.location.href = `${OKTA_ISSUER}/v1/authorize?${params}`
@@ -201,6 +201,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     const idToken = sessionStorage.getItem(ID_TOKEN_KEY)
+    const isDemo = sessionStorage.getItem(DEMO_SESSION_KEY) === 'true'
+
     sessionStorage.removeItem(TOKEN_KEY)
     sessionStorage.removeItem(ID_TOKEN_KEY)
     sessionStorage.removeItem(VERIFIER_KEY)
@@ -209,15 +211,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(ROLE_KEY)
     sessionStorage.removeItem(DEMO_SESSION_KEY)
 
-    if (!isDev && OKTA_ISSUER && OKTA_CLIENT_ID) {
+    // Always clear React state so UI reflects logged-out immediately,
+    // even if the Okta redirect is slow or fails.
+    setUser(ANONYMOUS_USER)
+    setIsAuthenticated(false)
+
+    // Demo sessions may lack a valid id_token_hint for RP-initiated logout
+    // (Okta shows an error page when hint is missing/invalid). Skip Okta
+    // logout for demo — local session clear + redirect to landing suffices.
+    if (!isDev && OKTA_ISSUER && OKTA_CLIENT_ID && !isDemo) {
       const params = new URLSearchParams({
         post_logout_redirect_uri: window.location.origin,
       })
       if (idToken) params.set('id_token_hint', idToken)
       window.location.href = `${OKTA_ISSUER}/v1/logout?${params}`
     } else {
-      setUser(DEFAULT_USER)
-      setIsAuthenticated(false)
+      window.location.href = window.location.origin
     }
   }, [isDev])
 
@@ -273,11 +282,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(STATE_KEY)
     sessionStorage.removeItem(NONCE_KEY)
 
-    // Demo sessions default to admin so the user can explore all views.
-    // The role switcher still lets them toggle between roles for demonstration.
+    // Demo sessions default to viewer (read-only). Regular users derive
+    // their role from group claims in the access token.
     const isDemo = sessionStorage.getItem(DEMO_SESSION_KEY) === 'true'
     const currentRole = sessionStorage.getItem(ROLE_KEY) as Role | null
-    const effectiveRole = currentRole ?? (isDemo ? 'admin' : null)
+    const effectiveRole = currentRole ?? (isDemo ? 'viewer' : null)
     const u = userFromToken(data.access_token, effectiveRole)
     setUser(u)
     setIsAuthenticated(true)

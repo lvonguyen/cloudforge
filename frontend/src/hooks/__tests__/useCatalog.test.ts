@@ -133,6 +133,20 @@ describe('useCatalog', () => {
     warnSpy.mockRestore()
   })
 
+  it('applies provider filter on mock fallback data', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(new Error('Network error'))
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const { result } = renderHook(() => useCatalog({ provider: 'aws' }), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toBeDefined()
+    expect(result.current.data!.length).toBeGreaterThan(0)
+    expect(result.current.data!.every(m => m.provider === 'aws')).toBe(true)
+    warnSpy.mockRestore()
+  })
+
   it('does not suppress 4xx ApiErrors (rethrows them)', async () => {
     vi.mocked(apiClient.get).mockRejectedValue(new ApiError(404, 'Not Found'))
 

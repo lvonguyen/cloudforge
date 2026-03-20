@@ -226,10 +226,17 @@ function ProjectTile({ project }: { project: ProjectCard }) {
             <div className="flex items-center gap-2.5">
               <div className={`h-9 w-9 rounded-none ${project.bg} flex items-center justify-center overflow-hidden`}>
                 {project.iconSvg ? (
-                  <img src={project.iconSvg} alt={project.name} className="h-9 w-9" width={36} height={36} loading="lazy" />
-                ) : (
-                  <Icon className={`h-4 w-4 ${project.color}`} />
-                )}
+                  <img
+                    src={project.iconSvg}
+                    alt={project.name}
+                    className="h-9 w-9"
+                    width={36}
+                    height={36}
+                    loading="lazy"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden') }}
+                  />
+                ) : null}
+                <Icon className={`h-4 w-4 ${project.color}${project.iconSvg ? ' hidden' : ''}`} />
               </div>
               <div>
                 <CardTitle className="text-sm font-semibold">{project.name}</CardTitle>

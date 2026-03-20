@@ -1,3 +1,5 @@
+export type ServiceType = 'IaaS' | 'PaaS' | 'SaaS'
+
 export interface CatalogModule {
   id: string
   name: string
@@ -13,4 +15,5 @@ export interface CatalogModule {
   compliance_tags: string[]
   auto_approved: boolean
   provisioning_time: string
+  service_type: ServiceType
 }

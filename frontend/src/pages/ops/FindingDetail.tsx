@@ -32,6 +32,7 @@ export default function FindingDetail() {
   const createException = useCreateException()
   const { toasts, toast, dismiss } = useToast()
   const [suppressed, setSuppressed] = useState(false)
+  const [activeTab, setActiveTab] = useState('overview')
   const [commentText, setCommentText] = useState('')
   const { data: comments = [] } = useComments(id ?? '')
   const addComment = useAddComment(id ?? '')
@@ -78,6 +79,19 @@ export default function FindingDetail() {
             )}
             <Badge variant="outline" className="text-[10px]">{finding.category}</Badge>
             <ProviderBadge provider={finding.cloud_provider} />
+            {ticket && (
+              <a href={ticket.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 border rounded bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50">
+                <TicketIcon className="h-3 w-3" />1 Ticket<ExternalLink className="h-2.5 w-2.5" />
+              </a>
+            )}
+            {relatedPaths.length > 0 && (
+              <button
+                onClick={() => navigate(`/ops/investigations?findingId=${finding.id}`)}
+                className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 border rounded bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+              >
+                <Crosshair className="h-3 w-3" />{relatedPaths.length} Attack Path{relatedPaths.length > 1 ? 's' : ''}
+              </button>
+            )}
           </div>
           <h1 className="text-xl font-semibold leading-snug">{finding.title}</h1>
           <p className="text-sm text-muted-foreground mt-1">{finding.description}</p>
@@ -137,7 +151,51 @@ export default function FindingDetail() {
 
       <Separator />
 
-      <Tabs defaultValue="overview">
+      {/* Action Bar — quick-access actions inspired by Wiz finding detail */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button size="sm" variant="outline" className="text-xs gap-1.5"
+          disabled={createTicket.isPending || role !== 'admin'}
+          onClick={() => createTicket.mutate({ findingId: finding.id, severity: finding.severity, isChokePoint: false })}
+        >
+          <TicketIcon className="h-3.5 w-3.5" />{createTicket.isPending ? 'Creating...' : 'Create Ticket'}
+        </Button>
+        <Button size="sm" variant="outline" className="text-xs gap-1.5"
+          onClick={() => setActiveTab('remediation')}
+        >
+          <Wrench className="h-3.5 w-3.5" />Remediate
+        </Button>
+        <Button size="sm" variant="outline" className="text-xs gap-1.5"
+          disabled={!suppressCooldown.canFire || createException.isPending || suppressed}
+          onClick={() => {
+            if (!suppressCooldown.canFire || createException.isPending) return
+            suppressCooldown.fire()
+            createException.mutate(
+              {
+                application_id: finding.account_id ?? 'unknown',
+                requestor_email: user?.email || brandEmail('operator'),
+                request_type: 'OTHER', policy_violated: finding.id,
+                resource_requested: finding.resource_name,
+                business_case: `Suppression: ${finding.title}`,
+                status: 'PENDING', approver_chain: [],
+                created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+              },
+              {
+                onSuccess: () => { setSuppressed(true); toast('Finding suppressed — exception created') },
+                onError: () => { setSuppressed(true); toast('Suppressed (demo — API unavailable)', 'info') },
+              },
+            )
+          }}
+        >
+          <XCircle className="h-3.5 w-3.5" />{suppressed ? 'Suppressed' : createException.isPending ? 'Suppressing...' : 'Suppress'}
+        </Button>
+        <Button size="sm" variant="outline" className="text-xs gap-1.5"
+          onClick={() => setActiveTab('comments')}
+        >
+          <MessageSquare className="h-3.5 w-3.5" />Comment
+        </Button>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0">
           <TabsTrigger value="overview" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><Search className="h-3 w-3" />Overview</TabsTrigger>
           <TabsTrigger value="remediation" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><CheckCircle2 className="h-3 w-3" />Remediation</TabsTrigger>
@@ -279,6 +337,32 @@ export default function FindingDetail() {
               </CardContent>
             </Card>
           )}
+
+          {/* Evidence — Attack Path Visualization (Wiz parity: inline on Overview) */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <div className="flex items-center gap-1.5"><Crosshair className="h-3.5 w-3.5" />Evidence</div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {relatedPaths.length > 0 ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800">
+                      Part of {relatedPaths.length} attack path{relatedPaths.length > 1 ? 's' : ''}
+                    </Badge>
+                    <button onClick={() => navigate(`/ops/investigations?findingId=${finding.id}`)} className="text-[10px] text-blue-500 hover:text-blue-400 hover:underline">
+                      View on Investigation Board &rarr;
+                    </button>
+                  </div>
+                  <AttackPathMiniGraph paths={relatedPaths} resourceId={finding.resource_id} />
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">No attack paths include this finding&apos;s resource.</p>
+              )}
+            </CardContent>
+          </Card>
 
           {((finding.mitre_tactics && finding.mitre_tactics.length > 0) || (finding.mitre_techniques && finding.mitre_techniques.length > 0)) && (
             <Card>

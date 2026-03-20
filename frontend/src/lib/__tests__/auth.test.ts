@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseJWTPayload, isTokenExpired } from '../auth'
+import { parseJWTPayload, isTokenExpired, userFromToken } from '../auth'
 
 // Build a minimal JWT string with a given payload (unsigned — fine for unit tests)
 function makeJWT(payload: Record<string, unknown>): string {
@@ -56,5 +56,51 @@ describe('isTokenExpired', () => {
 
   it('returns true for a malformed token', () => {
     expect(isTokenExpired('not.a.valid.jwt')).toBe(true)
+  })
+})
+
+describe('userFromToken', () => {
+  it('derives admin role from aegis-admin group', () => {
+    const token = makeJWT({ email: 'admin@test.com', name: 'Admin One', groups: ['aegis-admin'] })
+    const user = userFromToken(token, null)
+    expect(user.role).toBe('admin')
+    expect(user.email).toBe('admin@test.com')
+    expect(user.name).toBe('Admin One')
+  })
+
+  it('derives operator role from aegis-operator group', () => {
+    const token = makeJWT({ email: 'op@test.com', name: 'Operator', groups: ['aegis-operator'] })
+    const user = userFromToken(token, null)
+    expect(user.role).toBe('operator')
+  })
+
+  it('uses savedRole when provided, ignoring group claims', () => {
+    const token = makeJWT({ email: 'admin@test.com', name: 'Admin', groups: ['aegis-admin'] })
+    const user = userFromToken(token, 'viewer')
+    expect(user.role).toBe('viewer')
+  })
+
+  it('falls back to requester when no group match and no savedRole', () => {
+    const token = makeJWT({ email: 'user@test.com', name: 'User', groups: ['some-other-group'] })
+    const user = userFromToken(token, null)
+    expect(user.role).toBe('requester')
+  })
+
+  it('falls back to requester when groups claim is absent', () => {
+    const token = makeJWT({ email: 'user@test.com', name: 'User' })
+    const user = userFromToken(token, null)
+    expect(user.role).toBe('requester')
+  })
+
+  it('uses email as name fallback when name claim is missing', () => {
+    const token = makeJWT({ email: 'fallback@test.com' })
+    const user = userFromToken(token, null)
+    expect(user.name).toBe('fallback@test.com')
+  })
+
+  it('prefers admin over operator when both groups present', () => {
+    const token = makeJWT({ email: 'a@b.com', name: 'X', groups: ['aegis-admin', 'aegis-operator'] })
+    const user = userFromToken(token, null)
+    expect(user.role).toBe('admin')
   })
 })
