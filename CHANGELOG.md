@@ -20,6 +20,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- AWS provider icon replaced with official wordmark+swoosh from logos-core (was compact amber glyph)
+- GCP provider icon viewBox tightened `0 0 128 128` -> `0 10 128 108` for badge-size legibility
+- ProviderBadge grey `bg-zinc-100` backdrop + padding removed (icons carry their own brand colors)
+- RoleSwitcher viewer home route `/admin` -> `/ops/findings` (viewers can't access admin routes)
+- `VITE_DEMO_MODE` enabled on Cloudflare Pages for RoleSwitcher visibility on deployed demo
+- ViewBox regression test assertions added to ProviderBadge test suite
 - QA iteration 2: Vec capacity UB, edge_type passthrough, 64MB FFI input cap, serialization limit (Sprint I+4)
 - QA iteration 3: C.int truncation fix, staticlib for deployment, strip_prefix ID renumbering (Sprint I+4)
 

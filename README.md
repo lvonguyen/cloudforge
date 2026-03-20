@@ -95,7 +95,7 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 | CISA KEV catalog | Done | In-memory catalog with auto-refresh from CISA feed |
 | GreyNoise integration | Done | HTTP client with 12h cache, classification enrichment |
 | **Testing** | | |
-| Unit tests | 1797 passing | 34 Go packages (1474 tests), 323 frontend tests, 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
+| Unit tests | 1894 passing | 34 Go packages (1474 tests), 420 frontend tests, 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
 | Integration tests | Done | 12-step server lifecycle + 34-subtest RBAC authorization matrix (`go test -tags=integration`) |
 
 ### Package Maturity
@@ -127,7 +127,7 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 | ------ | ----- |
 | Go packages | 34 (all passing with `-race`) |
 | Go tests | 1474 |
-| Frontend tests | 323 |
+| Frontend tests | 420 |
 | Benchmarks | 8 |
 | CI gates | 8 (lint, gosec, Trivy, vitest, npm audit, integration, Codecov, Lighthouse) |
 | Coverage thresholds | v8 lines: 70%, functions: 75%, branches: 65% |
