@@ -71,6 +71,26 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
 }
 
+/**
+ * Fetch from API with automatic mock-data fallback for dev/demo mode.
+ * Re-throws client errors (4xx) so they surface in the UI; swallows 5xx /
+ * network errors and returns the mock data instead.
+ */
+export async function fetchWithMockFallback<T>(
+  path: string,
+  mockImport: () => Promise<{ default: T }>,
+  label: string,
+): Promise<T> {
+  try {
+    return await apiClient.get<T>(path)
+  } catch (err) {
+    if (err instanceof ApiError && err.status < 500) throw err
+    console.warn(`[${label}] API unavailable, using mock data`)
+    const mod = await mockImport()
+    return mod.default
+  }
+}
+
 export const apiClient = {
   get<T>(path: string): Promise<T> {
     return request<T>(path)

@@ -42,7 +42,7 @@ func (s *Server) getComplianceControls(w http.ResponseWriter, r *http.Request) {
 	fwID := mux.Vars(r)["fw"]
 	fw, ok := s.complianceMgr.GetFramework(fwID)
 	if !ok {
-		http.Error(w, `{"error":"framework not found"}`, http.StatusNotFound)
+		writeErrorResponse(w, "framework not found", http.StatusNotFound)
 		return
 	}
 

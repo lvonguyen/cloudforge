@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient, ApiError } from '@/lib/api'
+import { apiClient, ApiError, fetchWithMockFallback } from '@/lib/api'
 import { useToast } from '@/hooks/useToast'
 
 export interface WebhookEndpoint {
@@ -48,15 +48,11 @@ const MOCK_DELIVERIES: WebhookDelivery[] = [
 export function useWebhooks() {
   return useQuery({
     queryKey: ['webhooks'],
-    queryFn: async () => {
-      try {
-        return await apiClient.get<WebhookEndpoint[]>('/webhooks')
-      } catch (err) {
-        if (err instanceof ApiError && err.status < 500) throw err
-        console.warn('[useWebhooks] API unavailable, using mock data')
-        return MOCK_ENDPOINTS
-      }
-    },
+    queryFn: () => fetchWithMockFallback<WebhookEndpoint[]>(
+      '/webhooks',
+      () => Promise.resolve({ default: MOCK_ENDPOINTS }),
+      'useWebhooks',
+    ),
   })
 }
 

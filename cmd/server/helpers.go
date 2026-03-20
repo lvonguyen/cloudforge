@@ -13,10 +13,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// logAuditEvent records an auditable action. Silently drops the event if the
-// audit logger is nil (e.g., in test configurations that don't set it up).
-func (s *Server) logAuditEvent(r *http.Request, action, resource, resourceID, result string) {
-	if s.auditLogger == nil {
+// logAuditEvent is the package-level audit logging function. Silently drops
+// the event if the audit logger is nil (e.g., in test configurations).
+func logAuditEvent(r *http.Request, logger audit.AuditLogger, action, resource, resourceID, result string) {
+	if logger == nil {
 		return
 	}
 	actor := ""
@@ -25,16 +25,20 @@ func (s *Server) logAuditEvent(r *http.Request, action, resource, resourceID, re
 		actor = claims.Subject
 		actorRole = string(api.RoleFromClaims(claims))
 	}
-	ip := r.RemoteAddr
-	_ = s.auditLogger.Log(r.Context(), audit.AuditEntry{
+	_ = logger.Log(r.Context(), audit.AuditEntry{
 		Actor:      actor,
 		ActorRole:  actorRole,
 		Action:     action,
 		Resource:   resource,
 		ResourceID: resourceID,
 		Result:     result,
-		IP:         ip,
+		IP:         r.RemoteAddr,
 	})
+}
+
+// logAuditEvent on Server delegates to the package-level function.
+func (s *Server) logAuditEvent(r *http.Request, action, resource, resourceID, result string) {
+	logAuditEvent(r, s.auditLogger, action, resource, resourceID, result)
 }
 
 const (
@@ -49,8 +53,8 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-// decodeJSONBody decodes JSON request body with size limit and validation.
-func (s *Server) decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) bool {
+// decodeJSONBody is the package-level JSON body decoder with size limit and validation.
+func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}, logger *zap.Logger) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
 
 	decoder := json.NewDecoder(r.Body)
@@ -66,11 +70,16 @@ func (s *Server) decodeJSONBody(w http.ResponseWriter, r *http.Request, dst inte
 		default:
 			msg = "invalid request body"
 		}
-		s.logger.Warn("JSON decode error", zap.Error(err))
+		logger.Warn("JSON decode error", zap.Error(err))
 		writeErrorResponse(w, msg, http.StatusBadRequest)
 		return false
 	}
 	return true
+}
+
+// decodeJSONBody on Server delegates to the package-level function.
+func (s *Server) decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) bool {
+	return decodeJSONBody(w, r, dst, s.logger)
 }
 
 // writeErrorResponse writes a JSON error response without leaking internal details

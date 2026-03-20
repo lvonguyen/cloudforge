@@ -21,12 +21,12 @@ func (s *Server) handleASMScan(w http.ResponseWriter, r *http.Request) {
 	var req asm.ScanRequest
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		writeErrorResponse(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	if req.Domain == "" {
-		http.Error(w, `{"error":"domain is required"}`, http.StatusBadRequest)
+		writeErrorResponse(w, "domain is required", http.StatusBadRequest)
 		return
 	}
 

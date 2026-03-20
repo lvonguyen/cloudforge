@@ -34,7 +34,7 @@ var graphMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|drop|property\s*
 // Read-only: mutation keywords are rejected.
 func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 	if s.graphClient == nil {
-		http.Error(w, `{"error":"graph query engine not configured (set PUPPYGRAPH_URL)"}`, http.StatusNotImplemented)
+		writeErrorResponse(w, "graph query engine not configured (set PUPPYGRAPH_URL)", http.StatusNotImplemented)
 		return
 	}
 
@@ -43,29 +43,29 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 
 	var req graphQueryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		writeErrorResponse(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	if req.Language == "" || req.Query == "" {
-		http.Error(w, `{"error":"language and query fields are required"}`, http.StatusBadRequest)
+		writeErrorResponse(w, "language and query fields are required", http.StatusBadRequest)
 		return
 	}
 
 	if req.Language != "gremlin" && req.Language != "cypher" {
-		http.Error(w, `{"error":"language must be gremlin or cypher"}`, http.StatusBadRequest)
+		writeErrorResponse(w, "language must be gremlin or cypher", http.StatusBadRequest)
 		return
 	}
 
 	// Enforce query length cap.
 	if len(req.Query) > maxGraphQueryLen {
-		http.Error(w, `{"error":"query exceeds maximum length"}`, http.StatusBadRequest)
+		writeErrorResponse(w, "query exceeds maximum length", http.StatusBadRequest)
 		return
 	}
 
 	// Block mutation keywords — read-only proxy.
 	if graphMutationPattern.MatchString(strings.TrimSpace(req.Query)) {
-		http.Error(w, `{"error":"mutation queries are not permitted (read-only)"}`, http.StatusForbidden)
+		writeErrorResponse(w, "mutation queries are not permitted (read-only)", http.StatusForbidden)
 		return
 	}
 
@@ -78,7 +78,7 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 			zap.String("language", req.Language),
 			zap.Error(err),
 		)
-		http.Error(w, `{"error":"graph query execution failed"}`, http.StatusBadGateway)
+		writeErrorResponse(w, "graph query execution failed", http.StatusBadGateway)
 		return
 	}
 

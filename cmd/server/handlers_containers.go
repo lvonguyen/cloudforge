@@ -75,7 +75,7 @@ func (s *Server) getContainer(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	http.Error(w, `{"error":"container not found"}`, http.StatusNotFound)
+	writeErrorResponse(w, "container not found", http.StatusNotFound)
 }
 
 func (s *Server) listContainers(w http.ResponseWriter, _ *http.Request) {

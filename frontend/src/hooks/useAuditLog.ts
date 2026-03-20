@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { apiClient, ApiError } from '@/lib/api'
+import { fetchWithMockFallback } from '@/lib/api'
 
 interface AuditEvent {
   id: string
@@ -19,15 +19,10 @@ export function useAuditLog(filters?: { result?: string; actor?: string }) {
   const qs = params.toString()
   return useQuery({
     queryKey: ['audit-log', filters],
-    queryFn: async () => {
-      try {
-        return await apiClient.get<AuditEvent[]>(`/audit-log${qs ? `?${qs}` : ''}`)
-      } catch (err) {
-        if (err instanceof ApiError && err.status < 500) throw err
-        console.warn('[useAuditLog] API unavailable, using mock data')
-        const mod = await import('@/lib/mock/audit-log.json')
-        return mod.default as AuditEvent[]
-      }
-    },
+    queryFn: () => fetchWithMockFallback<AuditEvent[]>(
+      `/audit-log${qs ? `?${qs}` : ''}`,
+      () => import('@/lib/mock/audit-log.json') as Promise<{ default: AuditEvent[] }>,
+      'useAuditLog',
+    ),
   })
 }

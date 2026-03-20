@@ -53,7 +53,7 @@ Only include fields that are clearly specified. Return {} for ambiguous queries.
 
 func (s *Server) queryNLQ(w http.ResponseWriter, r *http.Request) {
 	if s.enrichmentSvc == nil || s.enrichmentSvc.AI == nil {
-		http.Error(w, `{"error":"AI provider not configured"}`, http.StatusServiceUnavailable)
+		writeErrorResponse(w, "AI provider not configured", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -72,7 +72,7 @@ func (s *Server) queryNLQ(w http.ResponseWriter, r *http.Request) {
 	}
 	if last, ok := nlqRateLimiter.last[subject]; ok && time.Since(last) < nlqMinInterval {
 		nlqRateLimiter.Unlock()
-		http.Error(w, `{"error":"rate limit exceeded, try again shortly"}`, http.StatusTooManyRequests)
+		writeErrorResponse(w, "rate limit exceeded, try again shortly", http.StatusTooManyRequests)
 		return
 	}
 	nlqRateLimiter.last[subject] = time.Now()
@@ -81,17 +81,17 @@ func (s *Server) queryNLQ(w http.ResponseWriter, r *http.Request) {
 	var req NLQRequest
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		writeErrorResponse(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	query := strings.TrimSpace(req.Query)
 	if query == "" {
-		http.Error(w, `{"error":"query is required"}`, http.StatusBadRequest)
+		writeErrorResponse(w, "query is required", http.StatusBadRequest)
 		return
 	}
 	if len(query) > 500 {
-		http.Error(w, `{"error":"query too long (max 500 chars)"}`, http.StatusBadRequest)
+		writeErrorResponse(w, "query too long (max 500 chars)", http.StatusBadRequest)
 		return
 	}
 

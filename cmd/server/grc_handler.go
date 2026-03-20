@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 	"net/mail"
-	"strings"
 
 	"aegis/internal/api"
 	"aegis/internal/audit"
@@ -25,26 +24,9 @@ type GRCHandler struct {
 	auditLogger audit.AuditLogger
 }
 
-// decodeBody decodes a JSON request body with size limit.
+// decodeBody delegates to the shared decodeJSONBody.
 func (h *GRCHandler) decodeBody(w http.ResponseWriter, r *http.Request, dst interface{}) bool {
-	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(dst); err != nil {
-		var msg string
-		switch {
-		case strings.Contains(err.Error(), "http: request body too large"):
-			msg = "request body exceeds maximum allowed size"
-		case strings.Contains(err.Error(), "unknown field"):
-			msg = "request contains unknown fields"
-		default:
-			msg = "invalid request body"
-		}
-		h.logger.Warn("JSON decode error", zap.Error(err))
-		writeErrorResponse(w, msg, http.StatusBadRequest)
-		return false
-	}
-	return true
+	return decodeJSONBody(w, r, dst, h.logger)
 }
 
 // writeError logs the actual error and returns a generic message to the client.
@@ -53,26 +35,9 @@ func (h *GRCHandler) writeError(w http.ResponseWriter, err error, operation stri
 	writeErrorResponse(w, "internal server error", http.StatusInternalServerError)
 }
 
-// logAudit records an audit event for GRC operations.
+// logAudit delegates to the shared logAuditEvent.
 func (h *GRCHandler) logAudit(r *http.Request, action, resource, resourceID, result string) {
-	if h.auditLogger == nil {
-		return
-	}
-	actor := ""
-	actorRole := ""
-	if claims, ok := api.GetClaimsFromContext(r.Context()); ok {
-		actor = claims.Subject
-		actorRole = string(api.RoleFromClaims(claims))
-	}
-	_ = h.auditLogger.Log(r.Context(), audit.AuditEntry{
-		Actor:      actor,
-		ActorRole:  actorRole,
-		Action:     action,
-		Resource:   resource,
-		ResourceID: resourceID,
-		Result:     result,
-		IP:         r.RemoteAddr,
-	})
+	logAuditEvent(r, h.auditLogger, action, resource, resourceID, result)
 }
 
 // ValidateExceptionRequest is the request body for exception validation.

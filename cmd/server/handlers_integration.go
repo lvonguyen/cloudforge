@@ -30,7 +30,7 @@ type IntegrationHandler struct {
 func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Request) {
 	findingID := mux.Vars(r)["id"]
 	if findingID == "" {
-		http.Error(w, `{"error":"finding id required"}`, http.StatusBadRequest)
+		writeErrorResponse(w, "finding id required", http.StatusBadRequest)
 		return
 	}
 
@@ -43,7 +43,7 @@ func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Req
 	if r.Body != nil && r.ContentLength > 0 {
 		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+			writeErrorResponse(w, "invalid request body", http.StatusBadRequest)
 			return
 		}
 	}
@@ -59,7 +59,7 @@ func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Req
 	})
 	if err != nil {
 		h.logger.Error("routing failed", zap.String("finding_id", findingID), zap.Error(err))
-		http.Error(w, `{"error":"routing failed"}`, http.StatusInternalServerError)
+		writeErrorResponse(w, "routing failed", http.StatusInternalServerError)
 		return
 	}
 
@@ -81,7 +81,7 @@ func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Req
 	})
 	if err != nil {
 		h.logger.Error("ticket creation failed", zap.String("finding_id", findingID), zap.Error(err))
-		http.Error(w, `{"error":"ticket creation failed"}`, http.StatusInternalServerError)
+		writeErrorResponse(w, "ticket creation failed", http.StatusInternalServerError)
 		return
 	}
 
@@ -128,7 +128,7 @@ func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Req
 func (h *IntegrationHandler) GetFindingTicket(w http.ResponseWriter, r *http.Request) {
 	findingID := mux.Vars(r)["id"]
 	if findingID == "" {
-		http.Error(w, `{"error":"finding id required"}`, http.StatusBadRequest)
+		writeErrorResponse(w, "finding id required", http.StatusBadRequest)
 		return
 	}
 
@@ -137,7 +137,7 @@ func (h *IntegrationHandler) GetFindingTicket(w http.ResponseWriter, r *http.Req
 	if mp, ok := h.provider.(*integrations.MockProvider); ok {
 		ticket, found := mp.GetTicketByFindingID(findingID)
 		if !found {
-			http.Error(w, `{"error":"no ticket for this finding"}`, http.StatusNotFound)
+			writeErrorResponse(w, "no ticket for this finding", http.StatusNotFound)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -146,7 +146,7 @@ func (h *IntegrationHandler) GetFindingTicket(w http.ResponseWriter, r *http.Req
 	}
 
 	// For non-mock providers, this would query a mapping store.
-	http.Error(w, `{"error":"no ticket for this finding"}`, http.StatusNotFound)
+	writeErrorResponse(w, "no ticket for this finding", http.StatusNotFound)
 }
 
 // AsanaWebhook handles Asana webhook handshake and event delivery.

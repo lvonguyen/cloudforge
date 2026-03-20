@@ -15,7 +15,7 @@ func (s *Server) registerWebhook(w http.ResponseWriter, r *http.Request) {
 	var req webhooks.RegisterEndpointRequest
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		writeErrorResponse(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
@@ -35,7 +35,7 @@ func (s *Server) registerWebhook(w http.ResponseWriter, r *http.Request) {
 func (s *Server) listWebhooks(w http.ResponseWriter, r *http.Request) {
 	endpoints, err := s.webhookEngine.ListEndpoints(r.Context())
 	if err != nil {
-		http.Error(w, `{"error":"listing webhooks"}`, http.StatusInternalServerError)
+		writeErrorResponse(w, "listing webhooks", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -59,7 +59,7 @@ func (s *Server) listWebhookDeliveries(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	deliveries, err := s.webhookEngine.ListDeliveries(r.Context(), id)
 	if err != nil {
-		http.Error(w, `{"error":"listing deliveries"}`, http.StatusInternalServerError)
+		writeErrorResponse(w, "listing deliveries", http.StatusInternalServerError)
 		return
 	}
 	if deliveries == nil {

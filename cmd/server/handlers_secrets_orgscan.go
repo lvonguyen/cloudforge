@@ -13,12 +13,12 @@ func (s *Server) handleOrgScan(w http.ResponseWriter, r *http.Request) {
 	var cfg secrets.OrgConfig
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
-		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		writeErrorResponse(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	if cfg.OrgName == "" {
-		http.Error(w, `{"error":"org_name is required"}`, http.StatusBadRequest)
+		writeErrorResponse(w, "org_name is required", http.StatusBadRequest)
 		return
 	}
 
