@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseJWTPayload, isTokenExpired, userFromToken } from '../auth'
+import { parseJWTPayload, isTokenExpired, userFromToken, deriveRoleFromGroups } from '../auth'
 
 // Build a minimal JWT string with a given payload (unsigned — fine for unit tests)
 function makeJWT(payload: Record<string, unknown>): string {
@@ -74,10 +74,22 @@ describe('userFromToken', () => {
     expect(user.role).toBe('operator')
   })
 
-  it('uses savedRole when provided, ignoring group claims', () => {
+  it('allows savedRole as downgrade (admin -> viewer)', () => {
     const token = makeJWT({ email: 'admin@test.com', name: 'Admin', groups: ['aegis-admin'] })
     const user = userFromToken(token, 'viewer')
     expect(user.role).toBe('viewer')
+  })
+
+  it('prevents savedRole from escalating above JWT groups (requester -> admin)', () => {
+    const token = makeJWT({ email: 'user@test.com', name: 'User', groups: ['some-other-group'] })
+    const user = userFromToken(token, 'admin')
+    expect(user.role).toBe('requester') // capped at JWT-derived role
+  })
+
+  it('prevents operator from escalating to admin via savedRole', () => {
+    const token = makeJWT({ email: 'op@test.com', name: 'Op', groups: ['aegis-operator'] })
+    const user = userFromToken(token, 'admin')
+    expect(user.role).toBe('operator') // capped at JWT-derived role
   })
 
   it('falls back to requester when no group match and no savedRole', () => {
@@ -102,5 +114,27 @@ describe('userFromToken', () => {
     const token = makeJWT({ email: 'a@b.com', name: 'X', groups: ['aegis-admin', 'aegis-operator'] })
     const user = userFromToken(token, null)
     expect(user.role).toBe('admin')
+  })
+})
+
+describe('deriveRoleFromGroups', () => {
+  it('returns admin for aegis-admin group', () => {
+    expect(deriveRoleFromGroups(['aegis-admin'])).toBe('admin')
+  })
+
+  it('returns operator for aegis-operator group', () => {
+    expect(deriveRoleFromGroups(['aegis-operator'])).toBe('operator')
+  })
+
+  it('returns requester for unknown groups', () => {
+    expect(deriveRoleFromGroups(['some-other-group'])).toBe('requester')
+  })
+
+  it('returns requester for empty groups', () => {
+    expect(deriveRoleFromGroups([])).toBe('requester')
+  })
+
+  it('prefers admin when both admin and operator present', () => {
+    expect(deriveRoleFromGroups(['aegis-operator', 'aegis-admin'])).toBe('admin')
   })
 })

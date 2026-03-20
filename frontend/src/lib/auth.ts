@@ -93,16 +93,29 @@ export function isTokenExpired(token: string): boolean {
   return payload.exp * 1000 < Date.now()
 }
 
+// Role rank: higher number = more privilege. Used to prevent
+// sessionStorage role from escalating above JWT-derived authority.
+const ROLE_RANK: Record<Role, number> = { viewer: 0, requester: 1, operator: 2, admin: 3 }
+
+export function deriveRoleFromGroups(groups: string[]): Role {
+  if (groups.includes(`${GROUP_PREFIX}-admin`)) return 'admin'
+  if (groups.includes(`${GROUP_PREFIX}-operator`)) return 'operator'
+  return 'requester'
+}
+
 export function userFromToken(token: string, savedRole: Role | null): User {
   const payload = parseJWTPayload(token)
   const email = (payload?.email as string) ?? ''
   const name = (payload?.name as string) || email
   const groups = (payload?.groups as string[]) ?? []
 
-  let role: Role = savedRole ?? 'requester'
-  if (!savedRole) {
-    if (groups.includes(`${GROUP_PREFIX}-admin`)) role = 'admin'
-    else if (groups.includes(`${GROUP_PREFIX}-operator`)) role = 'operator'
+  // Always derive authoritative role from JWT groups — never trust
+  // sessionStorage for authorization. savedRole may only downgrade
+  // (e.g. admin choosing to preview as viewer), never escalate.
+  const jwtRole = deriveRoleFromGroups(groups)
+  let role = jwtRole
+  if (savedRole && ROLE_RANK[savedRole] <= ROLE_RANK[jwtRole]) {
+    role = savedRole
   }
 
   return { name, email, role }
@@ -240,9 +253,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isDev])
 
   const setRole = useCallback((role: Role) => {
-    sessionStorage.setItem(ROLE_KEY, role)
-    setUser((prev) => ({ ...prev, role }))
-  }, [])
+    // Enforce: requested role must not exceed JWT-derived authority.
+    // In dev/demo mode the default user's role is the ceiling.
+    const token = getStoredToken()
+    const maxRole = token ? deriveRoleFromGroups((parseJWTPayload(token)?.groups as string[]) ?? [])
+      : (isDev ? DEFAULT_USER.role : isDemo ? DEMO_USER.role : 'requester')
+    const effective = ROLE_RANK[role] <= ROLE_RANK[maxRole] ? role : maxRole
+    sessionStorage.setItem(ROLE_KEY, effective)
+    setUser((prev) => ({ ...prev, role: effective }))
+  }, [isDev, isDemo])
 
   // Exchange authorization code for tokens (called from Callback page)
   const exchangeCode = useCallback(async (code: string) => {
