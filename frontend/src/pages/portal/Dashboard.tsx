@@ -159,7 +159,7 @@ export default function PortalDashboard() {
       </Card>
 
       {/* Pending approvals (if admin/operator) */}
-      {(user.role === 'admin' || user.role === 'operator') && (
+      {(user.role === 'admin' || user.role === 'operator' || user.role === 'viewer') && (
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">

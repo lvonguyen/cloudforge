@@ -36,7 +36,7 @@ export default function Callback() {
     exchangeCode(code)
       .then(() => {
         const isDemo = sessionStorage.getItem(`${import.meta.env.VITE_STORAGE_PREFIX || 'aegis'}_demo_session`) === 'true'
-        const defaultPath = isDemo ? '/ops/findings' : '/ops'
+        const defaultPath = isDemo ? '/admin' : '/ops'
         const raw = sessionStorage.getItem(LOGIN_RETURN_KEY) ?? defaultPath
         sessionStorage.removeItem(LOGIN_RETURN_KEY)
         const returnPath = (raw.startsWith('/') && !raw.startsWith('//')) ? raw : defaultPath

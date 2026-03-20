@@ -78,11 +78,52 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
   ],
   viewer: [
     {
-      section: 'Read-Only',
+      section: 'Platform',
       items: [
+        { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/admin/policies', label: 'Policies', icon: FileText },
+        { to: '/admin/ai-agents', label: 'AI Agents', icon: Bot },
+      ],
+    },
+    {
+      section: 'Operations',
+      items: [
+        { to: '/ops', label: 'Command Center', icon: Activity },
         { to: '/ops/findings', label: 'Findings', icon: AlertTriangle },
+        { to: '/ops/remediation', label: 'Remediation', icon: Wrench },
+      ],
+    },
+    {
+      section: 'Intelligence',
+      items: [
+        { to: '/ops/costs', label: 'Spend', icon: DollarSign },
         { to: '/ops/compliance', label: 'Compliance', icon: Shield },
-        { to: '/ops/agents', label: 'AI Agents', icon: Bot },
+        { to: '/ops/containers', label: 'Containers', icon: Box },
+        { to: '/ops/app-catalog', label: 'Application Catalog', icon: Database },
+        { to: '/ops/investigations', label: 'Investigations', icon: Search },
+        { to: '/ops/attack-surface', label: 'Attack Surface', icon: Globe },
+        { to: '/ops/data-sources', label: 'Data Sources', icon: Layers },
+      ],
+    },
+    {
+      section: 'Management',
+      items: [
+        { to: '/admin/users', label: 'Users', icon: Users },
+        { to: '/admin/exceptions', label: 'Exceptions', icon: ListChecks },
+        { to: '/admin/audit-log', label: 'Audit Log', icon: ClipboardList },
+        { to: '/admin/reports', label: 'Reports', icon: BarChart3 },
+        { to: '/admin/webhooks', label: 'Webhooks', icon: Link2 },
+        { to: '/admin/secrets-scan', label: 'Secrets Scan', icon: KeyRound },
+        { to: '/admin/system', label: 'System', icon: Settings },
+      ],
+    },
+    {
+      section: 'Self-Service',
+      items: [
+        { to: '/portal', label: 'My Dashboard', icon: Home },
+        { to: '/portal/request', label: 'New Request', icon: PlusCircle },
+        { to: '/portal/requests', label: 'My Requests', icon: List },
+        { to: '/portal/catalog', label: 'Catalog', icon: Package },
       ],
     },
   ],

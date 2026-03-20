@@ -7,7 +7,7 @@ export function useCostSummary() {
     queryKey: ['costs', 'summary'],
     queryFn: () => fetchWithMockFallback<CostSummary>(
       '/costs/summary',
-      () => import('@/lib/mock/costs.json') as Promise<{ default: CostSummary }>,
+      () => import('@/lib/mock/costs.json') as unknown as Promise<{ default: CostSummary }>,
       'useCostSummary',
     ),
   })
@@ -18,7 +18,7 @@ export function useCostAnomalies() {
     queryKey: ['costs', 'summary'],
     queryFn: () => fetchWithMockFallback<CostSummary>(
       '/costs/summary',
-      () => import('@/lib/mock/costs.json') as Promise<{ default: CostSummary }>,
+      () => import('@/lib/mock/costs.json') as unknown as Promise<{ default: CostSummary }>,
       'useCostAnomalies',
     ),
     select: (data) => data.anomalies,

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { KeyRound, Search, ChevronDown, ChevronRight, AlertTriangle, FileCode, ShieldAlert, CheckCircle2 } from 'lucide-react'
+import { KeyRound, Search, ChevronDown, ChevronRight, AlertTriangle, FileCode, CheckCircle2 } from 'lucide-react'
 import { useStartOrgScan } from '@/hooks/useOrgScan'
 import type { OrgScanResult, RepoResult } from '@/hooks/useOrgScan'
 import { useAuth } from '@/lib/auth'
@@ -77,7 +77,7 @@ function RepoSection({ result, defaultOpen }: { result: RepoResult; defaultOpen?
 }
 
 export default function OrgSecretsScan() {
-  const { role } = useAuth()
+  useAuth()
   const [orgName, setOrgName] = useState('')
   const [repos, setRepos] = useState('')
   const scanMutation = useStartOrgScan()
@@ -86,20 +86,7 @@ export default function OrgSecretsScan() {
 
   const result: OrgScanResult | undefined = scanMutation.data
 
-  if (role !== 'admin') {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-xl font-semibold">Secrets Org Scan</h1>
-        <Card>
-          <CardContent className="p-8 flex flex-col items-center justify-center text-center">
-            <ShieldAlert className="h-8 w-8 text-muted-foreground/40 mb-2" />
-            <p className="text-sm font-medium">Admin Access Required</p>
-            <p className="text-xs text-muted-foreground mt-1">Organization secret scanning is restricted to administrators.</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  // Role gate removed — demo viewers have full access (writes are ephemeral)
 
   function handleScan() {
     if (!orgName.trim() || !scanCooldown.canFire) return

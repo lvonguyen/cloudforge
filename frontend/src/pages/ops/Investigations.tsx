@@ -157,7 +157,7 @@ export default function Investigations() {
     // Assignee
     if (finding.assignee) {
       addEntity('assignee', `assignee-${finding.assignee.user_id}`, finding.assignee.user_name, finding.assignee.team, {
-        name: finding.assignee.user_name, email: finding.assignee.email, team: finding.assignee.team,
+        name: finding.assignee.user_name, email: finding.assignee.user_email, team: finding.assignee.team,
         assigned_at: finding.assignee.assigned_at, due_date: finding.due_date,
       })
     }
@@ -179,7 +179,7 @@ export default function Investigations() {
       for (const cm of finding.compliance_mappings.slice(0, 3)) {
         addEntity('compliance_mapping', `comp-${cm.framework_id}-${cm.control_id}`, `${cm.framework_name} ${cm.control_id}`, cm.control_title?.slice(0, 40), {
           framework_name: cm.framework_name, control_id: cm.control_id, control_title: cm.control_title,
-          section: cm.section, subsection: cm.subsection, severity: cm.severity, url: cm.reference_url,
+          section: cm.section, subsection: cm.subsection, severity: cm.severity, url: cm.url,
         })
       }
     }
@@ -233,12 +233,12 @@ export default function Investigations() {
             {field('Provider', data.cloud_provider)}
             {field('Resource', data.resource_name)}
             {field('Resource Type', data.resource_type)}
-            {data.recommendation && (
+            {data.recommendation ? (
               <div>
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Recommendation</p>
                 <p className="text-[10px] leading-relaxed text-muted-foreground bg-muted/30 p-2 border border-border">{String(data.recommendation)}</p>
               </div>
-            )}
+            ) : null}
             <button
               onClick={() => navigate(`/ops/findings/${data.id}`)}
               className="text-[10px] text-blue-400 hover:text-blue-300 underline"
@@ -264,12 +264,12 @@ export default function Investigations() {
             {field('Title', data.control_title)}
             {field('Section', data.section)}
             {field('Subsection', data.subsection)}
-            {data.severity && <Badge variant="outline" className="text-[10px]">{String(data.severity)}</Badge>}
-            {data.url && (
+            {data.severity ? <Badge variant="outline" className="text-[10px]">{String(data.severity)}</Badge> : null}
+            {data.url ? (
               <a href={String(data.url)} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400 hover:text-blue-300 underline block">
                 Reference →
               </a>
-            )}
+            ) : null}
           </div>
         )
       case 'assignee':

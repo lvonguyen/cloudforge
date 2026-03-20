@@ -24,7 +24,7 @@ import { ToastStack } from '@/components/ui/ToastStack'
 export default function FindingDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user, role } = useAuth()
+  const { user } = useAuth()
   const { data: finding, isLoading } = useFinding(id ?? '')
   const { openTimeline } = useTracePanel()
   const remediateCooldown = useActionCooldown({ key: `remediate-${id ?? ''}`, cooldownMs: 10_000 })
@@ -154,7 +154,7 @@ export default function FindingDetail() {
       {/* Action Bar — quick-access actions inspired by Wiz finding detail */}
       <div className="flex items-center gap-2 flex-wrap">
         <Button size="sm" variant="outline" className="text-xs gap-1.5"
-          disabled={createTicket.isPending || role !== 'admin'}
+          disabled={createTicket.isPending}
           onClick={() => createTicket.mutate({ findingId: finding.id, severity: finding.severity, isChokePoint: false })}
         >
           <TicketIcon className="h-3.5 w-3.5" />{createTicket.isPending ? 'Creating...' : 'Create Ticket'}
@@ -165,7 +165,7 @@ export default function FindingDetail() {
           <Wrench className="h-3.5 w-3.5" />Remediate
         </Button>
         <Button size="sm" variant="outline" className="text-xs gap-1.5"
-          disabled={!suppressCooldown.canFire || createException.isPending || suppressed || role !== 'admin'}
+          disabled={!suppressCooldown.canFire || createException.isPending || suppressed}
           onClick={() => {
             if (!suppressCooldown.canFire || createException.isPending) return
             suppressCooldown.fire()
@@ -504,7 +504,7 @@ export default function FindingDetail() {
                   size="sm"
                   variant="outline"
                   className="text-xs gap-1.5"
-                  disabled={createTicket.isPending || role !== 'admin'}
+                  disabled={createTicket.isPending}
                   onClick={() => {
                     createTicket.mutate({
                       findingId: finding.id,
