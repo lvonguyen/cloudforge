@@ -281,8 +281,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-        with:
-          lfs: true  # findings.json is tracked by LFS
+
+      - name: Fetch findings from R2 (skip LFS bandwidth)
+        run: |
+          mkdir -p frontend/public/mock
+          curl -sfL https://pub-878a225fb2464e2ab2e3b08d0603e04b.r2.dev/mock/findings.json \
+            -o frontend/public/mock/findings.json
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
@@ -332,8 +336,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-        with:
-          lfs: true  # findings.json is tracked by LFS
+
+      - name: Fetch findings from R2 (skip LFS bandwidth)
+        run: |
+          mkdir -p frontend/public/mock
+          curl -sfL https://pub-878a225fb2464e2ab2e3b08d0603e04b.r2.dev/mock/findings.json \
+            -o frontend/public/mock/findings.json
 
       - name: Set up Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@63da3ecc5e2793b98a3f2519b3d75d4f4c11cec2 # master
