@@ -193,20 +193,11 @@ ID. Add an `PathsByID map[string]*AttackPath` to `AttackPathService`
 
 ---
 
-## D15: OPA Fail-Open to Fail-Closed
+## ~~D15: OPA Fail-Open to Fail-Closed~~ RESOLVED
 
-**File:** `cmd/server/handlers_api.go:423-424`
-
-OPA `EvaluateToolAccess` error currently logs a warning and allows the
-request (fail-open). Consider switching to fail-closed (503 response)
-to prevent policy bypass when the OPA engine is misconfigured.
-
-**Why deferred:** Current fail-open is an accepted design choice for
-graceful degradation. Changing to fail-closed requires an OPA health
-check endpoint so operators can distinguish misconfiguration from
-engine absence.
-
-**Effort:** ~1 hour Go
+**Resolved:** 2026-03-20 — Changed to fail-closed (503 + error log).
+Nil engine (no policies loaded) still gracefully degrades.
+Non-nil engine errors now deny with `503 Service Unavailable`.
 
 ---
 
