@@ -1,4 +1,4 @@
-# Detailed Design Document: CloudForge Enterprise Cloud Governance Platform
+# Detailed Design Document: Cloud Aegis Enterprise Cloud Governance Platform
 
 ---
 
@@ -6,7 +6,7 @@
 
 | Property | Value |
 |----------|-------|
-| Document ID | CF-DDD-001 |
+| Document ID | AE-DDD-001 |
 | Version | 2.0 |
 | Status | Approved |
 | Classification | Internal |
@@ -37,6 +37,7 @@
 | 1.1 | Feb 14, 2026 | L. Vo-Nguyen | Added Section 3.4 Remediation Dispatcher |
 | 1.2 | Feb 20, 2026 | L. Vo-Nguyen | Added Section 3.5 AI Governance Module (merged from AgentGuard) |
 | 1.3 | Feb 25, 2026 | L. Vo-Nguyen | Added Section 3.6 IaC Deploy Layer |
+| 2.1 | Mar 20, 2026 | L. Vo-Nguyen | Rename sweep: CloudForge to Cloud Aegis; OPA namespace cloudforge.ai to aegis.ai |
 | 2.0 | Feb 27, 2026 | L. Vo-Nguyen | Added Section 3.7 Risk Intelligence (Planned); SLA updates; version bump |
 
 ### Related Documents
@@ -54,7 +55,7 @@
 
 ### 1.1 Purpose
 
-This Detailed Design Document (DDD) provides comprehensive technical specifications for implementing the CloudForge Enterprise Cloud Governance Platform. It supplements the High-Level Design (HLD) with implementation-level details.
+This Detailed Design Document (DDD) provides comprehensive technical specifications for implementing the Cloud Aegis Enterprise Cloud Governance Platform. It supplements the High-Level Design (HLD) with implementation-level details.
 
 ### 1.2 Scope
 
@@ -81,7 +82,7 @@ This document covers:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              CloudForge                                      │
+│                              Cloud Aegis                                      │
 └─────────────────────────────────────────────────────────────────────────────┘
          │              │              │              │              │
          ▼              ▼              ▼              ▼              ▼
@@ -669,11 +670,11 @@ as they already exist in `internal/compliance/`.
 
 #### 3.5.2 Dual-OPA Architecture
 
-CloudForge runs two distinct OPA evaluation paths that are architecturally
+Cloud Aegis runs two distinct OPA evaluation paths that are architecturally
 complementary:
 
 ```
-                 CloudForge Platform
+                 Cloud Aegis Platform
                          |
           +--------------+--------------+
           |                             |
@@ -686,7 +687,7 @@ complementary:
    OPA instance                  OPA via Go library
           |                             |
    Package namespace:            Package namespace:
-   terraform.*                   cloudforge.ai.*
+   terraform.*                   aegis.ai.*
           |                             |
    Governs:                       Governs:
    - IaC plan evaluation          - Agent tool access
@@ -724,12 +725,12 @@ type Decision struct {
 ```
 
 Policies are loaded either as individual `.rego` files or as pre-bundled
-`tar.gz` archives. The Rego namespace is `data.cloudforge.ai`:
+`tar.gz` archives. The Rego namespace is `data.aegis.ai`:
 
 ```go
 func (e *Engine) LoadPolicies(ctx context.Context, paths []string) error {
     r = rego.New(
-        rego.Query("data.cloudforge.ai"),
+        rego.Query("data.aegis.ai"),
         rego.Store(e.store),
         rego.Load([]string{path}, nil),
     )
@@ -787,13 +788,13 @@ Two convenience methods are exposed for the two primary policy domains:
 // EvaluateToolAccess evaluates tool access policy for an AI agent.
 func (e *Engine) EvaluateToolAccess(ctx context.Context, agent *AgentContext, tool *ToolContext) (*Decision, error) {
     input := &EvaluationInput{Agent: *agent, Tool: tool}
-    return e.Evaluate(ctx, "cloudforge.ai.tool_access.allow", input)
+    return e.Evaluate(ctx, "aegis.ai.tool_access.allow", input)
 }
 
 // EvaluateDataFlow evaluates data flow policy for an AI agent.
 func (e *Engine) EvaluateDataFlow(ctx context.Context, agent *AgentContext, data *DataContext) (*Decision, error) {
     input := &EvaluationInput{Agent: *agent, Data: data}
-    return e.Evaluate(ctx, "cloudforge.ai.data_flow.allow", input)
+    return e.Evaluate(ctx, "aegis.ai.data_flow.allow", input)
 }
 ```
 
@@ -802,13 +803,13 @@ func (e *Engine) EvaluateDataFlow(ctx context.Context, agent *AgentContext, data
 Two base policies are embedded as Go constants. Both are loaded at engine
 initialization and can be overridden by environment-specific bundles.
 
-**Tool Access Policy** (`package cloudforge.ai.tool_access`):
+**Tool Access Policy** (`package aegis.ai.tool_access`):
 - Default deny; allow requires tool in allowed list, parameters passing
   forbidden-pattern regex check, and no rate-limit breach
 - Generates typed `denial_reasons` for audit logs
 
 ```rego
-package cloudforge.ai.tool_access
+package aegis.ai.tool_access
 
 default allow = false
 
@@ -828,14 +829,14 @@ contains_forbidden_pattern {
 }
 ```
 
-**Data Flow Policy** (`package cloudforge.ai.data_flow`):
+**Data Flow Policy** (`package aegis.ai.data_flow`):
 - Controls which data classifications may flow to which destinations
 - PII data to `redact_destinations` triggers field-level redaction
 - `source_restricted` check blocks flows from restricted sources to
   untrusted destinations
 
 ```rego
-package cloudforge.ai.data_flow
+package aegis.ai.data_flow
 
 default allow_flow = false
 
@@ -1539,11 +1540,11 @@ Content-Type: application/json
 ### 6.1 Authentication Flow
 
 ```
-User → CloudForge UI → OIDC Provider (Entra/Okta)
+User → Cloud Aegis UI → OIDC Provider (Entra/Okta)
                               ↓
                          ID Token
                               ↓
-                    CloudForge API Gateway
+                    Cloud Aegis API Gateway
                               ↓
                     Token Validation + RBAC
                               ↓
@@ -1607,7 +1608,7 @@ User → CloudForge UI → OIDC Provider (Entra/Okta)
 var (
     findingsProcessed = prometheus.NewCounterVec(
         prometheus.CounterOpts{
-            Name: "cloudforge_findings_processed_total",
+            Name: "aegis_findings_processed_total",
             Help: "Total findings processed",
         },
         []string{"source", "type", "severity"},
@@ -1615,7 +1616,7 @@ var (
     
     aiAnalysisLatency = prometheus.NewHistogramVec(
         prometheus.HistogramOpts{
-            Name:    "cloudforge_ai_analysis_duration_seconds",
+            Name:    "aegis_ai_analysis_duration_seconds",
             Help:    "AI analysis latency",
             Buckets: prometheus.ExponentialBuckets(0.1, 2, 10),
         },
@@ -1674,7 +1675,7 @@ server:
 database:
   host: localhost
   port: 5432
-  name: cloudforge
+  name: aegis
   max_connections: 100
 
 redis:

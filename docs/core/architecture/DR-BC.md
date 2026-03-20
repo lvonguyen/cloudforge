@@ -1,16 +1,16 @@
-# CloudForge - Disaster Recovery & Business Continuity
+# Cloud Aegis - Disaster Recovery & Business Continuity
 
-**Version:** 2.0
+**Version:** 2.1
 **Author:** Liem Vo-Nguyen
-**Last Updated:** February 27, 2026
+**Last Updated:** March 20, 2026
 
 ---
 
 ## Executive Summary
 
-This document outlines the DR/BC strategy for CloudForge, an enterprise cloud governance platform, across AWS, Azure, and GCP deployments. Version 2.0 expands coverage to include global deployment architecture, compliance-driven deployment models (GDPR, PCI-DSS, HIPAA, SOX, FedRAMP), enhanced SLA targets with alerting thresholds, component-level restore procedures, data retention and archival policies, and a cross-cloud failover matrix.
+This document outlines the DR/BC strategy for Cloud Aegis, an enterprise cloud governance platform, across AWS, Azure, and GCP deployments. Version 2.0 expands coverage to include global deployment architecture, compliance-driven deployment models (GDPR, PCI-DSS, HIPAA, SOX, FedRAMP), enhanced SLA targets with alerting thresholds, component-level restore procedures, data retention and archival policies, and a cross-cloud failover matrix.
 
-CloudForge manages cloud security posture, policy enforcement, and AI-driven remediation for enterprise customers. Availability and data integrity are non-negotiable: a failure in CloudForge means undetected misconfigurations in customer environments.
+Cloud Aegis manages cloud security posture, policy enforcement, and AI-driven remediation for enterprise customers. Availability and data integrity are non-negotiable: a failure in Cloud Aegis means undetected misconfigurations in customer environments.
 
 ---
 
@@ -330,7 +330,7 @@ Step 7: Smoke test and notify
 
 ### GDPR (EU/EEA)
 
-**Scope:** Any CloudForge tenant processing findings that contain or reference personal data of EU/EEA residents.
+**Scope:** Any Cloud Aegis tenant processing findings that contain or reference personal data of EU/EEA residents.
 
 **Data Residency Requirements:**
 
@@ -356,7 +356,7 @@ Step 7: Smoke test and notify
 Customer DPO submits erasure request
           |
           v
-CloudForge Admin API: DELETE /api/v1/tenants/{id}/subjects/{subject_id}
+Cloud Aegis Admin API: DELETE /api/v1/tenants/{id}/subjects/{subject_id}
           |
           +-- Mark findings as "erasure_pending" in PostgreSQL
           +-- Queue erasure job in Temporal workflow
@@ -375,11 +375,11 @@ Retention: 7 years (legal obligation to prove erasure occurred)
 ```
 
 **AI Provider Implications (Claude API / Anthropic):**
-- CloudForge sends finding metadata to Claude API for AI analysis
+- Cloud Aegis sends finding metadata to Claude API for AI analysis
 - GDPR Article 28 requires a Data Processing Agreement (DPA) with Anthropic
 - EU customers: configure `ai.provider.endpoint` to Anthropic EU endpoint when available; otherwise SCC applies
 - Finding payloads sent to AI: strip PII before transmission (regex + NLP PII scrubber in `internal/ai/sanitizer.go`)
-- Data sent to AI is never stored by CloudForge; Anthropic zero-data-retention policy applies
+- Data sent to AI is never stored by Cloud Aegis; Anthropic zero-data-retention policy applies
 
 **Cross-Border Transfer Mechanisms:**
 
@@ -399,18 +399,18 @@ Retention: 7 years (legal obligation to prove erasure occurred)
 
 ### PCI-DSS (Banking / Financial Services)
 
-**Scope:** Tenants where CloudForge scans environments that host, process, or transmit cardholder data (Cardholder Data Environment — CDE).
+**Scope:** Tenants where Cloud Aegis scans environments that host, process, or transmit cardholder data (Cardholder Data Environment — CDE).
 
-**Critical Note:** CloudForge does NOT store payment card data. However, findings may reference CDE resources (EC2 instances, network segments, S3 buckets in-scope for PCI). These findings are treated as PCI-sensitive.
+**Critical Note:** Cloud Aegis does NOT store payment card data. However, findings may reference CDE resources (EC2 instances, network segments, S3 buckets in-scope for PCI). These findings are treated as PCI-sensitive.
 
 **Network Segmentation:**
 
 ```
 +----------------------------+     +---------------------------+
-|  CloudForge Control Plane  |     |  Customer CDE             |
+|  Cloud Aegis Control Plane  |     |  Customer CDE             |
 |  (PCI-adjacent, not CDE)   |     |  (PCI scope)              |
 |                            |     |                           |
-|  API Gateway               |     |  CloudForge Agent         |
+|  API Gateway               |     |  Cloud Aegis Agent         |
 |  OPA Policy Engine         |<--->|  (read-only scanner)      |
 |  AI Analysis               |     |  Findings pushed via TLS  |
 |  Remediation Executor      |     |                           |
@@ -448,7 +448,7 @@ Retention: 7 years (legal obligation to prove erasure occurred)
 
 **Vulnerability Management SLAs (PCI Req 6.3.3):**
 
-| Severity | Max Time to Remediate | CloudForge Finding Priority | Alert Channel |
+| Severity | Max Time to Remediate | Cloud Aegis Finding Priority | Alert Channel |
 |----------|-----------------------|----------------------------|---------------|
 | Critical (CVSS 9.0-10.0) | 1 day | P1 | PagerDuty (immediate) |
 | High (CVSS 7.0-8.9) | 7 days | P2 | PagerDuty (business hours) |
@@ -469,7 +469,7 @@ Retention: 7 years (legal obligation to prove erasure occurred)
 - All approvals recorded in GitHub PR audit trail + shipped to SIEM
 
 **Annual Penetration Testing:**
-- Scope: CloudForge API, OPA policy engine, Temporal orchestration, agent communication channel
+- Scope: Cloud Aegis API, OPA policy engine, Temporal orchestration, agent communication channel
 - Provider: QSA-approved penetration testing firm
 - Frequency: Annual + after significant infrastructure changes (PCI Req 11.4.1)
 - Findings remediated per vulnerability SLAs above
@@ -483,9 +483,9 @@ Retention: 7 years (legal obligation to prove erasure occurred)
 
 **PHI Handling in Findings:**
 
-CloudForge scans cloud resource configurations, not data content. However, resource names, tags, and descriptions may contain PHI indicators. CloudForge treats any finding from a HIPAA-designated tenant as PHI-adjacent.
+Cloud Aegis scans cloud resource configurations, not data content. However, resource names, tags, and descriptions may contain PHI indicators. Cloud Aegis treats any finding from a HIPAA-designated tenant as PHI-adjacent.
 
-| Data Category | CloudForge Treatment |
+| Data Category | Cloud Aegis Treatment |
 |--------------|---------------------|
 | Resource names/tags | Masked in UI if PHI pattern detected (regex: `hipaa_pii_patterns.yaml`) |
 | Finding descriptions | Sanitized before AI analysis |
@@ -494,7 +494,7 @@ CloudForge scans cloud resource configurations, not data content. However, resou
 
 **Business Associate Agreements (BAA):**
 
-| Provider | BAA Required | CloudForge Commitment |
+| Provider | BAA Required | Cloud Aegis Commitment |
 |----------|-------------|----------------------|
 | AWS | Yes — AWS BAA | EKS, RDS, S3, Secrets Manager in BAA scope |
 | Azure | Yes — Azure BAA | AKS, Azure SQL, Blob, Key Vault in BAA scope |
@@ -538,11 +538,11 @@ Break-glass scenario: PHI-tenant data access required outside normal authorizati
 
 ### SOX (Financial Reporting)
 
-**Scope:** Publicly traded companies using CloudForge to manage their cloud security posture. SOX § 404 requires controls over financial reporting systems; CloudForge findings about financial infrastructure fall under SOX scope.
+**Scope:** Publicly traded companies using Cloud Aegis to manage their cloud security posture. SOX § 404 requires controls over financial reporting systems; Cloud Aegis findings about financial infrastructure fall under SOX scope.
 
 **Change Management Audit Trails:**
 
-All changes to CloudForge configuration, policies, and remediation actions for SOX tenants must be immutably logged:
+All changes to Cloud Aegis configuration, policies, and remediation actions for SOX tenants must be immutably logged:
 
 | Change Type | Audit Fields | Storage |
 |------------|-------------|---------|
@@ -596,7 +596,7 @@ Hash chain verification:
 
 ### FedRAMP (US Government)
 
-**Scope:** US federal agencies and contractors using CloudForge for cloud governance.
+**Scope:** US federal agencies and contractors using Cloud Aegis for cloud governance.
 
 **FedRAMP High vs Moderate:**
 
@@ -640,14 +640,14 @@ AWS GovCloud (us-gov-east-1) — DR
 | Control | Frequency | Tooling | Report Target |
 |---------|-----------|---------|--------------|
 | Vulnerability scanning | Weekly | Tenable / Qualys | AO (Authorizing Official) |
-| Configuration compliance | Daily | CloudForge OPA | FedRAMP PMO |
+| Configuration compliance | Daily | Cloud Aegis OPA | FedRAMP PMO |
 | Access log review | Monthly | CloudWatch + SIEM | ISSO |
 | Penetration testing | Annual | FedRAMP-approved 3PAO | JAB |
 | Security control assessment | Annual | 3PAO | FedRAMP PMO |
 | Incident reporting | Per-incident | US-CERT / CISA | Within 1 hour |
 
 **POA&M (Plan of Action & Milestones) Integration:**
-- CloudForge findings auto-generate POA&M draft entries for FedRAMP tenants
+- Cloud Aegis findings auto-generate POA&M draft entries for FedRAMP tenants
 - POA&M fields: weakness, source (finding_id), risk level, scheduled completion, milestones
 - Exported monthly as Excel/CSV for upload to FedRAMP PMO system
 - All POA&M items tracked in Temporal workflow with deadline alerting
@@ -680,7 +680,7 @@ AWS GovCloud (us-gov-east-1) — DR
 | Gold | 99.9% | 43.8 minutes | Standard enterprise (default) |
 | Silver | 99.5% | 3.6 hours | Dev/staging environments |
 
-**CloudForge Production Target:** Gold (99.9%) standard; Platinum available for regulated deployments.
+**Cloud Aegis Production Target:** Gold (99.9%) standard; Platinum available for regulated deployments.
 
 **Prometheus Alert Rules (abbreviated):**
 ```yaml
@@ -1204,6 +1204,7 @@ UPDATE findings
 |---------|------|--------|---------|
 | 1.0 | January 2026 | Liem Vo-Nguyen | Initial release |
 | 2.0 | February 27, 2026 | Liem Vo-Nguyen | Global deployment architecture, compliance-driven models (GDPR/PCI/HIPAA/SOX/FedRAMP), enhanced SLA targets, detailed restore procedures, data retention & archival, cross-cloud failover matrix |
+| 2.1 | March 20, 2026 | Liem Vo-Nguyen | Renamed CloudForge to Cloud Aegis; deployment tier naming refresh |
 
 ---
 

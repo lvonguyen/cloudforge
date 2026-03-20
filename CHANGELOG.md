@@ -10,6 +10,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Sprint K**: ADR-016 (Container Scanning Architecture), ADR-017 (Secrets Management), ADR-018 (Threat Intelligence Feeds) — 18 ADRs total
+- **Sprint K**: Documentation overhaul — docs reorg into `docs/core/`, `docs/research/`, `docs/archive/`; Mermaid syntax fixes; CloudForge-to-Cloud Aegis rename in HLD and DR-BC
+- **Sprint K**: DR-BC v2.1 — updated branding, deployment tier naming refresh
+- **Sprint K**: Diagrams README updated with architecture.mmd source reference
+- **Sprint K**: Runbook and component-rationale branding updates
+
+### Changed
+
+- **Sprint K**: README updated — 18 ADR count, corrected test counts (1,474 Go / 420+ frontend / 51 test files), updated docs tree structure
+- **Sprint K**: HLD v3.0 ADR cross-reference updated (14 -> 18 ADRs), title renamed to Cloud Aegis
+- **Sprint K**: risk-intelligence-pipeline.mmd — fixed node/subgraph ID collision for mermaid v10+ compatibility
+- **Sprint K**: Diagrams README — added architecture.mmd as source for architecture.svg
+
+### Added (prior sprints)
+
 - Rust hot-path library (`libaegispath`) for attack path BFS computation via CGo FFI with rayon parallelism (Sprint I+1)
 - `ComputeAttackPaths()` and `LoadAndSerializeFindings()` Go bridge functions (Sprint I+2)
 - Criterion benchmarks for Rust attack path computation (Sprint I+1)

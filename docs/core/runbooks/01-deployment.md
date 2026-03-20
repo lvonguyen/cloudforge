@@ -1,8 +1,8 @@
-# Runbook: CloudForge Deployment
+# Runbook: Cloud Aegis Deployment
 
 ## Overview
 
-This runbook covers deploying CloudForge to production, including:
+This runbook covers deploying Cloud Aegis to production, including:
 - Container image builds
 - Database migrations
 - Service rollout
@@ -19,17 +19,17 @@ This runbook covers deploying CloudForge to production, including:
 
 ```bash
 # 1. Verify current service health
-kubectl get pods -n cloudforge
-kubectl top pods -n cloudforge
+kubectl get pods -n aegis
+kubectl top pods -n aegis
 
 # 2. Check pending database migrations
-./cloudforge migrate status
+./aegis migrate status
 
 # 3. Verify no active incidents
-open https://status.cloudforge.io/admin
+open https://status.aegis.io/admin
 
 # 4. Backup current config
-kubectl get configmap cloudforge-config -n cloudforge -o yaml > backup-config.yaml
+kubectl get configmap aegis-config -n aegis -o yaml > backup-config.yaml
 ```
 
 ## Deployment Procedure
@@ -50,37 +50,37 @@ git push origin v1.2.3
 # - Run smoke tests
 
 # 3. Verify deployment
-kubectl rollout status deployment/cloudforge-api -n cloudforge
+kubectl rollout status deployment/aegis-api -n aegis
 ```
 
 ### Option B: Manual Deployment (Emergency)
 
 ```bash
 # 1. Build and push image
-docker build -t cloudforge:v1.2.3 .
-docker tag cloudforge:v1.2.3 123456789.dkr.ecr.us-west-2.amazonaws.com/cloudforge:v1.2.3
-docker push 123456789.dkr.ecr.us-west-2.amazonaws.com/cloudforge:v1.2.3
+docker build -t aegis:v1.2.3 .
+docker tag aegis:v1.2.3 123456789.dkr.ecr.us-west-2.amazonaws.com/aegis:v1.2.3
+docker push 123456789.dkr.ecr.us-west-2.amazonaws.com/aegis:v1.2.3
 
 # 2. Update deployment
-kubectl set image deployment/cloudforge-api \
-  api=123456789.dkr.ecr.us-west-2.amazonaws.com/cloudforge:v1.2.3 \
-  -n cloudforge
+kubectl set image deployment/aegis-api \
+  api=123456789.dkr.ecr.us-west-2.amazonaws.com/aegis:v1.2.3 \
+  -n aegis
 
 # 3. Wait for rollout
-kubectl rollout status deployment/cloudforge-api -n cloudforge --timeout=300s
+kubectl rollout status deployment/aegis-api -n aegis --timeout=300s
 ```
 
 ### Database Migration
 
 ```bash
 # 1. Run migrations in dry-run mode first
-./cloudforge migrate --dry-run
+./aegis migrate --dry-run
 
 # 2. Apply migrations
-./cloudforge migrate up
+./aegis migrate up
 
 # 3. Verify migrations
-./cloudforge migrate status
+./aegis migrate status
 ```
 
 ## Verification
@@ -89,7 +89,7 @@ kubectl rollout status deployment/cloudforge-api -n cloudforge --timeout=300s
 
 ```bash
 # Check health endpoint
-curl -s https://api.cloudforge.io/health | jq .
+curl -s https://api.aegis.io/health | jq .
 
 # Expected response:
 # {
@@ -103,23 +103,23 @@ curl -s https://api.cloudforge.io/health | jq .
 
 ```bash
 # Test finding creation
-curl -X POST https://api.cloudforge.io/api/v1/findings \
+curl -X POST https://api.aegis.io/api/v1/findings \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"title": "Test Finding", "severity": "low"}'
 
 # Verify in UI
-open https://app.cloudforge.io/findings
+open https://app.aegis.io/findings
 ```
 
 ### Metrics Verification
 
 ```bash
 # Check Prometheus targets
-curl -s http://prometheus:9090/api/v1/targets | jq '.data.activeTargets[] | select(.labels.job=="cloudforge")'
+curl -s http://prometheus:9090/api/v1/targets | jq '.data.activeTargets[] | select(.labels.job=="aegis")'
 
 # Check error rate
-curl -s 'http://prometheus:9090/api/v1/query?query=rate(cloudforge_http_requests_total{status=~"5.."}[5m])'
+curl -s 'http://prometheus:9090/api/v1/query?query=rate(aegis_http_requests_total{status=~"5.."}[5m])'
 ```
 
 ## Rollback Procedure
@@ -128,20 +128,20 @@ curl -s 'http://prometheus:9090/api/v1/query?query=rate(cloudforge_http_requests
 
 ```bash
 # Rollback to previous version
-kubectl rollout undo deployment/cloudforge-api -n cloudforge
+kubectl rollout undo deployment/aegis-api -n aegis
 
 # Verify rollback
-kubectl rollout status deployment/cloudforge-api -n cloudforge
+kubectl rollout status deployment/aegis-api -n aegis
 ```
 
 ### Database Rollback
 
 ```bash
 # Rollback last migration
-./cloudforge migrate down 1
+./aegis migrate down 1
 
 # Rollback to specific version
-./cloudforge migrate goto 20260103120000
+./aegis migrate goto 20260103120000
 ```
 
 ## Post-Deployment
