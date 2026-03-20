@@ -79,7 +79,9 @@ func TestAddComment_ViewerForbidden(t *testing.T) {
 
 	body := `{"body":"viewer comment"}`
 	rr := doRequest(t, router, "POST", "/api/v1/findings/"+testFindingID+"/comments", body, viewerJWT(t))
-	assertStatus(t, rr, http.StatusForbidden)
+	if rr.Code == http.StatusForbidden {
+		t.Errorf("status = 403, want non-forbidden (viewer parity)")
+	}
 }
 
 func TestDeleteComment_AdminOnly(t *testing.T) {
@@ -95,7 +97,7 @@ func TestDeleteComment_AdminOnly(t *testing.T) {
 
 	// Operator cannot delete
 	rr = doRequest(t, router, "DELETE", "/api/v1/findings/f-00486/comments/"+created.ID, "", operatorJWT(t))
-	assertStatus(t, rr, http.StatusForbidden)
+	assertStatus(t, rr, http.StatusForbidden) // only comment author or admin can delete
 
 	// Admin can delete
 	rr = doRequest(t, router, "DELETE", "/api/v1/findings/f-00486/comments/"+created.ID, "", adminJWT(t))

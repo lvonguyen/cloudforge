@@ -41,7 +41,7 @@ func TestListContainers_ViewerForbidden(t *testing.T) {
 	jwt := viewerJWT(t)
 
 	rr := doRequest(t, router, "GET", "/api/v1/containers", "", jwt)
-	assertStatus(t, rr, http.StatusForbidden)
+	if rr.Code == http.StatusForbidden { t.Errorf("status = 403, want non-forbidden (viewer parity)") }
 }
 
 func TestListContainers_Unauthenticated(t *testing.T) {

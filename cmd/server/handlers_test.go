@@ -53,7 +53,7 @@ func TestCreateException_Forbidden(t *testing.T) {
 
 	body := `{"application_id":"app-001","policy_violated":"REGION-001","requestor_email":"user@contoso.dev"}`
 	rr := doRequest(t, router, "POST", "/api/v1/exceptions", body, jwt)
-	assertStatus(t, rr, http.StatusForbidden)
+	assertStatus(t, rr, http.StatusForbidden) // requester role not in Require() list
 }
 
 func TestCreateException_IdentitySpoof(t *testing.T) {
@@ -62,7 +62,7 @@ func TestCreateException_IdentitySpoof(t *testing.T) {
 
 	body := `{"application_id":"app-001","policy_violated":"REGION-001","requestor_email":"someone-else@example.com"}`
 	rr := doRequest(t, router, "POST", "/api/v1/exceptions", body, jwt)
-	assertStatus(t, rr, http.StatusForbidden)
+	assertStatus(t, rr, http.StatusForbidden) // identity spoof prevention
 }
 
 func TestGetException_Success(t *testing.T) {
@@ -144,7 +144,7 @@ func TestGetExpiringExceptions_RequesterForbidden(t *testing.T) {
 	jwt := requesterJWT(t) // requester role — not operator or admin
 
 	rr := doRequest(t, router, "GET", "/api/v1/exceptions/expiring", "", jwt)
-	assertStatus(t, rr, http.StatusForbidden)
+	assertStatus(t, rr, http.StatusForbidden) // requester not in Require() list
 }
 
 func TestGetExpiringExceptions_Success(t *testing.T) {

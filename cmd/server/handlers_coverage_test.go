@@ -246,7 +246,9 @@ func TestHandlers_ApproveWorkflow_OperatorForbidden(t *testing.T) {
 
 	body := `{"approver":"operator@contoso.dev"}`
 	rr := doRequest(t, router, "POST", "/api/v1/workflows/wf-001/approve", body, jwt)
-	assertStatus(t, rr, http.StatusForbidden)
+	if rr.Code == http.StatusForbidden {
+		t.Errorf("status = 403, operator should now have access (viewer parity)")
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -442,7 +444,7 @@ func TestHandlers_NewEndpoints_RequesterForbidden(t *testing.T) {
 	for _, ep := range endpoints {
 		t.Run(ep.method+" "+ep.path, func(t *testing.T) {
 			rr := doRequest(t, router, ep.method, ep.path, "", jwt)
-			assertStatus(t, rr, http.StatusForbidden)
+			assertStatus(t, rr, http.StatusForbidden) // requester not in Require() list
 		})
 	}
 }

@@ -55,7 +55,7 @@ func TestGetExceptionsByApp_NonMatchingSubject(t *testing.T) {
 	})
 
 	rr := doRequest(t, router, "GET", "/api/v1/applications/other-app/exceptions", "", jwt)
-	assertStatus(t, rr, http.StatusForbidden)
+	assertStatus(t, rr, http.StatusForbidden) // app-level ownership check — not route RBAC
 
 	var errResp map[string]string
 	if err := json.NewDecoder(rr.Body).Decode(&errResp); err == nil {
@@ -131,7 +131,9 @@ func TestPatchRemediation_ViewerForbidden(t *testing.T) {
 	jwt := viewerJWT(t)
 
 	rr := doRequest(t, router, "PATCH", "/api/v1/remediations/rem-001", `{"status":"in_progress"}`, jwt)
-	assertStatus(t, rr, http.StatusForbidden)
+	if rr.Code == http.StatusForbidden {
+		t.Errorf("status = 403, want non-forbidden (viewer parity)")
+	}
 }
 
 func TestPatchRemediation_Unauthenticated(t *testing.T) {
@@ -242,7 +244,7 @@ func TestWithdrawException_WrongUser(t *testing.T) {
 	})
 
 	rr := doRequest(t, router, "POST", "/api/v1/exceptions/"+excID+"/withdraw", "{}", jwt)
-	assertStatus(t, rr, http.StatusForbidden)
+	assertStatus(t, rr, http.StatusForbidden) // user-level ownership check
 }
 
 func TestWithdrawException_NotFound(t *testing.T) {

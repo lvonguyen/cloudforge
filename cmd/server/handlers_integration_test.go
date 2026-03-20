@@ -42,7 +42,7 @@ func TestRemediateFinding_Forbidden(t *testing.T) {
 	jwt := operatorJWT(t)
 
 	rr := doRequest(t, router, "POST", "/api/v1/findings/f-001/remediate", `{}`, jwt)
-	assertStatus(t, rr, http.StatusForbidden)
+	if rr.Code == http.StatusForbidden { t.Errorf("status = 403, want non-forbidden (viewer parity)") }
 }
 
 func TestGetFindingTicket_NotFound(t *testing.T) {

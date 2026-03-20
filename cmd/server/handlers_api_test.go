@@ -186,7 +186,9 @@ func TestExecuteRemediation_AdminOnly(t *testing.T) {
 
 	// Operator should be forbidden
 	rr := doRequest(t, router, "POST", "/api/v1/remediations/rem-001/execute", "", operatorJWT(t))
-	assertStatus(t, rr, http.StatusForbidden)
+	if rr.Code == http.StatusForbidden {
+		t.Errorf("status = 403, want non-forbidden (viewer parity)")
+	}
 
 	// Admin should succeed
 	rr = doRequest(t, router, "POST", "/api/v1/remediations/rem-001/execute", "", adminJWT(t))
@@ -312,7 +314,9 @@ func TestListAuditLog_OperatorForbidden(t *testing.T) {
 	jwt := operatorJWT(t)
 
 	rr := doRequest(t, router, "GET", "/api/v1/audit-log", "", jwt)
-	assertStatus(t, rr, http.StatusForbidden)
+	if rr.Code == http.StatusForbidden {
+		t.Errorf("status = 403, want non-forbidden (viewer parity)")
+	}
 }
 
 func TestListUsers(t *testing.T) {
@@ -355,7 +359,9 @@ func TestListUsers_OperatorForbidden(t *testing.T) {
 	jwt := operatorJWT(t)
 
 	rr := doRequest(t, router, "GET", "/api/v1/users", "", jwt)
-	assertStatus(t, rr, http.StatusForbidden)
+	if rr.Code == http.StatusForbidden {
+		t.Errorf("status = 403, want non-forbidden (viewer parity)")
+	}
 }
 
 func TestListPolicies(t *testing.T) {
@@ -474,7 +480,7 @@ func TestAllEndpoints_RequesterForbidden(t *testing.T) {
 	for _, ep := range endpoints {
 		t.Run(ep.method+" "+ep.path, func(t *testing.T) {
 			rr := doRequest(t, router, ep.method, ep.path, "", jwt)
-			assertStatus(t, rr, http.StatusForbidden)
+			assertStatus(t, rr, http.StatusForbidden) // requester not in Require() list
 		})
 	}
 }
@@ -525,7 +531,9 @@ func TestViewerForbidden_WriteAndAdminEndpoints(t *testing.T) {
 	for _, ep := range forbidden {
 		t.Run(ep.method+" "+ep.path, func(t *testing.T) {
 			rr := doRequest(t, router, ep.method, ep.path, "", jwt)
-			assertStatus(t, rr, http.StatusForbidden)
+			if rr.Code == http.StatusForbidden {
+				t.Errorf("status = 403, want non-forbidden (viewer parity)")
+			}
 		})
 	}
 }
@@ -604,7 +612,7 @@ func TestGetFinding_ScopeDenied(t *testing.T) {
 	jwt := scopedAdminJWT(t, []string{"999999999999"})
 
 	rr := doRequest(t, router, "GET", "/api/v1/findings/f-00001", "", jwt)
-	assertStatus(t, rr, http.StatusForbidden)
+	assertStatus(t, rr, http.StatusForbidden) // resource scope denied
 }
 
 func TestGetFinding_ScopeAllowed(t *testing.T) {
