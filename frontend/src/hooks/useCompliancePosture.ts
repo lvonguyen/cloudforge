@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { apiClient, ApiError } from '@/lib/api'
+import { apiClient, ApiError, fetchWithMockFallback } from '@/lib/api'
 
 export interface PostureFramework {
   id: string
@@ -48,15 +48,11 @@ const MOCK_CONTROLS: Record<string, ComplianceControl[]> = {
 export function useCompliancePosture() {
   return useQuery({
     queryKey: ['compliance', 'posture'],
-    queryFn: async () => {
-      try {
-        return await apiClient.get<PostureFramework[]>('/compliance/posture')
-      } catch (err) {
-        if (err instanceof ApiError && err.status < 500) throw err
-        console.warn('[useCompliancePosture] API unavailable, using mock data')
-        return MOCK_POSTURE
-      }
-    },
+    queryFn: () => fetchWithMockFallback<PostureFramework[]>(
+      '/compliance/posture',
+      () => Promise.resolve({ default: MOCK_POSTURE }),
+      'useCompliancePosture',
+    ),
   })
 }
 

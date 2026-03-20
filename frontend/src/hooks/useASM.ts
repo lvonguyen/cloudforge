@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient, ApiError } from '@/lib/api'
+import { apiClient, ApiError, fetchWithMockFallback } from '@/lib/api'
 import { useToast } from '@/hooks/useToast'
 
 export interface ExposedService {
@@ -79,14 +79,10 @@ export function useScanDomain() {
 export function useASMAssets() {
   return useQuery({
     queryKey: ['asm', 'assets'],
-    queryFn: async () => {
-      try {
-        return await apiClient.get<ASMAsset[]>('/asm/assets')
-      } catch (err) {
-        if (err instanceof ApiError && err.status < 500) throw err
-        console.warn('[useASMAssets] API unavailable, using mock data')
-        return MOCK_ASSETS
-      }
-    },
+    queryFn: () => fetchWithMockFallback<ASMAsset[]>(
+      '/asm/assets',
+      () => Promise.resolve({ default: MOCK_ASSETS }),
+      'useASMAssets',
+    ),
   })
 }

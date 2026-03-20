@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient, ApiError } from '@/lib/api'
+import { apiClient, ApiError, fetchWithMockFallback } from '@/lib/api'
 import type { ExceptionRequest, Approver } from '@/types/grc'
 
 export const MOCK_EXCEPTIONS: ExceptionRequest[] = [
@@ -141,15 +141,11 @@ export function useWithdrawException() {
 export function useMyExceptions() {
   return useQuery({
     queryKey: ['exceptions', 'mine'],
-    queryFn: async () => {
-      try {
-        return await apiClient.get<ExceptionRequest[]>('/exceptions/mine')
-      } catch (err) {
-        if (err instanceof ApiError && err.status < 500) throw err
-        console.warn('[useMyExceptions] API unavailable, using mock data')
-        return MOCK_EXCEPTIONS
-      }
-    },
+    queryFn: () => fetchWithMockFallback<ExceptionRequest[]>(
+      '/exceptions/mine',
+      () => Promise.resolve({ default: MOCK_EXCEPTIONS }),
+      'useMyExceptions',
+    ),
   })
 }
 

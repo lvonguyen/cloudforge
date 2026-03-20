@@ -6,22 +6,34 @@ import React from 'react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import { apiClient, ApiError } from '@/lib/api'
 
-vi.mock('@/lib/api', () => ({
-  ApiError: class ApiError extends Error {
+vi.mock('@/lib/api', () => {
+  class MockApiError extends Error {
     status: number
     constructor(status: number, message: string) {
       super(message)
       this.status = status
       this.name = 'ApiError'
     }
-  },
-  apiClient: {
+  }
+  const client = {
     get: vi.fn(),
     post: vi.fn(),
     put: vi.fn(),
     delete: vi.fn(),
-  },
-}))
+  }
+  return {
+    ApiError: MockApiError,
+    apiClient: client,
+    fetchWithMockFallback: vi.fn(async (path, mockImport, _label) => {
+      try { return await client.get(path) }
+      catch (err) {
+        if (err instanceof MockApiError && err.status < 500) throw err
+        const mod = await mockImport()
+        return mod.default
+      }
+    }),
+  }
+})
 
 function makeWrapper() {
   const client = new QueryClient({

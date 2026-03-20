@@ -89,7 +89,7 @@ export async function fetchWithMockFallback<T>(
     return await apiClient.get<T>(path)
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
-    if (!import.meta.env.DEV) throw err
+    if (import.meta.env.PROD) throw err
     console.warn(`[${label}] API unavailable, using mock data`)
     try {
       const mod = await mockImport()

@@ -117,194 +117,237 @@ func (s *Server) abortDeployPreview(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "aborted"})
 }
 
+// deployPreviewRun holds the state for a single deploy preview execution.
+// Extracted from runDeployPreview to decompose the 188-line function into phases.
+type deployPreviewRun struct {
+	server     *Server
+	ctx        context.Context
+	config     DeployPreviewConfig
+	channel    string
+	bucketName string
+}
+
+func (r *deployPreviewRun) publish(event, message string, extra map[string]interface{}) {
+	data := map[string]interface{}{"message": message}
+	for k, v := range extra {
+		data[k] = v
+	}
+	r.server.publishToWSServer(r.ctx, r.channel, event, data)
+}
+
+func (r *deployPreviewRun) cancelled() bool {
+	return r.ctx.Err() != nil
+}
+
+func (r *deployPreviewRun) sleep(d time.Duration) bool {
+	select {
+	case <-r.ctx.Done():
+		return false
+	case <-time.After(d):
+		return true
+	}
+}
+
 // runDeployPreview orchestrates the deploy preview, publishing SSE events to ws-server.
 func (s *Server) runDeployPreview(ctx context.Context, execID string, config DeployPreviewConfig) {
 	defer s.deployTracker.remove(execID)
 
-	channel := "deploy:" + execID
-
-	publish := func(event, message string, extra map[string]interface{}) {
-		data := map[string]interface{}{"message": message}
-		for k, v := range extra {
-			data[k] = v
-		}
-		s.publishToWSServer(ctx, channel, event, data)
+	r := &deployPreviewRun{
+		server:     s,
+		ctx:        ctx,
+		config:     config,
+		channel:    "deploy:" + execID,
+		bucketName: fmt.Sprintf("cf-demo-%s-%d", config.AppID, time.Now().UnixMilli()),
 	}
 
-	// Helper to check context cancellation between steps.
-	cancelled := func() bool {
-		return ctx.Err() != nil
+	if !r.planResources() {
+		return
 	}
 
-	sleep := func(d time.Duration) bool {
-		select {
-		case <-ctx.Done():
+	if config.ResourceType == "s3" {
+		r.executeS3Deploy()
+	} else {
+		r.executeGenericDeploy()
+	}
+}
+
+// planResources emits Terraform init messages and the resource plan.
+// Returns false if the context was cancelled during planning.
+func (r *deployPreviewRun) planResources() bool {
+	r.publish("planning", "Initializing Terraform provider...", nil)
+	if !r.sleep(800 * time.Millisecond) {
+		return false
+	}
+
+	r.publish("planning", fmt.Sprintf("Provider: %s | Region: %s", r.config.Provider, r.config.Region), nil)
+	if !r.sleep(500 * time.Millisecond) {
+		return false
+	}
+
+	r.publish("planning", "Terraform v1.9.8 | Format 1.2", nil)
+	if !r.sleep(600 * time.Millisecond) {
+		return false
+	}
+
+	if r.config.ResourceType == "s3" {
+		r.publish("planning", "+ aws_s3_bucket.demo will be created", nil)
+		if !r.sleep(400 * time.Millisecond) {
 			return false
-		case <-time.After(d):
-			return true
 		}
-	}
-
-	// Phase 1: Planning
-	publish("planning", "Initializing Terraform provider...", nil)
-	if !sleep(800 * time.Millisecond) {
-		return
-	}
-
-	publish("planning", fmt.Sprintf("Provider: %s | Region: %s", config.Provider, config.Region), nil)
-	if !sleep(500 * time.Millisecond) {
-		return
-	}
-
-	publish("planning", "Terraform v1.9.8 | Format 1.2", nil)
-	if !sleep(600 * time.Millisecond) {
-		return
-	}
-
-	isS3 := config.ResourceType == "s3"
-	bucketName := fmt.Sprintf("cf-demo-%s-%d", config.AppID, time.Now().UnixMilli())
-
-	if isS3 {
-		publish("planning", "+ aws_s3_bucket.demo will be created", nil)
-		if !sleep(400 * time.Millisecond) {
-			return
+		r.publish("planning", "+ aws_s3_bucket_server_side_encryption_configuration.demo will be created", nil)
+		if !r.sleep(400 * time.Millisecond) {
+			return false
 		}
-		publish("planning", "+ aws_s3_bucket_server_side_encryption_configuration.demo will be created", nil)
-		if !sleep(400 * time.Millisecond) {
-			return
-		}
-		publish("planning", "Plan: 2 to add, 0 to change, 0 to destroy.", nil)
+		r.publish("planning", "Plan: 2 to add, 0 to change, 0 to destroy.", nil)
 	} else {
-		publish("planning", fmt.Sprintf("+ %s.demo will be created", config.ResourceType), nil)
-		if !sleep(400 * time.Millisecond) {
-			return
+		r.publish("planning", fmt.Sprintf("+ %s.demo will be created", r.config.ResourceType), nil)
+		if !r.sleep(400 * time.Millisecond) {
+			return false
 		}
-		publish("planning", "Plan: 1 to add, 0 to change, 0 to destroy.", nil)
+		r.publish("planning", "Plan: 1 to add, 0 to change, 0 to destroy.", nil)
 	}
 
-	if !sleep(800 * time.Millisecond) {
+	return r.sleep(800 * time.Millisecond)
+}
+
+// executeS3Deploy runs the S3-specific create, configure, verify, live, and teardown phases.
+func (r *deployPreviewRun) executeS3Deploy() {
+	if r.cancelled() {
+		return
+	}
+	if !r.createS3Bucket() {
+		return
+	}
+	if !r.configureS3Bucket() {
+		return
+	}
+	if !r.verifyS3Bucket() {
+		return
+	}
+	if !r.runS3LiveCountdown() {
+		return
+	}
+	r.teardownS3Bucket()
+}
+
+// createS3Bucket emits bucket creation messages.
+func (r *deployPreviewRun) createS3Bucket() bool {
+	r.publish("creating", fmt.Sprintf("Creating S3 bucket: %s", r.bucketName), nil)
+	if !r.sleep(1200 * time.Millisecond) {
+		return false
+	}
+	r.publish("creating", "Bucket created successfully", nil)
+	return r.sleep(400 * time.Millisecond)
+}
+
+// configureS3Bucket emits encryption, versioning, and tagging configuration messages.
+func (r *deployPreviewRun) configureS3Bucket() bool {
+	r.publish("configuring", "Applying server-side encryption (AES-256)...", nil)
+	if !r.sleep(600 * time.Millisecond) {
+		return false
+	}
+	r.publish("configuring", "Encryption configuration applied", nil)
+	if !r.sleep(300 * time.Millisecond) {
+		return false
+	}
+
+	r.publish("configuring", "Configuring bucket versioning...", nil)
+	if !r.sleep(500 * time.Millisecond) {
+		return false
+	}
+	r.publish("configuring", "Versioning configured", nil)
+	if !r.sleep(300 * time.Millisecond) {
+		return false
+	}
+
+	r.publish("configuring", "Applying resource tags...", nil)
+	if !r.sleep(400 * time.Millisecond) {
+		return false
+	}
+	r.publish("configuring", "Tags applied: team, environment, cost-center, managed_by", nil)
+	return r.sleep(300 * time.Millisecond)
+}
+
+// verifyS3Bucket emits the bucket accessibility check messages.
+func (r *deployPreviewRun) verifyS3Bucket() bool {
+	r.publish("verifying", "Verifying bucket exists and is accessible...", nil)
+	if !r.sleep(800 * time.Millisecond) {
+		return false
+	}
+	r.publish("verifying", "HeadBucket: 200 OK", nil)
+	return r.sleep(200 * time.Millisecond)
+}
+
+// runS3LiveCountdown emits the live status and runs the 60-second countdown.
+func (r *deployPreviewRun) runS3LiveCountdown() bool {
+	r.publish("live", fmt.Sprintf("Bucket %s is LIVE in %s", r.bucketName, r.config.Region), nil)
+	r.publish("live", fmt.Sprintf("ARN: arn:aws:s3:::%s", r.bucketName), nil)
+	r.publish("live", "Resource will auto-terminate in 60 seconds", nil)
+
+	for i := 60; i >= 0; i-- {
+		if r.cancelled() {
+			return false
+		}
+		if i%15 == 0 && i > 0 {
+			r.publish("live", fmt.Sprintf("Auto-teardown in %ds...", i), map[string]interface{}{"countdown": i})
+		}
+		if !r.sleep(1 * time.Second) {
+			return false
+		}
+	}
+	return true
+}
+
+// teardownS3Bucket emits resource cleanup messages.
+func (r *deployPreviewRun) teardownS3Bucket() {
+	r.publish("teardown", "Initiating resource cleanup...", nil)
+	if !r.sleep(600 * time.Millisecond) {
+		return
+	}
+	r.publish("teardown", "Deleting S3 bucket...", nil)
+	if !r.sleep(800 * time.Millisecond) {
+		return
+	}
+	r.publish("teardown", "Bucket deleted successfully", nil)
+	if !r.sleep(300 * time.Millisecond) {
+		return
+	}
+	r.publish("complete", "Deploy preview complete. All resources cleaned up.", nil)
+}
+
+// executeGenericDeploy runs the non-S3 plan-only simulation path.
+func (r *deployPreviewRun) executeGenericDeploy() {
+	r.publish("creating", fmt.Sprintf("Simulating %s deployment (plan-only mode)...", r.config.ResourceType), nil)
+	if !r.sleep(800 * time.Millisecond) {
 		return
 	}
 
-	// Phase 2: Creating
-	if cancelled() {
+	r.publish("creating", fmt.Sprintf("%s.demo: Creating...", r.config.ResourceType), nil)
+	if !r.sleep(700 * time.Millisecond) {
+		return
+	}
+	r.publish("creating", fmt.Sprintf("%s.demo: Creation simulated", r.config.ResourceType), nil)
+	if !r.sleep(300 * time.Millisecond) {
 		return
 	}
 
-	if isS3 {
-		publish("creating", fmt.Sprintf("Creating S3 bucket: %s", bucketName), nil)
-		if !sleep(1200 * time.Millisecond) {
-			return
-		}
-		publish("creating", "Bucket created successfully", nil)
-		if !sleep(400 * time.Millisecond) {
-			return
-		}
-
-		// Phase 3: Configuring
-		publish("configuring", "Applying server-side encryption (AES-256)...", nil)
-		if !sleep(600 * time.Millisecond) {
-			return
-		}
-		publish("configuring", "Encryption configuration applied", nil)
-		if !sleep(300 * time.Millisecond) {
-			return
-		}
-
-		publish("configuring", "Configuring bucket versioning...", nil)
-		if !sleep(500 * time.Millisecond) {
-			return
-		}
-		publish("configuring", "Versioning configured", nil)
-		if !sleep(300 * time.Millisecond) {
-			return
-		}
-
-		publish("configuring", "Applying resource tags...", nil)
-		if !sleep(400 * time.Millisecond) {
-			return
-		}
-		publish("configuring", "Tags applied: team, environment, cost-center, managed_by", nil)
-		if !sleep(300 * time.Millisecond) {
-			return
-		}
-
-		// Phase 4: Verifying
-		publish("verifying", "Verifying bucket exists and is accessible...", nil)
-		if !sleep(800 * time.Millisecond) {
-			return
-		}
-		publish("verifying", "HeadBucket: 200 OK", nil)
-		if !sleep(200 * time.Millisecond) {
-			return
-		}
-
-		// Phase 5: Live
-		publish("live", fmt.Sprintf("Bucket %s is LIVE in %s", bucketName, config.Region), nil)
-		publish("live", fmt.Sprintf("ARN: arn:aws:s3:::%s", bucketName), nil)
-		publish("live", "Resource will auto-terminate in 60 seconds", nil)
-
-		// Countdown
-		for i := 60; i >= 0; i-- {
-			if cancelled() {
-				return
-			}
-			if i%15 == 0 && i > 0 {
-				publish("live", fmt.Sprintf("Auto-teardown in %ds...", i), map[string]interface{}{"countdown": i})
-			}
-			if !sleep(1 * time.Second) {
-				return
-			}
-		}
-
-		// Phase 6: Teardown
-		publish("teardown", "Initiating resource cleanup...", nil)
-		if !sleep(600 * time.Millisecond) {
-			return
-		}
-		publish("teardown", "Deleting S3 bucket...", nil)
-		if !sleep(800 * time.Millisecond) {
-			return
-		}
-		publish("teardown", "Bucket deleted successfully", nil)
-		if !sleep(300 * time.Millisecond) {
-			return
-		}
-		publish("complete", "Deploy preview complete. All resources cleaned up.", nil)
-	} else {
-		// Non-S3: plan-only simulation
-		publish("creating", fmt.Sprintf("Simulating %s deployment (plan-only mode)...", config.ResourceType), nil)
-		if !sleep(800 * time.Millisecond) {
-			return
-		}
-
-		publish("creating", fmt.Sprintf("%s.demo: Creating...", config.ResourceType), nil)
-		if !sleep(700 * time.Millisecond) {
-			return
-		}
-		publish("creating", fmt.Sprintf("%s.demo: Creation simulated", config.ResourceType), nil)
-		if !sleep(300 * time.Millisecond) {
-			return
-		}
-
-		publish("verifying", "Validating resource configuration...", nil)
-		if !sleep(600 * time.Millisecond) {
-			return
-		}
-		publish("verifying", "All resource validations passed", nil)
-		if !sleep(400 * time.Millisecond) {
-			return
-		}
-
-		publish("live", fmt.Sprintf("%s deployment plan verified", config.ResourceType), nil)
-		publish("live", fmt.Sprintf("1 resource(s) would be created in %s %s", config.Provider, config.Region), nil)
-		publish("live", "Plan-only mode: no real resources provisioned", nil)
-
-		if !sleep(2 * time.Second) {
-			return
-		}
-		publish("complete", "Deploy preview simulation complete.", nil)
+	r.publish("verifying", "Validating resource configuration...", nil)
+	if !r.sleep(600 * time.Millisecond) {
+		return
 	}
+	r.publish("verifying", "All resource validations passed", nil)
+	if !r.sleep(400 * time.Millisecond) {
+		return
+	}
+
+	r.publish("live", fmt.Sprintf("%s deployment plan verified", r.config.ResourceType), nil)
+	r.publish("live", fmt.Sprintf("1 resource(s) would be created in %s %s", r.config.Provider, r.config.Region), nil)
+	r.publish("live", "Plan-only mode: no real resources provisioned", nil)
+
+	if !r.sleep(2 * time.Second) {
+		return
+	}
+	r.publish("complete", "Deploy preview simulation complete.", nil)
 }
 
 // publishToWSServer sends an event to the ws-server's publish endpoint.
