@@ -1,4 +1,4 @@
-app = "aegis-api"
+app = "cloudforge-api"
 primary_region = "sjc"
 
 [build]
