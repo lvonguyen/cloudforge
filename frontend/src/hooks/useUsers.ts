@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchWithMockFallback } from '@/lib/api'
+import usersData from '@/lib/mock/users.json'
 
 interface UserRow {
   id: string
@@ -17,7 +18,7 @@ export function useUsers(roleFilter?: string) {
     queryKey: ['users', roleFilter],
     queryFn: () => fetchWithMockFallback<UserRow[]>(
       `/users${role ? `?role=${role}` : ''}`,
-      () => import('@/lib/mock/users.json') as Promise<{ default: UserRow[] }>,
+      () => Promise.resolve({ default: usersData as UserRow[] }),
       'useUsers',
     ),
   })

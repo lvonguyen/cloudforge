@@ -1,11 +1,11 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { type Node, type Edge, Position, MarkerType } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { BaseGraphView } from '@/components/ops/BaseGraphView'
 import { useFindings } from '@/hooks/useFindings'
 import { Badge } from '@/components/ui/badge'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Search, X, Shield, Server, Database, Key, Globe } from 'lucide-react'
+import { Search, X, Shield, Server, Database, Key, Globe, ChevronRight } from 'lucide-react'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS } from '@/lib/severity'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import type { InvestigationEntityType } from '@/types/investigation'
@@ -52,6 +52,13 @@ export default function Investigations() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const navigate = useNavigate()
+
+  // Auto-select first finding when none is selected and findings are loaded
+  useEffect(() => {
+    if (!selectedFindingId && findings.length > 0) {
+      setSelectedFindingId(findings[0].id)
+    }
+  }, [selectedFindingId, findings])
 
   const filteredFindings = useMemo(() => {
     if (!searchQuery) return findings.slice(0, 50)
@@ -309,7 +316,7 @@ export default function Investigations() {
   return (
     <div className="flex h-full gap-0">
       {/* Left panel — finding search */}
-      <div className="w-72 border-r border-border bg-background flex flex-col shrink-0">
+      <div className="w-80 border-r border-border bg-background flex flex-col shrink-0">
         <div className="p-4 border-b border-border space-y-3">
           <h1 className="text-sm font-semibold">Investigation Board</h1>
           <div className="relative">
@@ -333,7 +340,8 @@ export default function Investigations() {
             <button
               key={f.id}
               onClick={() => { setSelectedFindingId(f.id); setSelectedNodeId(null) }}
-              className={`w-full text-left px-4 py-2.5 border-b border-border hover:bg-muted/30 transition-colors ${selectedFindingId === f.id ? 'bg-muted/50' : ''}`}
+              onDoubleClick={() => navigate(`/ops/findings/${f.id}`)}
+              className={`w-full text-left px-4 py-2.5 border-b border-border hover:bg-muted/30 transition-colors group/item ${selectedFindingId === f.id ? 'bg-muted/50 border-l-2 border-l-primary' : ''}`}
             >
               <div className="flex items-center gap-1.5 mb-0.5">
                 <Badge variant="outline" className={`text-[9px] px-1 py-0 ${SEVERITY_COLORS[f.severity] ?? ''}`}>
@@ -343,10 +351,21 @@ export default function Investigations() {
                 <span className="text-[10px] text-muted-foreground font-mono">{f.id.slice(0, 12)}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                {(() => { const Icon = FINDING_TYPE_ICONS[f.resource_type] ?? Shield; return <Icon className="h-3 w-3 text-muted-foreground shrink-0" /> })()}
+                {(() => { const TypeIcon = FINDING_TYPE_ICONS[f.resource_type] ?? Shield; return <TypeIcon className="h-3 w-3 text-muted-foreground shrink-0" /> })()}
                 <p className="text-xs font-medium truncate">{f.title}</p>
               </div>
-              <p className="text-[10px] text-muted-foreground truncate">{f.resource_name}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] text-muted-foreground truncate">{f.resource_name}</p>
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => { e.stopPropagation(); navigate(`/ops/findings/${f.id}`) }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); navigate(`/ops/findings/${f.id}`) } }}
+                  className="p-0.5 hover:bg-muted rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0"
+                >
+                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                </span>
+              </div>
             </button>
           ))}
         </div>

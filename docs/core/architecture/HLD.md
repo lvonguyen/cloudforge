@@ -1,4 +1,4 @@
-# High-Level Design: CloudForge Enterprise Cloud Governance Platform
+# High-Level Design: Cloud Aegis Enterprise Cloud Governance Platform
 
 | Property | Value |
 | --- | --- |
@@ -14,16 +14,16 @@
 |----------|-------------|
 | [Detailed Design Document (DDD)](./DDD.md) | Implementation-level technical specifications |
 | [Component Rationale](./component-rationale.md) | Technology selection with cost analysis |
-| [DR/BC Plan](../DR-BC.md) | Disaster Recovery and Business Continuity |
-| [Pitch Deck](../pitch-deck.md) | Executive presentation |
-| [ADRs](../adr/) | Architecture Decision Records (ADR-001 through ADR-014) |
+| [DR/BC Plan](./DR-BC.md) | Disaster Recovery and Business Continuity |
+| [Pitch Deck](../../archive/pitch-deck.md) | Executive presentation |
+| [ADRs](./adr/) | Architecture Decision Records (ADR-001 through ADR-018) |
 | [Runbooks](../runbooks/README.md) | Operational procedures (9 runbooks) |
 
 ---
 
 ## 1. Executive Summary
 
-CloudForge is an Enterprise Cloud Governance Platform that provides:
+Cloud Aegis is an Enterprise Cloud Governance Platform that provides:
 - Self-service cloud resource provisioning with built-in governance guardrails
 - Cloud Security Posture Management (CSPM) with multi-cloud aggregation
 - Multi-framework compliance mapping (CIS, NIST, ISO, PCI-DSS, HIPAA, etc.)
@@ -52,53 +52,52 @@ CloudForge is an Enterprise Cloud Governance Platform that provides:
 ## 2. Architecture Overview
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia'}}}%%
 flowchart TB
     subgraph Portal["Portal Layer"]
-        UI[React 19 SPA]
-        API[REST API — gorilla/mux]
+        UI["React 19 SPA"]
+        API["REST API - gorilla/mux"]
     end
 
     subgraph Core["Core Platform"]
-        PolicyEngine[OPA/Rego Policy Engine]
-        Orchestration[Temporal Workflows]
-        AIAnalyzer[AI Risk Analyzer]
-        ComplianceEngine[Compliance Framework Engine]
-        RemediationEngine[Remediation Dispatcher]
-        FinOpsEngine[FinOps Aggregator]
+        PolicyEngine["OPA/Rego Policy Engine"]
+        Orchestration["Temporal Workflows"]
+        AIAnalyzer["AI Risk Analyzer"]
+        ComplianceEngine["Compliance Framework Engine"]
+        RemediationEngine["Remediation Dispatcher"]
+        FinOpsEngine["FinOps Aggregator"]
     end
 
     subgraph CSPM["CSPM Aggregator"]
-        Normalizer[Multi-CSP Normalizer]
-        AttackPath[Attack Path Engine]
-        ToxicCombo[Toxic Combo Detector]
-        ThreatIntel[Threat Intel — EPSS/KEV/GreyNoise]
+        Normalizer["Multi-CSP Normalizer"]
+        AttackPath["Attack Path Engine"]
+        ToxicCombo["Toxic Combo Detector"]
+        ThreatIntel["Threat Intel - EPSS, KEV, GreyNoise"]
     end
 
     subgraph Security["Security Modules"]
-        WAF[WAF Golden Templates]
-        Container[Container Security]
-        Secrets[Secrets Management]
-        CICD[CI/CD Security]
-        Identity[Identity/Zero Trust]
-        AIGov[AI Governance — Embedded OPA]
+        WAF["WAF Golden Templates"]
+        ContainerSec["Container Security"]
+        SecretsMgmt["Secrets Management"]
+        CICD["CI/CD Security"]
+        Identity["Identity / Zero Trust"]
+        AIGov["AI Governance - Embedded OPA"]
     end
 
     subgraph Integrations["External Integrations"]
-        VCS[VCS: GitHub/GitLab/ADO]
-        SAST[SAST: SonarQube/Veracode]
-        IaC[IaC: Checkov/Terraform]
-        GRC[GRC: Archer/ServiceNow]
-        Cloud[Cloud: AWS/Azure/GCP]
-        IdP[IdP: Entra ID/Okta]
+        VCS["GitHub / GitLab / ADO"]
+        SAST["SonarQube / Veracode"]
+        IaC["Checkov / Terraform"]
+        GRC["Archer / ServiceNow"]
+        Cloud["AWS / Azure / GCP"]
+        IdP["Entra ID / Okta"]
     end
 
     subgraph Compliance["Compliance Frameworks"]
-        General[CIS/NIST/ISO]
-        Finance[PCI-DSS/SOX/GLBA]
-        Health[HIPAA/HITRUST]
-        Gov[FedRAMP/STIG]
-        AI[NIST AI RMF/ISO 42001]
+        General["CIS / NIST / ISO"]
+        Finance["PCI-DSS / SOX / GLBA"]
+        Health["HIPAA / HITRUST"]
+        Gov["FedRAMP / STIG"]
+        AIFramework["NIST AI RMF / ISO 42001"]
     end
 
     UI --> API
@@ -125,9 +124,10 @@ flowchart TB
 | REST API | HTTP API server with RBAC and rate limiting | Go 1.25 / gorilla/mux |
 | Orchestration Engine | Workflow management for approvals and provisioning | Temporal |
 | Policy Engine | Evaluate requests against governance rules (dual-OPA) | OPA / Rego (external server + embedded Go library) |
-| AI Risk Analyzer | Contextual risk scoring, toxic combo detection | Claude Opus 4.6 / GPT-4 |
+| AI Risk Analyzer | Contextual risk scoring, toxic combo detection | Claude Opus 4.6 / GPT-4 / AWS Bedrock |
 | Compliance Engine | Multi-framework compliance mapping and assessment | Go |
 | CSPM Aggregator | Multi-cloud finding normalization and enrichment | Go (AWS/Azure/GCP SDK clients) |
+| Graph Query Engine | Multi-hop graph traversal (zero-ETL over PostgreSQL) | PuppyGraph Enterprise (Gremlin / openCypher) |
 | Attack Path Engine | In-memory BFS graph computation | Go + ReactFlow (frontend) |
 | Toxic Combo Detector | 4-pattern toxic combination detection | Go |
 | Threat Intelligence | EPSS, CISA KEV, GreyNoise enrichment | Go (HTTP clients with caching) |
@@ -291,7 +291,11 @@ In-memory BFS graph engine that builds an adjacency graph from loaded findings a
 - **Traversal**: BFS from entry points (internet-exposed) to targets (data stores)
 - **Max depth**: 4 hops
 
-### 7.2 API
+### 7.2 Graph Query Engine (PuppyGraph)
+
+For multi-hop traversal queries beyond the BFS engine (e.g., "find all findings reachable from identity X within 3 hops"), Cloud Aegis integrates PuppyGraph Enterprise as a zero-ETL graph query layer over the existing PostgreSQL data store. PuppyGraph supports both Gremlin and openCypher query languages and is accessed via `POST /api/v1/graph/query`. The existing Go BFS engine is retained as a fallback when the PuppyGraph service is unavailable (feature flag: `PUPPYGRAPH_URL`). See [ADR-015](./adr/ADR-015-graph-query-engine.md) for the full architecture decision.
+
+### 7.3 API
 
 | Endpoint | Method | Description |
 | --- | --- | --- |
@@ -331,24 +335,23 @@ See [ADR-010](../adr/ADR-010-finops-cost-aggregation.md) for the architecture de
 ### 9.1 Multi-Cloud Support
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia'}}}%%
 flowchart LR
-    subgraph Primary["Primary (AWS)"]
-        EKS[EKS Cluster]
-        RDS[(RDS PostgreSQL)]
-        S3[S3 State]
+    subgraph Primary["Primary - AWS"]
+        EKS["EKS Cluster"]
+        RDS[("RDS PostgreSQL")]
+        S3["S3 State"]
     end
 
-    subgraph DR["DR (Azure)"]
-        AKS[AKS Cluster]
-        PostgresAz[(Azure PostgreSQL)]
-        Blob[Blob Storage]
+    subgraph DR["DR - Azure"]
+        AKS["AKS Cluster"]
+        PostgresAz[("Azure PostgreSQL")]
+        Blob["Blob Storage"]
     end
 
-    subgraph Tertiary["Tertiary (GCP)"]
-        GKE[GKE Cluster]
-        CloudSQL[(Cloud SQL)]
-        GCS[Cloud Storage]
+    subgraph Tertiary["Tertiary - GCP"]
+        GKE["GKE Cluster"]
+        CloudSQL[("Cloud SQL")]
+        GCS["Cloud Storage"]
     end
 
     EKS <-->|Cross-Region Sync| AKS
@@ -363,6 +366,10 @@ flowchart LR
 | Database | `deploy/terraform/modules/database/` | Cloud SQL, RDS, Azure PostgreSQL |
 | Redis | `deploy/terraform/modules/redis/` | Memorystore, ElastiCache, Azure Cache |
 | Network | `deploy/terraform/modules/network/` | AWS VPC, Azure VNet, GCP VPC |
+| IAM | `deploy/terraform/modules/iam/` | GCP SA, AWS IAM Roles, Azure Managed Identity |
+| Monitoring | `deploy/terraform/modules/monitoring/` | Cloud Monitoring, CloudWatch, Azure Monitor |
+| Secrets | `deploy/terraform/modules/secrets/` | GCP Secret Manager, AWS Secrets Manager, Azure Key Vault |
+| PuppyGraph | `deploy/terraform/modules/puppygraph/` | AWS EC2 (POC) |
 
 Environments: `dev`, `staging`, `prod` in `deploy/terraform/environments/`.
 
@@ -408,12 +415,12 @@ Environments: `dev`, `staging`, `prod` in `deploy/terraform/environments/`.
 
 | Metric | Description | Alert Threshold |
 | --- | --- | --- |
-| `cloudforge_http_requests_total` | Total HTTP requests by method/path/status | - |
-| `cloudforge_http_request_duration_seconds` | Request latency histogram | P99 > 500ms |
-| `cloudforge_findings_processed_total` | Findings processed by source/type/severity | - |
-| `cloudforge_ai_analysis_duration_seconds` | AI analysis duration | P99 > 30s |
-| `cloudforge_health_status` | Component health (1=healthy, 0=unhealthy) | Any 0 |
-| `cloudforge_rate_limit_hits_total` | Rate limit violations | >100/min |
+| `aegis_http_requests_total` | Total HTTP requests by method/path/status | - |
+| `aegis_http_request_duration_seconds` | Request latency histogram | P99 > 500ms |
+| `aegis_findings_processed_total` | Findings processed by source/type/severity | - |
+| `aegis_ai_analysis_duration_seconds` | AI analysis duration | P99 > 30s |
+| `aegis_health_status` | Component health (1=healthy, 0=unhealthy) | Any 0 |
+| `aegis_rate_limit_hits_total` | Rate limit violations | >100/min |
 
 ### 11.3 Health Endpoints
 
@@ -497,7 +504,7 @@ See [Technical Runbooks](../runbooks/README.md) for detailed operational procedu
 | Cache | Redis |
 | Orchestration | Temporal |
 | Policy Engine | OPA / Rego |
-| AI | Anthropic Claude Opus 4.6, OpenAI GPT-4 |
+| AI | Anthropic Claude Opus 4.6, OpenAI GPT-4, AWS Bedrock (production enrichment) |
 | IaC | Terraform |
 | Container Runtime | Kubernetes (EKS/AKS/GKE) |
 | Observability | OpenTelemetry, Prometheus, zap |

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient, ApiError, fetchWithMockFallback } from '@/lib/api'
 import type { RemediationRecord } from '@/types/remediation'
 import { useToast } from '@/hooks/useToast'
+import remediationsData from '@/lib/mock/remediations.json'
 
 export function useRemediations(filters?: { status?: string; tier?: number }) {
   const params = new URLSearchParams()
@@ -12,7 +13,7 @@ export function useRemediations(filters?: { status?: string; tier?: number }) {
     queryKey: ['remediations', 'list', filters],
     queryFn: () => fetchWithMockFallback<RemediationRecord[]>(
       `/remediations${qs ? `?${qs}` : ''}`,
-      () => import('@/lib/mock/remediations.json') as Promise<{ default: RemediationRecord[] }>,
+      () => Promise.resolve({ default: remediationsData as unknown as RemediationRecord[] }),
       'useRemediations',
     ),
   })
@@ -27,8 +28,7 @@ export function useRemediation(id: string) {
       } catch (err) {
         if (err instanceof ApiError && err.status < 500) throw err
         console.warn('[useRemediation] API unavailable, using mock data')
-        const mod = await import('@/lib/mock/remediations.json')
-        return (mod.default as RemediationRecord[]).find((r) => r.id === id) ?? null
+        return (remediationsData as unknown as RemediationRecord[]).find((r) => r.id === id) ?? null
       }
     },
     enabled: Boolean(id),

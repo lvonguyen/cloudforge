@@ -14,6 +14,19 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Search, LogOut, User, Menu } from 'lucide-react'
 
+const isDemo = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true'
+const ROLE_STYLES: Record<string, string> = {
+  admin: 'bg-primary text-primary-foreground',
+  operator: 'bg-orange-500 text-white',
+}
+function avatarStyle(role: string): string {
+  return isDemo ? (ROLE_STYLES[role] ?? 'bg-muted text-muted-foreground') : 'bg-foreground text-background'
+}
+function avatarLabel(user: { name: string; role: string }): string {
+  if (isDemo) return user.role === 'admin' ? 'A' : user.role === 'operator' ? 'O' : 'V'
+  return user.name ? user.name.split(' ').map(n => n[0]).join('') : '?'
+}
+
 export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
   const { user, logout } = useAuth()
   const [cmdOpen, setCmdOpen] = useState(false)
@@ -73,10 +86,8 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
         {(import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true') && <RoleSwitcher />}
 
         <DropdownMenu>
-          <DropdownMenuTrigger aria-label="User menu" className="flex items-center gap-2 rounded-full h-8 w-8 bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90">
-            <span className="w-full text-center">
-              {user.name.split(' ').map(n => n[0]).join('')}
-            </span>
+          <DropdownMenuTrigger aria-label="User menu" className={`flex items-center gap-2 rounded-full h-8 w-8 text-xs font-semibold hover:opacity-90 ${avatarStyle(user.role)}`}>
+            <span className="w-full text-center">{avatarLabel(user)}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuLabel className="font-normal">

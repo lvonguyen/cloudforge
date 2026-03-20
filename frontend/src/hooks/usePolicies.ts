@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient, ApiError, fetchWithMockFallback } from '@/lib/api'
+import policiesData from '@/lib/mock/policies.json'
 
 interface Policy {
   id: string
@@ -18,7 +19,7 @@ export function usePolicies(filter?: string) {
     queryKey: ['policies', filter],
     queryFn: () => fetchWithMockFallback<Policy[]>(
       `/policies${status ? `?status=${status}` : ''}`,
-      () => import('@/lib/mock/policies.json') as Promise<{ default: Policy[] }>,
+      () => Promise.resolve({ default: policiesData as Policy[] }),
       'usePolicies',
     ),
   })
@@ -33,8 +34,7 @@ export function usePolicy(id: string) {
       } catch (err) {
         if (err instanceof ApiError && err.status < 500) throw err
         console.warn(`[usePolicy] API unavailable for ${id}, using mock`)
-        const mod = await import('@/lib/mock/policies.json')
-        const match = (mod.default as Policy[]).find(p => p.id === id)
+        const match = (policiesData as Policy[]).find(p => p.id === id)
         return match ?? null
       }
     },

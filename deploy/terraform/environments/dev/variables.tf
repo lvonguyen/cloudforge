@@ -16,6 +16,12 @@ variable "region" {
   default     = "us-central1"
 }
 
+variable "alert_emails" {
+  description = "Email addresses for monitoring alert notifications"
+  type        = list(string)
+  default     = []
+}
+
 variable "aegis_image" {
   description = "Container image URI for Cloud Aegis API"
   type        = string

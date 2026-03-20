@@ -172,6 +172,9 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/attack-paths/stats",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.attackPathSvc.getAttackPathStats)),
 	).Methods("GET")
+	apiRouter.Handle("/attack-paths/{id}/analysis",
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAttackPathAnalysis)),
+	).Methods("GET")
 	apiRouter.Handle("/attack-paths/{id}",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.attackPathSvc.getAttackPath)),
 	).Methods("GET")

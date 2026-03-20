@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchWithMockFallback } from '@/lib/api'
+import auditData from '@/lib/mock/audit-log.json'
 
 interface AuditEvent {
   id: string
@@ -21,7 +22,7 @@ export function useAuditLog(filters?: { result?: string; actor?: string }) {
     queryKey: ['audit-log', filters],
     queryFn: () => fetchWithMockFallback<AuditEvent[]>(
       `/audit-log${qs ? `?${qs}` : ''}`,
-      () => import('@/lib/mock/audit-log.json') as Promise<{ default: AuditEvent[] }>,
+      () => Promise.resolve({ default: auditData as AuditEvent[] }),
       'useAuditLog',
     ),
   })

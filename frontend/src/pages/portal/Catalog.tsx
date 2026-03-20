@@ -43,6 +43,7 @@ const COMPLIANCE_COLORS: Record<string, string> = {
 }
 
 const CATEGORIES = ['All', 'compute', 'storage', 'database', 'network', 'serverless', 'container', 'messaging', 'analytics', 'security', 'observability', 'ai-ml', 'cicd'] as const
+const CATEGORY_LABELS: Record<string, string> = { 'ai-ml': 'AI/ML', 'cicd': 'CI/CD' }
 const SERVICE_TYPES: ('All' | ServiceType)[] = ['All', 'IaaS', 'PaaS', 'SaaS']
 
 export default function Catalog() {
@@ -155,11 +156,11 @@ export default function Catalog() {
           <button
             key={cat}
             onClick={() => setCategoryFilter(cat)}
-            className={`px-3 py-1 text-xs rounded-none font-medium transition-colors capitalize ${
+            className={`px-3 py-1 text-xs rounded-none font-medium transition-colors ${
               categoryFilter === cat ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
-            {cat} {categoryCounts[cat] != null ? `(${categoryCounts[cat]})` : '(0)'}
+            {CATEGORY_LABELS[cat] ?? cat.charAt(0).toUpperCase() + cat.slice(1)} {categoryCounts[cat] != null ? `(${categoryCounts[cat]})` : '(0)'}
           </button>
         ))}
       </div>

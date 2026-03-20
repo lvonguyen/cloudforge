@@ -109,7 +109,18 @@ except APIError:
 | 100K/mo | $2,600 | $1,800 | 31% |
 | 1M/mo | $26,000 | $18,000 | 31% |
 
+## Update: AWS Bedrock as Production Enrichment Provider
+
+**Date:** 2026-03-20
+
+For production enrichment workloads (finding risk scoring, remediation recommendations), Cloud Aegis uses **AWS Bedrock** (`anthropic.claude-haiku-4-5-20251001-v1:0`) as the managed inference provider. Bedrock eliminates the need to manage API keys for direct Anthropic/OpenAI access in production, uses IAM-based authentication (see `bedrock-sa` IAM user), and keeps inference traffic within the AWS network boundary.
+
+The provider abstraction (`AIProvider` interface) remains unchanged -- Bedrock is configured via `PLATFORM_PROVIDER=bedrock` and `BEDROCK_ENABLED=true` environment variables. The fallback chain is: Bedrock -> direct Anthropic API -> static analysis.
+
+Direct Anthropic Claude Opus 4.6 and OpenAI GPT-4 remain available for local development and as fallback providers.
+
 ## Related Decisions
 
 - ADR-005: Rate Limiting Strategy
+- ADR-018: Threat Intelligence Feed Integration
 

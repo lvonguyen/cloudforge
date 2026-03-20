@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchWithMockFallback } from '@/lib/api'
+import frameworksData from '@/lib/mock/frameworks.json'
 
 interface Framework {
   id: string
@@ -17,7 +18,7 @@ export function useCompliance() {
     queryKey: ['compliance', 'frameworks'],
     queryFn: () => fetchWithMockFallback<Framework[]>(
       '/compliance/frameworks',
-      () => import('@/lib/mock/frameworks.json') as Promise<{ default: Framework[] }>,
+      () => Promise.resolve({ default: frameworksData as Framework[] }),
       'useCompliance',
     ),
   })

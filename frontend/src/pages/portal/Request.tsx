@@ -96,26 +96,6 @@ function StepResourceSelection({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-sm font-semibold mb-3">Select Resource Type</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {catalog.map(item => (
-            <div
-              key={item.id}
-              className={`cursor-pointer rounded-none ring-2 transition-all ${
-                selectedId === item.id ? 'ring-primary' : 'ring-transparent hover:ring-muted-foreground/30'
-              }`}
-              onClick={() => {
-                onSelect(item.id)
-                onProviderChange(item.provider)
-              }}
-            >
-              <ResourceCatalogCard item={item} />
-            </div>
-          ))}
-        </div>
-      </div>
-
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label>Cloud Provider</Label>
@@ -142,6 +122,26 @@ function StepResourceSelection({
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-sm font-semibold mb-3">Select Resource Type</h2>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          {catalog.map(item => (
+            <div
+              key={item.id}
+              className={`cursor-pointer rounded-none ring-2 transition-all ${
+                selectedId === item.id ? 'ring-primary' : 'ring-transparent hover:ring-muted-foreground/30'
+              }`}
+              onClick={() => {
+                onSelect(item.id)
+                onProviderChange(item.provider)
+              }}
+            >
+              <ResourceCatalogCard item={item} />
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -528,6 +528,7 @@ export default function Request() {
     provider: m.provider,
     resourceType: m.resource_type,
     estimatedMonthlyCost: m.cost_estimate,
+    icon_path: m.icon_path,
   }))
 
   const [currentStep, setCurrentStep] = useState(0)

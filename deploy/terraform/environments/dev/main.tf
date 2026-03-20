@@ -78,6 +78,62 @@ module "aegis_api" {
   }
 }
 
+module "iam" {
+  source                   = "../../modules/iam"
+  cloud_provider           = var.cloud_provider
+  project_name             = var.project_name
+  environment              = "dev"
+  region                   = var.region
+  enable_finops            = true
+  enable_container_scanning = true
+
+  tags = {
+    application_id = var.project_name
+    environment    = "dev"
+    cost_center    = "engineering"
+    owner          = "platform-team"
+  }
+}
+
+module "monitoring" {
+  source         = "../../modules/monitoring"
+  cloud_provider = var.cloud_provider
+  project_name   = var.project_name
+  environment    = "dev"
+  region         = var.region
+  alert_emails   = var.alert_emails
+
+  tags = {
+    application_id = var.project_name
+    environment    = "dev"
+    cost_center    = "engineering"
+    owner          = "platform-team"
+  }
+}
+
+module "secrets" {
+  source         = "../../modules/secrets"
+  cloud_provider = var.cloud_provider
+  project_name   = var.project_name
+  environment    = "dev"
+  region         = var.region
+
+  secret_names = toset([
+    "db-url",
+    "jwt-secret",
+    "redis-password",
+    "bedrock-access-key",
+    "bedrock-secret-key",
+  ])
+
+  tags = {
+    application_id = var.project_name
+    environment    = "dev"
+    cost_center    = "engineering"
+    owner          = "platform-team"
+  }
+}
+
 module "opa" {
   source          = "../../modules/compute"
   cloud_provider  = var.cloud_provider

@@ -1,15 +1,20 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"regexp"
+	"strconv"
 	"sync"
 
 	"aegis/internal/api"
+	"aegis/internal/graph"
 
 	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.uber.org/zap"
 )
 
 // AttackPathService encapsulates attack path data and the mutex protecting it.
@@ -105,6 +110,134 @@ func (svc *AttackPathService) getAttackPath(w http.ResponseWriter, r *http.Reque
 
 	writeErrorResponse(w, "attack path not found", http.StatusNotFound)
 }
+
+// attackPathAnalysis is the response shape for GET /api/v1/attack-paths/{id}/analysis.
+type attackPathAnalysis struct {
+	Analysis         string            `json:"analysis"`
+	RemediationSteps []string          `json:"remediation_steps"`
+	RiskFactors      []string          `json:"risk_factors"`
+	BlastRadius      blastRadiusDetail `json:"blast_radius"`
+}
+
+type blastRadiusDetail struct {
+	Direct   int `json:"direct"`
+	Indirect int `json:"indirect"`
+	Total    int `json:"total"`
+}
+
+// getAttackPathAnalysis returns AI-enriched analysis for a single attack path.
+// When graphClient is configured, it queries PuppyGraph for connected resources
+// to build richer context. Otherwise it returns mock analysis data.
+func (s *Server) getAttackPathAnalysis(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getAttackPathAnalysis")
+	defer span.End()
+
+	id := mux.Vars(r)["id"]
+	span.SetAttributes(attribute.String("attack_path.id", id))
+
+	// Verify the attack path exists and is in scope.
+	s.attackPathSvc.Mu.RLock()
+	src := s.attackPathSvc.PathsByID[id]
+	var path *AttackPath
+	if src != nil {
+		p := *src
+		path = &p
+	}
+	s.attackPathSvc.Mu.RUnlock()
+
+	if path == nil {
+		writeErrorResponse(w, "attack path not found", http.StatusNotFound)
+		return
+	}
+
+	claims, _ := api.GetClaimsFromContext(ctx)
+	scope := api.ScopeFromContext(claims)
+	if scope != nil && !attackPathInScope(scope, path) {
+		writeErrorResponse(w, "attack path not found", http.StatusNotFound)
+		return
+	}
+
+	// Build analysis -- use graph context when PuppyGraph is available,
+	// otherwise return mock analysis seeded from path metadata.
+	analysis := s.buildAttackPathAnalysis(ctx, path)
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(analysis); err != nil {
+		s.logger.Warn("encoding attack path analysis", zap.Error(err))
+	}
+}
+
+// buildAttackPathAnalysis constructs the analysis response.
+// When graphClient is non-nil, it queries for connected resources to enrich
+// the blast radius. When nil, it derives data from the path's node/edge metadata.
+func (s *Server) buildAttackPathAnalysis(ctx context.Context, path *AttackPath) attackPathAnalysis {
+	direct := len(path.Nodes)
+	indirect := direct * 2 // heuristic: 2x connected resources per node
+	if indirect > 50 {
+		indirect = 50
+	}
+
+	// If PuppyGraph is available and ID is safe, query for real connected resource counts.
+	if s.graphClient != nil && safeGraphID.MatchString(path.ID) {
+		query := "g.V().has('id', '" + path.ID + "').both().both().dedup().count()"
+		result, err := s.graphClient.Query(ctx, graph.QueryRequest{
+			Language: "gremlin",
+			Query:    query,
+		})
+		if err != nil {
+			s.logger.Warn("graph query for blast radius failed, using heuristic",
+				zap.String("path_id", path.ID),
+				zap.Error(err),
+			)
+		} else {
+			var count int
+			if err := json.Unmarshal(result.Data, &count); err == nil && count > 0 {
+				indirect = count - direct
+				if indirect < 0 {
+					indirect = 0
+				}
+			}
+		}
+	}
+
+	// Build severity-aware analysis text from path metadata.
+	analysisText := "This " + path.Severity + "-severity attack path spans " +
+		strconv.Itoa(len(path.Nodes)) + " resources across " +
+		strconv.Itoa(len(path.Edges)) + " lateral movement steps. "
+	if len(path.Nodes) > 0 {
+		entry := path.Nodes[0]
+		analysisText += "The entry point is a " + entry.ResourceType +
+			" resource (" + entry.Provider + "/" + entry.Region + "). "
+	}
+	if len(path.Nodes) > 1 {
+		target := path.Nodes[len(path.Nodes)-1]
+		analysisText += "The target is a " + target.ResourceType +
+			" resource that could be compromised through privilege escalation or lateral movement."
+	}
+
+	return attackPathAnalysis{
+		Analysis: analysisText,
+		RemediationSteps: []string{
+			"Restrict network segmentation between entry-point and target resources",
+			"Apply least-privilege IAM policies to reduce lateral movement surface",
+			"Enable GuardDuty or equivalent runtime threat detection on affected accounts",
+			"Rotate credentials for identities with cross-account access in this path",
+		},
+		RiskFactors: []string{
+			"Path traverses " + strconv.Itoa(len(path.Nodes)) + " resources with escalation potential",
+			"Entry point has public-facing exposure",
+			path.Severity + " severity indicates high exploitability",
+		},
+		BlastRadius: blastRadiusDetail{
+			Direct:   direct,
+			Indirect: indirect,
+			Total:    direct + indirect,
+		},
+	}
+}
+
+// safeGraphID allows only alphanumeric characters, hyphens, and underscores in graph IDs.
+var safeGraphID = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 func (svc *AttackPathService) getAttackPathStats(w http.ResponseWriter, r *http.Request) {
 	_, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getAttackPathStats")

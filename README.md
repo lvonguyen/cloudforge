@@ -11,7 +11,7 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 
 > **[Live Demo](https://cloudaegis-demo.lvonguyen.com)** | **[API](https://aegis-api.fly.dev/health)**
 
-> **About this project** — Cloud Aegis demonstrates enterprise security patterns I've designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains throughout my career. My background has always been project-based: assess the current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — I don't stop at design docs, I ship working systems backed by threat models and ADRs (the [14 ADRs](docs/adr/) capture the same decision-making process I'd use to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. I use security-focused systems design as my core discipline and agentic coding workflows (Claude Code) as a force multiplier for delivery.
+> **About this project** — Cloud Aegis demonstrates enterprise security patterns I've designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains throughout my career. My background has always been project-based: assess the current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — I don't stop at design docs, I ship working systems backed by threat models and ADRs (the [18 ADRs](docs/core/architecture/adr/) capture the same decision-making process I'd use to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. I use security-focused systems design as my core discipline and agentic coding workflows (Claude Code) as a force multiplier for delivery.
 >
 > **Development rigor** — Code quality is enforced through a layered toolchain: `golangci-lint` with `gosec`/`gocritic`/`revive` in CI, shared coding standards governing Go patterns, error handling, and security rules across all repos, pre-commit hooks blocking credential leaks, and systematic multi-pass QA reviews (quality, security, bug discovery) before merge. The emphasis is on elegant, maintainable code paired with comprehensive documentation and detailed architecture diagrams — minimizing tech debt throughout the SDLC rather than accruing it for later.
 
@@ -95,7 +95,7 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 | CISA KEV catalog | Done | In-memory catalog with auto-refresh from CISA feed |
 | GreyNoise integration | Done | HTTP client with 12h cache, classification enrichment |
 | **Testing** | | |
-| Unit tests | 1894 passing | 34 Go packages (1474 tests), 420 frontend tests, 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
+| Unit tests | 1894+ passing | 34 Go packages (1,474 tests), 420+ frontend tests (51 test files), 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
 | Integration tests | Done | 12-step server lifecycle + 34-subtest RBAC authorization matrix (`go test -tags=integration`) |
 
 ### Package Maturity
@@ -126,8 +126,8 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 | Metric | Value |
 | ------ | ----- |
 | Go packages | 34 (all passing with `-race`) |
-| Go tests | 1474 |
-| Frontend tests | 420 |
+| Go tests | 1,474 |
+| Frontend tests | 420+ (51 test files) |
 | Benchmarks | 8 |
 | CI gates | 8 (lint, gosec, Trivy, vitest, npm audit, integration, Codecov, Lighthouse) |
 | Coverage thresholds | v8 lines: 70%, functions: 75%, branches: 65% |
@@ -172,7 +172,7 @@ Cloud Aegis bridges these needs with a unified platform that provides:
 
 ## [/] Architecture
 
-<img src="docs/diagrams/architecture.svg" alt="Cloud Aegis Architecture" width="720">
+<img src="docs/core/diagrams/architecture.svg" alt="Cloud Aegis Architecture" width="720">
 
 ---
 
@@ -221,7 +221,10 @@ cloudforge/
 │   │   ├── modules/               # Multi-cloud Terraform modules
 │   │   │   ├── compute/           # Cloud Run / ECS Fargate / Azure Container Apps
 │   │   │   ├── database/          # Cloud SQL / RDS / Azure PostgreSQL
-│   │   │   └── redis/             # Memorystore / ElastiCache / Azure Cache
+│   │   │   ├── iam/               # GCP SA / AWS IAM Roles / Azure Managed Identity
+│   │   │   ├── monitoring/        # Cloud Monitoring / CloudWatch / Azure Monitor
+│   │   │   ├── redis/             # Memorystore / ElastiCache / Azure Cache
+│   │   │   └── secrets/           # GCP Secret Manager / AWS Secrets Manager / Azure Key Vault
 │   │   ├── environments/          # Per-environment configs (dev, staging, prod)
 │   │   └── policies/              # Rego policies for IaC validation (conftest)
 │   ├── scripts/                   # plan-with-policy.sh, deploy.sh
@@ -237,10 +240,13 @@ cloudforge/
 │   │   └── types/                 # TypeScript type definitions
 │   └── public/                    # Static assets and logos
 ├── docs/
-│   ├── architecture/              # HLD, DDD, data models
-│   ├── diagrams/                  # Architecture diagrams (SVG)
-│   ├── adr/                       # Architecture Decision Records
-│   └── runbooks/                  # Operational procedures
+│   ├── core/
+│   │   └── architecture/          # HLD, DDD, DR-BC, data models
+│   │       └── adr/               # Architecture Decision Records (18 ADRs)
+│   ├── diagrams/                  # Architecture diagrams (SVG + Mermaid)
+│   ├── runbooks/                  # Operational procedures (9 runbooks)
+│   ├── research/                  # Technical research and POC notes
+│   └── archive/                   # Historical planning docs
 └── Makefile                       # Build targets
 ```
 
@@ -295,7 +301,7 @@ Pluggable providers for enterprise GRC platforms:
 - **Deploy scripts** — dry-run-by-default deployment with policy violation gate and human-readable remediation guidance
 - **Container images** — multi-stage Dockerfiles for frontend (nginx + SPA routing) and backend (Go + healthcheck)
 
-<img src="docs/diagrams/dual-opa-architecture.svg" alt="Dual-OPA Architecture" width="720">
+<img src="docs/core/diagrams/dual-opa-architecture.svg" alt="Dual-OPA Architecture" width="720">
 
 ### Risk Intelligence
 
@@ -407,53 +413,55 @@ workflow:
 
 | Document | Description |
 | -------- | ----------- |
-| [High-Level Design](docs/architecture/HLD.md) | System architecture overview |
-| [Detailed Design](docs/architecture/DDD.md) | ADRs, API specs, data models |
-| [DR/BC Plan](docs/DR-BC.md) | Disaster recovery procedures |
-| [Component Rationale](docs/architecture/component-rationale.md) | Build vs buy decisions |
-| [Frontend Planning](docs/frontend-planning.md) | React/Vite UI — 18 screens, 3 role views, phased build plan |
-| [IaC Planning](docs/iac-planning.md) | Terraform modules, Rego policies, deployment architecture |
-| [Dual-OPA Architecture](docs/diagrams/dual-opa-architecture.svg) | Cloud provisioning OPA (HTTP) vs AI governance OPA (embedded) |
+| [High-Level Design](docs/core/architecture/HLD.md) | System architecture overview (v3.0) |
+| [Detailed Design](docs/core/architecture/DDD.md) | API specs, data models |
+| [DR/BC Plan](docs/core/architecture/DR-BC.md) | Disaster recovery procedures (v2.1) |
+| [Component Rationale](docs/core/architecture/adr/component-rationale.md) | Build vs buy decisions |
+| [Dual-OPA Architecture](docs/core/diagrams/dual-opa-architecture.svg) | Cloud provisioning OPA (HTTP) vs AI governance OPA (embedded) |
 | [Attack Path Enhancements](docs/research/wiz-attack-path-enhancements.md) | Wiz-adjacent graph-based attack path analysis roadmap |
-| [Compliance Deployment Models](docs/diagrams/compliance-deployment-models.svg) | Multi-cloud compliance topology |
-| [Failover Sequence](docs/diagrams/failover-sequence.svg) | DR failover steps and timing |
-| [Global Deployment](docs/diagrams/global-deployment-architecture.svg) | Multi-region deployment layout |
-| [IaC Deploy Pipeline](docs/diagrams/iac-deploy-pipeline.svg) | Terraform/conftest CI/CD flow |
-| [Remediation Dispatcher](docs/diagrams/remediation-dispatcher-flow.svg) | Automated remediation routing |
-| [Risk Intelligence Pipeline](docs/diagrams/risk-intelligence-pipeline.svg) | Risk scoring data pipeline |
+| [Compliance Deployment Models](docs/core/diagrams/compliance-deployment-models.svg) | Multi-cloud compliance topology |
+| [Failover Sequence](docs/core/diagrams/failover-sequence.svg) | DR failover steps and timing |
+| [Global Deployment](docs/core/diagrams/global-deployment-architecture.svg) | Multi-region deployment layout |
+| [IaC Deploy Pipeline](docs/core/diagrams/iac-deploy-pipeline.svg) | Terraform/conftest CI/CD flow |
+| [Remediation Dispatcher](docs/core/diagrams/remediation-dispatcher-flow.svg) | Automated remediation routing |
+| [Risk Intelligence Pipeline](docs/core/diagrams/risk-intelligence-pipeline.svg) | Risk scoring data pipeline |
 
-### Architecture Decision Records
+### Architecture Decision Records (18 ADRs)
 
 | ADR | Decision |
 | --- | -------- |
-| [ADR-001](docs/adr/ADR-001-programming-language.md) | Programming Language (Go) |
-| [ADR-002](docs/adr/ADR-002-database-selection.md) | Database Selection (PostgreSQL) |
-| [ADR-003](docs/adr/ADR-003-caching-strategy.md) | Caching Strategy (Redis) |
-| [ADR-004](docs/adr/ADR-004-ai-provider-selection.md) | AI Provider (Anthropic Claude) |
-| [ADR-005](docs/adr/ADR-005-rate-limiting.md) | Rate Limiting Strategy |
-| [ADR-006](docs/adr/ADR-006-authentication.md) | Authentication (OIDC) |
-| [ADR-007](docs/adr/ADR-007-grc-integration.md) | GRC Integration Pattern |
-| [ADR-008](docs/adr/ADR-008-attack-path-computation.md) | Attack Path Computation (BFS + ReactFlow) |
-| [ADR-009](docs/adr/ADR-009-remediation-dispatcher.md) | Remediation Dispatcher Architecture |
-| [ADR-010](docs/adr/ADR-010-finops-cost-aggregation.md) | FinOps Multi-Cloud Cost Aggregation |
-| [ADR-011](docs/adr/ADR-011-toxic-combo-detection.md) | Toxic Combination Detection Strategy |
-| [ADR-012](docs/adr/ADR-012-whitelabel-architecture.md) | Whitelabel/Multi-Tenant Architecture |
-| [ADR-013](docs/adr/ADR-013-resource-scoped-rbac.md) | Resource-Scoped RBAC (ABAC) |
-| [ADR-014](docs/adr/ADR-014-event-driven-ingestion.md) | Event-Driven Finding Ingestion |
+| [ADR-001](docs/core/architecture/adr/ADR-001-programming-language.md) | Programming Language (Go) |
+| [ADR-002](docs/core/architecture/adr/ADR-002-database-selection.md) | Database Selection (PostgreSQL) |
+| [ADR-003](docs/core/architecture/adr/ADR-003-caching-strategy.md) | Caching Strategy (Redis) |
+| [ADR-004](docs/core/architecture/adr/ADR-004-ai-provider-selection.md) | AI Provider (Anthropic Claude) |
+| [ADR-005](docs/core/architecture/adr/ADR-005-rate-limiting.md) | Rate Limiting Strategy |
+| [ADR-006](docs/core/architecture/adr/ADR-006-authentication.md) | Authentication (OIDC + JWT) |
+| [ADR-007](docs/core/architecture/adr/ADR-007-grc-integration.md) | GRC Integration Pattern |
+| [ADR-008](docs/core/architecture/adr/ADR-008-attack-path-computation.md) | Attack Path Computation (BFS + ReactFlow) |
+| [ADR-009](docs/core/architecture/adr/ADR-009-remediation-dispatcher.md) | Remediation Dispatcher Architecture |
+| [ADR-010](docs/core/architecture/adr/ADR-010-finops-cost-aggregation.md) | FinOps Multi-Cloud Cost Aggregation |
+| [ADR-011](docs/core/architecture/adr/ADR-011-toxic-combo-detection.md) | Toxic Combination Detection Strategy |
+| [ADR-012](docs/core/architecture/adr/ADR-012-whitelabel-architecture.md) | Whitelabel/Multi-Tenant Architecture |
+| [ADR-013](docs/core/architecture/adr/ADR-013-resource-scoped-rbac.md) | Resource-Scoped RBAC (ABAC) |
+| [ADR-014](docs/core/architecture/adr/ADR-014-event-driven-ingestion.md) | Event-Driven Finding Ingestion |
+| [ADR-015](docs/core/architecture/adr/ADR-015-graph-query-engine.md) | Graph Query Engine (PuppyGraph) |
+| [ADR-016](docs/core/architecture/adr/ADR-016-container-scanning.md) | Container Security Scanning |
+| [ADR-017](docs/core/architecture/adr/ADR-017-secrets-management.md) | Secrets Management Architecture |
+| [ADR-018](docs/core/architecture/adr/ADR-018-threat-intelligence-feeds.md) | Threat Intelligence Feed Integration |
 
 ### Runbooks
 
 | Runbook | Purpose |
 | ------- | ------- |
-| [01-deployment](docs/runbooks/01-deployment.md) | Deployment procedures |
-| [02-incident-response](docs/runbooks/02-incident-response.md) | Incident handling |
-| [03-dr-failover](docs/runbooks/03-dr-failover.md) | DR failover procedures |
-| [04-performance](docs/runbooks/04-performance-troubleshooting.md) | Performance issues |
-| [05-remediation-operations](docs/runbooks/05-remediation-operations.md) | Remediation operations |
-| [06-policy-management](docs/runbooks/06-policy-management.md) | OPA policy management |
-| [07-secrets-rotation](docs/runbooks/07-secrets-rotation.md) | Secrets rotation procedures |
-| [08-finops-budget-alerts](docs/runbooks/08-finops-budget-alerts.md) | FinOps budget alerting |
-| [09-identity-provider-setup](docs/runbooks/09-identity-provider-setup.md) | Okta/Entra ID setup |
+| [01-deployment](docs/core/runbooks/01-deployment.md) | Deployment procedures |
+| [02-incident-response](docs/core/runbooks/02-incident-response.md) | Incident handling |
+| [03-dr-failover](docs/core/runbooks/03-dr-failover.md) | DR failover procedures |
+| [04-performance](docs/core/runbooks/04-performance-troubleshooting.md) | Performance issues |
+| [05-remediation-operations](docs/core/runbooks/05-remediation-operations.md) | Remediation operations |
+| [06-policy-management](docs/core/runbooks/06-policy-management.md) | OPA policy management |
+| [07-secrets-rotation](docs/core/runbooks/07-secrets-rotation.md) | Secrets rotation procedures |
+| [08-finops-budget-alerts](docs/core/runbooks/08-finops-budget-alerts.md) | FinOps budget alerting |
+| [09-identity-provider-setup](docs/core/runbooks/09-identity-provider-setup.md) | Okta/Entra ID setup |
 
 ---
 
@@ -561,37 +569,13 @@ Built-in support for 20+ frameworks:
 
 ## [/] Update History
 
-| Date | Author | Change |
-| ---- | ------ | ------ |
-| 2026-03-17 | Liem Vo-Nguyen | Sprint E: client-side mock attack path generator, AttackPathMiniGraph in FindingDetail, SecurityGraph focus mode (BFS 2-hop), connected-only default, AI cost budget guard (MonthlyBudgetCents, ErrBudgetExhausted), extended Bedrock enrichment (confidence scoring, Opus/Sonnet tier routing), container mock data (3 clusters), GET /api/v1/ai/usage, real-data transform pipeline (9000 anonymized findings), R2 upload |
-| 2026-03-17 | Liem Vo-Nguyen | Sprint D: NLQ bar backend (POST /api/v1/ai/nlq), DSPM data classification, security graph page, investigation board, LayoutSwitcher presets; production build fixes + Chrome QA 18/18 routes |
-| 2026-03-16 | Liem Vo-Nguyen | Sprint C: Viewer read-only surface + 13 RBAC tests, choke point detection, clickable metric cards, filter pills, kanban remediation pipeline (@hello-pangea/dnd), inline preview panel, NLQ bar (frontend), lifecycle timeline, data layer toggles, blast radius badges, container security view (GET /api/v1/containers) |
-| 2026-03-16 | Liem Vo-Nguyen | Sprint B: actorFilter 400 rejection, RoleViewer const + rank 0, compliance drill-down drawer (FrameworkDetailDrawer), portal dashboard hooks (useMyExceptions, useExceptions), RequestDetail API wiring, FRAMEWORK_PROFILES (per-framework STRIDE data), admin dashboard KPI hooks; 11 agent review fixes |
-| 2026-03-16 | Liem Vo-Nguyen | Sprint A + A+: 15 review fixes (go.mod, crypto/rand, RWMutex, sort.Slice, CORS dev-gate, tenant JWT, url.Values, full redaction, OPA default, attack path dedup, identity errors, sessionStorage, per-query mock), performance infra (pprof, 8 benchmarks, Makefile, useDeferredValue, vendor chunks, Lighthouse CI), E2E Chrome QA (21 pages, error states, focus rings, footer, OG tags, useAttackPaths fallback). Go: 34 pkgs / 1474 tests, Frontend: 323 tests |
-| 2026-03-12 | Liem Vo-Nguyen | Sprint 4: rebrand to "Platform", focus landing on 2 core modules, catalog CSP dropdown, benchmark tests, roadmap audit, whitelabel design doc |
-| 2026-03-12 | Liem Vo-Nguyen | Sprint 3: paginate attack paths, factory error tests, audit log key fix |
-| 2026-03-12 | Liem Vo-Nguyen | Sprint 2.5 QA: quality-review 4.48/5, bug-discovery 4.5/5, security-audit 4.2/5, Chrome QA 19/19 routes |
-| 2026-03-12 | Liem Vo-Nguyen | Sprint 2 deliverables: 12 hook/component tests, GRC GetExceptionsByRequestor, useCostAnomalies cache fix, Execute/Retry wiring, MyRequests API migration, Chrome QA audit (54% routes) |
-| 2026-03-11 | Liem Vo-Nguyen | Close gaps: honest badges, package maturity table, doc accuracy pass |
-| 2026-03-04 | Liem Vo-Nguyen | Build and deploy self-service portal — React 19, Vite 7, 18 pages, 3 role views, dark mode, Cloudflare Pages |
-| 2026-03-04 | Liem Vo-Nguyen | Documentation reorg — archive superseded docs, add diagram refs, fix stale README |
-| 2026-02-27 | Liem Vo-Nguyen | Add IaC deploy layer — 3 TF modules, 5 Rego policies, scripts, Dockerfiles |
-| 2026-02-27 | Liem Vo-Nguyen | Harden CI supply-chain: SHA-pin all third-party GH Actions |
-| 2026-02-27 | Liem Vo-Nguyen | Add dual-OPA architecture diagram, regenerate architecture SVGs |
-| 2026-02-27 | Liem Vo-Nguyen | Add Risk Intelligence section — attack path schema, contextual risk roadmap |
-| 2026-02-27 | Liem Vo-Nguyen | Add frontend planning doc (18 screens, 3 roles, phased build) |
-| 2026-02-27 | Liem Vo-Nguyen | Add IaC planning doc (Terraform modules, Rego policies, deploy arch) |
-| 2026-02-26 | Liem Vo-Nguyen | Add AI governance module — embedded OPA engine, agent registry, STRIDE/ATLAS threat models (merged from AgentGuard) |
-| 2026-02-26 | Liem Vo-Nguyen | Add MIT license |
-| 2026-02-26 | Liem Vo-Nguyen | Architecture hardening — BOLA fix, N+1 queries, CI pinning, OPA cap |
-| 2026-02-26 | Liem Vo-Nguyen | Apply security audit fixes SEC-001 through SEC-012 |
-| 2026-02-11 | Liem Vo-Nguyen | Add remediation dispatcher with 10 handlers across 8 domains |
-| 2026-02-11 | Liem Vo-Nguyen | Add executor engine with batch execution, dry-run, and rollback |
-| 2026-02-11 | Liem Vo-Nguyen | Add findings bridge package (temporary, pending cspm-aggregator merge) |
-| 2026-02-11 | Liem Vo-Nguyen | Add executor unit tests (14 cases) |
-| 2026-01-15 | Liem Vo-Nguyen | Add FinOps cost management module (aggregator, anomaly, chargeback) |
-| 2026-01-15 | Liem Vo-Nguyen | Add CI/CD security scanning (SAST, VCS integrations) |
-| 2025-12-15 | Liem Vo-Nguyen | Initial platform: API server, GRC, compliance, policy engine, AI |
+| Phase | Description |
+| ----- | ----------- |
+| **Phase 5: Risk Intelligence + FinOps** | EPSS/KEV/GreyNoise/HIBP/OTX threat intel, attack path BFS engine + ReactFlow viz, toxic combo detection, blast radius computation, PuppyGraph graph query integration, AWS Bedrock enrichment. FinOps multi-cloud cost aggregation, anomaly detection, chargeback engine, budget alerting |
+| **Phase 4: Frontend + QA Hardening** | Self-service portal (React 19 + Vite 7, 35 routes, 3 role views, dark mode), Cloudflare Pages deploy, investigation board, DSPM classification, kanban remediation pipeline, NLQ bar, demo mode hardening. Multi-pass QA reviews (quality 4.5+, security 4.5+, bugs 4.3+) |
+| **Phase 3: IaC + Security** | Multi-cloud Terraform modules (compute, database, redis, IAM, monitoring, secrets), 5 Rego policies (25 rules), policy gate script, resource-scoped RBAC, integrity hashing, audit logging, rollback encryption (AES-256-GCM), CI enforcement (gosec, Trivy, Codecov) |
+| **Phase 2: Remediation + AI Governance** | 10 remediation handlers across 8 domains, batch executor with dry-run + 48h rollback, AI governance module (embedded OPA, agent registry, STRIDE/ATLAS threat models), JWT auth (HS256/RS256 + JWKS), RBAC middleware, security fixes SEC-001 through SEC-012 |
+| **Phase 1: Core Platform** | API server, GRC provider abstraction (Archer, ServiceNow, PostgreSQL), 20+ compliance frameworks, OPA/Rego policy engine, AI provider abstraction (Claude/OpenAI), identity module (Okta + Entra ID), container security, structured logging (zap), PostgreSQL migrations, architecture docs (HLD, DDD, 18 ADRs, DR/BC, 9 runbooks) |
 
 ---
 

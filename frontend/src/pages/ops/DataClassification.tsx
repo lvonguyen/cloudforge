@@ -5,7 +5,10 @@ import { Badge } from '@/components/ui/badge'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { Lock, Unlock, Eye, AlertTriangle } from 'lucide-react'
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from '@/components/ui/sheet'
+import { Lock, Unlock, Eye, AlertTriangle, ExternalLink } from 'lucide-react'
 import { apiClient, ApiError } from '@/lib/api'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import type { DataAsset, DataSensitivity, ScanStatus } from '@/types/dspm'
@@ -70,6 +73,7 @@ function formatCount(n?: number): string {
 export default function DataClassification() {
   const { data: assets = [], isLoading, isError } = useDataAssets()
   const [sensitivityFilter, setSensitivityFilter] = useState<DataSensitivity | 'ALL'>('ALL')
+  const [selectedAsset, setSelectedAsset] = useState<DataAsset | null>(null)
 
   const filtered = sensitivityFilter === 'ALL'
     ? assets
@@ -155,7 +159,7 @@ export default function DataClassification() {
             </TableHeader>
             <TableBody>
               {filtered.map(asset => (
-                <TableRow key={asset.id}>
+                <TableRow key={asset.id} className="cursor-pointer hover:bg-muted/30" onClick={() => setSelectedAsset(asset)}>
                   <TableCell className="text-xs pl-4">
                     <div>
                       <span className="font-medium">{asset.name}</span>
@@ -163,7 +167,7 @@ export default function DataClassification() {
                     </div>
                   </TableCell>
                   <TableCell><ProviderBadge provider={asset.cloud_provider} /></TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{asset.resource_type.replace('_', ' ')}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{asset.resource_type.replaceAll('_', ' ')}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${SENSITIVITY_COLORS[asset.sensitivity]}`}>
                       {asset.sensitivity}
@@ -171,7 +175,7 @@ export default function DataClassification() {
                   </TableCell>
                   <TableCell>
                     <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-none ${SCAN_STATUS_COLORS[asset.scan_status]}`}>
-                      {asset.scan_status.replace('_', ' ')}
+                      {asset.scan_status.replaceAll('_', ' ')}
                     </span>
                   </TableCell>
                   <TableCell className="text-xs text-right tabular-nums">{formatCount(asset.record_count)}</TableCell>
@@ -204,6 +208,85 @@ export default function DataClassification() {
           <p className="text-sm">No data assets match the current filter.</p>
         </div>
       )}
+
+      {/* Asset detail drawer */}
+      <Sheet open={!!selectedAsset} onOpenChange={(open) => { if (!open) setSelectedAsset(null) }}>
+        <SheetContent className="sm:max-w-md overflow-y-auto">
+          {selectedAsset && (
+            <>
+              <SheetHeader>
+                <SheetTitle className="text-sm">{selectedAsset.name}</SheetTitle>
+              </SheetHeader>
+              <div className="space-y-4 mt-4">
+                <div className="space-y-3">
+                  <DetailField label="Resource ID" value={selectedAsset.resource_id} mono />
+                  <DetailField label="Resource Type" value={selectedAsset.resource_type.replaceAll('_', ' ')} />
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground w-24 shrink-0">Provider</span>
+                    <ProviderBadge provider={selectedAsset.cloud_provider} />
+                  </div>
+                  <DetailField label="Region" value={selectedAsset.region} />
+                  <DetailField label="Account" value={selectedAsset.account_id} mono />
+                </div>
+
+                <div className="border-t border-border pt-3 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground w-24 shrink-0">Sensitivity</span>
+                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${SENSITIVITY_COLORS[selectedAsset.sensitivity]}`}>
+                      {selectedAsset.sensitivity}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground w-24 shrink-0">Scan Status</span>
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-none ${SCAN_STATUS_COLORS[selectedAsset.scan_status]}`}>
+                      {selectedAsset.scan_status.replaceAll('_', ' ')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground w-24 shrink-0">Encryption</span>
+                    {selectedAsset.encryption_enabled
+                      ? <span className="text-xs text-green-600 flex items-center gap-1"><Lock className="h-3 w-3" /> Enabled</span>
+                      : <span className="text-xs text-red-600 flex items-center gap-1"><Unlock className="h-3 w-3" /> Disabled</span>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground w-24 shrink-0">Public Access</span>
+                    {selectedAsset.public_access
+                      ? <span className="text-xs text-red-600 flex items-center gap-1"><Eye className="h-3 w-3" /> Yes</span>
+                      : <span className="text-xs text-muted-foreground">No</span>}
+                  </div>
+                </div>
+
+                <div className="border-t border-border pt-3 space-y-3">
+                  {selectedAsset.record_count != null && <DetailField label="Records" value={formatCount(selectedAsset.record_count)} />}
+                  {selectedAsset.size_bytes != null && <DetailField label="Size" value={formatBytes(selectedAsset.size_bytes)} />}
+                  {selectedAsset.last_scanned_at && <DetailField label="Last Scanned" value={new Date(selectedAsset.last_scanned_at).toLocaleString()} />}
+                </div>
+
+                {selectedAsset.findings_count > 0 && (
+                  <div className="border-t border-border pt-3">
+                    <a
+                      href={`/ops/findings?resource=${encodeURIComponent(selectedAsset.resource_id)}`}
+                      className="text-xs text-blue-500 hover:text-blue-400 flex items-center gap-1"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      {selectedAsset.findings_count} related finding{selectedAsset.findings_count !== 1 ? 's' : ''}
+                    </a>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+    </div>
+  )
+}
+
+function DetailField({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex items-start gap-2">
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground w-24 shrink-0">{label}</span>
+      <span className={`text-xs ${mono ? 'font-mono break-all' : ''}`}>{value}</span>
     </div>
   )
 }

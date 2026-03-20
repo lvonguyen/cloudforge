@@ -85,11 +85,18 @@ export async function fetchWithMockFallback<T>(
   mockImport: () => Promise<{ default: T }>,
   label: string,
 ): Promise<T> {
+  // In demo mode, skip API entirely — no backend to call
+  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+    console.warn(`[${label}] Demo mode, using mock data`)
+    const mod = await mockImport()
+    return mod.default
+  }
+
   try {
     return await apiClient.get<T>(path)
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
-    if (import.meta.env.PROD) throw err
+    if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'true') throw err
     console.warn(`[${label}] API unavailable, using mock data`)
     try {
       const mod = await mockImport()
