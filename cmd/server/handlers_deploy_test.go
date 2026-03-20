@@ -57,7 +57,9 @@ func TestStartDeployPreview_ViewerForbidden(t *testing.T) {
 
 	body := `{"resourceType":"s3","provider":"aws","region":"us-east-1"}`
 	rr := doRequest(t, router, "POST", "/api/v1/deploy/preview", body, viewerJWT(t))
-	if rr.Code == http.StatusForbidden { t.Errorf("status = 403, want non-forbidden (viewer parity)") }
+	if rr.Code == http.StatusForbidden {
+		t.Errorf("status = 403, want non-forbidden (viewer parity)")
+	}
 }
 
 func TestAbortDeployPreview_NotFound(t *testing.T) {

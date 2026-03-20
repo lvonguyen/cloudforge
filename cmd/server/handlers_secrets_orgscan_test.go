@@ -34,7 +34,9 @@ func TestOrgScan_Forbidden(t *testing.T) {
 	jwt := operatorJWT(t) // admin-only endpoint
 
 	rr := doRequest(t, router, "POST", "/api/v1/secrets/org-scan", `{"org_name":"test"}`, jwt)
-	if rr.Code == http.StatusForbidden { t.Errorf("status = 403, want non-forbidden (viewer parity)") }
+	if rr.Code == http.StatusForbidden {
+		t.Errorf("status = 403, want non-forbidden (viewer parity)")
+	}
 }
 
 func TestOrgScan_EmptyOrgName(t *testing.T) {

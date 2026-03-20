@@ -48,7 +48,9 @@ func TestListDataClassificationAssets_ViewerForbidden(t *testing.T) {
 	jwt := viewerJWT(t)
 
 	rr := doRequest(t, router, "GET", "/api/v1/data-classification/assets", "", jwt)
-	if rr.Code == http.StatusForbidden { t.Errorf("status = 403, want non-forbidden (viewer parity)") }
+	if rr.Code == http.StatusForbidden {
+		t.Errorf("status = 403, want non-forbidden (viewer parity)")
+	}
 }
 
 func TestListDataClassificationAssets_Unauthenticated(t *testing.T) {

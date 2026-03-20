@@ -86,7 +86,9 @@ func TestIngestFinding_AdminOnly(t *testing.T) {
 
 	// Operator should be rejected
 	rr := doRequest(t, router, "POST", "/api/v1/findings/ingest", body, operatorJWT(t))
-	if rr.Code == http.StatusForbidden { t.Errorf("status = 403, want non-forbidden (viewer parity)") }
+	if rr.Code == http.StatusForbidden {
+		t.Errorf("status = 403, want non-forbidden (viewer parity)")
+	}
 
 	// Requester should be rejected
 	rr2 := doRequest(t, router, "POST", "/api/v1/findings/ingest", body, requesterJWT(t))

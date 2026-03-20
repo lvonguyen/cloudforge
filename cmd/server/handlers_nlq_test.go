@@ -49,7 +49,9 @@ func TestQueryNLQ_ViewerForbidden(t *testing.T) {
 	jwt := viewerJWT(t)
 
 	rr := doRequest(t, router, "POST", "/api/v1/ai/nlq", `{"query":"critical findings"}`, jwt)
-	if rr.Code == http.StatusForbidden { t.Errorf("status = 403, want non-forbidden (viewer parity)") }
+	if rr.Code == http.StatusForbidden {
+		t.Errorf("status = 403, want non-forbidden (viewer parity)")
+	}
 }
 
 func TestGetAIUsage_NoProvider(t *testing.T) {
@@ -89,5 +91,7 @@ func TestGetAIUsage_OperatorForbidden(t *testing.T) {
 	jwt := operatorJWT(t)
 
 	rr := doRequest(t, router, "GET", "/api/v1/ai/usage", "", jwt)
-	if rr.Code == http.StatusForbidden { t.Errorf("status = 403, want non-forbidden (viewer parity)") }
+	if rr.Code == http.StatusForbidden {
+		t.Errorf("status = 403, want non-forbidden (viewer parity)")
+	}
 }
