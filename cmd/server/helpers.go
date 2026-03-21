@@ -86,11 +86,48 @@ func (s *Server) decodeJSONBody(w http.ResponseWriter, r *http.Request, dst inte
 	return decodeJSONBody(w, r, dst, s.logger)
 }
 
-// writeErrorResponse writes a JSON error response without leaking internal details
+// apiError is the standard error response envelope for all API errors.
+type apiError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Status  int    `json:"status"`
+}
+
+// errorCodeFromStatus derives a machine-readable error code from status + message.
+func errorCodeFromStatus(status int, msg string) string {
+	switch status {
+	case http.StatusNotFound:
+		// Derive resource-specific code from the message prefix.
+		for _, prefix := range []string{"finding", "agent", "remediation", "policy", "workflow", "container", "exception"} {
+			if strings.Contains(strings.ToLower(msg), prefix) {
+				return strings.ToUpper(prefix) + "_NOT_FOUND"
+			}
+		}
+		return "NOT_FOUND"
+	case http.StatusBadRequest:
+		return "BAD_REQUEST"
+	case http.StatusForbidden:
+		return "FORBIDDEN"
+	case http.StatusServiceUnavailable:
+		return "SERVICE_UNAVAILABLE"
+	case http.StatusConflict:
+		return "CONFLICT"
+	case http.StatusTooManyRequests:
+		return "RATE_LIMITED"
+	default:
+		return "INTERNAL_ERROR"
+	}
+}
+
+// writeErrorResponse writes a standard JSON error response.
 func writeErrorResponse(w http.ResponseWriter, msg string, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
+	_ = json.NewEncoder(w).Encode(apiError{
+		Code:    errorCodeFromStatus(statusCode, msg),
+		Message: msg,
+		Status:  statusCode,
+	})
 }
 
 // writeInternalError logs the actual error and returns a generic message to the client

@@ -128,11 +128,11 @@ func TestDeleteComment_NotFound(t *testing.T) {
 	rr := doRequest(t, router, "DELETE", "/api/v1/findings/f-123/comments/nonexistent", "", adminJWT(t))
 	assertStatus(t, rr, http.StatusNotFound)
 
-	var resp map[string]string
+	var resp apiError
 	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
 		t.Fatalf("decode error response: %v", err)
 	}
-	if resp["error"] != "comment not found" {
-		t.Errorf("error = %q, want %q", resp["error"], "comment not found")
+	if resp.Message != "comment not found" {
+		t.Errorf("error message = %q, want %q", resp.Message, "comment not found")
 	}
 }

@@ -57,10 +57,9 @@ func TestGetExceptionsByApp_NonMatchingSubject(t *testing.T) {
 	rr := doRequest(t, router, "GET", "/api/v1/applications/other-app/exceptions", "", jwt)
 	assertStatus(t, rr, http.StatusForbidden) // app-level ownership check — not route RBAC
 
-	var errResp map[string]string
+	var errResp apiError
 	if err := json.NewDecoder(rr.Body).Decode(&errResp); err == nil {
-		msg := errResp["error"]
-		if msg == "" {
+		if errResp.Message == "" {
 			t.Error("expected non-empty error message in 403 body")
 		}
 	}
@@ -223,9 +222,9 @@ func TestWithdrawException_NotPending(t *testing.T) {
 	rr := doRequest(t, router, "POST", "/api/v1/exceptions/"+excID+"/withdraw", "{}", jwt)
 	assertStatus(t, rr, http.StatusConflict)
 
-	var errResp map[string]string
+	var errResp apiError
 	if err := json.NewDecoder(rr.Body).Decode(&errResp); err == nil {
-		if errResp["error"] == "" {
+		if errResp.Message == "" {
 			t.Error("expected non-empty error message in 409 body")
 		}
 	}
