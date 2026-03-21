@@ -50,8 +50,9 @@ func (e *memoryEngine) StartWorkflow(_ context.Context, wf *Workflow) (*Workflow
 	wf.CreatedAt = now
 	wf.UpdatedAt = now
 
+	stored := copyWorkflow(wf)
 	e.mu.Lock()
-	e.workflows[wf.ID] = wf
+	e.workflows[wf.ID] = stored
 	e.mu.Unlock()
 
 	return copyWorkflow(wf), nil

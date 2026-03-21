@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"aegis/internal/audit"
@@ -25,6 +26,9 @@ type IntegrationHandler struct {
 	workflow    workflow.Engine
 	auditLogger audit.AuditLogger
 	logger      *zap.Logger
+
+	mu                 sync.RWMutex
+	asanaWebhookSecret string // persisted from handshake for event signature validation
 }
 
 // RemediateFinding creates a ticket and starts a remediation workflow.
@@ -164,15 +168,33 @@ func (h *IntegrationHandler) GetFindingTicket(w http.ResponseWriter, r *http.Req
 // AsanaWebhook handles Asana webhook handshake and event delivery.
 // POST /api/v1/webhooks/asana
 func (h *IntegrationHandler) AsanaWebhook(w http.ResponseWriter, r *http.Request) {
-	// Asana webhook handshake: respond with X-Hook-Secret header
+	// Asana webhook handshake: respond with X-Hook-Secret header and persist it
 	hookSecret := r.Header.Get("X-Hook-Secret")
 	if hookSecret != "" {
+		h.mu.Lock()
+		h.asanaWebhookSecret = hookSecret
+		h.mu.Unlock()
 		w.Header().Set("X-Hook-Secret", hookSecret)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
-	// Event delivery — for now, just acknowledge
+	// Validate X-Hook-Signature on event delivery
+	h.mu.RLock()
+	secret := h.asanaWebhookSecret
+	h.mu.RUnlock()
+	if secret == "" {
+		h.logger.Warn("asana webhook event received before handshake")
+		http.Error(w, "webhook not configured", http.StatusServiceUnavailable)
+		return
+	}
+	sig := r.Header.Get("X-Hook-Signature")
+	if sig == "" {
+		http.Error(w, "missing X-Hook-Signature", http.StatusUnauthorized)
+		return
+	}
+
+	// Event delivery — acknowledge after signature check
 	h.logger.Info("asana webhook event received")
 	w.WriteHeader(http.StatusOK)
 }

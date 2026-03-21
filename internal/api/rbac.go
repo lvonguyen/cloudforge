@@ -84,9 +84,10 @@ const (
 
 // groupRoleMap maps IdP group names to roles (first match wins).
 var groupRoleMap = map[string]Role{
-	"aegis-admin":    RoleAdmin,
-	"aegis-operator": RoleOperator,
-	"aegis-viewer":   RoleViewer,
+	"aegis-admin":     RoleAdmin,
+	"aegis-operator":  RoleOperator,
+	"aegis-requester": RoleRequester,
+	"aegis-viewer":    RoleViewer,
 }
 
 // roleRank defines privilege ordering for highest-privilege-wins resolution.
@@ -99,9 +100,9 @@ var roleRank = map[Role]int{
 
 // RoleFromClaims extracts the highest-privilege role from JWT group claims.
 // Iterates all groups and returns the role with the highest rank.
-// If no group matches, defaults to RoleRequester (not viewer).
+// If no group matches, defaults to RoleViewer (least privilege).
 func RoleFromClaims(c *Claims) Role {
-	best := RoleRequester
+	best := RoleViewer
 	matched := false
 	for _, g := range c.Groups {
 		if role, ok := groupRoleMap[g]; ok {

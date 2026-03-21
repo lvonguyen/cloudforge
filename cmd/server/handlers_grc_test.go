@@ -168,6 +168,7 @@ func TestWithdrawException_Success(t *testing.T) {
 	jwt := makeJWT(t, api.Claims{
 		Subject: requestor,
 		Email:   requestor,
+		Groups:  []string{"aegis-requester"},
 		Scope:   "requester",
 	})
 
@@ -214,6 +215,7 @@ func TestWithdrawException_NotPending(t *testing.T) {
 	jwt := makeJWT(t, api.Claims{
 		Subject: requestor,
 		Email:   requestor,
+		Groups:  []string{"aegis-requester"},
 		Scope:   "requester",
 	})
 

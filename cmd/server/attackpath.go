@@ -75,10 +75,12 @@ type AttackPathStats struct {
 
 // severityRank orders severities for comparison.
 var severityRank = map[string]int{
-	"CRITICAL": 4,
-	"HIGH":     3,
-	"MEDIUM":   2,
-	"LOW":      1,
+	"CRITICAL":      4,
+	"HIGH":          3,
+	"MEDIUM":        2,
+	"LOW":           1,
+	"INFO":          0,
+	"INFORMATIONAL": 0,
 }
 
 // computeAttackPaths builds an in-memory graph from findings and runs BFS

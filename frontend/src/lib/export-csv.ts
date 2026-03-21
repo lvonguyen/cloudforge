@@ -2,7 +2,12 @@ import type { Finding } from '@/types/compliance'
 
 export function exportCSV(findings: Finding[]) {
   const headers = ['ID', 'Title', 'Severity', 'Category', 'Provider', 'Resource Type', 'Resource', 'Region', 'Status', 'SLA Due Date', 'First Found', 'Remediation']
-  const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`
+  const esc = (v: string) => {
+    let s = String(v).replace(/"/g, '""')
+    // Neutralize CSV formula injection — prefix formula-triggering chars with tab
+    if (/^[=+\-@\t\r]/.test(s)) s = '\t' + s
+    return `"${s}"`
+  }
   const rows = findings.map(f => [
     esc(f.id),
     esc(f.title),

@@ -546,7 +546,8 @@ func (rl *RateLimiter) isTrustedProxy(ipStr string) bool {
 	return false
 }
 
-// checkLocalFallback performs local in-memory rate limiting when Redis is unavailable
+// checkLocalFallback performs local in-memory rate limiting when Redis is unavailable.
+// Respects tier and endpoint limits rather than falling back to a single default.
 func (rl *RateLimiter) checkLocalFallback(key RateLimitKey) bool {
 	identifier := key.ClientID
 	if identifier == "" {
@@ -573,8 +574,15 @@ func (rl *RateLimiter) checkLocalFallback(key RateLimitKey) bool {
 		counter.resetAt = time.Now().Add(time.Minute)
 	}
 
-	// Check limit (use default per-minute limit)
-	limit := rl.config.DefaultRequestsPerMinute
+	// Resolve effective per-minute limit from tier and endpoint config
+	tierLimits := rl.getTierLimits(key.Tier)
+	endpointLimits := rl.getEndpointLimits(key.Endpoint, key.Method)
+	effective := rl.calculateEffectiveLimits(tierLimits, endpointLimits)
+
+	limit := effective.RequestsPerMinute
+	if limit == 0 {
+		limit = rl.config.DefaultRequestsPerMinute
+	}
 	if limit == 0 {
 		limit = 100
 	}

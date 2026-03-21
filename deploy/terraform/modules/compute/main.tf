@@ -105,7 +105,7 @@ resource "aws_ecs_service" "this" {
 
   network_configuration {
     subnets          = var.subnet_ids
-    security_groups  = []  # Populated by networking module
+    security_groups  = var.security_group_ids
     assign_public_ip = false  # Always private — policy enforced
   }
 

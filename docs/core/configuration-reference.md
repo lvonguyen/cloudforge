@@ -136,6 +136,30 @@ These are set in `fly.toml` for the Fly.io deployment:
 | `RATE_LIMIT_ENABLED` | `true` | Rate limiting on |
 | `CORS_ALLOWED_ORIGINS` | `https://cloudaegis-demo.lvonguyen.com` | Cloudflare Pages domain |
 
+## Frontend (Vite Build-Time)
+
+These variables are embedded at build time via Vite's `import.meta.env`:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VITE_DEMO_MODE` | *(empty)* | Set `true` to enable demo access and mock fallbacks |
+| `VITE_OKTA_ISSUER` | *(empty)* | Okta OIDC issuer URL for frontend auth |
+| `VITE_OKTA_CLIENT_ID` | *(empty)* | Okta OIDC client ID |
+| `VITE_WS_URL` | *(empty)* | WebSocket server URL for SSE events |
+| `VITE_DEV_TOKEN` | *(empty)* | Dev-mode auth token override |
+| `VITE_COMPANY_NAME` | `Contoso` | White-label company name |
+| `VITE_PRODUCT_NAME` | `Cloud Aegis` | White-label product name |
+| `VITE_LOGO_PATH` | `/icons/aegis-logo.svg` | Path to logo SVG |
+| `VITE_EMAIL_DOMAIN` | `contoso.dev` | Domain used in demo email addresses |
+| `VITE_REPO_PREFIX` | `github.com/contoso` | Repository URL prefix |
+| `VITE_ENABLED_MODULES` | `aegis,cspm-aggregator` | Comma-separated enabled module list |
+| `VITE_STORAGE_PREFIX` | `aegis` | sessionStorage/localStorage key prefix |
+| `VITE_BRAND_PRIMARY` | *(empty)* | Primary brand color override (hex) |
+| `VITE_BRAND_SECONDARY` | *(empty)* | Secondary brand color override (hex) |
+| `VITE_BRAND_ACCENT` | *(empty)* | Accent brand color override (hex) |
+| `VITE_THEME` | *(empty)* | Default theme (`light`, `dark`) |
+| `VITE_DEMO_ACCESS_ENABLED` | *(empty)* | Set `true` to enable demo access button |
+
 ## Graceful Degradation
 
 When optional services are unavailable, the server degrades gracefully:

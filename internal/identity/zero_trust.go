@@ -270,11 +270,15 @@ func (e *ZeroTrustEngine) applyPolicy(request *AccessRequest, policy *ZeroTrustP
 	requiredActions := make([]string, 0)
 	sessionControls := make(map[string]string)
 
+	mfaBlocked := false
 	for _, action := range policy.Actions {
 		switch action.Type {
 		case "allow":
-			decision.Allowed = true
-			decision.Reason = "Access granted by policy"
+			// Only grant access if no prior action (e.g. MFA) blocked it
+			if !mfaBlocked {
+				decision.Allowed = true
+				decision.Reason = "Access granted by policy"
+			}
 		case "deny":
 			decision.Allowed = false
 			decision.Reason = fmt.Sprintf("Access denied by policy: %s", policy.Name)
@@ -282,6 +286,7 @@ func (e *ZeroTrustEngine) applyPolicy(request *AccessRequest, policy *ZeroTrustP
 			if !request.Context.MFACompleted {
 				decision.Allowed = false
 				decision.Reason = "MFA required"
+				mfaBlocked = true
 				requiredActions = append(requiredActions, "complete_mfa")
 			}
 		case "step_up":

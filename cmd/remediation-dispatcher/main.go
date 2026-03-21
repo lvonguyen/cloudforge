@@ -234,8 +234,14 @@ func captureRollbackState(ctx context.Context, logger *zap.Logger, findingsList 
 		// Generate rollback script
 		state.RollbackScript = generateRollbackScript(finding, result)
 
+		// Sanitize finding ID to prevent path traversal (e.g. "../../etc/something")
+		safeID := filepath.Base(finding.Finding.ID)
+		if safeID == "." || safeID == "/" {
+			return fmt.Errorf("invalid finding ID %q", finding.Finding.ID)
+		}
+
 		// Write state file
-		stateFile := filepath.Join(*stateDir, fmt.Sprintf("%s-%s.json", runID, finding.Finding.ID))
+		stateFile := filepath.Join(*stateDir, fmt.Sprintf("%s-%s.json", runID, safeID))
 		data, err := json.MarshalIndent(state, "", "  ")
 		if err != nil {
 			return fmt.Errorf("failed to marshal state for %s: %w", finding.Finding.ID, err)

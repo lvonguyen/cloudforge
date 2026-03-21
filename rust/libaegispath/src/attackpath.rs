@@ -5,25 +5,28 @@ use rayon::prelude::*;
 use crate::types::*;
 
 fn severity_rank(s: &str) -> i32 {
-    match s {
+    match s.to_ascii_uppercase().as_str() {
         "CRITICAL" => 4,
         "HIGH" => 3,
         "MEDIUM" => 2,
         "LOW" => 1,
+        "INFO" | "INFORMATIONAL" => -1,
         _ => 0,
     }
 }
 
 fn is_entry_point(f: &Finding) -> bool {
-    if f.category == "NETWORK" {
+    let cat = f.category.to_ascii_uppercase();
+    if cat == "NETWORK" {
         return true;
     }
-    if f.category == "VULNERABILITY" && f.exploit_available {
+    if cat == "VULNERABILITY" && f.exploit_available {
         return true;
     }
     let rt = f.resource_type.to_ascii_lowercase();
+    let sev = f.severity.to_ascii_uppercase();
     if matches!(rt.as_str(), "compute" | "container" | "serverless")
-        && (f.severity == "CRITICAL" || f.severity == "HIGH")
+        && (sev == "CRITICAL" || sev == "HIGH")
     {
         return true;
     }

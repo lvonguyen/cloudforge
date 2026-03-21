@@ -43,16 +43,14 @@ pub unsafe extern "C" fn aegis_compute_attack_paths(
         Err(_) => return std::ptr::null_mut(),
     };
 
-    // Shrink capacity to match length so aegis_free can reconstruct
-    // with Vec::from_raw_parts(ptr, len, len) without UB.
-    let mut output = output;
-    output.shrink_to_fit();
-    let len = output.len();
-    let ptr = output.as_ptr();
-    std::mem::forget(output);
+    // into_boxed_slice() guarantees capacity == length (unlike shrink_to_fit),
+    // so aegis_free can safely reconstruct with Vec::from_raw_parts(ptr, len, len).
+    let boxed = output.into_boxed_slice();
+    let len = boxed.len();
+    let ptr = Box::into_raw(boxed) as *mut u8;
 
     unsafe { *out_len = len };
-    ptr as *mut u8
+    ptr
 }
 
 /// Load findings from JSON and serialize them with an optional filter.
@@ -82,7 +80,11 @@ pub unsafe extern "C" fn aegis_load_and_serialize_findings(
         Err(_) => return std::ptr::null_mut(),
     };
 
-    let filter = if !filter_ptr.is_null() && filter_len > 0 && filter_len <= MAX_FILTER_BYTES {
+    let filter = if !filter_ptr.is_null() && filter_len > 0 {
+        if filter_len > MAX_FILTER_BYTES {
+            // Reject oversized filters rather than silently dropping to unfiltered
+            return std::ptr::null_mut();
+        }
         let filter_bytes = unsafe { slice::from_raw_parts(filter_ptr, filter_len) };
         serde_json::from_slice::<loader::FindingsFilter>(filter_bytes).ok()
     } else {
@@ -94,17 +96,15 @@ pub unsafe extern "C" fn aegis_load_and_serialize_findings(
         Err(_) => return std::ptr::null_mut(),
     };
 
-    let mut output = output;
-    output.shrink_to_fit();
-    let len = output.len();
-    let ptr = output.as_ptr();
-    std::mem::forget(output);
+    let boxed = output.into_boxed_slice();
+    let len = boxed.len();
+    let ptr = Box::into_raw(boxed) as *mut u8;
 
     unsafe { *out_len = len };
-    ptr as *mut u8
+    ptr
 }
 
-/// Free a buffer previously returned by `aegis_compute_attack_paths`.
+/// Free a buffer previously returned by an `aegis_*` function.
 ///
 /// # Safety
 ///
@@ -113,7 +113,8 @@ pub unsafe extern "C" fn aegis_load_and_serialize_findings(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn aegis_free(ptr: *mut u8, len: usize) {
     if !ptr.is_null() && len > 0 {
-        drop(unsafe { Vec::from_raw_parts(ptr, len, len) });
+        // Reconstruct the Box<[u8]> that was leaked via Box::into_raw.
+        drop(unsafe { Box::from_raw(std::ptr::slice_from_raw_parts_mut(ptr, len)) });
     }
 }
 

@@ -58,8 +58,13 @@ variable "secrets" {
   default     = {}
 }
 
-variable "vpc_id"          { type = string }
-variable "subnet_ids"      { type = list(string) }
+variable "vpc_id"            { type = string }
+variable "subnet_ids"        { type = list(string) }
+variable "security_group_ids" {
+  description = "Security group IDs for ECS network configuration (AWS only)"
+  type        = list(string)
+  default     = []
+}
 variable "service_account" { type = string; default = "" }
 variable "tags"            { type = map(string); default = {} }
 variable "region"          { type = string; default = "us-central1" }

@@ -43,6 +43,10 @@ func (m *BudgetMonitor) Check(ctx context.Context) ([]BudgetAlert, error) {
 	var fired []BudgetAlert
 
 	for _, rule := range m.rules {
+		if rule.MonthlyUSD <= 0 {
+			return fired, fmt.Errorf("budget %q: MonthlyUSD must be positive, got %f", rule.Name, rule.MonthlyUSD)
+		}
+
 		actual, err := m.spend.CurrentSpend(ctx, rule.Provider, rule.CostCenter)
 		if err != nil {
 			return fired, fmt.Errorf("budget %q: fetch spend: %w", rule.Name, err)

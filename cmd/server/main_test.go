@@ -206,12 +206,13 @@ func operatorJWT(t *testing.T) string {
 	})
 }
 
-// requesterJWT returns a JWT with requester role (no special groups).
+// requesterJWT returns a JWT with requester role (aegis-requester group).
 func requesterJWT(t *testing.T) string {
 	t.Helper()
 	return makeJWT(t, api.Claims{
 		Subject: "test-requester",
 		Email:   "user@contoso.dev",
+		Groups:  []string{"aegis-requester"},
 		Scope:   "requester",
 	})
 }

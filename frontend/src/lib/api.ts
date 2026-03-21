@@ -81,6 +81,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
       const text = await res.text().catch(() => res.statusText)
       throw new ApiError(res.status, text)
     }
+    // 204 No Content has no body — avoid SyntaxError from res.json()
+    if (res.status === 204 || res.headers.get('content-length') === '0') {
+      return undefined as T
+    }
     return res.json() as Promise<T>
   } catch (err) {
     if (err instanceof ApiError) throw err

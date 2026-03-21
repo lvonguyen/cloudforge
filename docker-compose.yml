@@ -32,7 +32,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: aegis
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d
@@ -46,11 +46,11 @@ services:
   opa:
     image: openpolicyagent/opa:latest
     ports:
-      - "8181:8181"
+      - "127.0.0.1:8181:8181"
     command:
       - "run"
       - "--server"
-      - "--addr=0.0.0.0:8181"
+      - "--addr=0.0.0.0:8181"  # listens inside container; host binding is localhost-only above
       - "--log-level=info"
       - "/policies"
     volumes:

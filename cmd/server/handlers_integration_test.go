@@ -89,11 +89,40 @@ func TestAsanaWebhook_Handshake(t *testing.T) {
 func TestAsanaWebhook_EventDelivery(t *testing.T) {
 	_, router := testServer(t)
 
+	// Perform handshake first so the secret is persisted
+	hsReq, _ := http.NewRequest("POST", "/api/v1/webhooks/asana", nil)
+	hsReq.Header.Set("X-Hook-Secret", "test-secret-123")
+	hsRR := httptest.NewRecorder()
+	router.ServeHTTP(hsRR, hsReq)
+	assertStatus(t, hsRR, http.StatusOK)
+
+	// Event delivery with signature header
+	body := `{"events":[{"action":"changed"}]}`
+	req, _ := http.NewRequest("POST", "/api/v1/webhooks/asana", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Hook-Signature", "test-sig")
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+	assertStatus(t, rr, http.StatusOK)
+}
+
+func TestAsanaWebhook_EventDelivery_NoSignature(t *testing.T) {
+	_, router := testServer(t)
+
+	// Handshake
+	hsReq, _ := http.NewRequest("POST", "/api/v1/webhooks/asana", nil)
+	hsReq.Header.Set("X-Hook-Secret", "test-secret-123")
+	hsRR := httptest.NewRecorder()
+	router.ServeHTTP(hsRR, hsReq)
+	assertStatus(t, hsRR, http.StatusOK)
+
+	// Event without signature -> 401
 	body := `{"events":[{"action":"changed"}]}`
 	req, _ := http.NewRequest("POST", "/api/v1/webhooks/asana", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
-	assertStatus(t, rr, http.StatusOK)
+	assertStatus(t, rr, http.StatusUnauthorized)
 }
