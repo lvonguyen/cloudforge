@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient, ApiError } from '@/lib/api'
+import { apiClient, ApiError, unwrapPaginated } from '@/lib/api'
 import type { Finding } from '@/types/compliance'
 
 const R2_FINDINGS_URL =
@@ -50,7 +50,8 @@ async function fetchFindings(filters?: { severity?: string; provider?: string; s
   if (filters?.status) params.set('status', filters.status)
   const qs = params.toString()
   try {
-    const data = await apiClient.get<Finding[]>(`/findings${qs ? `?${qs}` : ''}`)
+    const raw = await apiClient.get<Finding[] | { data: Finding[] }>(`/findings${qs ? `?${qs}` : ''}`)
+    const data = unwrapPaginated(raw)
     sessionStorage.setItem(SESSION_SOURCE_KEY, 'api')
     return { data, usingMockData: false }
   } catch (err) {

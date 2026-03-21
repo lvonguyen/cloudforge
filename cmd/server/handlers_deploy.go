@@ -89,7 +89,10 @@ func (s *Server) startDeployPreview(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	s.deployTracker.add(execID, cancel)
 
-	go s.runDeployPreview(ctx, execID, config)
+	go func() {
+		defer cancel()
+		s.runDeployPreview(ctx, execID, config)
+	}()
 
 	s.logAuditEvent(r, "deploy_preview.start", "deploy", execID, "accepted")
 

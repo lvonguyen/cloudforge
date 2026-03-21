@@ -323,9 +323,7 @@ func TestListAuditLog_OperatorForbidden(t *testing.T) {
 	jwt := operatorJWT(t)
 
 	rr := doRequest(t, router, "GET", "/api/v1/audit-log", "", jwt)
-	if rr.Code == http.StatusForbidden {
-		t.Errorf("status = 403, want non-forbidden (viewer parity)")
-	}
+	assertStatus(t, rr, http.StatusForbidden)
 }
 
 func TestListUsers(t *testing.T) {
@@ -368,9 +366,7 @@ func TestListUsers_OperatorForbidden(t *testing.T) {
 	jwt := operatorJWT(t)
 
 	rr := doRequest(t, router, "GET", "/api/v1/users", "", jwt)
-	if rr.Code == http.StatusForbidden {
-		t.Errorf("status = 403, want non-forbidden (viewer parity)")
-	}
+	assertStatus(t, rr, http.StatusForbidden)
 }
 
 func TestListPolicies(t *testing.T) {
@@ -529,19 +525,32 @@ func TestViewerForbidden_WriteAndAdminEndpoints(t *testing.T) {
 		path   string
 	}{
 		{"POST", "/api/v1/findings/f-00001/enrich"},
-		{"GET", "/api/v1/costs/summary"},
-		{"GET", "/api/v1/remediations"},
 		{"POST", "/api/v1/remediations/rem-001/execute"},
 		{"GET", "/api/v1/audit-log"},
 		{"GET", "/api/v1/users"},
-		{"GET", "/api/v1/policies"},
 	}
 
 	for _, ep := range forbidden {
 		t.Run(ep.method+" "+ep.path, func(t *testing.T) {
 			rr := doRequest(t, router, ep.method, ep.path, "", jwt)
+			assertStatus(t, rr, http.StatusForbidden)
+		})
+	}
+
+	// Viewer retains read access to these endpoints.
+	allowed := []struct {
+		method string
+		path   string
+	}{
+		{"GET", "/api/v1/costs/summary"},
+		{"GET", "/api/v1/remediations"},
+		{"GET", "/api/v1/policies"},
+	}
+	for _, ep := range allowed {
+		t.Run(ep.method+" "+ep.path, func(t *testing.T) {
+			rr := doRequest(t, router, ep.method, ep.path, "", jwt)
 			if rr.Code == http.StatusForbidden {
-				t.Errorf("status = 403, want non-forbidden (viewer parity)")
+				t.Errorf("status = 403, want non-forbidden (viewer read access)")
 			}
 		})
 	}

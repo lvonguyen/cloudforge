@@ -246,9 +246,7 @@ func TestHandlers_ApproveWorkflow_OperatorForbidden(t *testing.T) {
 
 	body := `{"approver":"operator@contoso.dev"}`
 	rr := doRequest(t, router, "POST", "/api/v1/workflows/wf-001/approve", body, jwt)
-	if rr.Code == http.StatusForbidden {
-		t.Errorf("status = 403, operator should now have access (viewer parity)")
-	}
+	assertStatus(t, rr, http.StatusForbidden)
 }
 
 // ---------------------------------------------------------------------------

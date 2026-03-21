@@ -130,9 +130,7 @@ func TestPatchRemediation_ViewerForbidden(t *testing.T) {
 	jwt := viewerJWT(t)
 
 	rr := doRequest(t, router, "PATCH", "/api/v1/remediations/rem-001", `{"status":"in_progress"}`, jwt)
-	if rr.Code == http.StatusForbidden {
-		t.Errorf("status = 403, want non-forbidden (viewer parity)")
-	}
+	assertStatus(t, rr, http.StatusForbidden)
 }
 
 func TestPatchRemediation_Unauthenticated(t *testing.T) {

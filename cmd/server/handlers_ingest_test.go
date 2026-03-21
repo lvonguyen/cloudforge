@@ -84,11 +84,9 @@ func TestIngestFinding_AdminOnly(t *testing.T) {
 		"account_id":"123456789012"
 	}`
 
-	// Operator should be rejected
+	// Operator should be rejected (admin-only endpoint)
 	rr := doRequest(t, router, "POST", "/api/v1/findings/ingest", body, operatorJWT(t))
-	if rr.Code == http.StatusForbidden {
-		t.Errorf("status = 403, want non-forbidden (viewer parity)")
-	}
+	assertStatus(t, rr, http.StatusForbidden)
 
 	// Requester should be rejected
 	rr2 := doRequest(t, router, "POST", "/api/v1/findings/ingest", body, requesterJWT(t))

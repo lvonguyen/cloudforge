@@ -133,9 +133,17 @@ func (s *Server) getRemediation(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("remediation.id", id))
 
-	if rem, ok := s.data.RemediationsByID[id]; ok {
+	s.data.mu.RLock()
+	rem, ok := s.data.RemediationsByID[id]
+	var remCopy RemediationRecord
+	if ok {
+		remCopy = *rem
+	}
+	s.data.mu.RUnlock()
+
+	if ok {
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(rem)
+		_ = json.NewEncoder(w).Encode(&remCopy)
 		return
 	}
 
@@ -164,6 +172,7 @@ func (s *Server) listRemediations(w http.ResponseWriter, r *http.Request) {
 		hasTier = true
 	}
 
+	s.data.mu.RLock()
 	results := make([]RemediationRecord, 0, len(s.data.Remediations))
 	for _, rem := range s.data.Remediations {
 		if statusFilter != "" && !strings.EqualFold(rem.Status, statusFilter) {
@@ -174,6 +183,7 @@ func (s *Server) listRemediations(w http.ResponseWriter, r *http.Request) {
 		}
 		results = append(results, rem)
 	}
+	s.data.mu.RUnlock()
 
 	page, perPage := parsePagination(r, 50, 200)
 	resp := paginateResult(results, page, perPage)
@@ -192,7 +202,11 @@ func (s *Server) executeRemediation(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("remediation.id", id))
 
-	if _, ok := s.data.RemediationsByID[id]; ok {
+	s.data.mu.RLock()
+	_, ok := s.data.RemediationsByID[id]
+	s.data.mu.RUnlock()
+
+	if ok {
 		s.logAuditEvent(r, "remediation.execute", "remediation", id, "success")
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]string{
@@ -241,12 +255,13 @@ func (s *Server) patchRemediation(w http.ResponseWriter, r *http.Request) {
 
 	rem.Status = body.Status
 	rem.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	remCopy := *rem
 	s.data.mu.Unlock()
 
 	s.logAuditEvent(r, "remediation.update_status", "remediation", id, "success")
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(rem)
+	_ = json.NewEncoder(w).Encode(&remCopy)
 }
 
 func (s *Server) listAgentTraces(w http.ResponseWriter, r *http.Request) {

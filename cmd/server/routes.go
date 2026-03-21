@@ -60,7 +60,7 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleViewer, api.RoleRequester, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.GetMyExceptions)),
 	).Methods("GET")
 	apiRouter.Handle("/exceptions/{id}/withdraw", // requester, operator, admin
-		s.roles.Require(api.RoleViewer, api.RoleRequester, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.WithdrawException)),
+		s.roles.Require(api.RoleRequester, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.WithdrawException)),
 	).Methods("POST")
 	apiRouter.Handle("/exceptions/{id}", // operator, admin
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.GetException)),
@@ -70,16 +70,16 @@ func (s *Server) setupRoutes() {
 	).Methods("GET")
 
 	// Exception write endpoints — require admin
-	apiRouter.Handle("/exceptions", // admin only
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.CreateException)),
+	apiRouter.Handle("/exceptions", // operator, admin
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.CreateException)),
 	).Methods("POST")
 	apiRouter.Handle("/exceptions/{id}/approve", // admin only
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.SubmitApproval)),
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.grcHandler.SubmitApproval)),
 	).Methods("POST")
 
 	// Policy validation — require operator or admin
 	apiRouter.Handle("/validate/exception", // operator, admin
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.ValidateException)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.grcHandler.ValidateException)),
 	).Methods("POST")
 
 	// Findings — static routes before parameterized {id} to avoid gorilla/mux shadowing
@@ -89,11 +89,11 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/findings/query",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.queryFindings)),
 	).Methods("GET")
-	apiRouter.Handle("/findings/ingest",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.ingestFinding)),
+	apiRouter.Handle("/findings/ingest", // admin only
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.ingestFinding)),
 	).Methods("POST")
-	apiRouter.Handle("/findings/{id}/enrich",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.enrichFinding)),
+	apiRouter.Handle("/findings/{id}/enrich", // operator, admin
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.enrichFinding)),
 	).Methods("POST")
 	apiRouter.Handle("/findings/{id}",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getFinding)),
@@ -103,11 +103,11 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/findings/{id}/comments",
 		s.roles.Require(api.RoleViewer, api.RoleRequester, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listComments)),
 	).Methods("GET")
-	apiRouter.Handle("/findings/{id}/comments",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.addComment)),
+	apiRouter.Handle("/findings/{id}/comments", // operator, admin
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.addComment)),
 	).Methods("POST")
-	apiRouter.Handle("/findings/{id}/comments/{commentId}",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.deleteComment)),
+	apiRouter.Handle("/findings/{id}/comments/{commentId}", // admin only
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.deleteComment)),
 	).Methods("DELETE")
 
 	// Compliance (viewer can see frameworks read-only)
@@ -132,14 +132,14 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/remediations",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listRemediations)),
 	).Methods("GET")
-	apiRouter.Handle("/remediations/{id}/execute",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.executeRemediation)),
+	apiRouter.Handle("/remediations/{id}/execute", // operator, admin
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.executeRemediation)),
 	).Methods("POST")
 	apiRouter.Handle("/remediations/{id}",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getRemediation)),
 	).Methods("GET")
-	apiRouter.Handle("/remediations/{id}",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.patchRemediation)),
+	apiRouter.Handle("/remediations/{id}", // operator, admin
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.patchRemediation)),
 	).Methods("PATCH")
 
 	// Agent traces (viewer can see traces read-only)
@@ -149,12 +149,12 @@ func (s *Server) setupRoutes() {
 
 	// Audit log — admin only
 	apiRouter.Handle("/audit-log",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAuditLog)),
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.listAuditLog)),
 	).Methods("GET")
 
 	// Users — admin only
 	apiRouter.Handle("/users",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listUsers)),
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.listUsers)),
 	).Methods("GET")
 
 	// Catalog
@@ -185,8 +185,8 @@ func (s *Server) setupRoutes() {
 	).Methods("GET")
 
 	// Graph query proxy (PuppyGraph — feature-flagged via PUPPYGRAPH_URL)
-	apiRouter.Handle("/graph/query",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleGraphQuery)),
+	apiRouter.Handle("/graph/query", // operator, admin
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleGraphQuery)),
 	).Methods("POST")
 
 	// Data classification (DSPM)
@@ -201,19 +201,19 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/containers/{id}",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getContainer)),
 	).Methods("GET")
-	apiRouter.Handle("/container/scan",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.scanContainer)),
+	apiRouter.Handle("/container/scan", // operator, admin
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.scanContainer)),
 	).Methods("GET")
-	apiRouter.Handle("/container/admission",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.checkAdmission)),
+	apiRouter.Handle("/container/admission", // operator, admin
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.checkAdmission)),
 	).Methods("GET")
 
 	// Secrets management
 	apiRouter.Handle("/secrets",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listSecrets)),
 	).Methods("GET")
-	apiRouter.Handle("/secrets/scan",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.scanSecrets)),
+	apiRouter.Handle("/secrets/scan", // operator, admin
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.scanSecrets)),
 	).Methods("POST")
 	apiRouter.Handle("/secrets/{path:.*}",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getSecret)),
@@ -237,20 +237,20 @@ func (s *Server) setupRoutes() {
 
 	// NLQ (natural language query) — operator, admin
 	apiRouter.Handle("/ai/nlq",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.queryNLQ)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.queryNLQ)),
 	).Methods("POST")
 
 	// AI usage/budget status — admin only
 	apiRouter.Handle("/ai/usage",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAIUsage)),
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.getAIUsage)),
 	).Methods("GET")
 
 	// Deploy preview (operator + admin)
 	apiRouter.Handle("/deploy/preview",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.startDeployPreview)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.startDeployPreview)),
 	).Methods("POST")
 	apiRouter.Handle("/deploy/preview/{id}/abort",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.abortDeployPreview)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.abortDeployPreview)),
 	).Methods("POST")
 
 	// Workflow orchestration
@@ -260,29 +260,29 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/workflows/{id}",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getWorkflow)),
 	).Methods("GET")
-	apiRouter.Handle("/workflows/{id}/approve",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.approveWorkflow)),
+	apiRouter.Handle("/workflows/{id}/approve", // admin only
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.approveWorkflow)),
 	).Methods("POST")
 
 	// --- Integration layer routes ---
 
 	// Remediation ticket routing (IntegrationHandler)
-	apiRouter.Handle("/findings/{id}/remediate",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.integrationHandler.RemediateFinding)),
+	apiRouter.Handle("/findings/{id}/remediate", // operator, admin
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.integrationHandler.RemediateFinding)),
 	).Methods("POST")
 	apiRouter.Handle("/findings/{id}/ticket",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.integrationHandler.GetFindingTicket)),
 	).Methods("GET")
 
 	// Webhook management
-	apiRouter.Handle("/webhooks",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.registerWebhook)),
+	apiRouter.Handle("/webhooks", // admin only
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.registerWebhook)),
 	).Methods("POST")
-	apiRouter.Handle("/webhooks",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listWebhooks)),
+	apiRouter.Handle("/webhooks", // operator, admin
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listWebhooks)),
 	).Methods("GET")
-	apiRouter.Handle("/webhooks/{id}",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.deleteWebhook)),
+	apiRouter.Handle("/webhooks/{id}", // admin only
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.deleteWebhook)),
 	).Methods("DELETE")
 	apiRouter.Handle("/webhooks/{id}/deliveries",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listWebhookDeliveries)),
@@ -297,16 +297,16 @@ func (s *Server) setupRoutes() {
 	).Methods("GET")
 
 	// ASM scanning
-	apiRouter.Handle("/asm/scan",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleASMScan)),
+	apiRouter.Handle("/asm/scan", // operator, admin
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleASMScan)),
 	).Methods("POST")
 	apiRouter.Handle("/asm/assets",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleASMAssets)),
 	).Methods("GET")
 
 	// Secrets org-wide scanning
-	apiRouter.Handle("/secrets/org-scan",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleOrgScan)),
+	apiRouter.Handle("/secrets/org-scan", // admin only
+		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.handleOrgScan)),
 	).Methods("POST")
 
 	// Asana webhook (unauthenticated handshake, HMAC-verified events)

@@ -79,9 +79,7 @@ func TestAddComment_ViewerForbidden(t *testing.T) {
 
 	body := `{"body":"viewer comment"}`
 	rr := doRequest(t, router, "POST", "/api/v1/findings/"+testFindingID+"/comments", body, viewerJWT(t))
-	if rr.Code == http.StatusForbidden {
-		t.Errorf("status = 403, want non-forbidden (viewer parity)")
-	}
+	assertStatus(t, rr, http.StatusForbidden)
 }
 
 func TestDeleteComment_AdminOnly(t *testing.T) {

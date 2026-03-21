@@ -93,7 +93,13 @@ export async function fetchWithMockFallback<T>(
   }
 
   try {
-    return await apiClient.get<T>(path)
+    const raw = await apiClient.get<T | { data: T }>(path)
+    // Backend list endpoints return paginated {data, page, ...} envelopes.
+    // Unwrap if the response is an object with a data property and T is expected to be an array.
+    if (raw != null && typeof raw === 'object' && !Array.isArray(raw) && 'data' in raw) {
+      return (raw as { data: T }).data
+    }
+    return raw as T
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
     if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'true') throw err
@@ -106,6 +112,16 @@ export async function fetchWithMockFallback<T>(
       throw err
     }
   }
+}
+
+/**
+ * Unwrap paginated API responses. The Go backend wraps list endpoints in
+ * {data, page, per_page, total, total_pages}. Mock fallbacks return raw arrays.
+ * This helper handles both shapes transparently.
+ */
+export function unwrapPaginated<T>(response: T[] | { data: T[] }): T[] {
+  if (Array.isArray(response)) return response
+  return response.data
 }
 
 export const apiClient = {

@@ -24,6 +24,10 @@ vi.mock('@/lib/api', () => {
   return {
     ApiError: MockApiError,
     apiClient: client,
+    unwrapPaginated: <T>(response: T[] | { data: T[] }): T[] => {
+      if (Array.isArray(response)) return response
+      return response.data
+    },
     fetchWithMockFallback: vi.fn(async (path, mockImport, _label) => {
       try { return await client.get(path) }
       catch (err) {
