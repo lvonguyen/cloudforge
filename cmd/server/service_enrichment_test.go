@@ -99,6 +99,51 @@ func TestParseFindingEnrichment_InvalidJSON(t *testing.T) {
 	}
 }
 
+func TestParseFindingEnrichment_MissingImpact(t *testing.T) {
+	response := `{"root_cause":"something","impact":"","remediation":"fix it","related_controls":[]}`
+	_, err := parseFindingEnrichment("finding-006", response)
+	if err == nil || !strings.Contains(err.Error(), "missing impact") {
+		t.Errorf("expected 'missing impact' error, got: %v", err)
+	}
+}
+
+func TestParseFindingEnrichment_MissingRemediation(t *testing.T) {
+	response := `{"root_cause":"something","impact":"bad","remediation":"","related_controls":[]}`
+	_, err := parseFindingEnrichment("finding-007", response)
+	if err == nil || !strings.Contains(err.Error(), "missing remediation") {
+		t.Errorf("expected 'missing remediation' error, got: %v", err)
+	}
+}
+
+func TestParseFindingEnrichment_ControlFiltering(t *testing.T) {
+	response := `{"root_cause":"open port","impact":"exposure","remediation":"close it","related_controls":["CIS 1.2","NIST AC-3","garbage","SOC 2","unknown-ctrl"]}`
+	got, err := parseFindingEnrichment("finding-008", response)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := []string{"CIS 1.2", "NIST AC-3", "SOC 2"}
+	if len(got.RelatedControls) != len(want) {
+		t.Fatalf("controls = %v, want %v", got.RelatedControls, want)
+	}
+	for i, c := range got.RelatedControls {
+		if c != want[i] {
+			t.Errorf("control[%d] = %q, want %q", i, c, want[i])
+		}
+	}
+}
+
+func TestTruncateField(t *testing.T) {
+	long := strings.Repeat("x", 3000)
+	got := truncateField(long, 2000)
+	if len(got) != 2000 {
+		t.Errorf("truncated length = %d, want 2000", len(got))
+	}
+	short := "hello"
+	if truncateField(short, 2000) != short {
+		t.Error("short string should not be truncated")
+	}
+}
+
 // --- EnrichmentService tests ---
 
 func TestEnrichmentService_Enabled(t *testing.T) {

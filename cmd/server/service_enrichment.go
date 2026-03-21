@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -63,6 +64,21 @@ func parseFindingEnrichment(findingID, response string) (*FindingEnrichment, err
 	if parsed.RootCause == "" {
 		return nil, fmt.Errorf("missing root_cause in response")
 	}
+	if parsed.Impact == "" {
+		return nil, fmt.Errorf("missing impact in response")
+	}
+	if parsed.Remediation == "" {
+		return nil, fmt.Errorf("missing remediation in response")
+	}
+
+	// Cap string field lengths to prevent unbounded LLM output in cache.
+	const maxFieldLen = 2000
+	parsed.RootCause = truncateField(parsed.RootCause, maxFieldLen)
+	parsed.Impact = truncateField(parsed.Impact, maxFieldLen)
+	parsed.Remediation = truncateField(parsed.Remediation, maxFieldLen)
+
+	// Validate related_controls match known framework patterns.
+	parsed.RelatedControls = filterValidControls(parsed.RelatedControls)
 
 	now := time.Now().UTC()
 	return &FindingEnrichment{
@@ -212,6 +228,29 @@ func (svc *EnrichmentService) StartEviction(ctx context.Context, interval time.D
 			}
 		}
 	}()
+}
+
+// controlPattern matches known compliance framework references:
+// CIS x.y, NIST XX-n, SOC n, ISO 27001, PCI DSS n.n, HIPAA §nnn, GDPR Art n.
+var controlPattern = regexp.MustCompile(
+	`^(?:CIS \d+\.\d+|NIST [A-Z]{2}-\d+|SOC \d|ISO 27\d{3}|PCI DSS \d+\.\d+|HIPAA §\d+|GDPR Art(?:icle)? \d+)`,
+)
+
+func truncateField(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max]
+}
+
+func filterValidControls(controls []string) []string {
+	valid := make([]string, 0, len(controls))
+	for _, c := range controls {
+		if controlPattern.MatchString(c) {
+			valid = append(valid, c)
+		}
+	}
+	return valid
 }
 
 func (svc *EnrichmentService) evictExpired() {
