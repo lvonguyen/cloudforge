@@ -212,15 +212,17 @@ func computeAttackPaths(findings []Finding) ([]AttackPath, *AttackPathStats) {
 // isEntryPoint returns true if a finding represents an internet-exposed or
 // externally-reachable resource.
 func isEntryPoint(f Finding) bool {
-	if f.Category == "NETWORK" {
+	cat := strings.ToUpper(f.Category)
+	if cat == "NETWORK" {
 		return true
 	}
-	if f.Category == "VULNERABILITY" && f.ExploitAvailable {
+	if cat == "VULNERABILITY" && f.ExploitAvailable {
 		return true
 	}
 	rt := strings.ToLower(f.ResourceType)
+	sev := strings.ToUpper(f.Severity)
 	if rt == "compute" || rt == "container" || rt == "serverless" {
-		if f.Severity == "CRITICAL" || f.Severity == "HIGH" {
+		if sev == "CRITICAL" || sev == "HIGH" {
 			return true
 		}
 	}
@@ -360,8 +362,8 @@ func buildAttackPath(id, accountID string, chain []Finding) AttackPath {
 // inferEdgeType determines the relationship type between two adjacent findings.
 func inferEdgeType(from, to Finding) string {
 	toRT := strings.ToLower(to.ResourceType)
-	fromCat := from.Category
-	toCat := to.Category
+	fromCat := strings.ToUpper(from.Category)
+	toCat := strings.ToUpper(to.Category)
 
 	if toRT == "storage" || toRT == "database" || toRT == "secret" {
 		return "data_access"

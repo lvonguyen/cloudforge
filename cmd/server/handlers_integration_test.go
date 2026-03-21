@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -8,6 +11,12 @@ import (
 
 	"aegis/internal/integrations"
 )
+
+func computeAsanaHMAC(secret, body string) string {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(body))
+	return hex.EncodeToString(mac.Sum(nil))
+}
 
 func TestRemediateFinding_Success(t *testing.T) {
 	_, router := testServer(t)
@@ -96,11 +105,12 @@ func TestAsanaWebhook_EventDelivery(t *testing.T) {
 	router.ServeHTTP(hsRR, hsReq)
 	assertStatus(t, hsRR, http.StatusOK)
 
-	// Event delivery with signature header
+	// Event delivery with valid HMAC signature
 	body := `{"events":[{"action":"changed"}]}`
+	sig := computeAsanaHMAC("test-secret-123", body)
 	req, _ := http.NewRequest("POST", "/api/v1/webhooks/asana", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Hook-Signature", "test-sig")
+	req.Header.Set("X-Hook-Signature", sig)
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)

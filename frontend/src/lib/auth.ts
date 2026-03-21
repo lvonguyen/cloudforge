@@ -100,7 +100,8 @@ const ROLE_RANK: Record<Role, number> = { viewer: 0, requester: 1, operator: 2, 
 export function deriveRoleFromGroups(groups: string[]): Role {
   if (groups.includes(`${GROUP_PREFIX}-admin`)) return 'admin'
   if (groups.includes(`${GROUP_PREFIX}-operator`)) return 'operator'
-  return 'requester'
+  if (groups.includes(`${GROUP_PREFIX}-requester`)) return 'requester'
+  return 'viewer'
 }
 
 export function userFromToken(token: string, savedRole: Role | null): User {

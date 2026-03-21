@@ -80,10 +80,10 @@ describe('userFromToken', () => {
     expect(user.role).toBe('viewer')
   })
 
-  it('prevents savedRole from escalating above JWT groups (requester -> admin)', () => {
+  it('prevents savedRole from escalating above JWT groups (viewer -> admin)', () => {
     const token = makeJWT({ email: 'user@test.com', name: 'User', groups: ['some-other-group'] })
     const user = userFromToken(token, 'admin')
-    expect(user.role).toBe('requester') // capped at JWT-derived role
+    expect(user.role).toBe('viewer') // capped at JWT-derived role (least privilege)
   })
 
   it('prevents operator from escalating to admin via savedRole', () => {
@@ -92,16 +92,16 @@ describe('userFromToken', () => {
     expect(user.role).toBe('operator') // capped at JWT-derived role
   })
 
-  it('falls back to requester when no group match and no savedRole', () => {
+  it('falls back to viewer when no group match and no savedRole', () => {
     const token = makeJWT({ email: 'user@test.com', name: 'User', groups: ['some-other-group'] })
     const user = userFromToken(token, null)
-    expect(user.role).toBe('requester')
+    expect(user.role).toBe('viewer')
   })
 
-  it('falls back to requester when groups claim is absent', () => {
+  it('falls back to viewer when groups claim is absent', () => {
     const token = makeJWT({ email: 'user@test.com', name: 'User' })
     const user = userFromToken(token, null)
-    expect(user.role).toBe('requester')
+    expect(user.role).toBe('viewer')
   })
 
   it('uses email as name fallback when name claim is missing', () => {
@@ -126,12 +126,12 @@ describe('deriveRoleFromGroups', () => {
     expect(deriveRoleFromGroups(['aegis-operator'])).toBe('operator')
   })
 
-  it('returns requester for unknown groups', () => {
-    expect(deriveRoleFromGroups(['some-other-group'])).toBe('requester')
+  it('returns viewer for unknown groups', () => {
+    expect(deriveRoleFromGroups(['some-other-group'])).toBe('viewer')
   })
 
-  it('returns requester for empty groups', () => {
-    expect(deriveRoleFromGroups([])).toBe('requester')
+  it('returns viewer for empty groups', () => {
+    expect(deriveRoleFromGroups([])).toBe('viewer')
   })
 
   it('prefers admin when both admin and operator present', () => {

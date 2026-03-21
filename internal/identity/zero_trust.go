@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -78,6 +79,7 @@ type AccessDecision struct {
 
 // ZeroTrustEngine evaluates access requests against policies
 type ZeroTrustEngine struct {
+	mu        sync.RWMutex
 	policies  []*ZeroTrustPolicy
 	providers map[string]Provider
 	logger    *zap.Logger
@@ -104,12 +106,19 @@ func (e *ZeroTrustEngine) RegisterProvider(provider Provider) {
 
 // AddPolicy adds a policy to the engine
 func (e *ZeroTrustEngine) AddPolicy(policy *ZeroTrustPolicy) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.policies = append(e.policies, policy)
 	e.sortPoliciesByPriority()
 }
 
 // Evaluate evaluates an access request against all policies
 func (e *ZeroTrustEngine) Evaluate(ctx context.Context, request *AccessRequest) (*AccessDecision, error) {
+	e.mu.RLock()
+	policies := make([]*ZeroTrustPolicy, len(e.policies))
+	copy(policies, e.policies)
+	e.mu.RUnlock()
+
 	e.logger.Debug("Evaluating access request",
 		zap.String("user_id", request.UserID),
 		zap.String("resource", request.Resource),
@@ -124,8 +133,8 @@ func (e *ZeroTrustEngine) Evaluate(ctx context.Context, request *AccessRequest) 
 	}
 	request.Context = enrichedContext
 
-	// Evaluate policies in priority order
-	for _, policy := range e.policies {
+	// Evaluate policies in priority order (using snapshot for concurrency safety)
+	for _, policy := range policies {
 		if !policy.Enabled {
 			continue
 		}
@@ -282,6 +291,9 @@ func (e *ZeroTrustEngine) applyPolicy(request *AccessRequest, policy *ZeroTrustP
 		case "deny":
 			decision.Allowed = false
 			decision.Reason = fmt.Sprintf("Access denied by policy: %s", policy.Name)
+			decision.RequiredActions = requiredActions
+			decision.SessionControls = sessionControls
+			return decision // deny is final — no subsequent action can override
 		case "mfa":
 			if !request.Context.MFACompleted {
 				decision.Allowed = false
@@ -383,11 +395,17 @@ func (e *ZeroTrustEngine) loadDefaultPolicies() {
 
 // ListPolicies returns all policies
 func (e *ZeroTrustEngine) ListPolicies() []*ZeroTrustPolicy {
-	return e.policies
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	out := make([]*ZeroTrustPolicy, len(e.policies))
+	copy(out, e.policies)
+	return out
 }
 
 // GetPolicy returns a policy by ID
 func (e *ZeroTrustEngine) GetPolicy(id string) (*ZeroTrustPolicy, bool) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	for _, p := range e.policies {
 		if p.ID == id {
 			return p, true
@@ -398,6 +416,8 @@ func (e *ZeroTrustEngine) GetPolicy(id string) (*ZeroTrustPolicy, bool) {
 
 // UpdatePolicy updates an existing policy
 func (e *ZeroTrustEngine) UpdatePolicy(policy *ZeroTrustPolicy) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	for i, p := range e.policies {
 		if p.ID == policy.ID {
 			e.policies[i] = policy
@@ -410,6 +430,8 @@ func (e *ZeroTrustEngine) UpdatePolicy(policy *ZeroTrustPolicy) error {
 
 // DeletePolicy removes a policy
 func (e *ZeroTrustEngine) DeletePolicy(id string) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	for i, p := range e.policies {
 		if p.ID == id {
 			e.policies = append(e.policies[:i], e.policies[i+1:]...)

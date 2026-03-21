@@ -1,8 +1,12 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -194,7 +198,20 @@ func (h *IntegrationHandler) AsanaWebhook(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Event delivery — acknowledge after signature check
+	// Read body and validate HMAC-SHA256 signature
+	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20)) // 1MB cap
+	if err != nil {
+		http.Error(w, "failed to read body", http.StatusBadRequest)
+		return
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(body)
+	expected := hex.EncodeToString(mac.Sum(nil))
+	if !hmac.Equal([]byte(sig), []byte(expected)) {
+		http.Error(w, "invalid signature", http.StatusUnauthorized)
+		return
+	}
+
 	h.logger.Info("asana webhook event received")
 	w.WriteHeader(http.StatusOK)
 }

@@ -235,10 +235,12 @@ func TestWithdrawException_WrongUser(t *testing.T) {
 
 	excID := seedPendingException(t, srv, "alice@test.com")
 
-	// bob is a requester, not the requestor and not admin.
+	// bob is a requester (via group), not the requestor and not admin.
+	// Groups required so RBAC passes and the handler ownership check is tested.
 	jwt := makeJWT(t, api.Claims{
 		Subject: "bob@test.com",
 		Email:   "bob@test.com",
+		Groups:  []string{"aegis-requester"},
 		Scope:   "requester",
 	})
 
