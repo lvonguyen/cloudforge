@@ -7,6 +7,8 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
@@ -60,7 +62,13 @@ type ContainerTopologyResponse struct {
 }
 
 func (s *Server) getContainer(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getContainer")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	id := mux.Vars(r)["id"]
+	span.SetAttributes(attribute.String("container.id", id))
+
 	topology := s.buildContainerTopology()
 	for _, cluster := range topology.Clusters {
 		for _, ns := range cluster.Namespaces {
@@ -78,8 +86,13 @@ func (s *Server) getContainer(w http.ResponseWriter, r *http.Request) {
 	writeErrorResponse(w, "container not found", http.StatusNotFound)
 }
 
-func (s *Server) listContainers(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) listContainers(w http.ResponseWriter, r *http.Request) {
+	_, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listContainers")
+	defer span.End()
+
 	topology := s.buildContainerTopology()
+	span.SetAttributes(attribute.Int("clusters.count", len(topology.Clusters)))
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(topology)
 }

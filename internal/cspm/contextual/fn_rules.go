@@ -52,12 +52,14 @@ type FNRuleEngine struct {
 	rules []fnRule
 }
 
-// NewFNRuleEngine constructs an engine with MP-09 and MP-10 in priority order.
+// NewFNRuleEngine constructs an engine with MP-09, MP-10, MP-12, and MP-14 in priority order.
 func NewFNRuleEngine() *FNRuleEngine {
 	return &FNRuleEngine{
 		rules: []fnRule{
 			ruleMP09PrivateCIDRWidthEscalator,
 			ruleMP10DormantPrivilegedCredential,
+			ruleMP12EPSSEscalator,
+			ruleMP14HIBPCredentialEscalator,
 		},
 	}
 }
@@ -210,4 +212,107 @@ func ruleMP10DormantPrivilegedCredential(f scoring.Finding) (*FNRuleResult, bool
 // as a whole word (word-boundary match prevents "cloudadmin", "s3-admin-backup", etc.).
 func containsPrivilegeKeyword(s string) bool {
 	return mp10PrivilegePattern.MatchString(s)
+}
+
+// ---------------------------------------------------------------------------
+// MP-12: EPSS Escalator
+//
+// Trigger: FindingContext.EPSSScore > 0.7
+//          AND environment is production (prod/production/prd)
+//          AND Severity in {LOW, MEDIUM}
+// Effect:  Upgrade 1 level, confidence 0.90
+// EC codes: EC-EPSS
+// Pattern: FN-EPSS-HIGH-EXPLOIT
+// ---------------------------------------------------------------------------
+
+// mp12ProdEnvs are environment values considered production for MP-12.
+var mp12ProdEnvs = map[string]bool{
+	"prod":       true,
+	"production": true,
+	"prd":        true,
+}
+
+func ruleMP12EPSSEscalator(f scoring.Finding) (*FNRuleResult, bool) {
+	if f.Context.EPSSScore <= 0.7 {
+		return nil, false
+	}
+
+	env := strings.ToLower(f.Context.EnvType)
+	if !mp12ProdEnvs[env] {
+		return nil, false
+	}
+
+	sev := strings.ToUpper(f.Severity)
+	if sev != "LOW" && sev != "MEDIUM" {
+		return nil, false
+	}
+
+	adjusted := upgradeSeverity(f.Severity, 1)
+	return &FNRuleResult{
+		SeverityAdjustment: SeverityAdjustment{
+			OriginalSeverity: f.Severity,
+			AdjustedSeverity: adjusted,
+			Reason:           "high EPSS exploitation probability in production environment; MP-12 (EC-EPSS)",
+			Confidence:       0.90,
+			Pattern:          "FN-EPSS-HIGH-EXPLOIT",
+			Applied:          adjusted != f.Severity,
+		},
+	}, true
+}
+
+// ---------------------------------------------------------------------------
+// MP-14: HIBP Credential Escalator
+//
+// Trigger: FindingContext.HIBPBreachCount >= 3
+//          AND finding involves admin/privileged credentials
+//            (FindingType contains STALE_ACCESS_KEY, INACTIVE_USER, NO_MFA,
+//             CREDENTIAL, or Title/Description contains privilege keyword)
+// Effect:  Escalate to CRITICAL, confidence 0.85
+// EC codes: EC-HIBP
+// Pattern: FN-HIBP-COMPROMISED-ADMIN
+// ---------------------------------------------------------------------------
+
+// mp14CredentialTypes are FindingType substrings that indicate credential-related findings.
+var mp14CredentialTypes = []string{
+	"STALE_ACCESS_KEY",
+	"INACTIVE_USER",
+	"NO_MFA",
+	"CREDENTIAL",
+	"PASSWORD",
+	"ACCESS_KEY",
+}
+
+func ruleMP14HIBPCredentialEscalator(f scoring.Finding) (*FNRuleResult, bool) {
+	if f.Context.HIBPBreachCount < 3 {
+		return nil, false
+	}
+
+	// Check if finding involves credentials.
+	ft := strings.ToUpper(f.FindingType)
+	hasCredType := false
+	for _, t := range mp14CredentialTypes {
+		if strings.Contains(ft, t) {
+			hasCredType = true
+			break
+		}
+	}
+
+	// Also check for admin/privilege keywords if credential type not matched.
+	hasPrivilege := containsPrivilegeKeyword(f.Title) || containsPrivilegeKeyword(f.Description)
+	if !hasCredType && !hasPrivilege {
+		return nil, false
+	}
+
+	adjusted := "CRITICAL"
+	return &FNRuleResult{
+		SeverityAdjustment: SeverityAdjustment{
+			OriginalSeverity: f.Severity,
+			AdjustedSeverity: adjusted,
+			Reason:           "admin credentials breached in multiple HIBP data breaches; MP-14 (EC-HIBP)",
+			Confidence:       0.85,
+			Pattern:          "FN-HIBP-COMPROMISED-ADMIN",
+			Applied:          strings.ToUpper(f.Severity) != adjusted,
+		},
+		SuggestedRiskScore: 95,
+	}, true
 }

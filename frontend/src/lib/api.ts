@@ -3,6 +3,24 @@ import { TOKEN_KEY } from './auth'
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api/v1'
 
+// Generate a W3C traceparent header for distributed tracing.
+// Format: 00-<trace-id>-<span-id>-01
+function generateTraceparent(): string {
+  const traceId = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+    .map(b => b.toString(16).padStart(2, '0')).join('')
+  const spanId = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+    .map(b => b.toString(16).padStart(2, '0')).join('')
+  return `00-${traceId}-${spanId}-01`
+}
+
+// Last generated trace ID for display in error toasts or dev tools.
+let lastTraceId = ''
+
+/** Returns the trace ID from the most recent API request. */
+export function getLastTraceId(): string {
+  return lastTraceId
+}
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -49,9 +67,13 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 30_000)
 
+  // Generate trace context for distributed tracing
+  const traceparent = generateTraceparent()
+  lastTraceId = traceparent.split('-')[1]
+
   try {
     const res = await fetch(`${BASE_URL}${path}`, {
-      headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options?.headers },
+      headers: { 'Content-Type': 'application/json', traceparent, ...authHeaders(), ...options?.headers },
       ...options,
       signal: controller.signal,
     })

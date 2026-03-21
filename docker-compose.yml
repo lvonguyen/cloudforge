@@ -13,10 +13,14 @@ services:
       - DATABASE_URL=postgres://aegis:${POSTGRES_PASSWORD:-changeme}@postgres:5432/aegis?sslmode=prefer
       - OPA_URL=http://opa:8181
       - APP_ENV=production
+      - AEGIS_TRACING_ENABLED=true
+      - AEGIS_OTLP_ENDPOINT=jaeger:4317
     depends_on:
       postgres:
         condition: service_healthy
       opa:
+        condition: service_started
+      jaeger:
         condition: service_started
     restart: unless-stopped
 
@@ -76,6 +80,15 @@ services:
       - TEMPORAL_ADDRESS=temporal:7233
     depends_on:
       - temporal
+
+  # Jaeger — distributed tracing backend (OTLP-native)
+  jaeger:
+    image: jaegertracing/jaeger:2
+    ports:
+      - "127.0.0.1:16686:16686"  # Jaeger UI (localhost only)
+      - "4317"                    # OTLP gRPC (internal network only)
+      - "4318"                    # OTLP HTTP (internal network only)
+    restart: unless-stopped
 
 volumes:
   postgres_data:

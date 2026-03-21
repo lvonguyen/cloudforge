@@ -39,7 +39,7 @@ In a large organization with 50+ cloud accounts across different business units 
 
 ## Decision
 
-We will extend RBAC with **attribute-based access control (ABAC)** using JWT custom claims for resource scoping.
+RBAC is extended with **attribute-based access control (ABAC)** using JWT custom claims for resource scoping.
 
 ### 1. JWT Claim Structure
 
@@ -249,7 +249,7 @@ Store access control list (ACL) per finding: `{"finding_id": "123", "allowed_use
 - ACL management UI needed
 - Doesn't scale: 1M findings × 10 users/finding = 10M ACL rows
 
-**Rejected because**: Too granular for our use case (business unit scoping is sufficient).
+**Rejected because**: Too granular for the Cloud Aegis use case (business unit scoping is sufficient).
 
 ---
 

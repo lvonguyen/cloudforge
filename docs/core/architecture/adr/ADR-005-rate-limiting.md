@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-We need rate limiting to:
+Rate limiting is required to:
 - Protect backend services from overload
 - Enforce fair usage across API tiers
 - Prevent abuse and DoS attacks
@@ -26,7 +26,7 @@ We need rate limiting to:
 
 ## Decision
 
-We will implement **Redis-based sliding window rate limiting** with tier and endpoint configuration.
+**Redis-based sliding window rate limiting** with tier and endpoint configuration was selected.
 
 ## Algorithm Selection
 

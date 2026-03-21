@@ -17,26 +17,39 @@ import (
 	"aegis/internal/cspm/scoring"
 )
 
+// fpfnThreatIntel holds optional threat intelligence data for FPFN scenarios.
+type fpfnThreatIntel struct {
+	CVEIDs          []string `json:"cve_ids,omitempty"`
+	EPSSScore       float64  `json:"epss_score,omitempty"`
+	EPSSPercentile  float64  `json:"epss_percentile,omitempty"`
+	InKEV           bool     `json:"in_kev,omitempty"`
+	KEVDateAdded    string   `json:"kev_date_added,omitempty"`
+	GreyNoiseClass  string   `json:"greynoise_class,omitempty"`
+	HIBPBreachCount int      `json:"hibp_breach_count,omitempty"`
+	OTXPulseCount   int      `json:"otx_pulse_count,omitempty"`
+}
+
 // fpfnSample mirrors the JSON schema used in testdata/fpfn/*.json.
 type fpfnSample struct {
-	ID                   string   `json:"id"`
-	Sector               string   `json:"sector"`
-	Type                 string   `json:"type"` // "false_positive" or "false_negative"
-	EdgeCase             string   `json:"edge_case"`
-	CSP                  string   `json:"csp"`
-	FindingType          string   `json:"finding_type"`
-	FindingClass         string   `json:"finding_class"`
-	SeverityReported     string   `json:"severity_reported"`
-	SeverityActual       string   `json:"severity_actual"`
-	ResourceType         string   `json:"resource_type"`
-	Environment          string   `json:"environment"`
-	ComplianceFrameworks []string `json:"compliance_frameworks"`
-	Scenario             string   `json:"scenario"`
-	WhyMisclassified     string   `json:"why_misclassified"`
-	DetectionSignal      string   `json:"detection_signal"`
-	GroundTruth          string   `json:"ground_truth"`
-	RemediationImpact    string   `json:"remediation_impact"`
-	Confidence           float64  `json:"confidence"`
+	ID                   string           `json:"id"`
+	Sector               string           `json:"sector"`
+	Type                 string           `json:"type"` // "false_positive" or "false_negative"
+	EdgeCase             string           `json:"edge_case"`
+	CSP                  string           `json:"csp"`
+	FindingType          string           `json:"finding_type"`
+	FindingClass         string           `json:"finding_class"`
+	SeverityReported     string           `json:"severity_reported"`
+	SeverityActual       string           `json:"severity_actual"`
+	ResourceType         string           `json:"resource_type"`
+	Environment          string           `json:"environment"`
+	ComplianceFrameworks []string         `json:"compliance_frameworks"`
+	Scenario             string           `json:"scenario"`
+	WhyMisclassified     string           `json:"why_misclassified"`
+	DetectionSignal      string           `json:"detection_signal"`
+	GroundTruth          string           `json:"ground_truth"`
+	RemediationImpact    string           `json:"remediation_impact"`
+	Confidence           float64          `json:"confidence"`
+	ThreatIntel          *fpfnThreatIntel `json:"threat_intel,omitempty"`
 }
 
 // portPattern extracts port numbers from strings like "TCP 4840", "port 502", or "(port 20000)".
@@ -152,6 +165,26 @@ func buildFinding(s fpfnSample) scoring.Finding {
 	// captures privilege keywords that may only appear in that field.
 	description := s.DetectionSignal + " " + s.GroundTruth + " " + s.WhyMisclassified
 
+	ctx := scoring.FindingContext{
+		EnvType:             s.Environment,
+		ComplianceScopes:    s.ComplianceFrameworks,
+		BusinessCriticality: inferCriticality(s.Environment),
+		WAFEnabled:          wafEnabled,
+		PrivateEndpoint:     privateEndpoint,
+		VPCType:             vpcType,
+		InternetFacing:      internetFacing,
+		IngressPorts:        ingressPorts,
+	}
+
+	// Populate threat intel fields from optional threat_intel block.
+	if ti := s.ThreatIntel; ti != nil {
+		ctx.InKEV = ti.InKEV
+		ctx.EPSSScore = ti.EPSSScore
+		ctx.EPSSPercentile = ti.EPSSPercentile
+		ctx.GreyNoiseClass = ti.GreyNoiseClass
+		ctx.HIBPBreachCount = ti.HIBPBreachCount
+	}
+
 	return scoring.Finding{
 		ID:           s.ID,
 		Severity:     s.SeverityReported,
@@ -159,16 +192,7 @@ func buildFinding(s fpfnSample) scoring.Finding {
 		ResourceType: s.ResourceType,
 		Title:        title,
 		Description:  description,
-		Context: scoring.FindingContext{
-			EnvType:             s.Environment,
-			ComplianceScopes:    s.ComplianceFrameworks,
-			BusinessCriticality: inferCriticality(s.Environment),
-			WAFEnabled:          wafEnabled,
-			PrivateEndpoint:     privateEndpoint,
-			VPCType:             vpcType,
-			InternetFacing:      internetFacing,
-			IngressPorts:        ingressPorts,
-		},
+		Context:      ctx,
 	}
 }
 
@@ -200,6 +224,7 @@ func TestFPFN_HarnessHitRates(t *testing.T) {
 	sectors := []string{
 		"automotive", "education", "energy", "financial",
 		"government", "healthcare", "retail", "saas",
+		"threat_intel",
 	}
 
 	fpEngine := contextual.NewFPRuleEngine(nil) // nil = skip MP-07 CVE lookup

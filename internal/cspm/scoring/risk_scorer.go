@@ -89,9 +89,11 @@ type FindingContext struct {
 	SupportTier         string   `json:"support_tier"` // platinum, gold, silver, bronze
 
 	// Threat intelligence enrichment
-	InKEV          bool    `json:"in_kev"`               // CISA Known Exploited Vulnerabilities
-	EPSSScore      float64 `json:"epss_score,omitempty"` // 0.0-1.0 exploitation probability
-	EPSSPercentile float64 `json:"epss_percentile,omitempty"`
+	InKEV           bool    `json:"in_kev"`               // CISA Known Exploited Vulnerabilities
+	EPSSScore       float64 `json:"epss_score,omitempty"` // 0.0-1.0 exploitation probability
+	EPSSPercentile  float64 `json:"epss_percentile,omitempty"`
+	GreyNoiseClass  string  `json:"greynoise_class,omitempty"` // "benign", "malicious", "unknown"
+	HIBPBreachCount int     `json:"hibp_breach_count,omitempty"`
 
 	// Attack path context
 	AttackPathScore    float64 `json:"attack_path_score,omitempty"` // 0-100

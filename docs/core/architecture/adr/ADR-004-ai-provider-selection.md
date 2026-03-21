@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-We need AI capabilities for:
+AI capabilities are required for:
 - Contextual risk scoring beyond static severity
 - Toxic combination detection across findings
 - Natural language remediation recommendations
@@ -25,7 +25,7 @@ We need AI capabilities for:
 
 ## Decision
 
-We will use **Anthropic Claude Opus 4.6** as primary, with **OpenAI GPT-4** as fallback.
+**Anthropic Claude Opus 4.6** was selected as primary, with **OpenAI GPT-4** as fallback.
 
 ## Rationale
 

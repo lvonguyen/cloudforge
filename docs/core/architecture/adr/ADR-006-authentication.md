@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-We need secure authentication and authorization for:
+Secure authentication and authorization is required for:
 - Multi-tenant SaaS access
 - Enterprise SSO integration
 - API access for automation
@@ -26,7 +26,7 @@ We need secure authentication and authorization for:
 
 ## Decision
 
-We will implement **OIDC/SAML federation** for human users and **API keys with scopes** for machine access, with role-based access control.
+**OIDC/SAML federation** for human users and **API keys with scopes** for machine access were selected, with role-based access control.
 
 ## Identity Providers
 

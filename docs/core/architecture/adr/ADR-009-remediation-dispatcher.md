@@ -12,11 +12,11 @@ Accepted
 
 CloudForge aggregates findings from multiple cloud security tools (Security Hub, Defender for Cloud, SCC). Once findings are identified, the next step is automated remediation. Manual remediation at enterprise scale (10K+ findings) is impractical.
 
-We need an architecture that:
-1. Supports multiple remediation types across cloud providers
-2. Provides safe execution with dry-run and rollback
-3. Controls concurrency to avoid overwhelming cloud APIs
-4. Separates low-risk auto-fixes from high-risk changes requiring approval
+The architecture must:
+1. Support multiple remediation types across cloud providers
+2. Provide safe execution with dry-run and rollback
+3. Control concurrency to avoid overwhelming cloud APIs
+4. Separate low-risk auto-fixes from high-risk changes requiring approval
 
 ### Requirements
 
@@ -28,7 +28,7 @@ We need an architecture that:
 
 ## Decision
 
-We will implement a **tiered remediation dispatcher** with the following architecture:
+A **tiered remediation dispatcher** was selected with the following architecture:
 
 ### 1. Handler Interface
 

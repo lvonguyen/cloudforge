@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // AttackPath represents a computed chain of findings forming an exploitable path.
@@ -81,6 +85,10 @@ var severityRank = map[string]int{
 // from entry points (internet-exposed/NETWORK/VULNERABILITY with exploit)
 // to targets (storage/database resources).
 func computeAttackPaths(findings []Finding) ([]AttackPath, *AttackPathStats) {
+	_, span := otel.Tracer("aegis.compute").Start(context.Background(), "compute.attack_paths")
+	defer span.End()
+	span.SetAttributes(attribute.Int("findings.input_count", len(findings)))
+
 	if len(findings) == 0 {
 		return nil, &AttackPathStats{}
 	}
@@ -190,6 +198,11 @@ func computeAttackPaths(findings []Finding) ([]AttackPath, *AttackPathStats) {
 			stats.ByProvider[p.Nodes[0].Provider]++
 		}
 	}
+
+	span.SetAttributes(
+		attribute.Int("attack_paths.total", stats.TotalPaths),
+		attribute.Int("attack_paths.critical", stats.CriticalPaths),
+	)
 
 	return paths, stats
 }

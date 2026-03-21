@@ -26,7 +26,7 @@ The platform already has:
 
 ## Decision
 
-We will implement a **4-phase whitelabel strategy**, starting with environment variable-driven branding and progressing to full multi-tenant support.
+A **4-phase whitelabel strategy** was selected, starting with environment variable-driven branding and progressing to full multi-tenant support.
 
 ### Phase 1: Environment Variable Branding (Done)
 

@@ -12,6 +12,8 @@ import (
 	"aegis/internal/workflow"
 
 	"github.com/gorilla/mux"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
@@ -28,7 +30,12 @@ type IntegrationHandler struct {
 // RemediateFinding creates a ticket and starts a remediation workflow.
 // POST /api/v1/findings/{id}/remediate
 func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.RemediateFinding")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	findingID := mux.Vars(r)["id"]
+	span.SetAttributes(attribute.String("finding.id", findingID))
 	if findingID == "" {
 		writeErrorResponse(w, "finding id required", http.StatusBadRequest)
 		return
@@ -126,7 +133,12 @@ func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Req
 // GetFindingTicket returns the ticket associated with a finding.
 // GET /api/v1/findings/{id}/ticket
 func (h *IntegrationHandler) GetFindingTicket(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.GetFindingTicket")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	findingID := mux.Vars(r)["id"]
+	span.SetAttributes(attribute.String("finding.id", findingID))
 	if findingID == "" {
 		writeErrorResponse(w, "finding id required", http.StatusBadRequest)
 		return

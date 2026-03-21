@@ -391,6 +391,11 @@ func (t *Telemetry) HTTPMiddleware() func(http.Handler) http.Handler {
 				defer t.metrics.RequestsInFlight.Dec()
 			}
 
+			// Set X-Trace-Id response header for distributed trace correlation
+			if span.SpanContext().HasTraceID() {
+				w.Header().Set("X-Trace-Id", span.SpanContext().TraceID().String())
+			}
+
 			// Wrap response writer to capture status
 			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 

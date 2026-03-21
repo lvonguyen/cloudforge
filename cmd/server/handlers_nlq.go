@@ -9,6 +9,9 @@ import (
 
 	"aegis/internal/ai"
 	"aegis/internal/api"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // nlqRateLimiter tracks per-user NLQ call timestamps to prevent AI budget drain.
@@ -52,6 +55,10 @@ Examples:
 Only include fields that are clearly specified. Return {} for ambiguous queries.`
 
 func (s *Server) queryNLQ(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.queryNLQ")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	if s.enrichmentSvc == nil || s.enrichmentSvc.AI == nil {
 		writeErrorResponse(w, "AI provider not configured", http.StatusServiceUnavailable)
 		return
@@ -95,6 +102,8 @@ func (s *Server) queryNLQ(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	span.SetAttributes(attribute.Int("nlq.query_length", len(query)))
+
 	// Use TierFast for NLQ parsing — cost-optimized
 	var result string
 	var err error
@@ -119,12 +128,31 @@ func (s *Server) queryNLQ(w http.ResponseWriter, r *http.Request) {
 		resp = NLQResponse{Text: query}
 	}
 
+	// When NLQ returns a text field but no structured filters, use full-text
+	// search to return actual matching findings alongside the NLQ response.
+	if resp.Text != "" && len(resp.Severity) == 0 && len(resp.Provider) == 0 &&
+		len(resp.Category) == 0 && len(resp.Status) == 0 && len(resp.Environment) == 0 &&
+		s.searchSvc != nil {
+		if searchResult, err := s.searchSvc.Search(r.Context(), resp.Text, 1, 10); err == nil && searchResult.Total > 0 {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{
+				"filters":  resp,
+				"findings": searchResult.Findings,
+				"total":    searchResult.Total,
+			})
+			return
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
 
 // getAIUsage returns AI cost budget status.
 func (s *Server) getAIUsage(w http.ResponseWriter, r *http.Request) {
+	_, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getAIUsage")
+	defer span.End()
+
 	w.Header().Set("Content-Type", "application/json")
 
 	if s.enrichmentSvc == nil || s.enrichmentSvc.AI == nil {

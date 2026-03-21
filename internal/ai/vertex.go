@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/oauth2/google"
 )
 
@@ -63,6 +65,14 @@ func (p *VertexProvider) Complete(ctx context.Context, prompt string) (string, e
 
 // CompleteWithSystem sends a system + user prompt pair to Vertex AI via rawPredict.
 func (p *VertexProvider) CompleteWithSystem(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+	ctx, span := otel.Tracer("aegis.ai").Start(ctx, "ai.analyze")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("ai.model", p.model),
+		attribute.String("ai.provider", "vertex"),
+		attribute.Int("ai.input_length", len(userPrompt)),
+	)
+
 	endpoint := p.baseURL
 	if endpoint == "" {
 		endpoint = fmt.Sprintf(
@@ -120,6 +130,8 @@ func (p *VertexProvider) CompleteWithSystem(ctx context.Context, systemPrompt, u
 	if len(anthropicResp.Content) == 0 {
 		return "", fmt.Errorf("empty response from vertex")
 	}
+
+	span.SetAttributes(attribute.Int("ai.response_length", len(anthropicResp.Content[0].Text)))
 
 	return anthropicResp.Content[0].Text, nil
 }

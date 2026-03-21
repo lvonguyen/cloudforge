@@ -13,6 +13,7 @@ import (
 	"aegis/internal/finops/anomaly"
 	"aegis/internal/finops/chargeback"
 
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 )
 
@@ -149,6 +150,10 @@ func (svc *finopsService) ComputeSummary(ctx context.Context, start, end time.Ti
 
 // getCostSummaryComputed delegates to finopsService.ComputeSummary.
 func (s *Server) getCostSummaryComputed(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getCostSummaryComputed")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	end := time.Now().UTC()
 	start := end.AddDate(0, 0, -30)
 

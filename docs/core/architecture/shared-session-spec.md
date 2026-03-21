@@ -444,5 +444,5 @@ Phases 0-2 are CloudForge-critical. Phases 4-5 are medium priority (do when sync
 |----------|-------------|
 | [Terminal VPS Brief](./terminal-vps-brief.md) | WS terminal server on shared VPS (Node.js, port 8088) |
 | [HLD](./HLD.md) | CloudForge high-level architecture |
-| [ADR-014](../adr/ADR-014.md) | Event-driven ingestion (Proposed) |
+| [ADR-014](adr/ADR-014-event-driven-ingestion.md) | Event-driven ingestion (Accepted) |
 | sync-mcp README | Go MCP server with SSE event bus |

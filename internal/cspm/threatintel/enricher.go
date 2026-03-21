@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
@@ -51,13 +53,35 @@ func (e *Enricher) Enrich(ctx context.Context, cves []string, ips []string, emai
 		EnrichedAt: time.Now().UTC(),
 	}
 
-	e.enrichEPSS(cves, result)
-	e.enrichKEV(cves, result)
+	e.enrichEPSSTraced(ctx, cves, result)
+	e.enrichKEVTraced(ctx, cves, result)
 	e.enrichGreyNoise(ctx, ips, result)
 	e.enrichHIBP(ctx, emails, result)
 	e.enrichOTX(ctx, ips, result)
 
 	return result
+}
+
+func (e *Enricher) enrichEPSSTraced(ctx context.Context, cves []string, result *ThreatIntelEnrichment) {
+	_, span := otel.Tracer("aegis.threatintel").Start(ctx, "threatintel.epss")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("feed", "epss"),
+		attribute.Int("input.cve_count", len(cves)),
+	)
+	e.enrichEPSS(cves, result)
+	span.SetAttributes(attribute.Bool("cache.hit", result.EPSSScore > 0))
+}
+
+func (e *Enricher) enrichKEVTraced(ctx context.Context, cves []string, result *ThreatIntelEnrichment) {
+	_, span := otel.Tracer("aegis.threatintel").Start(ctx, "threatintel.kev")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("feed", "kev"),
+		attribute.Int("input.cve_count", len(cves)),
+	)
+	e.enrichKEV(cves, result)
+	span.SetAttributes(attribute.Bool("kev.exploited", result.KEVExploited))
 }
 
 func (e *Enricher) enrichEPSS(cves []string, result *ThreatIntelEnrichment) {
@@ -99,6 +123,12 @@ func (e *Enricher) enrichGreyNoise(ctx context.Context, ips []string, result *Th
 	if e.greynoise == nil || len(ips) == 0 {
 		return
 	}
+	ctx, span := otel.Tracer("aegis.threatintel").Start(ctx, "threatintel.greynoise")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("feed", "greynoise"),
+		attribute.Int("input.ip_count", len(ips)),
+	)
 	gnResult, err := e.greynoise.ClassifyIP(ctx, ips[0])
 	if err != nil {
 		e.logger.Warn("GreyNoise lookup failed", zap.String("ip", ips[0]), zap.Error(err))
@@ -112,6 +142,12 @@ func (e *Enricher) enrichHIBP(ctx context.Context, emails []string, result *Thre
 	if e.hibp == nil || len(emails) == 0 {
 		return
 	}
+	ctx, span := otel.Tracer("aegis.threatintel").Start(ctx, "threatintel.hibp")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("feed", "hibp"),
+		attribute.Int("input.email_count", len(emails)),
+	)
 	count, err := e.hibp.GetBreachCount(ctx, emails[0])
 	if err != nil {
 		e.logger.Warn("HIBP lookup failed", zap.String("email", emails[0]), zap.Error(err))
@@ -124,6 +160,12 @@ func (e *Enricher) enrichOTX(ctx context.Context, ips []string, result *ThreatIn
 	if e.otx == nil || len(ips) == 0 {
 		return
 	}
+	ctx, span := otel.Tracer("aegis.threatintel").Start(ctx, "threatintel.otx")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("feed", "otx"),
+		attribute.Int("input.ip_count", len(ips)),
+	)
 	indicator, err := e.otx.GetIndicator(ctx, OTXTypeIPv4, ips[0])
 	if err != nil {
 		e.logger.Warn("OTX lookup failed", zap.String("ip", ips[0]), zap.Error(err))

@@ -27,7 +27,7 @@ Enterprise cloud environments span AWS, Azure, and GCP. Cost visibility is fragm
 
 ## Decision
 
-We will implement a **multi-cloud cost aggregation layer** with the following components:
+A **multi-cloud cost aggregation layer** was selected with the following components:
 
 ### 1. Cloud Cost Clients
 

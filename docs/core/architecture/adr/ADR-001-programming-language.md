@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-We need to select a primary programming language for Cloud Aegis that supports:
+A primary programming language must be selected for Cloud Aegis that supports:
 - High-performance API services
 - Concurrent processing of security findings
 - Strong typing for complex compliance data structures
@@ -26,7 +26,7 @@ We need to select a primary programming language for Cloud Aegis that supports:
 
 ## Decision
 
-We will use **Go 1.25** as the primary language.
+**Go 1.25** was selected as the primary language.
 
 ## Rationale
 

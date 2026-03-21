@@ -1,6 +1,6 @@
 # Wiz Attack Path Analysis: Architecture Insights & Project Enhancement Roadmap
 
-**Author:** Liem Von Nguyen | **Date:** 2026-02-26
+**Author:** Liem Vo-Nguyen | **Date:** 2026-02-26
 **Targets:** csmp-aggregator, AgentGuard | **Context:** Enterprise multi-cloud (3,500+ envs)
 
 ---

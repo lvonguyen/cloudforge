@@ -8,6 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 const (
@@ -87,6 +89,14 @@ func (p *BedrockProvider) Complete(ctx context.Context, prompt string) (string, 
 // (anthropic-beta: prompt-caching-2024-07-31) to avoid re-tokenizing static
 // prompts on every call.
 func (p *BedrockProvider) CompleteWithSystem(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+	ctx, span := otel.Tracer("aegis.ai").Start(ctx, "ai.analyze")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("ai.model", p.modelID),
+		attribute.String("ai.provider", "bedrock"),
+		attribute.Int("ai.input_length", len(userPrompt)),
+	)
+
 	reqBody := bedrockRequest{
 		Model:     p.modelID,
 		MaxTokens: 4096,
@@ -130,6 +140,8 @@ func (p *BedrockProvider) CompleteWithSystem(ctx context.Context, systemPrompt, 
 	if len(resp.Content) == 0 {
 		return "", fmt.Errorf("empty response from bedrock")
 	}
+
+	span.SetAttributes(attribute.Int("ai.response_length", len(resp.Content[0].Text)))
 
 	return resp.Content[0].Text, nil
 }

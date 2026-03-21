@@ -55,6 +55,18 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
+// parseFloatOrDefault parses a string as float64 and returns the default if parsing fails or s is empty.
+func parseFloatOrDefault(s string, defaultValue float64) float64 {
+	if s == "" {
+		return defaultValue
+	}
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return defaultValue
+	}
+	return v
+}
+
 // decodeJSONBody is the package-level JSON body decoder with size limit and validation.
 func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}, logger *zap.Logger) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)

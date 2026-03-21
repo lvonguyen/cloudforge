@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // validImageRef matches OCI-compliant image references.
@@ -22,6 +25,10 @@ func containerScannerProvider() string {
 }
 
 func (s *Server) scanContainer(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.scanContainer")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	image := r.URL.Query().Get("image")
 	if image == "" {
 		writeErrorResponse(w, "image query parameter is required", http.StatusBadRequest)
@@ -36,6 +43,11 @@ func (s *Server) scanContainer(w http.ResponseWriter, r *http.Request) {
 		tag = "latest"
 	}
 
+	span.SetAttributes(
+		attribute.String("container.image", image),
+		attribute.String("container.tag", tag),
+	)
+
 	scanner := s.containerScanner
 	result, err := scanner.ScanImage(r.Context(), image, tag)
 	if err != nil {
@@ -48,6 +60,10 @@ func (s *Server) scanContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) checkAdmission(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.checkAdmission")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	image := r.URL.Query().Get("image")
 	if image == "" {
 		writeErrorResponse(w, "image query parameter is required", http.StatusBadRequest)
@@ -65,6 +81,12 @@ func (s *Server) checkAdmission(w http.ResponseWriter, r *http.Request) {
 	if namespace == "" {
 		namespace = "default"
 	}
+
+	span.SetAttributes(
+		attribute.String("container.image", image),
+		attribute.String("container.tag", tag),
+		attribute.String("container.namespace", namespace),
+	)
 
 	scanner := s.containerScanner
 	decision, err := scanner.CheckAdmission(r.Context(), image, tag, namespace)

@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-We need to select a database for storing:
+A database must be selected for storing:
 - Security findings (millions of records)
 - Compliance framework mappings
 - Audit logs
@@ -32,7 +32,7 @@ We need to select a database for storing:
 
 ## Decision
 
-We will use **PostgreSQL 16** as the primary database.
+**PostgreSQL 16** was selected as the primary database.
 
 ## Rationale
 
@@ -80,7 +80,7 @@ We will use **PostgreSQL 16** as the primary database.
 
 ## Alternatives for Future
 
-If we need >100K TPS or global distribution:
+If >100K TPS or global distribution is required:
 - Add DynamoDB for high-velocity finding ingestion
 - Add read replicas for query scaling
 - Consider CockroachDB for multi-region active-active

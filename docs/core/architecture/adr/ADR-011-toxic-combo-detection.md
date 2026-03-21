@@ -28,7 +28,7 @@ The question is: how to detect and surface toxic combinations efficiently within
 
 ## Decision
 
-We will implement **pattern-based toxic combination detection** in `internal/cspm/scoring/toxic_combos.go` with 4 initial patterns:
+**Pattern-based toxic combination detection** was selected, implemented in `internal/cspm/scoring/toxic_combos.go` with 4 initial patterns:
 
 ### Pattern Definitions
 

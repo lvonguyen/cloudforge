@@ -14,7 +14,7 @@ Cloud Aegis currently uses three fragmented graph computation approaches:
 2. **Investigation Board** -- React Flow client-side graph from flat finding data
 3. **DataStore in-memory maps** -- O(1) lookups but no relationship traversal
 
-As the product scales beyond demo/POC toward multi-tenant production, we need a unified graph query layer that supports:
+As the product scales beyond demo/POC toward multi-tenant production, a unified graph query layer is required that supports:
 
 - Multi-hop traversal (e.g., "find all findings reachable from identity X within 3 hops")
 - Real-time queries over live data (not pre-computed snapshots)

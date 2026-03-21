@@ -214,6 +214,9 @@ cloudforge/
 │   └── workflow/                  # Temporal workflow definitions
 ├── pkg/
 │   └── remediation/               # Executor engine, Remediator interface, types
+├── rust/
+│   └── libaegispath/              # Rust FFI library for attack path BFS (rayon parallelism)
+│       └── bridge.go              # CGo bridge: ComputeAttackPaths, LoadAndSerializeFindings
 ├── migrations/                    # Database migrations
 ├── deploy/
 │   ├── terraform/
@@ -346,6 +349,7 @@ Pluggable providers for enterprise GRC platforms:
 | Cache | [Redis](https://redis.io/) | Session, caching |
 | AI | [Anthropic Claude](https://www.anthropic.com/) | Intelligence services |
 | Identity | OIDC (Okta/Entra ID) | Authentication |
+| Attack Path Engine | [Rust](https://www.rust-lang.org/) / CGo FFI | High-performance BFS computation via `libaegispath` (`rust/bridge.go`) |
 | Observability | [OpenTelemetry](https://opentelemetry.io/) | Tracing, metrics |
 
 ---
@@ -377,6 +381,12 @@ make run
 
 # Run tests
 make test
+
+# Build / test / bench Rust FFI library (requires Rust toolchain)
+make rust-build     # cargo build --release
+make rust-test      # cargo test
+make rust-bench     # Criterion benchmarks
+make rust-clean     # cargo clean
 
 # Start frontend dev server
 cd frontend

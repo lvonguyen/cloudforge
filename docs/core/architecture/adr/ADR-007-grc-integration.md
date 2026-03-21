@@ -12,15 +12,15 @@ Different organizations use different GRC tools:
 - **ServiceNow GRC** - Popular for organizations already using ServiceNow ITSM
 - **Smaller organizations** - May not have enterprise GRC tools at all
 
-We need an architecture that:
-1. Supports multiple GRC backends
-2. Allows organizations to swap providers without code changes
-3. Provides a fallback for orgs without enterprise GRC
-4. Maintains a consistent API for the rest of CloudForge
+The architecture must:
+1. Support multiple GRC backends
+2. Allow organizations to swap providers without code changes
+3. Provide a fallback for orgs without enterprise GRC
+4. Maintain a consistent API for the rest of CloudForge
 
 ## Decision
 
-We will implement a **Provider Pattern** with the following components:
+A **Provider Pattern** was selected with the following components:
 
 ### 1. GRCProvider Interface
 
@@ -89,7 +89,7 @@ grc:
 
 - **Archer field IDs**: RSA Archer uses numeric field IDs that vary per installation. Implementation requires per-deployment configuration.
 - **ServiceNow customization**: ServiceNow GRC module can be heavily customized. May need org-specific adapters.
-- **Sync issues**: If exception status changes in GRC tool outside CloudForge, we need reconciliation.
+- **Sync issues**: If exception status changes in GRC tool outside CloudForge, reconciliation is required.
 
 ## Alternatives Considered
 

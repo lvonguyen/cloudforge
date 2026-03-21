@@ -800,3 +800,134 @@ func TestFP_MP11_ICSPort_NoteContainsICSMessage(t *testing.T) {
 		t.Errorf("expected Reason to contain %q, got %q", expectedNote, result.Reason)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// MP-13: GreyNoise Dampener
+// ---------------------------------------------------------------------------
+
+func TestMP13_GreyNoiseDampener_Triggers_BenignNetworkExposure(t *testing.T) {
+	engine := NewFPRuleEngine(nil)
+
+	f := scoring.Finding{
+		Severity:    "HIGH",
+		FindingType: "OPEN_SECURITY_GROUP_INGRESS_22",
+		Context: scoring.FindingContext{
+			GreyNoiseClass: "benign",
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if !ok {
+		t.Fatal("MP-13 expected to match benign GreyNoise with network exposure finding, got no match")
+	}
+	if result.Pattern != "FP-GREYNOISE-BENIGN" {
+		t.Errorf("expected pattern FP-GREYNOISE-BENIGN, got %s", result.Pattern)
+	}
+	if result.AdjustedSeverity != "MEDIUM" {
+		t.Errorf("expected HIGH downgraded 1 level to MEDIUM, got %s", result.AdjustedSeverity)
+	}
+	if result.Confidence != 0.80 {
+		t.Errorf("expected confidence 0.80, got %f", result.Confidence)
+	}
+	if !result.Applied {
+		t.Error("expected Applied=true")
+	}
+}
+
+func TestMP13_GreyNoiseDampener_Triggers_BenignPublicAccess(t *testing.T) {
+	engine := NewFPRuleEngine(nil)
+
+	f := scoring.Finding{
+		Severity:    "CRITICAL",
+		FindingType: "PUBLIC_ACCESS_ENABLED",
+		Context: scoring.FindingContext{
+			EnvType:        "prod",
+			GreyNoiseClass: "benign",
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if !ok {
+		t.Fatal("MP-13 expected to match benign GreyNoise with PUBLIC_ACCESS finding, got no match")
+	}
+	if result.Pattern != "FP-GREYNOISE-BENIGN" {
+		t.Errorf("expected pattern FP-GREYNOISE-BENIGN, got %s", result.Pattern)
+	}
+	if result.AdjustedSeverity != "HIGH" {
+		t.Errorf("expected CRITICAL downgraded 1 level to HIGH, got %s", result.AdjustedSeverity)
+	}
+}
+
+func TestMP13_GreyNoiseDampener_NoTrigger_MaliciousIP(t *testing.T) {
+	engine := NewFPRuleEngine(nil)
+
+	f := scoring.Finding{
+		Severity:    "HIGH",
+		FindingType: "OPEN_SECURITY_GROUP",
+		Context: scoring.FindingContext{
+			GreyNoiseClass: "malicious",
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if ok && result.Pattern == "FP-GREYNOISE-BENIGN" {
+		t.Error("MP-13 should NOT trigger when GreyNoise classification is malicious")
+	}
+}
+
+func TestMP13_GreyNoiseDampener_NoTrigger_EmptyGreyNoise(t *testing.T) {
+	engine := NewFPRuleEngine(nil)
+
+	f := scoring.Finding{
+		Severity:    "HIGH",
+		FindingType: "OPEN_SECURITY_GROUP",
+		Context: scoring.FindingContext{
+			GreyNoiseClass: "",
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if ok && result.Pattern == "FP-GREYNOISE-BENIGN" {
+		t.Error("MP-13 should NOT trigger when GreyNoise classification is empty")
+	}
+}
+
+func TestMP13_GreyNoiseDampener_NoTrigger_NonNetworkFinding(t *testing.T) {
+	engine := NewFPRuleEngine(nil)
+
+	f := scoring.Finding{
+		Severity:    "HIGH",
+		FindingType: "S3_BUCKET_VERSIONING_DISABLED",
+		Context: scoring.FindingContext{
+			GreyNoiseClass: "benign",
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if ok && result.Pattern == "FP-GREYNOISE-BENIGN" {
+		t.Error("MP-13 should NOT trigger for non-network-exposure finding types")
+	}
+}
+
+func TestMP13_GreyNoiseDampener_Triggers_FirewallFinding(t *testing.T) {
+	engine := NewFPRuleEngine(nil)
+
+	f := scoring.Finding{
+		Severity:    "MEDIUM",
+		FindingType: "FIREWALL_RULE_ALLOW_ALL",
+		Context: scoring.FindingContext{
+			GreyNoiseClass: "benign",
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if !ok {
+		t.Fatal("MP-13 expected to match benign GreyNoise with FIREWALL finding, got no match")
+	}
+	if result.Pattern != "FP-GREYNOISE-BENIGN" {
+		t.Errorf("expected pattern FP-GREYNOISE-BENIGN, got %s", result.Pattern)
+	}
+	if result.AdjustedSeverity != "LOW" {
+		t.Errorf("expected MEDIUM downgraded 1 level to LOW, got %s", result.AdjustedSeverity)
+	}
+}

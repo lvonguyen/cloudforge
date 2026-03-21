@@ -8,6 +8,8 @@ import (
 
 	"aegis/internal/graph"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
@@ -33,6 +35,10 @@ var graphMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|drop|property\s*
 // Feature-flagged: returns 501 when PUPPYGRAPH_URL is not configured.
 // Read-only: mutation keywords are rejected.
 func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.handleGraphQuery")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	if s.graphClient == nil {
 		writeErrorResponse(w, "graph query engine not configured", http.StatusNotImplemented)
 		return
@@ -68,6 +74,11 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 		writeErrorResponse(w, "mutation queries are not permitted (read-only)", http.StatusForbidden)
 		return
 	}
+
+	span.SetAttributes(
+		attribute.String("graph.language", req.Language),
+		attribute.Int("graph.query_length", len(req.Query)),
+	)
 
 	result, err := s.graphClient.Query(r.Context(), graph.QueryRequest{
 		Language: req.Language,

@@ -47,7 +47,7 @@ SecurityHub/Defender/SCC → Manual JSON Export → S3 → Load into Memory → 
 
 ## Decision
 
-We will implement an **event-driven ingestion pipeline** using cloud-native message queues (SQS for AWS, Pub/Sub for GCP, Event Hub for Azure) with persistent storage for deduplication.
+An **event-driven ingestion pipeline** using cloud-native message queues (SQS for AWS, Pub/Sub for GCP, Event Hub for Azure) with persistent storage for deduplication was selected.
 
 ### Architecture Overview
 
@@ -196,7 +196,7 @@ Use Kafka as central event bus for all findings.
 - Over-engineered for current scale (10K findings/day)
 - Higher cost ($500/month for managed Kafka vs $50/month for SQS)
 
-**Rejected because**: SQS/Pub-Sub is sufficient for current scale (< 100K findings/day). Kafka is overkill until we reach 1M+ findings/day.
+**Rejected because**: SQS/Pub-Sub is sufficient for current scale (< 100K findings/day). Kafka is overkill until the platform reaches 1M+ findings/day.
 
 ---
 

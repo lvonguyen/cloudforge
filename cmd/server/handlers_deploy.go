@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
@@ -74,6 +76,10 @@ func generateExecID() string {
 // startDeployPreview handles POST /api/v1/deploy/preview.
 // Starts a background deploy preview orchestration and returns the execution ID.
 func (s *Server) startDeployPreview(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.startDeployPreview")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	var config DeployPreviewConfig
 	if !s.decodeJSONBody(w, r, &config) {
 		return
@@ -85,6 +91,12 @@ func (s *Server) startDeployPreview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	execID := generateExecID()
+	span.SetAttributes(
+		attribute.String("deploy.exec_id", execID),
+		attribute.String("deploy.resource_type", config.ResourceType),
+		attribute.String("deploy.provider", config.Provider),
+		attribute.String("deploy.region", config.Region),
+	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	s.deployTracker.add(execID, cancel)
@@ -103,7 +115,12 @@ func (s *Server) startDeployPreview(w http.ResponseWriter, r *http.Request) {
 
 // abortDeployPreview handles POST /api/v1/deploy/preview/{id}/abort.
 func (s *Server) abortDeployPreview(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.abortDeployPreview")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	execID := mux.Vars(r)["id"]
+	span.SetAttributes(attribute.String("deploy.exec_id", execID))
 	if execID == "" {
 		writeErrorResponse(w, "execution id required", http.StatusBadRequest)
 		return

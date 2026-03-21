@@ -34,7 +34,7 @@ type FPRuleEngine struct {
 	rules []fpRule
 }
 
-// NewFPRuleEngine constructs an engine with MP-04 through MP-11 in priority order.
+// NewFPRuleEngine constructs an engine with MP-04 through MP-13 in priority order.
 // Pass a non-nil NVDStatusChecker to enable MP-07; pass nil to skip it.
 func NewFPRuleEngine(nvd NVDStatusChecker) *FPRuleEngine {
 	e := &FPRuleEngine{}
@@ -45,6 +45,7 @@ func NewFPRuleEngine(nvd NVDStatusChecker) *FPRuleEngine {
 		buildRuleMP07CVEStatusValidator(nvd),
 		ruleMP08KMSAsymmetricRotation,
 		ruleMP11ICSProtocolPort,
+		ruleMP13GreyNoiseDampener,
 	}
 	return e
 }
@@ -351,6 +352,56 @@ func ruleMP11ICSProtocolPort(f scoring.Finding) (*FPRuleResult, bool) {
 			Reason:           "ICS/IoT protocol port — verify application-layer auth; MP-11 (EC-08)",
 			Confidence:       0.75,
 			Pattern:          "MP-11",
+			Applied:          adjusted != f.Severity,
+		},
+	}, true
+}
+
+// ---------------------------------------------------------------------------
+// MP-13: GreyNoise Dampener
+//
+// Trigger: FindingContext.GreyNoiseClass == "benign"
+//          AND FindingClass is NETWORK_EXPOSURE (FindingType contains NETWORK_EXPOSURE,
+//              OPEN_SECURITY_GROUP, PUBLIC_ACCESS, INGRESS, or FIREWALL)
+// Effect:  Downgrade 1 level, confidence 0.80
+// EC codes: EC-GREYNOISE
+// Pattern: FP-GREYNOISE-BENIGN
+// ---------------------------------------------------------------------------
+
+// mp13NetworkFindingTypes are FindingType substrings that indicate network exposure findings.
+var mp13NetworkFindingTypes = []string{
+	"NETWORK_EXPOSURE",
+	"OPEN_SECURITY_GROUP",
+	"PUBLIC_ACCESS",
+	"INGRESS",
+	"FIREWALL",
+}
+
+func ruleMP13GreyNoiseDampener(f scoring.Finding) (*FPRuleResult, bool) {
+	if strings.ToLower(f.Context.GreyNoiseClass) != "benign" {
+		return nil, false
+	}
+
+	ft := strings.ToUpper(f.FindingType)
+	hasNetworkType := false
+	for _, t := range mp13NetworkFindingTypes {
+		if strings.Contains(ft, t) {
+			hasNetworkType = true
+			break
+		}
+	}
+	if !hasNetworkType {
+		return nil, false
+	}
+
+	adjusted := downgradeSeverity(f.Severity, 1)
+	return &FPRuleResult{
+		SeverityAdjustment: SeverityAdjustment{
+			OriginalSeverity: f.Severity,
+			AdjustedSeverity: adjusted,
+			Reason:           "GreyNoise classifies source IP as benign; MP-13 (EC-GREYNOISE)",
+			Confidence:       0.80,
+			Pattern:          "FP-GREYNOISE-BENIGN",
 			Applied:          adjusted != f.Severity,
 		},
 	}, true

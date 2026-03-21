@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"regexp"
 	"sort"
 	"strings"
@@ -13,6 +14,8 @@ import (
 	"aegis/internal/ai"
 	"aegis/internal/cspm/threatintel"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 )
@@ -132,7 +135,11 @@ func (svc *EnrichmentService) GetCached(id string) (*FindingEnrichment, bool) {
 // same finding ID are deduplicated via singleflight.
 func (svc *EnrichmentService) Enrich(ctx context.Context, finding *Finding) (*FindingEnrichment, error) {
 	// Check cache first
-	if cached, ok := svc.GetCached(finding.ID); ok {
+	_, cacheSpan := otel.Tracer("aegis.enrichment").Start(ctx, "enrichment.cache_check")
+	cached, cacheHit := svc.GetCached(finding.ID)
+	cacheSpan.SetAttributes(attribute.Bool("cache.hit", cacheHit))
+	cacheSpan.End()
+	if cacheHit {
 		return cached, nil
 	}
 
@@ -156,7 +163,9 @@ func (svc *EnrichmentService) Enrich(ctx context.Context, finding *Finding) (*Fi
 
 		// AI enrichment (optional — skipped when AI provider is nil)
 		if svc.AI != nil {
-			callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			aiCtx, aiSpan := otel.Tracer("aegis.enrichment").Start(ctx, "enrichment.ai_call")
+			defer aiSpan.End()
+			callCtx, cancel := context.WithTimeout(aiCtx, 30*time.Second)
 			defer cancel()
 
 			prompt := fmt.Sprintf(`Finding: %s
@@ -171,13 +180,20 @@ Description: %s`,
 				finding.Remediation,
 			)
 
+			aiSpan.SetAttributes(attribute.Int("ai.input_length", len(prompt)))
+
 			response, err := svc.AI.CompleteWithSystem(callCtx, findingEnrichSystemPrompt, prompt)
 			if err != nil {
+				aiSpan.RecordError(err)
 				svc.Logger.Warn("AI enrichment failed, continuing with threat intel only",
 					zap.String("finding_id", finding.ID), zap.Error(err))
 			} else {
+				aiSpan.SetAttributes(attribute.Int("ai.response_length", len(response)))
+
+				_, parseSpan := otel.Tracer("aegis.enrichment").Start(aiCtx, "enrichment.parse")
 				parsed, err := parseFindingEnrichment(finding.ID, response)
 				if err != nil {
+					parseSpan.RecordError(err)
 					svc.Logger.Warn("parsing AI response failed",
 						zap.String("finding_id", finding.ID), zap.Error(err))
 				} else {
@@ -186,6 +202,7 @@ Description: %s`,
 					enrichment.Remediation = parsed.Remediation
 					enrichment.RelatedControls = parsed.RelatedControls
 				}
+				parseSpan.End()
 			}
 		}
 
@@ -195,13 +212,24 @@ Description: %s`,
 			for _, cve := range finding.CVEs {
 				cves = append(cves, cve.ID)
 			}
-			enrichment.ThreatIntel = svc.ThreatIntel.Enrich(ctx, cves, nil, nil)
+
+			// Extract IPs and emails from finding fields.
+			ips := finding.IPs
+			if len(ips) == 0 {
+				ips = extractIPsFromText(finding.Description + " " + finding.ResourceID)
+			}
+			emails := finding.Emails
+
+			enrichment.ThreatIntel = svc.ThreatIntel.Enrich(ctx, cves, ips, emails)
 		}
 
 		// Cache the result
+		_, storeSpan := otel.Tracer("aegis.enrichment").Start(ctx, "enrichment.cache_store")
 		svc.Mu.Lock()
 		svc.Cache[finding.ID] = enrichment
 		svc.Mu.Unlock()
+		storeSpan.SetAttributes(attribute.String("finding.id", finding.ID))
+		storeSpan.End()
 
 		return enrichment, nil
 	})
@@ -283,4 +311,32 @@ func (svc *EnrichmentService) evictExpired() {
 			delete(svc.Cache, items[i].key)
 		}
 	}
+}
+
+// ipv4Pattern matches IPv4 addresses in text. Avoids matching version numbers
+// by requiring word boundary context.
+var ipv4Pattern = regexp.MustCompile(`\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b`)
+
+// extractIPsFromText extracts unique IPv4 addresses from text fields.
+// Filters out common non-IP patterns (loopback, link-local, broadcast).
+func extractIPsFromText(text string) []string {
+	matches := ipv4Pattern.FindAllString(text, 50) // cap at 50 to bound allocation
+	seen := make(map[string]bool, len(matches))
+	var ips []string
+	for _, m := range matches {
+		if seen[m] {
+			continue
+		}
+		// Validate octets are 0-255 (regex only checks digit count).
+		if net.ParseIP(m) == nil {
+			continue
+		}
+		if strings.HasPrefix(m, "127.") || strings.HasPrefix(m, "169.254.") ||
+			m == "0.0.0.0" || m == "255.255.255.255" {
+			continue
+		}
+		seen[m] = true
+		ips = append(ips, m)
+	}
+	return ips
 }

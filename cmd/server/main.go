@@ -44,20 +44,23 @@ import (
 type Config struct {
 	Port             string
 	GRCProvider      grc.ProviderType
-	JWTSecretEnv     string // Environment variable name for JWT secret
-	JWTIssuer        string // Expected JWT issuer
-	JWTAudience      string // Expected JWT audience
-	TLSCertFile      string // Path to TLS certificate file
-	TLSKeyFile       string // Path to TLS key file
-	RedisAddr        string // Redis address for rate limiting
-	RedisPasswordEnv string // Environment variable name for Redis password
-	RateLimitEnabled bool   // Enable rate limiting
-	AIEnabled        bool   // Enable Bedrock AI enrichment
-	AIRegion         string // AWS region for Bedrock (default: us-east-1)
-	AIModel          string // Bedrock model ID override
-	CORSOrigins      string // Comma-separated allowed CORS origins
-	WSServerURL      string // URL of the ws-server for SSE event publishing
-	WSPublishKey     string // X-API-Key for ws-server /api/publish (WS_PUBLISH_KEY env var)
+	JWTSecretEnv     string  // Environment variable name for JWT secret
+	JWTIssuer        string  // Expected JWT issuer
+	JWTAudience      string  // Expected JWT audience
+	TLSCertFile      string  // Path to TLS certificate file
+	TLSKeyFile       string  // Path to TLS key file
+	RedisAddr        string  // Redis address for rate limiting
+	RedisPasswordEnv string  // Environment variable name for Redis password
+	RateLimitEnabled bool    // Enable rate limiting
+	AIEnabled        bool    // Enable Bedrock AI enrichment
+	AIRegion         string  // AWS region for Bedrock (default: us-east-1)
+	AIModel          string  // Bedrock model ID override
+	CORSOrigins      string  // Comma-separated allowed CORS origins
+	WSServerURL      string  // URL of the ws-server for SSE event publishing
+	WSPublishKey     string  // X-API-Key for ws-server /api/publish (WS_PUBLISH_KEY env var)
+	TracingEnabled   bool    // Enable OpenTelemetry tracing
+	OTLPEndpoint     string  // OTLP gRPC endpoint for trace export
+	SamplingRate     float64 // Trace sampling rate (0.0 - 1.0)
 }
 
 // Server holds application state and wires domain services to HTTP routes.
@@ -113,6 +116,9 @@ type Server struct {
 
 	// Graph query engine (PuppyGraph — feature-flagged via PUPPYGRAPH_URL)
 	graphClient *graph.Client
+
+	// Full-text search (BM25 + optional semantic/hybrid)
+	searchSvc *SearchService
 }
 
 func main() {
@@ -146,6 +152,9 @@ func main() {
 		CORSOrigins:      getEnv("CORS_ALLOWED_ORIGINS", ""),
 		WSServerURL:      getEnv("WS_SERVER_URL", ""),
 		WSPublishKey:     getEnv("WS_PUBLISH_KEY", ""),
+		TracingEnabled:   os.Getenv("AEGIS_TRACING_ENABLED") == "true",
+		OTLPEndpoint:     getEnv("AEGIS_OTLP_ENDPOINT", "localhost:4317"),
+		SamplingRate:     parseFloatOrDefault(os.Getenv("AEGIS_SAMPLING_RATE"), 1.0),
 	}
 
 	// Initialize GRC provider
@@ -176,11 +185,14 @@ func main() {
 		logger.Fatal("Failed to initialize auth middleware", zap.Error(err))
 	}
 
-	// Initialize observability telemetry (Prometheus metrics + system collectors)
+	// Initialize observability telemetry (Prometheus metrics + OTel tracing)
 	telemetry, err := observability.New(observability.Config{
 		ServiceName:    "aegis",
 		ServiceVersion: "1.0.0",
 		MetricsEnabled: true,
+		TracingEnabled: cfg.TracingEnabled,
+		OTLPEndpoint:   cfg.OTLPEndpoint,
+		SamplingRate:   cfg.SamplingRate,
 	})
 	if err != nil {
 		logger.Warn("Telemetry init failed, /metrics disabled", zap.Error(err))
@@ -457,6 +469,19 @@ func main() {
 		zap.Int("catalog_modules", len(mockData.CatalogModules)),
 	)
 
+	// Initialize full-text search index (BM25 + TF-IDF embeddings)
+	searchSvc, err := NewSearchService(mockData.Findings)
+	if err != nil {
+		logger.Fatal("Failed to initialize search service", zap.Error(err))
+	}
+	embedSvc := NewEmbeddingService(mockData.Findings)
+	searchSvc.embedSvc = embedSvc
+	srv.searchSvc = searchSvc
+	logger.Info("Search service initialized",
+		zap.Int("indexed_findings", len(mockData.Findings)),
+		zap.Int("vocab_size", embedSvc.vocabSize),
+	)
+
 	// Compute attack paths from findings
 	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings)
 
@@ -539,10 +564,18 @@ func main() {
 	// Setup routes
 	srv.setupRoutes()
 
-	// Create HTTP server with security middleware
+	// Build middleware chain: gzip -> tracing -> security headers -> router
+	var handler http.Handler = srv.router
+	handler = srv.securityHeadersMiddleware(handler)
+	if telemetry != nil {
+		handler = telemetry.HTTPMiddleware()(handler)
+	}
+	handler = srv.gzipMiddleware(handler)
+
+	// Create HTTP server with middleware chain
 	httpServer := &http.Server{
 		Addr:              fmt.Sprintf(":%s", cfg.Port),
-		Handler:           srv.gzipMiddleware(srv.securityHeadersMiddleware(srv.router)),
+		Handler:           handler,
 		ReadTimeout:       15 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      35 * time.Second, // must exceed AI enrichment's 30s context
@@ -603,6 +636,20 @@ func main() {
 
 	if err := httpServer.Shutdown(ctx); err != nil {
 		logger.Fatal("Server forced to shutdown", zap.Error(err))
+	}
+
+	// Close search index to release Bleve resources.
+	if srv.searchSvc != nil {
+		if err := srv.searchSvc.Close(); err != nil {
+			logger.Warn("Search service close error", zap.Error(err))
+		}
+	}
+
+	// Flush remaining trace spans to the collector
+	if telemetry != nil {
+		if err := telemetry.Shutdown(ctx); err != nil {
+			logger.Warn("Telemetry shutdown error", zap.Error(err))
+		}
 	}
 
 	logger.Info("Server stopped")

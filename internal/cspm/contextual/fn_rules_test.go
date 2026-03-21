@@ -451,3 +451,244 @@ func TestFNRuleEngine_FirstMatchWins_MP09BeforeMP10(t *testing.T) {
 		t.Errorf("expected MP-10 to match for stale admin key, got %s", result.Pattern)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// MP-12: EPSS Escalator
+// ---------------------------------------------------------------------------
+
+func TestMP12_EPSSEscalator_Triggers_HighEPSSProdLow(t *testing.T) {
+	engine := NewFNRuleEngine()
+
+	f := scoring.Finding{
+		Severity:    "LOW",
+		FindingType: "CVE-2024-21338",
+		Title:       "Windows kernel elevation of privilege vulnerability",
+		Context: scoring.FindingContext{
+			EnvType:   "prod",
+			EPSSScore: 0.92,
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if !ok {
+		t.Fatal("MP-12 expected to match high EPSS in prod with LOW severity, got no match")
+	}
+	if result.Pattern != "FN-EPSS-HIGH-EXPLOIT" {
+		t.Errorf("expected pattern FN-EPSS-HIGH-EXPLOIT, got %s", result.Pattern)
+	}
+	if result.AdjustedSeverity != "MEDIUM" {
+		t.Errorf("expected LOW upgraded 1 level to MEDIUM, got %s", result.AdjustedSeverity)
+	}
+	if result.Confidence != 0.90 {
+		t.Errorf("expected confidence 0.90, got %f", result.Confidence)
+	}
+	if !result.Applied {
+		t.Error("expected Applied=true")
+	}
+}
+
+func TestMP12_EPSSEscalator_Triggers_HighEPSSProdMedium(t *testing.T) {
+	engine := NewFNRuleEngine()
+
+	f := scoring.Finding{
+		Severity:    "MEDIUM",
+		FindingType: "CVE-2024-38063",
+		Title:       "Windows TCP/IP Remote Code Execution",
+		Context: scoring.FindingContext{
+			EnvType:   "production",
+			EPSSScore: 0.85,
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if !ok {
+		t.Fatal("MP-12 expected to match high EPSS in production with MEDIUM severity, got no match")
+	}
+	if result.Pattern != "FN-EPSS-HIGH-EXPLOIT" {
+		t.Errorf("expected pattern FN-EPSS-HIGH-EXPLOIT, got %s", result.Pattern)
+	}
+	if result.AdjustedSeverity != "HIGH" {
+		t.Errorf("expected MEDIUM upgraded 1 level to HIGH, got %s", result.AdjustedSeverity)
+	}
+}
+
+func TestMP12_EPSSEscalator_NoTrigger_LowEPSS(t *testing.T) {
+	engine := NewFNRuleEngine()
+
+	f := scoring.Finding{
+		Severity:    "LOW",
+		FindingType: "CVE-2024-12345",
+		Title:       "Minor vulnerability",
+		Context: scoring.FindingContext{
+			EnvType:   "prod",
+			EPSSScore: 0.3,
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if ok && result.Pattern == "FN-EPSS-HIGH-EXPLOIT" {
+		t.Error("MP-12 should NOT trigger when EPSS score is below 0.7")
+	}
+}
+
+func TestMP12_EPSSEscalator_NoTrigger_NonProdEnv(t *testing.T) {
+	engine := NewFNRuleEngine()
+
+	f := scoring.Finding{
+		Severity:    "LOW",
+		FindingType: "CVE-2024-21338",
+		Title:       "Windows kernel vulnerability",
+		Context: scoring.FindingContext{
+			EnvType:   "dev",
+			EPSSScore: 0.95,
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if ok && result.Pattern == "FN-EPSS-HIGH-EXPLOIT" {
+		t.Error("MP-12 should NOT trigger in non-production environments")
+	}
+}
+
+func TestMP12_EPSSEscalator_NoTrigger_AlreadyHigh(t *testing.T) {
+	engine := NewFNRuleEngine()
+
+	f := scoring.Finding{
+		Severity:    "HIGH",
+		FindingType: "CVE-2024-21338",
+		Title:       "Windows kernel vulnerability",
+		Context: scoring.FindingContext{
+			EnvType:   "prod",
+			EPSSScore: 0.92,
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if ok && result.Pattern == "FN-EPSS-HIGH-EXPLOIT" {
+		t.Error("MP-12 should NOT trigger when severity is already HIGH or above")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// MP-14: HIBP Credential Escalator
+// ---------------------------------------------------------------------------
+
+func TestMP14_HIBPCredentialEscalator_Triggers_BreachedAdminCred(t *testing.T) {
+	engine := NewFNRuleEngine()
+
+	f := scoring.Finding{
+		Severity:    "LOW",
+		FindingType: "STALE_ACCESS_KEY",
+		Title:       "Stale access key for admin user",
+		Description: "IAM admin access key has not been rotated in 365 days",
+		Context: scoring.FindingContext{
+			HIBPBreachCount: 5,
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if !ok {
+		t.Fatal("MP-14 expected to match breached admin credentials, got no match")
+	}
+	// MP-10 fires first for LOW+STALE_ACCESS_KEY+admin keyword, so check
+	// that at least one of the matching patterns is active.
+	if result.Pattern != "MP-10" && result.Pattern != "FN-HIBP-COMPROMISED-ADMIN" {
+		t.Errorf("expected MP-10 or FN-HIBP-COMPROMISED-ADMIN pattern, got %s", result.Pattern)
+	}
+}
+
+func TestMP14_HIBPCredentialEscalator_Triggers_HighSeverityCredential(t *testing.T) {
+	engine := NewFNRuleEngine()
+
+	// Use MEDIUM severity and CREDENTIAL finding type to bypass MP-10 (which
+	// only matches LOW/INFORMATIONAL on STALE_ACCESS_KEY/INACTIVE_USER/NO_MFA).
+	f := scoring.Finding{
+		Severity:    "MEDIUM",
+		FindingType: "CREDENTIAL_ROTATION_OVERDUE",
+		Title:       "Admin credential rotation overdue",
+		Description: "Administrator service account credential not rotated",
+		Context: scoring.FindingContext{
+			HIBPBreachCount: 7,
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if !ok {
+		t.Fatal("MP-14 expected to match breached admin credential, got no match")
+	}
+	if result.Pattern != "FN-HIBP-COMPROMISED-ADMIN" {
+		t.Errorf("expected pattern FN-HIBP-COMPROMISED-ADMIN, got %s", result.Pattern)
+	}
+	if result.AdjustedSeverity != "CRITICAL" {
+		t.Errorf("expected escalation to CRITICAL, got %s", result.AdjustedSeverity)
+	}
+	if result.Confidence != 0.85 {
+		t.Errorf("expected confidence 0.85, got %f", result.Confidence)
+	}
+	if result.SuggestedRiskScore != 95 {
+		t.Errorf("expected SuggestedRiskScore=95, got %d", result.SuggestedRiskScore)
+	}
+}
+
+func TestMP14_HIBPCredentialEscalator_NoTrigger_LowBreachCount(t *testing.T) {
+	engine := NewFNRuleEngine()
+
+	f := scoring.Finding{
+		Severity:    "MEDIUM",
+		FindingType: "CREDENTIAL_ROTATION_OVERDUE",
+		Title:       "Admin credential rotation overdue",
+		Description: "Administrator service account credential",
+		Context: scoring.FindingContext{
+			HIBPBreachCount: 2, // below threshold of 3
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if ok && result.Pattern == "FN-HIBP-COMPROMISED-ADMIN" {
+		t.Error("MP-14 should NOT trigger when HIBP breach count is below 3")
+	}
+}
+
+func TestMP14_HIBPCredentialEscalator_NoTrigger_NonCredentialFinding(t *testing.T) {
+	engine := NewFNRuleEngine()
+
+	f := scoring.Finding{
+		Severity:    "MEDIUM",
+		FindingType: "S3_BUCKET_PUBLIC_READ",
+		Title:       "S3 bucket is publicly readable",
+		Description: "S3 bucket allows public read access",
+		Context: scoring.FindingContext{
+			HIBPBreachCount: 10,
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if ok && result.Pattern == "FN-HIBP-COMPROMISED-ADMIN" {
+		t.Error("MP-14 should NOT trigger for non-credential findings without privilege keywords")
+	}
+}
+
+func TestMP14_HIBPCredentialEscalator_Triggers_PasswordFindingWithAdmin(t *testing.T) {
+	engine := NewFNRuleEngine()
+
+	f := scoring.Finding{
+		Severity:    "MEDIUM",
+		FindingType: "PASSWORD_POLICY_NONCOMPLIANT",
+		Title:       "Admin password does not meet policy",
+		Description: "Administrator account password has not been changed in 180 days",
+		Context: scoring.FindingContext{
+			HIBPBreachCount: 4,
+		},
+	}
+
+	result, ok := engine.Evaluate(f)
+	if !ok {
+		t.Fatal("MP-14 expected to match breached admin password, got no match")
+	}
+	if result.Pattern != "FN-HIBP-COMPROMISED-ADMIN" {
+		t.Errorf("expected pattern FN-HIBP-COMPROMISED-ADMIN, got %s", result.Pattern)
+	}
+	if result.AdjustedSeverity != "CRITICAL" {
+		t.Errorf("expected escalation to CRITICAL, got %s", result.AdjustedSeverity)
+	}
+}

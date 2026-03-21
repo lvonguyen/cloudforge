@@ -5,15 +5,23 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func (s *Server) listWorkflows(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listWorkflows")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	engine := s.workflowEngine
 	workflows, err := engine.ListWorkflows(r.Context())
 	if err != nil {
 		s.writeInternalError(w, err, "list workflows")
 		return
 	}
+
+	span.SetAttributes(attribute.Int("workflows.count", len(workflows)))
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -23,8 +31,13 @@ func (s *Server) listWorkflows(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getWorkflow(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getWorkflow")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	vars := mux.Vars(r)
 	id := vars["id"]
+	span.SetAttributes(attribute.String("workflow.id", id))
 
 	engine := s.workflowEngine
 	wf, err := engine.GetWorkflow(r.Context(), id)
@@ -38,8 +51,13 @@ func (s *Server) getWorkflow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) approveWorkflow(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.approveWorkflow")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	vars := mux.Vars(r)
 	id := vars["id"]
+	span.SetAttributes(attribute.String("workflow.id", id))
 
 	var body struct {
 		Approver string `json:"approver"`

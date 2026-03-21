@@ -89,6 +89,9 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/findings/query",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.queryFindings)),
 	).Methods("GET")
+	apiRouter.Handle("/findings/search", // operator, admin — BM25 + hybrid search
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.searchFindings)),
+	).Methods("POST")
 	apiRouter.Handle("/findings/ingest", // admin only
 		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.ingestFinding)),
 	).Methods("POST")

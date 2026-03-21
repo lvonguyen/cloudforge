@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-We need a caching layer to:
+A caching layer is required to:
 - Reduce database load for frequently accessed data
 - Store session and rate limit data
 - Provide pub/sub for real-time notifications
@@ -24,7 +24,7 @@ We need a caching layer to:
 
 ## Decision
 
-We will use **Redis 7** for caching and coordination.
+**Redis 7** was selected for caching and coordination.
 
 ## Rationale
 

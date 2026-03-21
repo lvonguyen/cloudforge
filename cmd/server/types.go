@@ -53,6 +53,8 @@ type Finding struct {
 	DeduplicationKey    string              `json:"deduplication_key"`
 	CanonicalRuleID     string              `json:"canonical_rule_id"`
 	IntegrityHash       string              `json:"integrity_hash,omitempty"`
+	IPs                 []string            `json:"ips,omitempty"`
+	Emails              []string            `json:"emails,omitempty"`
 }
 
 // ComputeIntegrityHash computes a tamper-evident SHA-256 hash over the

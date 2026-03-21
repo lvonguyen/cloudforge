@@ -7,10 +7,15 @@ import (
 	"aegis/internal/compliance"
 
 	"github.com/gorilla/mux"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // getCompliancePosture returns all registered frameworks with control counts.
 func (s *Server) getCompliancePosture(w http.ResponseWriter, r *http.Request) {
+	_, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getCompliancePosture")
+	defer span.End()
+
 	type frameworkSummary struct {
 		ID          string `json:"id"`
 		Name        string `json:"name"`
@@ -33,13 +38,21 @@ func (s *Server) getCompliancePosture(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	span.SetAttributes(attribute.Int("compliance.frameworks_count", len(result)))
+
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(result)
 }
 
 // getComplianceControls returns the controls for a specific framework.
 func (s *Server) getComplianceControls(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getComplianceControls")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	fwID := mux.Vars(r)["fw"]
+	span.SetAttributes(attribute.String("compliance.framework_id", fwID))
+
 	fw, ok := s.complianceMgr.GetFramework(fwID)
 	if !ok {
 		writeErrorResponse(w, "framework not found", http.StatusNotFound)
@@ -68,6 +81,8 @@ func (s *Server) getComplianceControls(w http.ResponseWriter, r *http.Request) {
 			Keywords:    c.Keywords,
 		})
 	}
+
+	span.SetAttributes(attribute.Int("compliance.controls_count", len(controls)))
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(controls)

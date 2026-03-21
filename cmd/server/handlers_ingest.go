@@ -7,6 +7,8 @@ import (
 
 	"aegis/internal/ingestion"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
@@ -34,6 +36,10 @@ type ingestResponse struct {
 // It deduplicates incoming findings by generating a SHA-256 key from
 // the canonical identity fields (source, source_finding_id, resource_id, account_id).
 func (s *Server) ingestFinding(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.ingestFinding")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	if r.Body == nil || r.Body == http.NoBody {
 		writeErrorResponse(w, "request body is required", http.StatusBadRequest)
 		return
@@ -79,6 +85,11 @@ func (s *Server) ingestFinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	span.SetAttributes(
+		attribute.String("finding.id", findingID),
+		attribute.String("finding.source", req.Source),
+		attribute.String("finding.dedup_key", key),
+	)
 	s.logger.Info("finding ingested",
 		zap.String("finding_id", findingID),
 		zap.String("source", req.Source),

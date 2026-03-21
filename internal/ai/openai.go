@@ -9,6 +9,9 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 const (
@@ -79,6 +82,14 @@ func (p *OpenAIProvider) Complete(ctx context.Context, prompt string) (string, e
 
 // CompleteWithSystem sends a system + user message pair using the chat completions format.
 func (p *OpenAIProvider) CompleteWithSystem(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+	ctx, span := otel.Tracer("aegis.ai").Start(ctx, "ai.analyze")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("ai.model", p.model),
+		attribute.String("ai.provider", "openai"),
+		attribute.Int("ai.input_length", len(userPrompt)),
+	)
+
 	msgs := make([]openaiMessage, 0, 2)
 	if systemPrompt != "" {
 		msgs = append(msgs, openaiMessage{Role: "system", Content: systemPrompt})
@@ -135,6 +146,8 @@ func (p *OpenAIProvider) CompleteWithSystem(ctx context.Context, systemPrompt, u
 	if len(openaiResp.Choices) == 0 {
 		return "", fmt.Errorf("empty response from openai")
 	}
+
+	span.SetAttributes(attribute.Int("ai.response_length", len(openaiResp.Choices[0].Message.Content)))
 
 	return openaiResp.Choices[0].Message.Content, nil
 }
