@@ -8,9 +8,18 @@ import (
 	"aegis/internal/cspm/threatintel"
 )
 
+// Severity level constants used across contextual rules.
+const (
+	sevCritical      = "CRITICAL"
+	sevHigh          = "HIGH"
+	sevMedium        = "MEDIUM"
+	sevLow           = "LOW"
+	sevInformational = "INFORMATIONAL"
+)
+
 // severityLevels is the ordered list of severity strings from most to least severe.
 // Index 0 = CRITICAL, index 4 = INFORMATIONAL.
-var severityLevels = []string{"CRITICAL", "HIGH", "MEDIUM", "LOW", "INFORMATIONAL"}
+var severityLevels = []string{sevCritical, sevHigh, sevMedium, sevLow, sevInformational}
 
 // severityIndex returns the position of a severity string in severityLevels,
 // or -1 if not found. Lower index = higher severity.
@@ -159,7 +168,7 @@ func (d *ExploitProbabilityDampener) Evaluate(finding scoring.FindingContext, cv
 	}
 
 	// --- Guardrail: never downgrade CRITICAL on Prod + internet-facing ---
-	if strings.ToUpper(originalSeverity) == "CRITICAL" {
+	if strings.ToUpper(originalSeverity) == sevCritical {
 		tier := ClassifyEnvironment("", nil, "")
 		isProd := finding.EnvType == "prod" || finding.AssetTier == "Tier1-Prod"
 		_ = tier

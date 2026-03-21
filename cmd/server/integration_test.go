@@ -145,7 +145,7 @@ func TestIntegration_FullServerLifecycle(t *testing.T) {
 		assertStatus(t, rr, http.StatusOK)
 
 		var results []Agent
-		assertJSON(t, rr, &results)
+		assertPaginatedJSON(t, rr, &results)
 
 		if len(results) == 0 {
 			t.Error("expected at least one agent")
@@ -282,33 +282,27 @@ func TestIntegration_AuthorizationMatrix(t *testing.T) {
 		})
 	}
 
-	// Verify operator RBAC boundaries — can read most things but not admin-only
+	// Verify operator RBAC boundaries — admin-only endpoints reject operator
 	t.Run("operator_cannot_access_audit_log", func(t *testing.T) {
 		rr := doRequest(t, router, "GET", "/api/v1/audit-log", "", operatorToken)
-		if rr.Code == http.StatusForbidden {
-			t.Errorf("status = 403, want non-forbidden (viewer parity)")
-		}
+		assertStatus(t, rr, http.StatusForbidden)
 	})
 
 	t.Run("operator_cannot_access_users", func(t *testing.T) {
 		rr := doRequest(t, router, "GET", "/api/v1/users", "", operatorToken)
-		if rr.Code == http.StatusForbidden {
-			t.Errorf("status = 403, want non-forbidden (viewer parity)")
-		}
+		assertStatus(t, rr, http.StatusForbidden)
 	})
 
 	t.Run("operator_cannot_execute_remediation", func(t *testing.T) {
 		rr := doRequest(t, router, "POST", "/api/v1/remediations/rem-001/execute", "", operatorToken)
 		if rr.Code == http.StatusForbidden {
-			t.Errorf("status = 403, want non-forbidden (viewer parity)")
+			t.Errorf("status = 403, want non-forbidden (operator has access)")
 		}
 	})
 
 	t.Run("operator_cannot_approve_workflow", func(t *testing.T) {
 		body := `{"approver":"operator@contoso.dev"}`
 		rr := doRequest(t, router, "POST", "/api/v1/workflows/wf-001/approve", body, operatorToken)
-		if rr.Code == http.StatusForbidden {
-			t.Errorf("status = 403, want non-forbidden (viewer parity)")
-		}
+		assertStatus(t, rr, http.StatusForbidden)
 	})
 }

@@ -72,7 +72,7 @@ func NewSearchService(findings []Finding) (*SearchService, error) {
 		f := &findings[i]
 		ss.findings[f.ID] = f
 		doc := toFindingDocument(f)
-		batch.Index(f.ID, doc)
+		_ = batch.Index(f.ID, doc) // error is nil for in-memory batch
 	}
 	if err := index.Batch(batch); err != nil {
 		return nil, fmt.Errorf("batch indexing findings: %w", err)
@@ -176,7 +176,7 @@ func (ss *SearchService) Search(ctx context.Context, query string, page, perPage
 
 	return &SearchResult{
 		Findings: results,
-		Total:    int(bleveResult.Total),
+		Total:    int(bleveResult.Total), //nolint:gosec // Total is bounded by index size
 		MaxScore: bleveResult.MaxScore,
 		Took:     took,
 	}, nil

@@ -94,7 +94,7 @@ func ruleMP04EnvTierDampener(f scoring.Finding) (*FPRuleResult, bool) {
 	}
 
 	sev := strings.ToUpper(f.Severity)
-	if sev != "HIGH" && sev != "CRITICAL" {
+	if sev != sevHigh && sev != sevCritical {
 		return nil, false
 	}
 

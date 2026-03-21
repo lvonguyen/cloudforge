@@ -303,7 +303,7 @@ func ruleMP14HIBPCredentialEscalator(f scoring.Finding) (*FNRuleResult, bool) {
 		return nil, false
 	}
 
-	adjusted := "CRITICAL"
+	adjusted := sevCritical
 	return &FNRuleResult{
 		SeverityAdjustment: SeverityAdjustment{
 			OriginalSeverity: f.Severity,
