@@ -99,10 +99,13 @@ func (s *Server) listAgents(w http.ResponseWriter, r *http.Request) {
 	_, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listAgents")
 	defer span.End()
 
-	span.SetAttributes(attribute.Int("agents.count", len(s.data.Agents)))
+	page, perPage := parsePagination(r, 50, 200)
+	resp := paginateResult(s.data.Agents, page, perPage)
+
+	span.SetAttributes(attribute.Int("agents.total", resp.Total))
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(s.data.Agents)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {

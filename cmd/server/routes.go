@@ -25,6 +25,11 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("/healthz", s.healthChecker.LivenessHandler()).Methods("GET")
 	s.router.HandleFunc("/ready", s.healthChecker.ReadinessHandler()).Methods("GET")
 
+	// Prometheus metrics endpoint (unauthenticated — for scraper access)
+	if s.telemetry != nil {
+		s.router.Handle("/metrics", s.telemetry.MetricsHandler()).Methods("GET")
+	}
+
 	// Tenant config endpoint (unauthenticated — must load before auth)
 	s.router.HandleFunc("/api/v1/config", s.handleConfig).Methods("GET")
 	s.router.HandleFunc("/config.json", s.handleConfig).Methods("GET")

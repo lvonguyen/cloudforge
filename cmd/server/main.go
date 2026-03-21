@@ -83,6 +83,9 @@ type Server struct {
 	// Multi-tenancy (Phase 3)
 	tenantStore tenant.Store
 
+	// Observability
+	telemetry *observability.Telemetry
+
 	// Already-isolated services
 	finopsSvc   *finopsService
 	identitySvc *IdentityService
@@ -173,8 +176,18 @@ func main() {
 		logger.Fatal("Failed to initialize auth middleware", zap.Error(err))
 	}
 
+	// Initialize observability telemetry (Prometheus metrics + system collectors)
+	telemetry, err := observability.New(observability.Config{
+		ServiceName:    "aegis",
+		ServiceVersion: "1.0.0",
+		MetricsEnabled: true,
+	})
+	if err != nil {
+		logger.Warn("Telemetry init failed, /metrics disabled", zap.Error(err))
+	}
+
 	// Initialize health checker
-	healthChecker := observability.NewHealthChecker(logger, nil)
+	healthChecker := observability.NewHealthChecker(logger, telemetry)
 
 	// Initialize rate limiter (optional, depends on Redis availability)
 	var rateLimiter *gateway.RateLimiter
@@ -392,6 +405,7 @@ func main() {
 			Logger:      logger.Named("enrichment"),
 		},
 		opaEngine:        opaEngine,
+		telemetry:        telemetry,
 		comments:         NewCommentsStore(),
 		finopsSvc:        newFinopsService(logger),
 		identitySvc:      NewIdentityService(idProviders),
@@ -455,6 +469,11 @@ func main() {
 	// Server-scoped context: cancelled on SIGINT/SIGTERM to stop background work.
 	serverCtx, serverCancel := context.WithCancel(context.Background())
 	defer serverCancel()
+
+	// Start Prometheus system metrics collector (goroutine count, memory usage)
+	if telemetry != nil {
+		telemetry.StartSystemMetricsCollector(serverCtx)
+	}
 
 	// Start background eviction of expired dedup cache entries.
 	srv.dedupCache.StartEviction(serverCtx, 5*time.Minute)

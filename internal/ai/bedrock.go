@@ -57,22 +57,50 @@ func (p *BedrockProvider) ModelID() string {
 	return p.modelID
 }
 
+// bedrockRequest is the Bedrock-specific request body that supports
+// prompt caching via block-based system prompts.
+type bedrockRequest struct {
+	Model         string        `json:"model"`
+	MaxTokens     int           `json:"max_tokens"`
+	Messages      []message     `json:"messages"`
+	System        []systemBlock `json:"system,omitempty"`
+	AnthropicBeta []string      `json:"anthropic_beta,omitempty"`
+}
+
+type systemBlock struct {
+	Type         string        `json:"type"`
+	Text         string        `json:"text"`
+	CacheControl *cacheControl `json:"cache_control,omitempty"`
+}
+
+type cacheControl struct {
+	Type string `json:"type"`
+}
+
 // Complete sends a single-turn prompt to Bedrock.
 func (p *BedrockProvider) Complete(ctx context.Context, prompt string) (string, error) {
 	return p.CompleteWithSystem(ctx, "", prompt)
 }
 
 // CompleteWithSystem sends a system + user prompt pair to Bedrock via InvokeModel.
+// When a system prompt is provided, it is sent as a cacheable content block
+// (anthropic-beta: prompt-caching-2024-07-31) to avoid re-tokenizing static
+// prompts on every call.
 func (p *BedrockProvider) CompleteWithSystem(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
-	reqBody := anthropicRequest{
+	reqBody := bedrockRequest{
 		Model:     p.modelID,
 		MaxTokens: 4096,
 		Messages: []message{
 			{Role: "user", Content: userPrompt},
 		},
+		AnthropicBeta: []string{"prompt-caching-2024-07-31"},
 	}
 	if systemPrompt != "" {
-		reqBody.System = systemPrompt
+		reqBody.System = []systemBlock{{
+			Type:         "text",
+			Text:         systemPrompt,
+			CacheControl: &cacheControl{Type: "ephemeral"},
+		}}
 	}
 
 	body, err := json.Marshal(reqBody)

@@ -192,7 +192,6 @@ cloudforge/
 │   │   └── vcs/                   # VCS integrations (GitHub, GitLab, Azure DevOps)
 │   ├── compliance/                # Compliance frameworks and deduplication
 │   ├── container/                 # Container security module
-│   ├── findings/                  # Finding types (bridge to cspm-aggregator)
 │   ├── finops/                    # FinOps cost management
 │   │   ├── aggregator/            # Multi-cloud cost aggregation
 │   │   ├── anomaly/               # Cost anomaly detection

@@ -513,11 +513,14 @@ func TestBedrockProvider_Complete_Success(t *testing.T) {
 func TestBedrockProvider_CompleteWithSystem_Success(t *testing.T) {
 	mock := &mockBedrockClient{
 		invokeModelFn: func(ctx context.Context, params *bedrockruntime.InvokeModelInput, optFns ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelOutput, error) {
-			// Verify the system prompt is in the request body
-			var req anthropicRequest
+			// Verify the system prompt is sent as cacheable block
+			var req bedrockRequest
 			json.Unmarshal(params.Body, &req)
-			if req.System == "" {
-				t.Error("expected system prompt in request body")
+			if len(req.System) == 0 {
+				t.Error("expected system prompt blocks in request body")
+			}
+			if req.System[0].CacheControl == nil || req.System[0].CacheControl.Type != "ephemeral" {
+				t.Error("expected cache_control ephemeral on system block")
 			}
 			return bedrockSuccessResponse("bedrock system response"), nil
 		},

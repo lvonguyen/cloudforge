@@ -103,11 +103,20 @@ func TestListAgents(t *testing.T) {
 	rr := doRequest(t, router, "GET", "/api/v1/agents", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
 
-	var results []Agent
-	assertJSON(t, rr, &results)
+	var resp struct {
+		Data       []Agent `json:"data"`
+		Total      int     `json:"total"`
+		Page       int     `json:"page"`
+		PerPage    int     `json:"per_page"`
+		TotalPages int     `json:"total_pages"`
+	}
+	assertJSON(t, rr, &resp)
 
-	if len(results) != 12 {
-		t.Errorf("agents count = %d, want 12", len(results))
+	if resp.Total != 12 {
+		t.Errorf("agents total = %d, want 12", resp.Total)
+	}
+	if resp.Page != 1 {
+		t.Errorf("page = %d, want 1", resp.Page)
 	}
 }
 
