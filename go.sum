@@ -54,8 +54,8 @@ github.com/aws/aws-sdk-go-v2/service/configservice v1.62.0 h1:YhpMhebNgOMU2hUSUk
 github.com/aws/aws-sdk-go-v2/service/configservice v1.62.0/go.mod h1:RYnSwYvQI1pCZMbqarMlmeYAQ6buI2oH+aAMVyPT12g=
 github.com/aws/aws-sdk-go-v2/service/costexplorer v1.63.5 h1:iNNJ6ZrQO37Xh12XjNncS3fq/11l1TzyZwBWcZMHWkY=
 github.com/aws/aws-sdk-go-v2/service/costexplorer v1.63.5/go.mod h1:auLb1gCiI54TM7iUxSYu5MYSimWr0fL6t5/PgxkJOr0=
-github.com/aws/aws-sdk-go-v2/service/ec2 v1.294.1 h1:c2BbWVkQ0hVqls6SruYCRxfN5W46qvL+hIg7VLhXpg8=
-github.com/aws/aws-sdk-go-v2/service/ec2 v1.294.1/go.mod h1:T6ndRfdhnXLIY5oKBHjYZDVj706los2zGdpThppquvA=
+github.com/aws/aws-sdk-go-v2/service/ec2 v1.296.0 h1:98Miqj16un1WLNyM1RjVDhXYumhqZrQfAeG8i4jPG6o=
+github.com/aws/aws-sdk-go-v2/service/ec2 v1.296.0/go.mod h1:T6ndRfdhnXLIY5oKBHjYZDVj706los2zGdpThppquvA=
 github.com/aws/aws-sdk-go-v2/service/guardduty v1.74.1 h1:Xt2F9FXh3o1bdRAqUEXwkydLBk4ZE/gYQzk2mP3wT9U=
 github.com/aws/aws-sdk-go-v2/service/guardduty v1.74.1/go.mod h1:pcO38H3O976Aad0zkHeZS/fGqi551v43H5vj0kXYRuk=
 github.com/aws/aws-sdk-go-v2/service/iam v1.53.6 h1:GPQvvxy8+FDnD9xKYzGKJMjIm5xkVM5pd3bFgRldNSo=
