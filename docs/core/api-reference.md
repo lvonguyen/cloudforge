@@ -237,3 +237,21 @@ Error codes: `BAD_REQUEST`, `FORBIDDEN`, `NOT_FOUND`, `{RESOURCE}_NOT_FOUND`, `C
 | `admin` | 3 | Full access (audit log, user management, approvals) |
 
 All endpoints require at minimum `viewer` role. The `Require()` middleware enforces minimum role rank — e.g., `Require(RoleOperator, RoleAdmin)` allows operator and admin but denies viewer and requester.
+
+**Note:** `DELETE /findings/{id}/comments/{commentId}` has an additional in-handler admin-only check beyond the RBAC middleware — non-admin callers receive 403 even though the middleware passes them.
+
+## RBAC Authorization Matrix (from integration tests)
+
+| Endpoint | Unauthenticated | Requester | Operator | Admin |
+|----------|-----------------|-----------|----------|-------|
+| GET /api/v1/findings | 401 | 403 | 200 | 200 |
+| GET /api/v1/exceptions/mine | 401 | 200 | 200 | 200 |
+| GET /api/v1/exceptions/{id} | 401 | 403 | 200 | 200 |
+| POST /api/v1/exceptions | 401 | 403 | 200 | 201 |
+| GET /api/v1/agents | 401 | 403 | 200 | 200 |
+| GET /api/v1/audit-log | 401 | 403 | 200 | 200 |
+| GET /api/v1/users | 401 | 403 | 200 | 200 |
+| GET /api/v1/identity/users | 401 | 403 | 200 | 200 |
+| GET /api/v1/workflows | 401 | 403 | 200 | 200 |
+| GET /api/v1/secrets | 401 | 403 | 200 | 200 |
+| DELETE /findings/{id}/comments/{cid} | 401 | 403 | 403 | 204 |

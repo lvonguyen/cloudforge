@@ -77,14 +77,52 @@ Falls back to local (in-memory) rate limiting when Redis is unavailable.
 | `WS_SERVER_URL` | *(empty)* | No | ws-server URL for SSE event publishing |
 | `WS_PUBLISH_KEY` | *(empty)* | No | X-API-Key for ws-server /api/publish |
 
+## Container Security
+
+| Variable | Default | Required | Description |
+|----------|---------|----------|-------------|
+| `CONTAINER_SCANNER` | `memory` | No | Container scanner backend (`trivy` for real scans) |
+| `TRIVY_OUTPUT_PATH` | *(empty)* | No | Path to Trivy K8s JSON output; replaces mock topology |
+
+## FinOps
+
+| Variable | Default | Required | Description |
+|----------|---------|----------|-------------|
+| `FINOPS_PROVIDER` | `memory` | No | FinOps backend (`aws` for real Cost Explorer) |
+| `FINOPS_AWS_REGION` | `us-east-1` | No | AWS region for Cost Explorer API |
+
+## Encryption / Remediation
+
+| Variable | Default | Required | Description |
+|----------|---------|----------|-------------|
+| `AEGIS_STATE_ENCRYPTION_KEY` | *(none)* | If encrypted rollback | AES-256-GCM key as 64-char hex string (32 bytes) |
+| `AEGIS_ROLLBACK_TOKEN` | *(none)* | If rollback dispatcher | Authorization token for rollback ops (min 16 chars) |
+
 ## Integrations
 
 | Variable | Default | Required | Description |
 |----------|---------|----------|-------------|
-| `JIRA_URL` | *(empty)* | No | Jira server URL. Enables ticket provider |
-| `JIRA_USER` | *(empty)* | If Jira | Jira username |
-| `JIRA_TOKEN` | *(empty)* | If Jira | Jira API token |
+| `JIRA_URL` | *(empty)* | No | Jira instance URL. Enables ticket provider |
+| `JIRA_USERNAME` | *(empty)* | If Jira | Jira username (email for Jira Cloud) |
+| `JIRA_API_TOKEN` | *(empty)* | If Jira | Jira REST API token |
+| `JIRA_PROJECT_KEY` | *(empty)* | No | Default Jira project key |
+| `JIRA_ISSUE_TYPE` | `Task` | No | Default issue type for created tickets |
+| `ASANA_PAT` | *(empty)* | If Asana | Asana Personal Access Token |
+| `ASANA_WORKSPACE_GID` | *(empty)* | No | Asana workspace GID |
+| `ASANA_DEFAULT_PROJECT_GID` | *(empty)* | No | Default Asana project for ticket creation |
 | `GITLEAKS_LICENSE` | *(empty)* | CI only | Gitleaks license key (CI action) |
+
+## GRC Provider Credentials
+
+When `GRC_PROVIDER` is not `memory`, the selected backend requires credentials:
+
+| Variable | Required For | Description |
+|----------|-------------|-------------|
+| `AEGIS_DB_PASSWORD` | `postgres` | PostgreSQL password (name configurable via `password_env` in config) |
+| `ARCHER_PASSWORD` | `archer` | RSA Archer API password |
+| `SERVICENOW_PASSWORD` | `servicenow` | ServiceNow API password |
+| `SERVICENOW_CLIENT_ID` | `servicenow` (OAuth) | ServiceNow OAuth client ID |
+| `SERVICENOW_CLIENT_SECRET` | `servicenow` (OAuth) | ServiceNow OAuth client secret |
 
 ## Deployment (fly.toml defaults)
 
