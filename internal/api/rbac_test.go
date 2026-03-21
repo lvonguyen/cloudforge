@@ -149,9 +149,10 @@ func TestScopeFromContext_WithScope(t *testing.T) {
 }
 
 func TestRoleFromClaims_Default(t *testing.T) {
+	// Least privilege: no group claims -> viewer (lowest rank)
 	claims := &Claims{Subject: "user1"}
-	if role := RoleFromClaims(claims); role != RoleRequester {
-		t.Errorf("default role should be requester, got: %s", role)
+	if role := RoleFromClaims(claims); role != RoleViewer {
+		t.Errorf("default role should be viewer (least privilege), got: %s", role)
 	}
 }
 
@@ -168,21 +169,16 @@ func TestRoleFromClaims_ViewerBelowRequester(t *testing.T) {
 	}
 }
 
-func TestRoleFromClaims_NoGroupsOutranksViewer(t *testing.T) {
-	// Intentional: ungrouped users default to requester (rank 1), which is
-	// higher than viewer (rank 0). This means adding someone to the viewer
-	// group restricts their access relative to having no group at all.
-	// Rationale: requester can submit exceptions; viewer cannot.
+func TestRoleFromClaims_RequesterNeedsGroup(t *testing.T) {
+	// Requester role requires explicit aegis-requester group membership.
+	// Ungrouped tokens default to viewer (least privilege).
 	noGroups := &Claims{Subject: "user1"}
-	viewerGroup := &Claims{Subject: "viewer1", Groups: []string{"aegis-viewer"}}
-	if RoleFromClaims(noGroups) != RoleRequester {
-		t.Fatal("no groups should default to requester")
+	requesterGroup := &Claims{Subject: "user2", Groups: []string{"aegis-requester"}}
+	if RoleFromClaims(noGroups) != RoleViewer {
+		t.Fatal("no groups should default to viewer")
 	}
-	if RoleFromClaims(viewerGroup) != RoleViewer {
-		t.Fatal("viewer group should yield viewer")
-	}
-	if roleRank[RoleRequester] <= roleRank[RoleViewer] {
-		t.Fatal("requester must outrank viewer for default to be safe")
+	if RoleFromClaims(requesterGroup) != RoleRequester {
+		t.Fatal("aegis-requester group should yield requester")
 	}
 }
 
