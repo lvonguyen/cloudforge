@@ -81,12 +81,7 @@ export function useDeleteWebhook() {
   const { toast } = useToast()
   return useMutation({
     mutationFn: async (id: string) => {
-      try {
-        await apiClient.delete(`/webhooks/${id}`)
-      } catch (err) {
-        // 204 No Content causes JSON parse failure — that's success
-        if (err instanceof ApiError) throw err
-      }
+      await apiClient.delete(`/webhooks/${id}`)
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['webhooks'] })

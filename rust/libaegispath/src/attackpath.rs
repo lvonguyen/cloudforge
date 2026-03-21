@@ -10,7 +10,7 @@ fn severity_rank(s: &str) -> i32 {
         "HIGH" => 3,
         "MEDIUM" => 2,
         "LOW" => 1,
-        "INFO" | "INFORMATIONAL" => -1,
+        "INFO" | "INFORMATIONAL" => 0,
         _ => 0,
     }
 }
@@ -88,10 +88,12 @@ fn infer_edge_type(from: &Finding, to: &Finding) -> &'static str {
     if matches!(to_rt.as_str(), "storage" | "database" | "secret") {
         return "data_access";
     }
-    if from.category == "IDENTITY" || to.category == "IDENTITY" {
+    let from_cat = from.category.to_ascii_uppercase();
+    let to_cat = to.category.to_ascii_uppercase();
+    if from_cat == "IDENTITY" || to_cat == "IDENTITY" {
         return "iam_trust";
     }
-    if from.category == "NETWORK" || to.category == "NETWORK" {
+    if from_cat == "NETWORK" || to_cat == "NETWORK" {
         return "network_reachable";
     }
     "lateral_movement"

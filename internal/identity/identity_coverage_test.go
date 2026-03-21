@@ -199,9 +199,11 @@ func TestCovZeroTrustEngine_Evaluate_MFAPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Evaluate: %v", err)
 	}
-	// The MFA policy has both mfa and allow actions. The allow action runs
-	// after mfa and overrides allowed to true, but RequiredActions should
-	// contain "complete_mfa".
+	// The MFA policy has [mfa, allow] actions. When MFA is not completed,
+	// the mfaBlocked guard must prevent allow from granting access.
+	if decision.Allowed {
+		t.Error("expected Allowed=false when MFA not completed")
+	}
 	found := false
 	for _, a := range decision.RequiredActions {
 		if a == "complete_mfa" {
