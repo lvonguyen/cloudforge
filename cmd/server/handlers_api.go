@@ -441,12 +441,10 @@ func (s *Server) getPolicy(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("policy.id", id))
 
-	for _, p := range s.data.Policies {
-		if p.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(p)
-			return
-		}
+	if p, ok := s.data.PoliciesByID[id]; ok {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(p)
+		return
 	}
 
 	writeErrorResponse(w, "policy not found", http.StatusNotFound)

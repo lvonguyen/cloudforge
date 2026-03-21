@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers incident detection, triage, mitigation, and resolution for CloudForge production issues.
+This runbook covers incident detection, triage, mitigation, and resolution for Cloud Aegis production issues.
 
 ## Incident Classification
 
@@ -26,17 +26,17 @@ This runbook covers incident detection, triage, mitigation, and resolution for C
 
 ```promql
 # Error rate (should be <0.1%)
-sum(rate(cloudforge_http_requests_total{status=~"5.."}[5m])) 
-/ sum(rate(cloudforge_http_requests_total[5m]))
+sum(rate(aegis_http_requests_total{status=~"5.."}[5m])) 
+/ sum(rate(aegis_http_requests_total[5m]))
 
 # Latency P99 (should be <500ms)
-histogram_quantile(0.99, rate(cloudforge_http_request_duration_seconds_bucket[5m]))
+histogram_quantile(0.99, rate(aegis_http_request_duration_seconds_bucket[5m]))
 
 # Active findings (trend)
-cloudforge_findings_active
+aegis_findings_active
 
 # AI provider availability
-cloudforge_health_status{component="ai_provider"}
+aegis_health_status{component="ai_provider"}
 ```
 
 ## Triage Procedure
@@ -45,14 +45,14 @@ cloudforge_health_status{component="ai_provider"}
 
 ```bash
 # Check overall status
-kubectl get pods -n cloudforge
-kubectl top pods -n cloudforge
+kubectl get pods -n aegis
+kubectl top pods -n aegis
 
 # Check recent deployments
-kubectl rollout history deployment/cloudforge-api -n cloudforge
+kubectl rollout history deployment/aegis-api -n aegis
 
 # Check logs for errors
-kubectl logs -n cloudforge -l app=cloudforge-api --tail=100 | grep -i error
+kubectl logs -n aegis -l app=aegis-api --tail=100 | grep -i error
 ```
 
 ### Step 2: Impact Assessment
@@ -75,13 +75,13 @@ Based on impact, classify severity and engage appropriate responders.
 **Diagnosis**:
 ```bash
 # Check API logs
-kubectl logs -n cloudforge -l app=cloudforge-api --tail=500 | grep "ERROR\|FATAL"
+kubectl logs -n aegis -l app=aegis-api --tail=500 | grep "ERROR\|FATAL"
 
 # Check resource usage
-kubectl top pods -n cloudforge
+kubectl top pods -n aegis
 
 # Check database connectivity
-kubectl exec -n cloudforge deployment/cloudforge-api -- ./cloudforge health
+kubectl exec -n aegis deployment/aegis-api -- ./aegis health
 ```
 
 **Remediation**:
@@ -97,11 +97,11 @@ kubectl exec -n cloudforge deployment/cloudforge-api -- ./cloudforge health
 **Diagnosis**:
 ```bash
 # Check connection count
-kubectl exec -n cloudforge deployment/cloudforge-api -- \
+kubectl exec -n aegis deployment/aegis-api -- \
   psql $DATABASE_URL -c "SELECT count(*) FROM pg_stat_activity;"
 
 # Check max connections
-kubectl exec -n cloudforge deployment/cloudforge-api -- \
+kubectl exec -n aegis deployment/aegis-api -- \
   psql $DATABASE_URL -c "SHOW max_connections;"
 ```
 
@@ -122,7 +122,7 @@ curl -s https://status.anthropic.com/api/v2/status.json | jq .
 curl -s https://status.openai.com/api/v2/status.json | jq .
 
 # Check rate limit status
-kubectl logs -n cloudforge -l app=cloudforge-api | grep "rate_limit"
+kubectl logs -n aegis -l app=aegis-api | grep "rate_limit"
 ```
 
 **Remediation**:
@@ -138,7 +138,7 @@ kubectl logs -n cloudforge -l app=cloudforge-api | grep "rate_limit"
 **Diagnosis**:
 ```bash
 # Check memory usage
-kubectl top pods -n cloudforge
+kubectl top pods -n aegis
 
 # Enable profiling
 curl -s http://localhost:6060/debug/pprof/heap > heap.prof

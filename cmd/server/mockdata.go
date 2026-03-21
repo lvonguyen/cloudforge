@@ -144,6 +144,7 @@ type DataStore struct {
 	AgentsByID       map[string]*Agent
 	TracesByAgentID  map[string][]AgentTrace
 	RemediationsByID map[string]*RemediationRecord
+	PoliciesByID     map[string]*Policy
 }
 
 // NewDataStore builds a DataStore from loaded mock data, constructing all
@@ -166,6 +167,10 @@ func NewDataStore(md *MockData) *DataStore {
 	ds.TracesByAgentID = make(map[string][]AgentTrace, len(md.Agents))
 	for _, tr := range md.Traces {
 		ds.TracesByAgentID[tr.AgentID] = append(ds.TracesByAgentID[tr.AgentID], tr)
+	}
+	ds.PoliciesByID = make(map[string]*Policy, len(md.Policies))
+	for i := range md.Policies {
+		ds.PoliciesByID[md.Policies[i].ID] = &md.Policies[i]
 	}
 
 	return ds

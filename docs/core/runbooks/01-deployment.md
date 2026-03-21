@@ -34,7 +34,21 @@ kubectl get configmap aegis-config -n aegis -o yaml > backup-config.yaml
 
 ## Deployment Procedure
 
-### Option A: Standard Deployment (CI/CD)
+### Option A: Fly.io Deployment (Primary)
+
+```bash
+# 1. Deploy to Fly.io (uses fly.toml at repo root)
+fly deploy
+
+# 2. Monitor deployment
+fly status -a cloudforge-api
+fly logs -a cloudforge-api
+
+# 3. Verify health
+curl -s https://aegis-api.fly.dev/health | jq .
+```
+
+### Option B: Standard CI/CD (Alternative — Kubernetes)
 
 ```bash
 # 1. Create release tag
@@ -45,7 +59,7 @@ git push origin v1.2.3
 # GitHub Actions will:
 # - Run tests
 # - Build container image
-# - Push to ECR
+# - Push to registry
 # - Apply Kubernetes manifests
 # - Run smoke tests
 
@@ -53,7 +67,7 @@ git push origin v1.2.3
 kubectl rollout status deployment/aegis-api -n aegis
 ```
 
-### Option B: Manual Deployment (Emergency)
+### Option C: Manual Deployment (Emergency — Kubernetes)
 
 ```bash
 # 1. Build and push image
