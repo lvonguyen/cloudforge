@@ -299,6 +299,18 @@ export function DataLayersPanel({ findings, attackPaths }: DataLayersPanelProps)
     () => countBy(facetedFilter(findings, activeLayers, 'environment'), f => f.environment_type),
     [findings, activeLayers],
   )
+  const complianceCounts = useMemo(() => {
+    const base = facetedFilter(findings, activeLayers, 'compliance')
+    const counts: Record<string, number> = {}
+    for (const fw of ['nist-csf', 'pci-dss', 'soc2', 'hipaa', 'iso-27001', 'cis']) {
+      counts[fw] = base.filter(f => f.compliance_mappings?.some(m => m.framework_id === fw)).length
+    }
+    return counts
+  }, [findings, activeLayers])
+  const workflowCounts = useMemo(
+    () => countBy(facetedFilter(findings, activeLayers, 'workflow'), f => f.workflow_status),
+    [findings, activeLayers],
+  )
 
   // Read-only aggregate counts
   const toxicComboCount = useMemo(
@@ -365,38 +377,30 @@ export function DataLayersPanel({ findings, attackPaths }: DataLayersPanelProps)
           ))}
         </LayerGroup>
 
-        {/* Compliance */}
+        {/* Compliance — memoized base set to avoid N*6 iteration */}
         <LayerGroup label="Compliance" defaultOpen={false}>
-          {(['nist-csf', 'pci-dss', 'soc2', 'hipaa', 'iso-27001', 'cis'] as const).map(fw => {
-            const count = facetedFilter(findings, activeLayers, 'compliance')
-              .filter(f => f.compliance_mappings?.some(m => m.framework_id === fw)).length
-            return (
-              <LayerToggle
-                key={fw}
-                label={fw.toUpperCase()}
-                count={count}
-                checked={!!activeLayers[layerKey('compliance', fw)]}
-                onChange={() => toggle('compliance', fw)}
-              />
-            )
-          })}
+          {(['nist-csf', 'pci-dss', 'soc2', 'hipaa', 'iso-27001', 'cis'] as const).map(fw => (
+            <LayerToggle
+              key={fw}
+              label={fw.toUpperCase()}
+              count={complianceCounts[fw] ?? 0}
+              checked={!!activeLayers[layerKey('compliance', fw)]}
+              onChange={() => toggle('compliance', fw)}
+            />
+          ))}
         </LayerGroup>
 
-        {/* Workflow Status */}
+        {/* Workflow Status — memoized base set */}
         <LayerGroup label="Workflow" defaultOpen={false}>
-          {(['new', 'triaged', 'assigned', 'in_progress'] as const).map(ws => {
-            const count = facetedFilter(findings, activeLayers, 'workflow')
-              .filter(f => f.workflow_status === ws).length
-            return (
-              <LayerToggle
-                key={ws}
-                label={ws.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                count={count}
-                checked={!!activeLayers[layerKey('workflow', ws)]}
-                onChange={() => toggle('workflow', ws)}
-              />
-            )
-          })}
+          {(['new', 'triaged', 'assigned', 'in_progress'] as const).map(ws => (
+            <LayerToggle
+              key={ws}
+              label={ws.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+              count={workflowCounts[ws] ?? 0}
+              checked={!!activeLayers[layerKey('workflow', ws)]}
+              onChange={() => toggle('workflow', ws)}
+            />
+          ))}
         </LayerGroup>
 
         {/* Time Presets */}

@@ -33,6 +33,7 @@ type IntegrationHandler struct {
 
 	mu                 sync.RWMutex
 	asanaWebhookSecret string // persisted from handshake for event signature validation
+	asanaWebhookToken  string // pre-shared token from ASANA_WEBHOOK_TOKEN for handshake auth
 }
 
 // RemediateFinding creates a ticket and starts a remediation workflow.
@@ -55,7 +56,7 @@ func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Req
 		IsChokePoint bool   `json:"is_choke_point"`
 		Assignee     string `json:"assignee,omitempty"`
 	}
-	if r.Body != nil && r.ContentLength > 0 {
+	if r.Body != nil && r.ContentLength != 0 {
 		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			writeErrorResponse(w, "invalid request body", http.StatusBadRequest)
@@ -171,10 +172,22 @@ func (h *IntegrationHandler) GetFindingTicket(w http.ResponseWriter, r *http.Req
 
 // AsanaWebhook handles Asana webhook handshake and event delivery.
 // POST /api/v1/webhooks/asana
+//
+// The handshake is unauthenticated per Asana's protocol, but protected by a
+// pre-shared token (ASANA_WEBHOOK_TOKEN env var) when configured. This prevents
+// arbitrary callers from injecting a webhook secret.
 func (h *IntegrationHandler) AsanaWebhook(w http.ResponseWriter, r *http.Request) {
 	// Asana webhook handshake: respond with X-Hook-Secret header and persist it
 	hookSecret := r.Header.Get("X-Hook-Secret")
 	if hookSecret != "" {
+		// When ASANA_WEBHOOK_TOKEN is set, require it as a query param to
+		// prevent unauthenticated secret injection (SA-001).
+		if h.asanaWebhookToken != "" {
+			if r.URL.Query().Get("token") != h.asanaWebhookToken {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+		}
 		h.mu.Lock()
 		h.asanaWebhookSecret = hookSecret
 		h.mu.Unlock()

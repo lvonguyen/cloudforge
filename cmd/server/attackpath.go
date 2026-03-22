@@ -83,6 +83,11 @@ var severityRank = map[string]int{
 	"INFORMATIONAL": 0,
 }
 
+// getSeverityRank normalizes severity to uppercase before lookup.
+func getSeverityRank(s string) int {
+	return severityRank[strings.ToUpper(s)]
+}
+
 // computeAttackPaths builds an in-memory graph from findings and runs BFS
 // from entry points (internet-exposed/NETWORK/VULNERABILITY with exploit)
 // to targets (storage/database resources).
@@ -145,12 +150,12 @@ func computeAttackPaths(findings []Finding) ([]AttackPath, *AttackPathStats) {
 			if findingsInPaths[f1.ID] {
 				continue
 			}
-			if severityRank[f1.Severity] < 3 {
+			if getSeverityRank(f1.Severity) < 3 {
 				continue
 			}
 			for j := i + 1; j < len(accountFindings); j++ {
 				f2 := accountFindings[j]
-				if severityRank[f2.Severity] < 3 {
+				if getSeverityRank(f2.Severity) < 3 {
 					continue
 				}
 				if findingsInPaths[f2.ID] {
@@ -170,7 +175,7 @@ func computeAttackPaths(findings []Finding) ([]AttackPath, *AttackPathStats) {
 
 	// Sort paths by severity (CRITICAL first), then by score descending
 	sort.Slice(paths, func(i, j int) bool {
-		ri, rj := severityRank[paths[i].Severity], severityRank[paths[j].Severity]
+		ri, rj := getSeverityRank(paths[i].Severity), getSeverityRank(paths[j].Severity)
 		if ri != rj {
 			return ri > rj
 		}
@@ -302,10 +307,10 @@ func buildAttackPath(id, accountID string, chain []Finding) AttackPath {
 		}
 		findingIDs[i] = f.ID
 
-		if severityRank[f.Severity] > severityRank[maxSeverity] {
+		if getSeverityRank(f.Severity) > getSeverityRank(maxSeverity) {
 			maxSeverity = f.Severity
 		}
-		score += float64(severityRank[f.Severity]) * 25
+		score += float64(getSeverityRank(f.Severity)) * 25
 
 		for _, t := range f.MITRETactics {
 			tacticsSet[t] = true

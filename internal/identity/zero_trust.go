@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -101,6 +102,8 @@ func NewZeroTrustEngine(logger *zap.Logger) *ZeroTrustEngine {
 
 // RegisterProvider registers an identity provider for enrichment
 func (e *ZeroTrustEngine) RegisterProvider(provider Provider) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.providers[provider.Name()] = provider
 }
 
@@ -108,7 +111,8 @@ func (e *ZeroTrustEngine) RegisterProvider(provider Provider) {
 func (e *ZeroTrustEngine) AddPolicy(policy *ZeroTrustPolicy) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	e.policies = append(e.policies, policy)
+	cp := *policy
+	e.policies = append(e.policies, &cp)
 	e.sortPoliciesByPriority()
 }
 
@@ -125,13 +129,16 @@ func (e *ZeroTrustEngine) Evaluate(ctx context.Context, request *AccessRequest) 
 		zap.String("action", request.Action),
 	)
 
+	// Work on a copy to avoid mutating the caller's AccessRequest
+	req := *request
+
 	// Enrich context with identity provider data
-	enrichedContext, err := e.enrichContext(ctx, request)
+	enrichedContext, err := e.enrichContext(ctx, &req)
 	if err != nil {
 		e.logger.Warn("Failed to enrich context", zap.Error(err))
 		// Continue with available context
 	}
-	request.Context = enrichedContext
+	req.Context = enrichedContext
 
 	// Evaluate policies in priority order (using snapshot for concurrency safety)
 	for _, policy := range policies {
@@ -139,8 +146,8 @@ func (e *ZeroTrustEngine) Evaluate(ctx context.Context, request *AccessRequest) 
 			continue
 		}
 
-		if e.matchesPolicy(request, policy) {
-			decision := e.applyPolicy(request, policy)
+		if e.matchesPolicy(&req, policy) {
+			decision := e.applyPolicy(&req, policy)
 
 			e.logger.Info("Access decision made",
 				zap.String("user_id", request.UserID),
@@ -164,8 +171,15 @@ func (e *ZeroTrustEngine) Evaluate(ctx context.Context, request *AccessRequest) 
 func (e *ZeroTrustEngine) enrichContext(ctx context.Context, request *AccessRequest) (AccessContext, error) {
 	context := request.Context
 
-	// Try to get user risk level from identity providers
-	for _, provider := range e.providers {
+	// Try to get user risk level from identity providers — snapshot under lock
+	e.mu.RLock()
+	providers := make([]Provider, 0, len(e.providers))
+	for _, p := range e.providers {
+		providers = append(providers, p)
+	}
+	e.mu.RUnlock()
+
+	for _, provider := range providers {
 		risk, err := provider.GetUserRiskScore(ctx, request.UserID)
 		if err == nil && risk != nil {
 			context.RiskLevel = risk.RiskLevel
@@ -205,7 +219,7 @@ func (e *ZeroTrustEngine) matchesCondition(request *AccessRequest, condition *Po
 	case "action":
 		value = request.Action
 	case "risk":
-		value = request.Context.RiskLevel
+		value = strings.ToLower(request.Context.RiskLevel)
 	case "device_compliant":
 		if request.Context.DeviceCompliant {
 			value = "true"
@@ -398,7 +412,10 @@ func (e *ZeroTrustEngine) ListPolicies() []*ZeroTrustPolicy {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	out := make([]*ZeroTrustPolicy, len(e.policies))
-	copy(out, e.policies)
+	for i, p := range e.policies {
+		cp := *p
+		out[i] = &cp
+	}
 	return out
 }
 
@@ -408,7 +425,8 @@ func (e *ZeroTrustEngine) GetPolicy(id string) (*ZeroTrustPolicy, bool) {
 	defer e.mu.RUnlock()
 	for _, p := range e.policies {
 		if p.ID == id {
-			return p, true
+			cp := *p
+			return &cp, true
 		}
 	}
 	return nil, false
@@ -420,7 +438,8 @@ func (e *ZeroTrustEngine) UpdatePolicy(policy *ZeroTrustPolicy) error {
 	defer e.mu.Unlock()
 	for i, p := range e.policies {
 		if p.ID == policy.ID {
-			e.policies[i] = policy
+			cp := *policy
+			e.policies[i] = &cp
 			e.sortPoliciesByPriority()
 			return nil
 		}
