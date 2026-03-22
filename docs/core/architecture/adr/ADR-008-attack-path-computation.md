@@ -5,7 +5,7 @@ Accepted
 
 ## Context
 
-CloudForge aggregates security findings across multi-cloud environments (AWS, Azure, GCP). With 10K+ active findings in a typical enterprise deployment, individual finding triage creates alert fatigue. Industry leaders (Wiz, Orca) demonstrate that graph-based attack path analysis collapses thousands of isolated findings into dozens of actionable chains — achieving ~98% noise reduction.
+Cloud Aegis aggregates security findings across multi-cloud environments (AWS, Azure, GCP). With 10K+ active findings in a typical enterprise deployment, individual finding triage creates alert fatigue. Industry-standard CSPM platforms demonstrate that graph-based attack path analysis collapses thousands of isolated findings into dozens of actionable chains — achieving ~98% noise reduction.
 
 The project already has:
 - `AttackPathContext` struct in `internal/cspm/normalizer/schema.go` (score, blast radius, toxic combo flags)
@@ -30,7 +30,7 @@ Implement an **in-memory graph engine** with deterministic path computation from
    - Entry points: findings with internet-exposed indicators (NETWORK category, external-facing resource types)
    - Intermediate links: IAM/identity findings, misconfiguration findings
    - Targets: storage resources, databases, data-classified resources
-   - Max hop depth: 4 (matches Wiz's typical chain length)
+   - Max hop depth: 4 (industry-standard chain depth for cloud attack path analysis)
 
 3. **Coverage thresholds** (output guarantees):
    - 100% of CRITICAL/HIGH findings appear in at least one path or are surfaced as "isolated critical"
@@ -65,7 +65,7 @@ GET /api/v1/attack-paths/stats     — returns coverage stats (findings in paths
 ### Notes
 
 - Production path: swap in-memory engine for Neo4j client, keep same response types
-- Research doc serves as "here's how I'd architect this at Wiz scale"
+- Research doc serves as "here's how I'd architect this at enterprise scale"
 
 ## Alternatives Considered
 
@@ -99,8 +99,8 @@ The Rust engine maintains identical output semantics to the Go engine — same J
 
 ## References
 
-- `docs/research/wiz-attack-path-enhancements.md` — full Wiz-adjacent architecture roadmap
+- `docs/research/wiz-attack-path-enhancements.md` — industry research and architecture roadmap
 - `internal/cspm/normalizer/schema.go` — AttackPathContext struct
 - `internal/cspm/scoring/risk_scorer.go` — risk scoring with attack path context
-- `rust/aegispath/` — Rust library source (lib.rs, Cargo.toml)
+- `rust/libaegispath/` — Rust library source (lib.rs, Cargo.toml)
 - `rust/bridge.go` — CGo FFI bridge functions

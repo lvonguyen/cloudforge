@@ -10,9 +10,9 @@ Accepted
 
 ## Context
 
-Individual security findings often appear low-severity in isolation but become critical when combined. For example, a public S3 bucket (medium) combined with sensitive data classification (low) creates a data breach risk (critical). Industry leaders (Wiz, Orca, GCP SCC v2) have adopted "toxic combination" detection as a core differentiator.
+Individual security findings often appear low-severity in isolation but become critical when combined. For example, a public S3 bucket (medium) combined with sensitive data classification (low) creates a data breach risk (critical). Industry-standard CSPM platforms (including GCP SCC v2) have adopted "toxic combination" detection as a core capability.
 
-CloudForge already has:
+Cloud Aegis already has:
 - Finding normalization across AWS/Azure/GCP
 - Attack path computation with BFS traversal
 - Per-finding severity scoring with AI enrichment
@@ -62,7 +62,7 @@ FOR each finding F in account:
 ### Positive
 
 - **Noise reduction**: Collapses multiple medium findings into one critical action item
-- **Aligns with industry**: Matches Wiz/Orca/GCP SCC v2 toxic combination features
+- **Aligns with industry**: Matches industry-standard CSPM toxic combination features (GCP SCC v2 et al.)
 - **Configurable**: New patterns added by defining component matchers, no code changes to detection engine
 - **Sub-millisecond**: Pattern matching is O(n*p) where n=findings, p=patterns (4) — negligible overhead
 
