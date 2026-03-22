@@ -11,7 +11,7 @@ import (
 
 // providerTimeout caps each threat intel provider call block to prevent
 // one slow upstream from consuming the entire request budget.
-const providerTimeout = 10 * time.Second
+const providerTimeout = 6 * time.Second
 
 // ThreatIntelEnrichment holds aggregated threat intelligence data for a finding.
 type ThreatIntelEnrichment struct {
@@ -151,7 +151,7 @@ func (e *Enricher) enrichGreyNoise(ctx context.Context, ips []string, result *Th
 		if !known {
 			e.logger.Warn("unrecognized GreyNoise classification",
 				zap.String("classification", gnResult.Classification), zap.String("ip", ip))
-			continue
+			rank = 0 // treat unrecognized as "unknown" to preserve signal
 		}
 		if rank > bestRank {
 			bestRank = rank

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"aegis/internal/api"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -122,8 +123,21 @@ func (s *Server) searchFindings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Enforce ABAC scope — filter out findings outside caller's authorized scope.
+	claims, _ := api.GetClaimsFromContext(r.Context())
+	scope := api.ScopeFromContext(claims)
+	scopedFindings := result.Findings
+	if scope != nil {
+		scopedFindings = make([]ScoredFinding, 0, len(result.Findings))
+		for _, sf := range result.Findings {
+			if api.EnforceScope(scope, &sf.Finding) == nil {
+				scopedFindings = append(scopedFindings, sf)
+			}
+		}
+	}
+
 	// Apply optional structured filters post-search.
-	filtered := applySearchFilters(result.Findings, req.Filters)
+	filtered := applySearchFilters(scopedFindings, req.Filters)
 
 	// Re-paginate after filtering if filters removed results.
 	total := len(filtered)

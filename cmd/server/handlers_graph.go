@@ -28,12 +28,17 @@ type graphQueryResponse struct {
 // maxGraphQueryLen caps the query string length to prevent abuse.
 const maxGraphQueryLen = 4096
 
-// graphMutationPattern rejects Gremlin/Cypher mutation keywords.
-var graphMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|drop|property\s*\(|CREATE\b|MERGE\b|DELETE\b|DETACH\b|SET\b|REMOVE\b|CALL\b)`)
+// gremlinMutationPattern rejects Gremlin-specific mutation steps.
+var gremlinMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|drop|property\s*\()`)
 
-// graphCommentPattern strips Cypher block comments and single-line comments
-// to prevent bypass via CR/**/EATE or similar comment injection.
-var graphCommentPattern = regexp.MustCompile(`/\*[\s\S]*?\*/|//[^\n]*|--[^\n]*`)
+// cypherMutationPattern rejects Cypher-specific mutation keywords.
+var cypherMutationPattern = regexp.MustCompile(`(?i)\b(CREATE|MERGE|DELETE|DETACH|SET|REMOVE|CALL)\b`)
+
+// cypherCommentPattern strips Cypher block and line comments to prevent
+// bypass via comment injection (e.g., CR/**/EATE). Applied only to Cypher
+// queries — Gremlin has no standard comment syntax and stripping // or --
+// would corrupt property values containing those sequences.
+var cypherCommentPattern = regexp.MustCompile(`/\*[\s\S]*?\*/|//[^\n]*|--[^\n]*`)
 
 // handleGraphQuery proxies graph queries to PuppyGraph.
 // Feature-flagged: returns 501 when PUPPYGRAPH_URL is not configured.
@@ -74,10 +79,18 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Block mutation keywords — strip comments first to prevent bypass via
-	// comment injection (e.g., CR/**/EATE).
-	normalizedQuery := graphCommentPattern.ReplaceAllString(strings.TrimSpace(req.Query), "")
-	if graphMutationPattern.MatchString(normalizedQuery) {
+	// Block mutation keywords. For Cypher, strip comments first to prevent
+	// bypass via comment injection (e.g., CR/**/EATE). Gremlin has no
+	// standard comment syntax — stripping would corrupt property values.
+	normalizedQuery := strings.TrimSpace(req.Query)
+	var mutationPattern *regexp.Regexp
+	if req.Language == "cypher" {
+		normalizedQuery = cypherCommentPattern.ReplaceAllString(normalizedQuery, "")
+		mutationPattern = cypherMutationPattern
+	} else {
+		mutationPattern = gremlinMutationPattern
+	}
+	if mutationPattern.MatchString(normalizedQuery) {
 		writeErrorResponse(w, "mutation queries are not permitted (read-only)", http.StatusForbidden)
 		return
 	}
