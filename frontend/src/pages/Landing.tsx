@@ -69,8 +69,6 @@ const PROJECTS: ProjectCard[] = [
 export default function Landing() {
   // Filter projects by enabled modules from branding config
   const visibleProjects = PROJECTS.filter(p => branding.enabledModules.includes(p.slug))
-  const flagship = visibleProjects.filter(p => p.tier === 'flagship')
-  const supporting = visibleProjects.filter(p => p.tier === 'supporting')
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -109,24 +107,12 @@ export default function Landing() {
         ))}
       </div>
 
-      {/* Flagship projects */}
-      {flagship.length > 0 && (
+      {/* All modules — single grid, side-by-side, vertically centered */}
+      {visibleProjects.length > 0 && (
         <section>
-          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Operational Modules</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {flagship.map(project => (
-              <ProjectTile key={project.slug} project={project} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Supporting projects */}
-      {supporting.length > 0 && (
-        <section>
-          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Supporting Modules</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {supporting.map(project => (
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Modules</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+            {visibleProjects.map(project => (
               <ProjectTile key={project.slug} project={project} />
             ))}
           </div>

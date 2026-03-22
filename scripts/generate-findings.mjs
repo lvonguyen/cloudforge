@@ -51,12 +51,17 @@ function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function pickN(arr, n) { const s = [...arr].sort(() => Math.random() - 0.5); return s.slice(0, n); }
 function pad(n) { return String(n).padStart(5, '0'); }
 
-// Build distribution arrays scaled to TOTAL_COUNT
+// Build distribution arrays scaled to TOTAL_COUNT with +/- jitter so counts
+// look organic rather than perfectly proportional (e.g. 2,137 not 2,000).
 function buildDist(values, ratios) {
   const total = ratios.reduce((a, b) => a + b, 0);
   const result = [];
   for (let i = 0; i < values.length; i++) {
-    const count = Math.round((ratios[i] / total) * TOTAL_COUNT);
+    const base = Math.round((ratios[i] / total) * TOTAL_COUNT);
+    // Apply +/- 5-8% jitter to avoid perfectly round numbers
+    const jitterPct = 0.05 + Math.random() * 0.03;
+    const jitter = Math.round(base * jitterPct * (Math.random() < 0.5 ? -1 : 1));
+    const count = Math.max(1, base + jitter);
     for (let j = 0; j < count; j++) result.push(values[i]);
   }
   // Pad or trim to exact TOTAL_COUNT

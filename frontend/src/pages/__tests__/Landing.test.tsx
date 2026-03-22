@@ -14,14 +14,9 @@ describe('Landing', () => {
     expect(screen.getByText(/Cloud Aegis Platform/i)).toBeInTheDocument()
   })
 
-  it('shows the Operational Modules section heading', () => {
+  it('shows the Modules section heading', () => {
     renderWithProviders(<Landing />)
-    expect(screen.getByText(/Operational Modules/i)).toBeInTheDocument()
-  })
-
-  it('shows the Supporting Modules section heading', () => {
-    renderWithProviders(<Landing />)
-    expect(screen.getByText(/Supporting Modules/i)).toBeInTheDocument()
+    expect(screen.getByText(/^Modules$/i)).toBeInTheDocument()
   })
 
   it('renders architecture KPI card labels', () => {

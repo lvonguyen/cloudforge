@@ -58,12 +58,26 @@ const MOCK_RESULT: OrgScanResult = {
 
 export function useStartOrgScan() {
   const { toast } = useToast()
+  const isDev = import.meta.env.DEV
+  const isDemo = import.meta.env.VITE_DEMO_MODE === 'true'
+
   return useMutation({
     mutationFn: async (req: { org_name: string; repos?: string[] }) => {
       try {
         return await apiClient.post<OrgScanResult>('/secrets/org-scan', req)
       } catch (err) {
+        // Always propagate RBAC 403 — even in demo mode, respect the authz boundary.
+        if (err instanceof ApiError && err.status === 403) throw err
+        // In dev/demo mode, fall back to mock for network/5xx errors so the
+        // scan produces visible results when the backend is unavailable.
+        if (isDev || isDemo) {
+          console.warn('[useStartOrgScan] API unavailable, using mock data')
+          return { ...MOCK_RESULT, org_name: req.org_name }
+        }
+        // In production (non-demo), propagate all errors — don't show mock
+        // data as if it were real scan results.
         if (err instanceof ApiError && err.status < 500) throw err
+        if (import.meta.env.PROD) throw err
         console.warn('[useStartOrgScan] API unavailable, using mock data')
         return { ...MOCK_RESULT, org_name: req.org_name }
       }

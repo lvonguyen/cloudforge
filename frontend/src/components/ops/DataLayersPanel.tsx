@@ -185,6 +185,92 @@ function InfoRow({ label, value }: { label: string; value: string | number }) {
 }
 
 // ---------------------------------------------------------------------------
+// Threat Intel drill-down — per-feed status with counts and EPSS histogram
+// ---------------------------------------------------------------------------
+
+const FEED_DOT: Record<string, string> = {
+  EPSS: 'bg-violet-400',
+  KEV: 'bg-red-400',
+  GreyNoise: 'bg-cyan-400',
+  HIBP: 'bg-amber-400',
+  OTX: 'bg-emerald-400',
+  'ATT&CK': 'bg-blue-400',
+}
+
+const FEED_STATUS_LABEL: Record<string, string> = {
+  active: 'Active',
+  'no-data': 'No data',
+  'enrichment-only': 'Per-finding',
+}
+
+function ThreatIntelDrillDown({ findings, attackPaths }: { findings: Finding[]; attackPaths: AttackPath[] }) {
+  const [expanded, setExpanded] = useState<string | null>(null)
+
+  const kevCount = useMemo(() => findings.filter(f => f.exploit_available).length, [findings])
+  const epssHigh = useMemo(() => findings.filter(f => f.epss !== undefined && f.epss > 0.5).length, [findings])
+  const epssMed = useMemo(() => findings.filter(f => f.epss !== undefined && f.epss > 0.1 && f.epss <= 0.5).length, [findings])
+  const epssLow = useMemo(() => findings.filter(f => f.epss !== undefined && f.epss > 0 && f.epss <= 0.1).length, [findings])
+  const attackMapped = useMemo(() => attackPaths.filter(p => p.mitre_tactics.length > 0).length, [attackPaths])
+  const uniqueTactics = useMemo(() => new Set(attackPaths.flatMap(p => p.mitre_tactics)).size, [attackPaths])
+
+  const feeds = useMemo(() => [
+    { id: 'EPSS', label: 'EPSS Scores', count: epssHigh + epssMed + epssLow, status: epssHigh + epssMed + epssLow > 0 ? 'active' : 'no-data' },
+    { id: 'KEV', label: 'CISA KEV', count: kevCount, status: kevCount > 0 ? 'active' : 'no-data' },
+    { id: 'GreyNoise', label: 'GreyNoise', count: null, status: 'enrichment-only' },
+    { id: 'HIBP', label: 'HIBP', count: null, status: 'enrichment-only' },
+    { id: 'OTX', label: 'AlienVault OTX', count: null, status: 'enrichment-only' },
+    { id: 'ATT&CK', label: 'MITRE ATT&CK', count: attackMapped, status: attackMapped > 0 ? 'active' : 'no-data' },
+  ], [epssHigh, epssMed, epssLow, kevCount, attackMapped])
+
+  return (
+    <div className="space-y-px">
+      {feeds.map(feed => (
+        <div key={feed.id}>
+          <button
+            onClick={() => setExpanded(expanded === feed.id ? null : feed.id)}
+            className="flex items-center gap-2 w-full py-0.5 px-3 -mx-3 text-xs hover:bg-[#161b22]/40 transition-colors cursor-pointer"
+          >
+            <span className={`h-1.5 w-1.5 shrink-0 ${FEED_DOT[feed.id] ?? 'bg-gray-400'}`} />
+            <span className={`flex-1 truncate ${feed.status === 'active' ? 'text-gray-200' : 'text-gray-500'}`}>
+              {feed.label}
+            </span>
+            <span className="text-[10px] font-mono text-gray-600 tabular-nums">
+              {feed.count != null ? feed.count.toLocaleString() : FEED_STATUS_LABEL[feed.status]}
+            </span>
+          </button>
+          {expanded === feed.id && (
+            <div className="ml-6 py-1 space-y-0.5 text-[10px] text-gray-500">
+              {feed.id === 'EPSS' && (
+                <>
+                  <InfoRow label="High (>0.5)" value={epssHigh} />
+                  <InfoRow label="Medium (0.1-0.5)" value={epssMed} />
+                  <InfoRow label="Low (<0.1)" value={epssLow} />
+                </>
+              )}
+              {feed.id === 'KEV' && (
+                <>
+                  <InfoRow label="Actively exploited" value={kevCount} />
+                  <InfoRow label="% of findings" value={findings.length > 0 ? `${((kevCount / findings.length) * 100).toFixed(1)}%` : '0%'} />
+                </>
+              )}
+              {feed.id === 'ATT&CK' && (
+                <>
+                  <InfoRow label="Paths with tactics" value={attackMapped} />
+                  <InfoRow label="Unique tactics" value={uniqueTactics} />
+                </>
+              )}
+              {(feed.id === 'GreyNoise' || feed.id === 'HIBP' || feed.id === 'OTX') && (
+                <p className="px-3 -mx-3 italic">Available per-finding via AI enrichment</p>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
@@ -372,11 +458,9 @@ export function DataLayersPanel({ findings, attackPaths }: DataLayersPanelProps)
           />
         </LayerGroup>
 
-        {/* Threat Intel — read-only */}
+        {/* Threat Intel — drillable feed status */}
         <LayerGroup label="Threat Intel" defaultOpen={false}>
-          <InfoRow label="CISA KEV matches" value={findings.filter(f => f.exploit_available).length} />
-          <InfoRow label="EPSS > 0.5" value={findings.filter(f => f.epss !== undefined && f.epss > 0.5).length} />
-          <InfoRow label="ATT&CK mapped" value={attackPaths.filter(p => p.mitre_tactics.length > 0).length} />
+          <ThreatIntelDrillDown findings={findings} attackPaths={attackPaths} />
         </LayerGroup>
       </div>
     </div>

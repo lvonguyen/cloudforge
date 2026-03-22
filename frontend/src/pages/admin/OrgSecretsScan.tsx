@@ -9,6 +9,7 @@ import { KeyRound, Search, ChevronDown, ChevronRight, AlertTriangle, FileCode, C
 import { useStartOrgScan } from '@/hooks/useOrgScan'
 import type { OrgScanResult, RepoResult } from '@/hooks/useOrgScan'
 import { useAuth } from '@/lib/auth'
+import { ApiError } from '@/lib/api'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
@@ -265,6 +266,22 @@ export default function OrgSecretsScan() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Error state — fixed messages to avoid leaking backend details */}
+      {scanMutation.isError && (
+        <Card className="border-red-200 dark:border-red-800">
+          <CardContent className="p-4 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {scanMutation.error instanceof ApiError && scanMutation.error.status === 403
+                ? 'Org scan requires admin role.'
+                : scanMutation.error instanceof ApiError && scanMutation.error.status === 400
+                ? 'Invalid scan request — check the organization name.'
+                : 'Scan failed — please try again later.'}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Results */}
       {result && (
