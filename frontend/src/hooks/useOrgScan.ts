@@ -77,9 +77,7 @@ export function useStartOrgScan() {
         // In production (non-demo), propagate all errors — don't show mock
         // data as if it were real scan results.
         if (err instanceof ApiError && err.status < 500) throw err
-        if (import.meta.env.PROD) throw err
-        console.warn('[useStartOrgScan] API unavailable, using mock data')
-        return { ...MOCK_RESULT, org_name: req.org_name }
+        throw err
       }
     },
     onSuccess: (data) => {

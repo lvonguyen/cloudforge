@@ -48,7 +48,8 @@ const TOTAL_COUNT = parseInt(getCliArg('--count') ?? '80', 10);
 const ATTACK_PATHS_FILE = getCliArg('--attack-paths');
 
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-function pickN(arr, n) { const s = [...arr].sort(() => Math.random() - 0.5); return s.slice(0, n); }
+function shuffle(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+function pickN(arr, n) { return shuffle([...arr]).slice(0, n); }
 function pad(n) { return String(n).padStart(5, '0'); }
 
 // Build distribution arrays scaled to TOTAL_COUNT with +/- jitter so counts
@@ -66,7 +67,7 @@ function buildDist(values, ratios) {
   }
   // Pad or trim to exact TOTAL_COUNT
   while (result.length < TOTAL_COUNT) result.push(pick(values));
-  return result.slice(0, TOTAL_COUNT).sort(() => Math.random() - 0.5);
+  return shuffle(result.slice(0, TOTAL_COUNT));
 }
 
 const providerDist = buildDist(['aws', 'azure', 'gcp'], [52, 20, 8]);

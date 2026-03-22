@@ -422,8 +422,8 @@ export function DataLayersPanel({ findings, attackPaths }: DataLayersPanelProps)
         {/* Risk Score */}
         <LayerGroup label="AI Risk Score" defaultOpen={false}>
           {([['critical', 'Critical (8-10)', 'bg-red-400'], ['high', 'High (6-8)', 'bg-orange-400'], ['medium', 'Medium (4-6)', 'bg-yellow-500'], ['low', 'Low (0-4)', 'bg-blue-400']] as const).map(([key, label, dot]) => {
-            const ranges: Record<string, [number, number]> = { critical: [8, 10], high: [6, 8], medium: [4, 6], low: [0, 4] }
-            const [lo, hi] = ranges[key] ?? [0, 10]
+            const ranges: Record<string, [number, number]> = { critical: [8, 11], high: [6, 8], medium: [4, 6], low: [0, 4] }
+            const [lo, hi] = ranges[key] ?? [0, 11]
             const count = facetedFilter(findings, activeLayers, 'risk')
               .filter(f => f.ai_risk_score >= lo && f.ai_risk_score < hi).length
             return (
