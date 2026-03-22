@@ -29,7 +29,9 @@ type graphQueryResponse struct {
 const maxGraphQueryLen = 4096
 
 // gremlinMutationPattern rejects Gremlin-specific mutation steps.
-var gremlinMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|drop|property\s*\()`)
+// Uses [\s\x{00a0}\x{2000}-\x{200b}]* instead of \s* to match Unicode
+// whitespace (non-breaking space, em space, etc.) that Go's \s excludes.
+var gremlinMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|drop|sideEffect|inject|property[\s\x{00a0}\x{2000}-\x{200b}]*\()`)
 
 // cypherMutationPattern rejects Cypher-specific mutation keywords.
 var cypherMutationPattern = regexp.MustCompile(`(?i)\b(CREATE|MERGE|DELETE|DETACH|SET|REMOVE|CALL)\b`)

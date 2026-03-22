@@ -67,28 +67,32 @@ func (e *Enricher) Enrich(ctx context.Context, cves []string, ips []string, emai
 }
 
 func (e *Enricher) enrichEPSSTraced(ctx context.Context, cves []string, result *ThreatIntelEnrichment) {
+	ctx, cancel := context.WithTimeout(ctx, providerTimeout)
+	defer cancel()
 	_, span := otel.Tracer("aegis.threatintel").Start(ctx, "threatintel.epss")
 	defer span.End()
 	span.SetAttributes(
 		attribute.String("feed", "epss"),
 		attribute.Int("input.cve_count", len(cves)),
 	)
-	e.enrichEPSS(cves, result)
+	e.enrichEPSS(ctx, cves, result)
 	span.SetAttributes(attribute.Bool("cache.hit", result.EPSSScore > 0))
 }
 
 func (e *Enricher) enrichKEVTraced(ctx context.Context, cves []string, result *ThreatIntelEnrichment) {
+	ctx, cancel := context.WithTimeout(ctx, providerTimeout)
+	defer cancel()
 	_, span := otel.Tracer("aegis.threatintel").Start(ctx, "threatintel.kev")
 	defer span.End()
 	span.SetAttributes(
 		attribute.String("feed", "kev"),
 		attribute.Int("input.cve_count", len(cves)),
 	)
-	e.enrichKEV(cves, result)
+	e.enrichKEV(ctx, cves, result)
 	span.SetAttributes(attribute.Bool("kev.exploited", result.KEVExploited))
 }
 
-func (e *Enricher) enrichEPSS(cves []string, result *ThreatIntelEnrichment) {
+func (e *Enricher) enrichEPSS(_ context.Context, cves []string, result *ThreatIntelEnrichment) {
 	if e.epss == nil || len(cves) == 0 {
 		return
 	}
@@ -105,7 +109,7 @@ func (e *Enricher) enrichEPSS(cves []string, result *ThreatIntelEnrichment) {
 	}
 }
 
-func (e *Enricher) enrichKEV(cves []string, result *ThreatIntelEnrichment) {
+func (e *Enricher) enrichKEV(_ context.Context, cves []string, result *ThreatIntelEnrichment) {
 	if e.kev == nil || len(cves) == 0 {
 		return
 	}

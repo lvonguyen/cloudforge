@@ -102,7 +102,10 @@ func (s *Server) searchFindings(w http.ResponseWriter, r *http.Request) {
 
 	switch mode {
 	case "keyword":
-		result, err = s.searchSvc.Search(ctx, query, page, perPage)
+		// Fetch wide window from Bleve — post-filter ABAC + structured filters
+		// will reduce the set, so pre-paginating at the index level produces
+		// wrong results for scoped users on page 2+.
+		result, err = s.searchSvc.Search(ctx, query, 1, 200)
 	case "semantic":
 		if s.searchSvc.embedSvc == nil {
 			writeErrorResponse(w, "semantic search not available", http.StatusServiceUnavailable)
