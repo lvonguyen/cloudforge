@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers configuring identity providers for CloudForge authentication, including:
+This runbook covers configuring identity providers for Cloud Aegis authentication, including:
 - Okta OIDC setup and configuration
 - Microsoft Entra ID setup and configuration
 - JWT validation configuration
@@ -12,12 +12,12 @@ This runbook covers configuring identity providers for CloudForge authentication
 ## Prerequisites
 
 - [ ] Admin access to Okta Admin Console or Azure Portal (Entra ID)
-- [ ] kubectl access to the CloudForge cluster
-- [ ] CloudForge configuration access (configmap or environment variables)
+- [ ] kubectl access to the Cloud Aegis cluster
+- [ ] Cloud Aegis configuration access (configmap or environment variables)
 
 ## Architecture
 
-CloudForge uses config-driven identity provider selection:
+Cloud Aegis uses config-driven identity provider selection:
 
 ```
 OKTA_DOMAIN set    --> Okta provider activated
@@ -42,10 +42,10 @@ Relevant code:
 2. Select: OIDC - OpenID Connect
 3. Application type: Web Application
 4. Settings:
-   - App name: `CloudForge`
+   - App name: `Cloud Aegis`
    - Grant type: Authorization Code
-   - Sign-in redirect URIs: `https://app.cloudforge.io/callback`
-   - Sign-out redirect URIs: `https://app.cloudforge.io`
+   - Sign-in redirect URIs: `https://app.aegis.io/callback`
+   - Sign-out redirect URIs: `https://app.aegis.io`
    - Controlled access: Limit to specific groups
 
 5. Note the following values:
@@ -55,13 +55,13 @@ Relevant code:
 
 ### Step 2: Configure Groups and Roles
 
-Map Okta groups to CloudForge roles:
+Map Okta groups to Cloud Aegis roles:
 
-| Okta Group | CloudForge Role |
+| Okta Group | Cloud Aegis Role |
 |------------|----------------|
-| `cloudforge-admin` | admin |
-| `cloudforge-operator` | operator |
-| `cloudforge-requester` | requester |
+| `aegis-admin` | admin |
+| `aegis-operator` | operator |
+| `aegis-requester` | requester |
 
 Configure group claim in Okta:
 1. Security > API > Authorization Servers > default
@@ -69,19 +69,19 @@ Configure group claim in Okta:
    - Name: `groups`
    - Include in token type: ID Token (Always)
    - Value type: Groups
-   - Filter: Starts with `cloudforge-`
+   - Filter: Starts with `aegis-`
 
-### Step 3: Configure CloudForge
+### Step 3: Configure Cloud Aegis
 
 ```bash
 # Set environment variables
-kubectl set env deployment/cloudforge-api -n cloudforge \
+kubectl set env deployment/aegis-api -n aegis \
   OKTA_DOMAIN="dev-12345.okta.com" \
   OKTA_CLIENT_ID="0oa..." \
   OKTA_CLIENT_SECRET="xxx"
 
 # Or update configmap
-kubectl edit configmap cloudforge-config -n cloudforge
+kubectl edit configmap aegis-config -n aegis
 # Add:
 #   identity:
 #     okta:
@@ -90,19 +90,19 @@ kubectl edit configmap cloudforge-config -n cloudforge
 #       client_secret: "xxx"
 
 # Restart to pick up changes
-kubectl rollout restart deployment/cloudforge-api -n cloudforge
-kubectl rollout status deployment/cloudforge-api -n cloudforge
+kubectl rollout restart deployment/aegis-api -n aegis
+kubectl rollout status deployment/aegis-api -n aegis
 ```
 
 ### Step 4: Verify
 
 ```bash
 # Check health endpoint
-curl -sf https://api.cloudforge.io/health | jq '.components.identity_provider'
+curl -sf https://api.aegis.io/health | jq '.components.identity_provider'
 # Expected: {"okta": "ok"}
 
 # Test token validation
-curl -sf https://api.cloudforge.io/api/v1/findings \
+curl -sf https://api.aegis.io/api/v1/findings \
   -H "Authorization: Bearer $OKTA_TOKEN" | jq '.total'
 ```
 
@@ -112,16 +112,16 @@ curl -sf https://api.cloudforge.io/api/v1/findings \
 
 1. Azure Portal > Entra ID > App registrations > New registration
 2. Settings:
-   - Name: `CloudForge`
+   - Name: `Cloud Aegis`
    - Supported account types: Single tenant (or multi-tenant for MSP)
-   - Redirect URI: Web > `https://app.cloudforge.io/callback`
+   - Redirect URI: Web > `https://app.aegis.io/callback`
 
 3. Note: Application (client) ID, Directory (tenant) ID
 
 ### Step 2: Configure Authentication
 
 1. Authentication > Add platform > Web
-   - Redirect URIs: `https://app.cloudforge.io/callback`
+   - Redirect URIs: `https://app.aegis.io/callback`
    - ID tokens: Check
    - Access tokens: Check
 
@@ -135,43 +135,43 @@ curl -sf https://api.cloudforge.io/api/v1/findings \
    - Customize token properties: Group ID
 
 2. App roles > Create app role:
-   - Display name: `CloudForge Admin`
+   - Display name: `Cloud Aegis Admin`
    - Value: `admin`
    - Allowed member types: Users/Groups
 
    Repeat for `operator` and `requester`.
 
-### Step 4: Configure CloudForge
+### Step 4: Configure Cloud Aegis
 
 ```bash
 # Set environment variables
-kubectl set env deployment/cloudforge-api -n cloudforge \
+kubectl set env deployment/aegis-api -n aegis \
   ENTRA_TENANT_ID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
   ENTRA_CLIENT_ID="yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy" \
   ENTRA_CLIENT_SECRET="zzz"
 
 # Restart
-kubectl rollout restart deployment/cloudforge-api -n cloudforge
-kubectl rollout status deployment/cloudforge-api -n cloudforge
+kubectl rollout restart deployment/aegis-api -n aegis
+kubectl rollout status deployment/aegis-api -n aegis
 ```
 
 ### Step 5: Verify
 
 ```bash
 # Check health endpoint
-curl -sf https://api.cloudforge.io/health | jq '.components.identity_provider'
+curl -sf https://api.aegis.io/health | jq '.components.identity_provider'
 # Expected: {"entra_id": "ok"}
 ```
 
 ## Development Mode (Mock Provider)
 
-When neither `OKTA_DOMAIN` nor `ENTRA_TENANT_ID` is set, CloudForge falls back to the mock provider.
+When neither `OKTA_DOMAIN` nor `ENTRA_TENANT_ID` is set, Cloud Aegis falls back to the mock provider.
 
 In development mode:
 - `AuthProvider` component auto-authenticates as admin
 - `ProtectedRoute` skips auth checks when `import.meta.env.DEV` is true
 - The dev JWT token is stored in `frontend/.env.development` (gitignored)
-- The JWT signing secret is sourced from 1Password (`cloudforge-dev-jwt-secret`)
+- The JWT signing secret is sourced from 1Password (`aegis-dev-jwt-secret`)
 
 ```bash
 # Verify mock mode
@@ -180,7 +180,7 @@ curl -sf http://localhost:8080/health | jq '.components.identity_provider'
 
 # Use dev header override for role testing
 curl -sf http://localhost:8080/api/v1/findings \
-  -H "X-CloudForge-Role: operator"
+  -H "X-Cloud Aegis-Role: operator"
 ```
 
 ## JWT Validation Configuration
@@ -188,8 +188,8 @@ curl -sf http://localhost:8080/api/v1/findings \
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `JWT_SIGNING_KEY` | HS256 symmetric key | Required (no default) |
-| `JWT_ISSUER` | Expected `iss` claim | `cloudforge` |
-| `JWT_AUDIENCE` | Expected `aud` claim | `cloudforge-api` |
+| `JWT_ISSUER` | Expected `iss` claim | `aegis` |
+| `JWT_AUDIENCE` | Expected `aud` claim | `aegis-api` |
 | `JWKS_URL` | JWKS endpoint for RS256 | Auto-configured from IdP |
 | `JWKS_CACHE_TTL` | JWKS cache duration | 1 hour |
 
@@ -201,7 +201,7 @@ curl -sf http://localhost:8080/api/v1/findings \
 
 **Diagnosis**:
 ```bash
-kubectl logs -n cloudforge -l app=cloudforge-api --tail=100 | grep -i "jwt\|auth\|token"
+kubectl logs -n aegis -l app=aegis-api --tail=100 | grep -i "jwt\|auth\|token"
 ```
 
 **Common causes**:
@@ -224,7 +224,7 @@ echo $TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq '.groups'
 **Resolution**:
 1. Verify groups claim is configured in IdP (see setup steps above)
 2. Verify user is assigned to the correct group/role in IdP
-3. Check that group names match expected patterns (`cloudforge-admin`, etc.)
+3. Check that group names match expected patterns (`aegis-admin`, etc.)
 
 ### JWKS Cache Stale
 
@@ -232,13 +232,13 @@ echo $TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq '.groups'
 
 **Diagnosis**:
 ```bash
-kubectl logs -n cloudforge -l app=cloudforge-api | grep "jwks\|key rotation"
+kubectl logs -n aegis -l app=aegis-api | grep "jwks\|key rotation"
 ```
 
 **Resolution**:
 ```bash
 # Force JWKS cache refresh by restarting pods
-kubectl rollout restart deployment/cloudforge-api -n cloudforge
+kubectl rollout restart deployment/aegis-api -n aegis
 ```
 
 ## Escalation

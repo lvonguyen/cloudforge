@@ -1,4 +1,4 @@
-# CloudForge — Deferred Items
+# Cloud Aegis — Deferred Items
 
 Items intentionally deferred from the Command Center V2 polish pass.
 Each has a clear rationale and can be picked up in future sprints.
@@ -60,7 +60,7 @@ Frontend: `Finding` type already has `ai_risk_score`, `ai_risk_rationale`, `ai_c
 
 **What's missing:** An "Enrich with AI" button in `FindingDetail.tsx` that calls `POST /findings/{id}/enrich` and refreshes the finding.
 
-**Why deferred:** Requires `CLOUDFORGE_AI_ENABLED=true` + valid AI credentials in deployment. Mock data already populates AI fields for demo purposes.
+**Why deferred:** Requires `AEGIS_AI_ENABLED=true` + valid AI credentials in deployment. Mock data already populates AI fields for demo purposes.
 
 **Effort:** ~0.5 day frontend (button + mutation hook)
 
@@ -68,10 +68,10 @@ Frontend: `Finding` type already has `ai_risk_score`, `ai_risk_rationale`, `ai_c
 
 ## D5: Activate Bedrock in Production Deployment
 
-**Status:** `CLOUDFORGE_AI_ENABLED` defaults to `false`. Not set in `fly.toml` or `docker-compose.yml`.
+**Status:** `AEGIS_AI_ENABLED` defaults to `false`. Not set in `fly.toml` or `docker-compose.yml`.
 
 **To activate:**
-1. Set `CLOUDFORGE_AI_ENABLED=true` as Fly.io secret
+1. Set `AEGIS_AI_ENABLED=true` as Fly.io secret
 2. Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` from 1Password (`op://Development/BedrockAPIKey-1k4n-at-431330216246 (lvn-personal, longterm)/...`)
 3. Set `BEDROCK_REGION=us-east-1` and `BEDROCK_MODEL=anthropic.claude-haiku-4-5-20251001-v1:0`
 4. Redeploy
@@ -218,7 +218,7 @@ policies. No existing Rego policies reference `input.request`.
 
 **File:** `cmd/server/handlers_api.go:413-420`
 
-Bare string literals (`"cloudforge-api"`, `"enrichment"`, `"ai_enrich"`,
+Bare string literals (`"aegis-api"`, `"enrichment"`, `"ai_enrich"`,
 `"analysis"`) should be promoted to package-level constants before a
 second OPA gate is added (DRY).
 

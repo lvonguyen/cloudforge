@@ -59,7 +59,7 @@ The `EnrichmentService` in `cmd/server/service_enrichment.go` orchestrates feed 
 Finding → [EPSS] → [KEV] → [GreyNoise] → [HIBP] → [OTX] → AI Scoring → Enriched Finding
 ```
 
-Current limitation: feeds are called sequentially. When Finding has IP/email fields wired (P3), switch to `errgroup` for parallel execution.
+Current limitation: feeds are called sequentially. Switch to `errgroup` for parallel execution when throughput demands it (P3).
 
 ### Cache Implementation
 
@@ -88,7 +88,7 @@ func (c *CachedResult) IsExpired() bool {
 
 - Sequential enrichment adds latency (~200ms per feed, ~1s total for 5 feeds)
 - GreyNoise/HIBP community tier rate limits constrain throughput for large finding volumes
-- IP and email fields not yet wired on Finding type (P3) — GreyNoise/HIBP/OTX return nil until then
+- IP extraction uses finding.IPs with fallback to regex extraction from Description and ResourceID. Email extraction uses finding.Emails. All five feeds (EPSS, KEV, GreyNoise, HIBP, OTX) are wired and operational.
 
 ### Risks
 

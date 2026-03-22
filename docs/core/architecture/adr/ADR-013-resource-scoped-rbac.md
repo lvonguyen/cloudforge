@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-CloudForge currently implements role-based access control (RBAC) with three roles: `admin`, `operator`, and `requester`. This model works for small teams (5-10 users) but breaks down at enterprise scale (100+ operators across multiple business units).
+Cloud Aegis currently implements role-based access control (RBAC) with three roles: `admin`, `operator`, and `requester`. This model works for small teams (5-10 users) but breaks down at enterprise scale (100+ operators across multiple business units).
 
 ### Current RBAC Model
 
@@ -293,7 +293,7 @@ Create isolated namespaces per team: `findings/payments/`, `findings/infra/`.
 ### Phase 4: Audit & Monitoring (Week 4)
 
 - [ ] Log all scope denial events (`zap.Info("scope denied", zap.String("user", ...), zap.String("resource", ...))`)
-- [ ] Add Prometheus metrics: `cloudforge_rbac_scope_denials_total`
+- [ ] Add Prometheus metrics: `aegis_rbac_scope_denials_total`
 - [ ] Dashboard for scope violations (Grafana)
 
 ## Migration Path

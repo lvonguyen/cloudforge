@@ -97,11 +97,11 @@ Beyond roles, support ABAC for:
 ```json
 {
   "sub": "user123",
-  "iss": "cloudforge",
-  "aud": "cloudforge-api",
+  "iss": "aegis",
+  "aud": "aegis-api",
   "exp": 1704456789,
   "iat": 1704453189,
-  "groups": ["cloudforge-operator"],
+  "groups": ["aegis-operator"],
   "tenant_id": "tenant456",
   "permissions": ["findings:read", "findings:write"],
   "lob": ["engineering", "security"],

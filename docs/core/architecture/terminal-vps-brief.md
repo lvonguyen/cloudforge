@@ -1,7 +1,7 @@
 # Terminal VPS Backend — Architecture Brief
 
 **From:** security-research sprint (2026-03-17)
-**For:** opportunity-tracker / CloudForge embedded terminal (Item 6)
+**For:** opportunity-tracker / Cloud Aegis embedded terminal (Item 6)
 
 ---
 
@@ -52,9 +52,9 @@ JSON message: `{"type":"resize","cols":N,"rows":N}` — handled by `ptyProcess.r
 
 ---
 
-## Integration pattern for CloudForge
+## Integration pattern for Cloud Aegis
 
-To add a VPS terminal backend to CloudForge:
+To add a VPS terminal backend to Cloud Aegis:
 
 1. **Backend**: Add a `POST /api/terminal/token` endpoint (Go equivalent)
    - Generate JWT with `TERMINAL_JWT_SECRET`, 5-min TTL
@@ -76,7 +76,7 @@ To add a VPS terminal backend to CloudForge:
 | Project | Port |
 |---------|------|
 | security-research | 8088 |
-| cloudforge (OT) | 8089 (suggested) |
+| aegis (OT) | 8089 (suggested) |
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers operating CloudForge's remediation dispatcher, including:
+This runbook covers operating Cloud Aegis's remediation dispatcher, including:
 - Dispatcher architecture and executor model
 - Starting and monitoring remediation batches
 - Per-handler operations (network, storage, compute, identity, security services)
@@ -14,14 +14,14 @@ This runbook covers operating CloudForge's remediation dispatcher, including:
 ## Prerequisites
 
 - [ ] Write-access cloud credentials for the target account/subscription
-- [ ] kubectl access to the CloudForge cluster
-- [ ] CloudForge API token with `remediation:execute` scope
+- [ ] kubectl access to the Cloud Aegis cluster
+- [ ] Cloud Aegis API token with `remediation:execute` scope
 - [ ] Runbook 02-incident-response.md reviewed if remediating an active incident
 - [ ] Change management approval for production remediations
 
 ## Dispatcher Architecture
 
-The remediation dispatcher runs as a Kubernetes Deployment (`cloudforge-remediation`) and exposes a tiered execution model:
+The remediation dispatcher runs as a Kubernetes Deployment (`aegis-remediation`) and exposes a tiered execution model:
 
 | Tier | Handler Types | Concurrency | Timeout |
 |------|--------------|-------------|---------|
@@ -39,7 +39,7 @@ Always run dry-run first to preview changes.
 
 ```bash
 # Dry run against a specific finding set
-curl -s -X POST https://api.cloudforge.io/api/v1/remediations \
+curl -s -X POST https://api.aegis.io/api/v1/remediations \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -49,7 +49,7 @@ curl -s -X POST https://api.cloudforge.io/api/v1/remediations \
   }' | jq '{batch_id, actions_preview, estimated_duration_s}'
 
 # Or via CLI
-./cloudforge remediate --finding-ids f-abc123,f-def456 --dry-run
+./aegis remediate --finding-ids f-abc123,f-def456 --dry-run
 ```
 
 Review the `actions_preview` list. Confirm each action is expected before proceeding.
@@ -58,7 +58,7 @@ Review the `actions_preview` list. Confirm each action is expected before procee
 
 ```bash
 # Execute with the batch_id from dry run
-curl -s -X POST https://api.cloudforge.io/api/v1/remediations \
+curl -s -X POST https://api.aegis.io/api/v1/remediations \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -73,11 +73,11 @@ curl -s -X POST https://api.cloudforge.io/api/v1/remediations \
 
 ```bash
 # Poll batch status
-watch -n 10 'curl -sf https://api.cloudforge.io/api/v1/remediations/batch-20260226-001 | \
+watch -n 10 'curl -sf https://api.aegis.io/api/v1/remediations/batch-20260226-001 | \
   jq "{status, completed, failed, pending, elapsed_s}"'
 
 # Stream dispatcher logs
-kubectl logs -n cloudforge -l app=cloudforge-remediation -f | \
+kubectl logs -n aegis -l app=aegis-remediation -f | \
   grep "batch-20260226-001"
 ```
 
@@ -87,28 +87,28 @@ kubectl logs -n cloudforge -l app=cloudforge-remediation -f | \
 
 ```promql
 # Active remediation count by tier
-cloudforge_remediations_active by (tier)
+aegis_remediations_active by (tier)
 
 # Success rate over 1h
-rate(cloudforge_remediations_total{status="success"}[1h])
-/ rate(cloudforge_remediations_total[1h])
+rate(aegis_remediations_total{status="success"}[1h])
+/ rate(aegis_remediations_total[1h])
 
 # Avg duration by handler type
-histogram_quantile(0.95, rate(cloudforge_remediation_duration_seconds_bucket[1h])) by (handler)
+histogram_quantile(0.95, rate(aegis_remediation_duration_seconds_bucket[1h])) by (handler)
 
 # Error rate
-rate(cloudforge_remediations_total{status="failed"}[5m])
+rate(aegis_remediations_total{status="failed"}[5m])
 ```
 
 ### Log-Based Monitoring
 
 ```bash
 # All remediation errors in the last hour
-kubectl logs -n cloudforge -l app=cloudforge-remediation \
+kubectl logs -n aegis -l app=aegis-remediation \
   --since=1h | grep '"level":"error"' | jq '{handler, finding_id, error}'
 
 # Successful remediations
-kubectl logs -n cloudforge -l app=cloudforge-remediation \
+kubectl logs -n aegis -l app=aegis-remediation \
   --since=1h | grep '"status":"success"' | \
   jq -r '[.handler, .finding_id, .resource_id] | @tsv'
 ```
@@ -121,7 +121,7 @@ Blocks inbound SSH (22) and RDP (3389) from 0.0.0.0/0 and ::/0.
 
 ```bash
 # Trigger manually for a specific security group
-curl -s -X POST https://api.cloudforge.io/api/v1/remediations/handlers/block-public-ssh \
+curl -s -X POST https://api.aegis.io/api/v1/remediations/handlers/block-public-ssh \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{"resource_id": "sg-0abc123def456789", "provider": "aws", "dry_run": true}'
 
@@ -142,7 +142,7 @@ aws ec2 describe-security-groups \
 
 ```bash
 # Trigger for a specific S3 bucket
-curl -s -X POST https://api.cloudforge.io/api/v1/remediations/handlers/s3-block-public-access \
+curl -s -X POST https://api.aegis.io/api/v1/remediations/handlers/s3-block-public-access \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{"resource_id": "my-bucket", "provider": "aws", "dry_run": true}'
 
@@ -160,7 +160,7 @@ aws s3api get-public-access-block --bucket my-bucket
 
 ```bash
 # Trigger for a specific EC2 instance
-curl -s -X POST https://api.cloudforge.io/api/v1/remediations/handlers/enforce-imdsv2 \
+curl -s -X POST https://api.aegis.io/api/v1/remediations/handlers/enforce-imdsv2 \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{"resource_id": "i-0abc123def456789", "provider": "aws", "dry_run": true}'
 
@@ -182,19 +182,19 @@ Deactivates keys older than the configured threshold (default: 90 days).
 
 ```bash
 # Trigger key rotation check for a user
-curl -s -X POST https://api.cloudforge.io/api/v1/remediations/handlers/rotate-iam-keys \
+curl -s -X POST https://api.aegis.io/api/v1/remediations/handlers/rotate-iam-keys \
   -H "Authorization: Bearer $API_TOKEN" \
-  -d '{"resource_id": "arn:aws:iam::123456789012:user/svc-cloudforge", "provider": "aws", "dry_run": true}'
+  -d '{"resource_id": "arn:aws:iam::123456789012:user/svc-aegis", "provider": "aws", "dry_run": true}'
 
 # Direct AWS CLI: deactivate stale key
 aws iam update-access-key \
   --access-key-id AKIAIOSFODNN7EXAMPLE \
   --status Inactive \
-  --user-name svc-cloudforge
+  --user-name svc-aegis
 
 # Verify
 aws iam list-access-keys \
-  --user-name svc-cloudforge \
+  --user-name svc-aegis \
   --query 'AccessKeyMetadata[].{KeyId:AccessKeyId,Status:Status,Created:CreateDate}'
 ```
 
@@ -202,7 +202,7 @@ aws iam list-access-keys \
 
 ```bash
 # Enable GuardDuty in a region
-curl -s -X POST https://api.cloudforge.io/api/v1/remediations/handlers/enable-guardduty \
+curl -s -X POST https://api.aegis.io/api/v1/remediations/handlers/enable-guardduty \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{"resource_id": "123456789012", "region": "us-east-1", "provider": "aws", "dry_run": true}'
 
@@ -244,30 +244,30 @@ The dispatcher snapshots resource state before every change. Rollbacks are avail
 
 ```bash
 # List available snapshots for a batch
-curl -sf https://api.cloudforge.io/api/v1/remediations/batch-20260226-001/snapshots | \
+curl -sf https://api.aegis.io/api/v1/remediations/batch-20260226-001/snapshots | \
   jq '.[] | {snapshot_id, resource_id, handler, taken_at}'
 
 # Dry-run rollback
-curl -s -X POST https://api.cloudforge.io/api/v1/remediations/batch-20260226-001/rollback \
+curl -s -X POST https://api.aegis.io/api/v1/remediations/batch-20260226-001/rollback \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{"snapshot_id": "snap-001", "dry_run": true}'
 
 # Execute rollback
-curl -s -X POST https://api.cloudforge.io/api/v1/remediations/batch-20260226-001/rollback \
+curl -s -X POST https://api.aegis.io/api/v1/remediations/batch-20260226-001/rollback \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{"snapshot_id": "snap-001", "dry_run": false}'
 
 # Verify rollback
-curl -sf https://api.cloudforge.io/api/v1/remediations/batch-20260226-001 | jq .rollback_status
+curl -sf https://api.aegis.io/api/v1/remediations/batch-20260226-001 | jq .rollback_status
 ```
 
 ### Manual Rollback (if dispatcher unavailable)
 
-Snapshots are stored in S3 at `s3://cloudforge-snapshots/remediations/<batch-id>/`.
+Snapshots are stored in S3 at `s3://aegis-snapshots/remediations/<batch-id>/`.
 
 ```bash
 # Retrieve snapshot
-aws s3 cp s3://cloudforge-snapshots/remediations/batch-20260226-001/snap-001.json .
+aws s3 cp s3://aegis-snapshots/remediations/batch-20260226-001/snap-001.json .
 
 # Inspect and apply manually using the appropriate CSP CLI
 cat snap-001.json | jq .previous_state
@@ -279,18 +279,18 @@ To halt all running remediations immediately:
 
 ```bash
 # Kill dispatcher pods (restarts automatically but drains queue)
-kubectl delete pod -l app=cloudforge-remediation -n cloudforge
+kubectl delete pod -l app=aegis-remediation -n aegis
 
 # Suspend the remediation queue (prevents new work from dequeuing)
-kubectl patch deployment cloudforge-remediation -n cloudforge \
+kubectl patch deployment aegis-remediation -n aegis \
   --type='json' \
   -p='[{"op": "replace", "path": "/spec/replicas", "value": 0}]'
 
 # Verify stopped
-kubectl get pods -n cloudforge -l app=cloudforge-remediation
+kubectl get pods -n aegis -l app=aegis-remediation
 
 # Resume after investigation
-kubectl patch deployment cloudforge-remediation -n cloudforge \
+kubectl patch deployment aegis-remediation -n aegis \
   --type='json' \
   -p='[{"op": "replace", "path": "/spec/replicas", "value": 2}]'
 ```
@@ -303,7 +303,7 @@ kubectl patch deployment cloudforge-remediation -n cloudforge \
 
 **Diagnosis**:
 ```bash
-kubectl logs -n cloudforge -l app=cloudforge-remediation | \
+kubectl logs -n aegis -l app=aegis-remediation | \
   grep '"error":"AccessDenied"' | jq '{finding_id, resource_id, action}'
 ```
 
@@ -337,7 +337,7 @@ aws ec2 describe-instance-status \
 **Diagnosis**:
 ```bash
 # Get finding details to identify root resource vs dependent resource
-curl -sf https://api.cloudforge.io/api/v1/findings/f-abc123 | jq .dependencies
+curl -sf https://api.aegis.io/api/v1/findings/f-abc123 | jq .dependencies
 ```
 
 **Resolution**:
@@ -349,17 +349,17 @@ curl -sf https://api.cloudforge.io/api/v1/findings/f-abc123 | jq .dependencies
 
 ```bash
 # Success/failure rates for last 7 days
-curl -sf "https://api.cloudforge.io/api/v1/remediations/report?period=7d" | \
+curl -sf "https://api.aegis.io/api/v1/remediations/report?period=7d" | \
   jq '{total, succeeded, failed, success_rate, sla_compliance_pct}'
 
 # Breakdown by handler
-curl -sf "https://api.cloudforge.io/api/v1/remediations/report?period=7d&group_by=handler" | \
+curl -sf "https://api.aegis.io/api/v1/remediations/report?period=7d&group_by=handler" | \
   jq '.[] | {handler, total, success_rate, avg_duration_s}'
 
 # SLA compliance (target: 95% of T1 remediations complete within 5 min)
 curl -s 'http://prometheus:9090/api/v1/query?query=
-  sum(rate(cloudforge_remediations_total{tier="T1",status="success",duration_bucket=~"[0-9]+"}[7d]))
-  / sum(rate(cloudforge_remediations_total{tier="T1"}[7d]))' | jq .
+  sum(rate(aegis_remediations_total{tier="T1",status="success",duration_bucket=~"[0-9]+"}[7d]))
+  / sum(rate(aegis_remediations_total{tier="T1"}[7d]))' | jq .
 ```
 
 ## Post-Batch Checklist

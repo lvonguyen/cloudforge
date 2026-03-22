@@ -53,7 +53,7 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 | **Observability** | | |
 | Structured logging (zap) | Done | JSON format |
 | Prometheus metrics | Done | `/metrics` endpoint |
-| OpenTelemetry tracing | Partial | Basic spans, handler-level instrumentation, pprof dev endpoint (127.0.0.1:6060) |
+| OpenTelemetry tracing | Done | 72 handler spans across 24 files; enrichment, threat intel, and AI provider sub-spans; Jaeger in docker-compose (localhost-bound); `AEGIS_TRACING_ENABLED` + `AEGIS_OTLP_ENDPOINT` configuration; pprof dev endpoint (127.0.0.1:6060) |
 | **Remediation Dispatcher** | | |
 | Executor engine | Done | Concurrent batch execution with semaphore |
 | Handler interface | Done | Remediate, Validate, DryRun, Tier |
@@ -404,7 +404,7 @@ server:
 database:
   host: localhost
   port: 5432
-  name: cloudforge
+  name: aegis
 
 grc:
   provider: memory  # memory | postgres | archer | servicenow

@@ -1,4 +1,4 @@
-# CloudForge - FAANG L6 Portfolio Review (Hiring Committee Strict Variant)
+# Cloud Aegis - FAANG L6 Portfolio Review (Hiring Committee Strict Variant)
 
 Date: 2026-03-13
 Reviewer: Codex CLI (automated)

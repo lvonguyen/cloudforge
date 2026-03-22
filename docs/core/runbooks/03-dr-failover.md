@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers disaster recovery failover procedures for CloudForge, including:
+This runbook covers disaster recovery failover procedures for Cloud Aegis, including:
 - Pre-failover readiness checks
 - Automated and manual failover triggers
 - Per-CSP failover specifics (AWS, Azure, GCP)
@@ -34,31 +34,31 @@ Run these checks before initiating any failover.
 ```bash
 # 1. Verify DR environment is healthy
 kubectl get nodes --context=dr-cluster
-kubectl get pods -n cloudforge --context=dr-cluster
+kubectl get pods -n aegis --context=dr-cluster
 
 # 2. Check database replication lag
 # AWS RDS
 aws rds describe-db-instances \
-  --db-instance-identifier cloudforge-db-replica \
+  --db-instance-identifier aegis-db-replica \
   --query 'DBInstances[0].StatusInfos' \
   --region us-west-2
 
 # 3. Verify last successful backup
 aws rds describe-db-snapshots \
-  --db-instance-identifier cloudforge-db \
+  --db-instance-identifier aegis-db \
   --query 'reverse(sort_by(DBSnapshots, &SnapshotCreateTime))[0]' \
   --region us-east-1
 
 # 4. Check DNS TTL (must be <=60s before failover)
-dig +short SOA cloudforge.io
-dig cloudforge.io | grep TTL
+dig +short SOA aegis.io
+dig aegis.io | grep TTL
 
 # 5. Verify DR application config is current
-kubectl get configmap cloudforge-config -n cloudforge --context=dr-cluster -o yaml | \
-  diff - <(kubectl get configmap cloudforge-config -n cloudforge --context=primary-cluster -o yaml)
+kubectl get configmap aegis-config -n aegis --context=dr-cluster -o yaml | \
+  diff - <(kubectl get configmap aegis-config -n aegis --context=primary-cluster -o yaml)
 
 # 6. Check DR health endpoint
-curl -sf https://dr.cloudforge.io/health | jq .
+curl -sf https://dr.aegis.io/health | jq .
 ```
 
 - [ ] DR cluster nodes all Ready
@@ -70,24 +70,24 @@ curl -sf https://dr.cloudforge.io/health | jq .
 
 ## Automated Failover Triggers
 
-CloudForge monitors the following conditions and triggers automated failover via the DR controller:
+Cloud Aegis monitors the following conditions and triggers automated failover via the DR controller:
 
 ```promql
 # Primary region health score (triggers failover at <0.3)
-avg(cloudforge_health_status) by (region) < 0.3
+avg(aegis_health_status) by (region) < 0.3
 
 # Consecutive health check failures (triggers at >5)
-increase(cloudforge_health_check_failures_total[5m]) > 5
+increase(aegis_health_check_failures_total[5m]) > 5
 
 # Database replication lag (triggers at >120s)
-cloudforge_db_replication_lag_seconds > 120
+aegis_db_replication_lag_seconds > 120
 ```
 
 To check current DR controller status:
 
 ```bash
-kubectl get deployment cloudforge-dr-controller -n cloudforge-system
-kubectl logs -n cloudforge-system -l app=dr-controller --tail=50
+kubectl get deployment aegis-dr-controller -n aegis-system
+kubectl logs -n aegis-system -l app=dr-controller --tail=50
 ```
 
 ## Manual Failover Procedure
@@ -99,17 +99,17 @@ kubectl logs -n cloudforge-system -l app=dr-controller --tail=50
 # #incident-YYYYMMDD-XX: "Initiating manual DR failover to [region]. ETA: 30 min."
 
 # Disable new writes to primary (prevents split-brain)
-kubectl annotate deployment cloudforge-api \
-  cloudforge.io/drain="true" \
+kubectl annotate deployment aegis-api \
+  aegis.io/drain="true" \
   --context=primary-cluster \
-  -n cloudforge
+  -n aegis
 ```
 
 ### Step 2: Verify In-Flight Requests Drained
 
 ```bash
 # Watch connection count drop to zero
-watch -n 5 'kubectl exec -n cloudforge deployment/cloudforge-api \
+watch -n 5 'kubectl exec -n aegis deployment/aegis-api \
   --context=primary-cluster -- \
   curl -s localhost:8080/debug/connections | jq .active'
 ```
@@ -128,7 +128,7 @@ aws route53 change-resource-record-sets \
     "Changes": [{
       "Action": "UPSERT",
       "ResourceRecordSet": {
-        "Name": "api.cloudforge.io",
+        "Name": "api.aegis.io",
         "Type": "CNAME",
         "TTL": 60,
         "ResourceRecords": [{"Value": "dr-nlb.us-west-2.elb.amazonaws.com"}]
@@ -137,27 +137,27 @@ aws route53 change-resource-record-sets \
   }'
 
 # Verify propagation
-watch -n 10 'dig +short api.cloudforge.io'
+watch -n 10 'dig +short api.aegis.io'
 ```
 
 ### Step 5: Scale DR Cluster
 
 ```bash
 # Scale to production capacity
-kubectl scale deployment cloudforge-api \
+kubectl scale deployment aegis-api \
   --replicas=6 \
   --context=dr-cluster \
-  -n cloudforge
+  -n aegis
 
-kubectl rollout status deployment/cloudforge-api \
+kubectl rollout status deployment/aegis-api \
   --context=dr-cluster \
-  -n cloudforge
+  -n aegis
 ```
 
 ### Step 6: Verify Failover Complete
 
 ```bash
-curl -sf https://api.cloudforge.io/health | jq '{status, region}'
+curl -sf https://api.aegis.io/health | jq '{status, region}'
 # Expected: {"status": "healthy", "region": "dr"}
 ```
 
@@ -170,13 +170,13 @@ curl -sf https://api.cloudforge.io/health | jq '{status, region}'
 ```bash
 # Force failover for Multi-AZ (60-120s downtime)
 aws rds reboot-db-instance \
-  --db-instance-identifier cloudforge-db \
+  --db-instance-identifier aegis-db \
   --force-failover \
   --region us-east-1
 
 # Monitor failover event
 aws rds describe-events \
-  --source-identifier cloudforge-db \
+  --source-identifier aegis-db \
   --source-type db-instance \
   --duration 60
 ```
@@ -199,7 +199,7 @@ aws route53 get-health-check-status \
 ```bash
 # Scale node group in DR region
 aws eks update-nodegroup-config \
-  --cluster-name cloudforge-dr \
+  --cluster-name aegis-dr \
   --nodegroup-name primary \
   --scaling-config minSize=3,maxSize=10,desiredSize=6 \
   --region us-west-2
@@ -219,15 +219,15 @@ kubectl wait nodes \
 ```bash
 # Initiate planned failover
 az sql failover-group set-primary \
-  --name cloudforge-fog \
-  --resource-group cloudforge-dr-rg \
-  --server cloudforge-dr-sql
+  --name aegis-fog \
+  --resource-group aegis-dr-rg \
+  --server aegis-dr-sql
 
 # Check failover group status
 az sql failover-group show \
-  --name cloudforge-fog \
-  --resource-group cloudforge-dr-rg \
-  --server cloudforge-dr-sql \
+  --name aegis-fog \
+  --resource-group aegis-dr-rg \
+  --server aegis-dr-sql \
   --query 'replicationState'
 ```
 
@@ -236,16 +236,16 @@ az sql failover-group show \
 ```bash
 # Disable primary endpoint
 az network traffic-manager endpoint update \
-  --resource-group cloudforge-rg \
-  --profile-name cloudforge-tm \
+  --resource-group aegis-rg \
+  --profile-name aegis-tm \
   --name primary-endpoint \
   --type azureEndpoints \
   --endpoint-status Disabled
 
 # Verify routing
 az network traffic-manager profile show \
-  --resource-group cloudforge-rg \
-  --name cloudforge-tm \
+  --resource-group aegis-rg \
+  --name aegis-tm \
   --query 'endpoints[].{name:name,status:endpointStatus}'
 ```
 
@@ -254,8 +254,8 @@ az network traffic-manager profile show \
 ```bash
 # Scale AKS node pool in DR region
 az aks nodepool scale \
-  --resource-group cloudforge-dr-rg \
-  --cluster-name cloudforge-dr-aks \
+  --resource-group aegis-dr-rg \
+  --cluster-name aegis-dr-aks \
   --name agentpool \
   --node-count 6
 
@@ -269,13 +269,13 @@ kubectl get nodes --context=aks-dr-cluster
 
 ```bash
 # Initiate failover to standby
-gcloud sql instances failover cloudforge-db \
-  --failover-replica-name=cloudforge-db-failover \
-  --project=cloudforge-prod
+gcloud sql instances failover aegis-db \
+  --failover-replica-name=aegis-db-failover \
+  --project=aegis-prod
 
 # Check instance status
-gcloud sql instances describe cloudforge-db \
-  --project=cloudforge-prod \
+gcloud sql instances describe aegis-db \
+  --project=aegis-prod \
   --format='value(state,failoverReplica.available)'
 ```
 
@@ -283,29 +283,29 @@ gcloud sql instances describe cloudforge-db \
 
 ```bash
 # Update DNS record to DR endpoint
-gcloud dns record-sets update api.cloudforge.io. \
+gcloud dns record-sets update api.aegis.io. \
   --type=CNAME \
   --ttl=60 \
-  --rrdatas=dr-lb.cloudforge.io. \
-  --zone=cloudforge-zone \
-  --project=cloudforge-prod
+  --rrdatas=dr-lb.aegis.io. \
+  --zone=aegis-zone \
+  --project=aegis-prod
 
 # Verify propagation
 gcloud dns record-sets list \
-  --zone=cloudforge-zone \
-  --filter="name=api.cloudforge.io." \
-  --project=cloudforge-prod
+  --zone=aegis-zone \
+  --filter="name=api.aegis.io." \
+  --project=aegis-prod
 ```
 
 #### GKE Node Pools
 
 ```bash
 # Resize GKE node pool in DR region
-gcloud container clusters resize cloudforge-dr \
+gcloud container clusters resize aegis-dr \
   --node-pool primary-pool \
   --num-nodes 6 \
   --region us-central1 \
-  --project=cloudforge-prod
+  --project=aegis-prod
 
 # Watch nodes come up
 kubectl get nodes -w --context=gke-dr-cluster
@@ -317,26 +317,26 @@ Run all checks before closing the incident.
 
 ```bash
 # 1. API health
-curl -sf https://api.cloudforge.io/health | jq .
+curl -sf https://api.aegis.io/health | jq .
 # Expected: status=healthy, region=dr
 
 # 2. Verify all deployments running
-kubectl get deployment -n cloudforge --context=dr-cluster
+kubectl get deployment -n aegis --context=dr-cluster
 
 # 3. Check error rate (allow 5-min window to settle)
-curl -s 'http://prometheus-dr:9090/api/v1/query?query=rate(cloudforge_http_requests_total{status=~"5.."}[5m])' | jq '.data.result'
+curl -s 'http://prometheus-dr:9090/api/v1/query?query=rate(aegis_http_requests_total{status=~"5.."}[5m])' | jq '.data.result'
 
 # 4. Data integrity check
-kubectl exec -n cloudforge deployment/cloudforge-api \
+kubectl exec -n aegis deployment/aegis-api \
   --context=dr-cluster -- \
-  ./cloudforge db check-integrity
+  ./aegis db check-integrity
 
 # 5. Verify OPA policy engine loaded
-curl -sf https://api.cloudforge.io/api/v1/policies/health | jq .
+curl -sf https://api.aegis.io/api/v1/policies/health | jq .
 # Expected: {"opa_external": "ok", "opa_embedded": "ok"}
 
 # 6. Test end-to-end scan
-curl -sf -X POST https://api.cloudforge.io/api/v1/scans \
+curl -sf -X POST https://api.aegis.io/api/v1/scans \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{"scope": "test", "providers": ["aws"]}' | jq '{id, status}'
 ```
@@ -356,29 +356,29 @@ Return to primary after primary region is confirmed stable (minimum 2h post-reco
 kubectl get nodes --context=primary-cluster
 
 # 2. Sync any data written during failover (if not using synchronous replication)
-./cloudforge dr sync-from-dr --dry-run
-./cloudforge dr sync-from-dr --execute
+./aegis dr sync-from-dr --dry-run
+./aegis dr sync-from-dr --execute
 
 # 3. Reduce DNS TTL to 60s (if not already)
 # Run appropriate DNS command from Step 4 above pointing back to primary NLB
 
 # 4. Scale primary cluster back up
-kubectl scale deployment cloudforge-api \
+kubectl scale deployment aegis-api \
   --replicas=6 \
   --context=primary-cluster \
-  -n cloudforge
+  -n aegis
 
 # 5. Redirect DNS back to primary
 # Reverse the DNS change from Step 4 of the failover procedure
 
 # 6. Verify traffic on primary
-watch -n 10 'curl -sf https://api.cloudforge.io/health | jq .region'
+watch -n 10 'curl -sf https://api.aegis.io/health | jq .region'
 
 # 7. Scale down DR cluster to standby capacity
-kubectl scale deployment cloudforge-api \
+kubectl scale deployment aegis-api \
   --replicas=2 \
   --context=dr-cluster \
-  -n cloudforge
+  -n aegis
 ```
 
 - [ ] Primary cluster healthy for >2h
@@ -391,13 +391,13 @@ kubectl scale deployment cloudforge-api \
 ### Initial Notification (T+0)
 
 ```
-Subject: [INCIDENT] CloudForge DR Failover Initiated
+Subject: [INCIDENT] Cloud Aegis DR Failover Initiated
 
 Severity: SEV1
 Started: YYYY-MM-DD HH:MM UTC
 Incident Channel: #incident-YYYYMMDD-XX
 
-We are initiating a DR failover for CloudForge due to [reason].
+We are initiating a DR failover for Cloud Aegis due to [reason].
 Estimated completion: 30 minutes.
 Expected impact: API unavailable for up to 5 minutes during DNS propagation.
 
@@ -417,7 +417,7 @@ Update [T+15]:
 ### Resolution Notice
 
 ```
-Subject: [RESOLVED] CloudForge DR Failover Complete
+Subject: [RESOLVED] Cloud Aegis DR Failover Complete
 
 Resolved: YYYY-MM-DD HH:MM UTC
 Duration: XX minutes
@@ -440,4 +440,4 @@ All systems operational. Post-mortem scheduled for YYYY-MM-DD.
 - On-Call: PagerDuty
 - Platform Team: #platform-support (Slack)
 - Security Team: #security-ops (Slack)
-- DBA On-Call: PagerDuty escalation policy `cloudforge-dba`
+- DBA On-Call: PagerDuty escalation policy `aegis-dba`

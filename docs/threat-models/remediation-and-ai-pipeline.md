@@ -9,7 +9,7 @@
 
 ## 1. Scope
 
-This threat model covers the **remediation dispatcher** and **AI enrichment pipeline** within CloudForge, specifically:
+This threat model covers the **remediation dispatcher** and **AI enrichment pipeline** within Cloud Aegis, specifically:
 
 - Finding ingestion from CSPM sources (Security Hub, Defender, SCC)
 - Contextual risk scoring using AI (Anthropic Claude, OpenAI GPT-4)
@@ -161,7 +161,7 @@ graph LR
 
 **Existing Mitigations**:
 - Structured logging via `zap.Logger` in `executor.go`
-- OTel spans for AI calls (`otel.Tracer("cloudforge.ai").Start(ctx, "ai.analyze")`)
+- OTel spans for AI calls (`otel.Tracer("aegis.enrichment").Start(ctx, "ai.analyze")`)
 - Audit log format includes: `FindingID`, `Handler`, `Success`, `Message`, `Duration`
 
 **Additional Controls Needed**:

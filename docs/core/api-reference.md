@@ -64,6 +64,51 @@ Error codes: `BAD_REQUEST`, `FORBIDDEN`, `NOT_FOUND`, `{RESOURCE}_NOT_FOUND`, `C
 | DELETE | `/api/v1/findings/{id}/comments/{commentId}` | operator, admin | No | Delete finding comment |
 | POST | `/api/v1/findings/{id}/remediate` | operator, admin | No | Create remediation ticket (integration layer) |
 | GET | `/api/v1/findings/{id}/ticket` | operator, admin | No | Get linked ticket status |
+| POST | `/api/v1/findings/search` | operator, admin | Yes | BM25 + semantic hybrid search |
+
+#### POST /api/v1/findings/search
+
+Full-text and semantic search over findings. Combines Bleve BM25 text search with TF-IDF embeddings via Reciprocal Rank Fusion (RRF).
+
+**Request body:**
+
+```json
+{
+  "query": "public S3 bucket",
+  "mode": "hybrid",
+  "filters": {
+    "severity": ["CRITICAL", "HIGH"],
+    "provider": ["aws"],
+    "status": ["open"]
+  },
+  "page": 1,
+  "per_page": 50
+}
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `query` | string | *(required)* | Search query (max 1000 chars) |
+| `mode` | string | `hybrid` | Search mode: `keyword`, `semantic`, or `hybrid` |
+| `filters.severity` | string[] | *(none)* | Filter by severity (case-insensitive) |
+| `filters.provider` | string[] | *(none)* | Filter by cloud provider (case-insensitive) |
+| `filters.status` | string[] | *(none)* | Filter by finding status (case-insensitive) |
+| `page` | int | `1` | Page number (1-indexed) |
+| `per_page` | int | `50` | Results per page (max 200) |
+
+**Response:**
+
+```json
+{
+  "data": [{ "finding": {...}, "score": 0.87 }],
+  "total": 42,
+  "page": 1,
+  "per_page": 50,
+  "max_score": 0.87,
+  "took_ms": 12,
+  "mode": "hybrid"
+}
+```
 
 ### Compliance
 

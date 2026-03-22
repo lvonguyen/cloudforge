@@ -136,12 +136,27 @@ These are set in `fly.toml` for the Fly.io deployment:
 | `RATE_LIMIT_ENABLED` | `true` | Rate limiting on |
 | `CORS_ALLOWED_ORIGINS` | `https://cloudaegis-demo.lvonguyen.com` | Cloudflare Pages domain |
 
+## Observability / Tracing
+
+| Variable | Default | Required | Description |
+|----------|---------|----------|-------------|
+| `AEGIS_TRACING_ENABLED` | `false` | No | Enable OpenTelemetry distributed tracing |
+| `AEGIS_OTLP_ENDPOINT` | `localhost:4317` | No | OTLP collector gRPC endpoint |
+| `AEGIS_SAMPLING_RATE` | `1.0` | No | Trace sampling rate (0.0–1.0) |
+
+## Feature Flags
+
+| Variable | Default | Required | Description |
+|----------|---------|----------|-------------|
+| `AEGIS_RUST_PATHS` | `false` | No | Enable Rust FFI attack path engine (requires `rust` build tag; falls back to pure-Go engine) |
+
 ## Frontend (Vite Build-Time)
 
 These variables are embedded at build time via Vite's `import.meta.env`:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `VITE_API_URL` | `/api/v1` | API base URL override (e.g., `http://localhost:8080`) |
 | `VITE_DEMO_MODE` | *(empty)* | Set `true` to enable demo access and mock fallbacks |
 | `VITE_OKTA_ISSUER` | *(empty)* | Okta OIDC issuer URL for frontend auth |
 | `VITE_OKTA_CLIENT_ID` | *(empty)* | Okta OIDC client ID |

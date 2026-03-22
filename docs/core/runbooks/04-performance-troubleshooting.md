@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers diagnosing and resolving performance issues in CloudForge, including slow API responses, high latency, and resource exhaustion.
+This runbook covers diagnosing and resolving performance issues in Cloud Aegis, including slow API responses, high latency, and resource exhaustion.
 
 ## Prerequisites
 
@@ -27,20 +27,20 @@ This runbook covers diagnosing and resolving performance issues in CloudForge, i
 
 ```bash
 # Check overall latency
-curl -s 'http://prometheus:9090/api/v1/query?query=histogram_quantile(0.99,rate(cloudforge_http_request_duration_seconds_bucket[5m]))'
+curl -s 'http://prometheus:9090/api/v1/query?query=histogram_quantile(0.99,rate(aegis_http_request_duration_seconds_bucket[5m]))'
 
 # Check by endpoint
-curl -s 'http://prometheus:9090/api/v1/query?query=topk(10,histogram_quantile(0.99,rate(cloudforge_http_request_duration_seconds_bucket[5m]))by(path))'
+curl -s 'http://prometheus:9090/api/v1/query?query=topk(10,histogram_quantile(0.99,rate(aegis_http_request_duration_seconds_bucket[5m]))by(path))'
 
 # Check resource usage
-kubectl top pods -n cloudforge
+kubectl top pods -n aegis
 ```
 
 ### Step 2: CPU Profiling
 
 ```bash
 # Enable CPU profile (30 seconds)
-curl -s http://cloudforge-api:6060/debug/pprof/profile?seconds=30 > cpu.prof
+curl -s http://aegis-api:6060/debug/pprof/profile?seconds=30 > cpu.prof
 
 # Analyze locally
 go tool pprof -http=:8080 cpu.prof
@@ -56,7 +56,7 @@ go tool pprof -http=:8080 cpu.prof
 
 ```bash
 # Capture heap profile
-curl -s http://cloudforge-api:6060/debug/pprof/heap > heap.prof
+curl -s http://aegis-api:6060/debug/pprof/heap > heap.prof
 
 # Analyze
 go tool pprof heap.prof
@@ -74,15 +74,15 @@ go tool pprof heap.prof
 
 ```bash
 # Check slow queries
-kubectl exec -n cloudforge deployment/cloudforge-api -- \
+kubectl exec -n aegis deployment/aegis-api -- \
   psql $DATABASE_URL -c "SELECT query, calls, mean_time, total_time FROM pg_stat_statements ORDER BY mean_time DESC LIMIT 10;"
 
 # Check active connections
-kubectl exec -n cloudforge deployment/cloudforge-api -- \
+kubectl exec -n aegis deployment/aegis-api -- \
   psql $DATABASE_URL -c "SELECT count(*), state FROM pg_stat_activity GROUP BY state;"
 
 # Check table sizes
-kubectl exec -n cloudforge deployment/cloudforge-api -- \
+kubectl exec -n aegis deployment/aegis-api -- \
   psql $DATABASE_URL -c "SELECT relname, pg_size_pretty(pg_total_relation_size(relid)) FROM pg_catalog.pg_statio_user_tables ORDER BY pg_total_relation_size(relid) DESC LIMIT 10;"
 ```
 
@@ -90,10 +90,10 @@ kubectl exec -n cloudforge deployment/cloudforge-api -- \
 
 ```bash
 # Check goroutine count
-curl -s http://cloudforge-api:6060/debug/pprof/goroutine?debug=1 | head -50
+curl -s http://aegis-api:6060/debug/pprof/goroutine?debug=1 | head -50
 
 # Full goroutine dump
-curl -s http://cloudforge-api:6060/debug/pprof/goroutine?debug=2 > goroutines.txt
+curl -s http://aegis-api:6060/debug/pprof/goroutine?debug=2 > goroutines.txt
 ```
 
 **Common goroutine issues**:
@@ -134,7 +134,7 @@ SELECT * FROM pg_locks WHERE NOT granted;
 **Quick fixes**:
 ```bash
 # Increase memory limit (temporary)
-kubectl patch deployment cloudforge-api -n cloudforge \
+kubectl patch deployment aegis-api -n aegis \
   --type='json' \
   -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/memory", "value": "4Gi"}]'
 ```
@@ -152,7 +152,7 @@ kubectl patch deployment cloudforge-api -n cloudforge \
 **Quick fixes**:
 ```bash
 # Scale horizontally
-kubectl scale deployment cloudforge-api -n cloudforge --replicas=5
+kubectl scale deployment aegis-api -n aegis --replicas=5
 ```
 
 **Long-term fixes**:
@@ -168,7 +168,7 @@ kubectl scale deployment cloudforge-api -n cloudforge --replicas=5
 **Quick fixes**:
 ```bash
 # Check and increase pool size
-kubectl edit configmap cloudforge-config -n cloudforge
+kubectl edit configmap aegis-config -n aegis
 # Update: database.max_connections: 100
 ```
 
@@ -210,21 +210,21 @@ kubectl edit configmap cloudforge-config -n cloudforge
 
 ```promql
 # Request rate by endpoint
-sum(rate(cloudforge_http_requests_total[5m])) by (path)
+sum(rate(aegis_http_requests_total[5m])) by (path)
 
 # Latency heatmap
-histogram_quantile(0.5, rate(cloudforge_http_request_duration_seconds_bucket[5m])) by (path)
-histogram_quantile(0.95, rate(cloudforge_http_request_duration_seconds_bucket[5m])) by (path)
-histogram_quantile(0.99, rate(cloudforge_http_request_duration_seconds_bucket[5m])) by (path)
+histogram_quantile(0.5, rate(aegis_http_request_duration_seconds_bucket[5m])) by (path)
+histogram_quantile(0.95, rate(aegis_http_request_duration_seconds_bucket[5m])) by (path)
+histogram_quantile(0.99, rate(aegis_http_request_duration_seconds_bucket[5m])) by (path)
 
 # Error rate
-sum(rate(cloudforge_http_requests_total{status=~"5.."}[5m])) / sum(rate(cloudforge_http_requests_total[5m]))
+sum(rate(aegis_http_requests_total{status=~"5.."}[5m])) / sum(rate(aegis_http_requests_total[5m]))
 
 # Memory usage
-container_memory_usage_bytes{container="cloudforge-api"} / container_spec_memory_limit_bytes{container="cloudforge-api"}
+container_memory_usage_bytes{container="aegis-api"} / container_spec_memory_limit_bytes{container="aegis-api"}
 
 # CPU usage
-rate(container_cpu_usage_seconds_total{container="cloudforge-api"}[5m]) / container_spec_cpu_quota{container="cloudforge-api"} * 100000
+rate(container_cpu_usage_seconds_total{container="aegis-api"}[5m]) / container_spec_cpu_quota{container="aegis-api"} * 100000
 ```
 
 ## Escalation

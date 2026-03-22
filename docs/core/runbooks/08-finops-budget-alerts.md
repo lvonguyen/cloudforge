@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers operating CloudForge's FinOps budget alerting system, including:
+This runbook covers operating Cloud Aegis's FinOps budget alerting system, including:
 - Budget configuration and threshold management
 - Slack and PagerDuty alert channel setup
 - Responding to budget threshold breaches
@@ -11,7 +11,7 @@ This runbook covers operating CloudForge's FinOps budget alerting system, includ
 
 ## Prerequisites
 
-- [ ] CloudForge API token with `finops:manage` scope
+- [ ] Cloud Aegis API token with `finops:manage` scope
 - [ ] Slack workspace with incoming webhook configured
 - [ ] PagerDuty service with Events API v2 integration key
 - [ ] Access to cloud billing consoles (AWS Cost Explorer, Azure Cost Management, GCP Billing)
@@ -33,7 +33,7 @@ The FinOps alerting system consists of:
 ### Create a Budget
 
 ```bash
-curl -s -X POST https://api.cloudforge.io/api/v1/budgets \
+curl -s -X POST https://api.aegis.io/api/v1/budgets \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -56,7 +56,7 @@ curl -s -X POST https://api.cloudforge.io/api/v1/budgets \
 
 ```bash
 # Set Slack webhook URL
-kubectl edit configmap cloudforge-config -n cloudforge
+kubectl edit configmap aegis-config -n aegis
 # Update:
 #   finops:
 #     slack:
@@ -68,7 +68,7 @@ kubectl edit configmap cloudforge-config -n cloudforge
 
 ```bash
 # Set PagerDuty integration key
-kubectl edit configmap cloudforge-config -n cloudforge
+kubectl edit configmap aegis-config -n aegis
 # Update:
 #   finops:
 #     pagerduty:
@@ -86,19 +86,19 @@ No action required. This is an awareness notification.
 
 1. Review current spend by service:
 ```bash
-curl -sf "https://api.cloudforge.io/api/v1/costs/summary?period=mtd&group_by=service" \
+curl -sf "https://api.aegis.io/api/v1/costs/summary?period=mtd&group_by=service" \
   -H "Authorization: Bearer $API_TOKEN" | jq '.services[] | {service, cost, percent_of_budget}'
 ```
 
 2. Identify top cost drivers:
 ```bash
-curl -sf "https://api.cloudforge.io/api/v1/costs/summary?period=mtd&group_by=resource" \
+curl -sf "https://api.aegis.io/api/v1/costs/summary?period=mtd&group_by=resource" \
   -H "Authorization: Bearer $API_TOKEN" | jq '.resources | sort_by(-.cost) | .[0:10]'
 ```
 
 3. Check for cost anomalies:
 ```bash
-curl -sf "https://api.cloudforge.io/api/v1/costs/anomalies?period=7d" \
+curl -sf "https://api.aegis.io/api/v1/costs/anomalies?period=7d" \
   -H "Authorization: Bearer $API_TOKEN" | jq '.anomalies[] | {service, expected, actual, deviation_pct}'
 ```
 
@@ -118,7 +118,7 @@ aws ce get-cost-and-usage \
 
 2. Review and action rightsizing recommendations:
 ```bash
-curl -sf "https://api.cloudforge.io/api/v1/costs/recommendations" \
+curl -sf "https://api.aegis.io/api/v1/costs/recommendations" \
   -H "Authorization: Bearer $API_TOKEN" | jq '.recommendations[] | {resource, current_cost, recommended_cost, savings}'
 ```
 
@@ -137,14 +137,14 @@ When an anomaly is detected:
 
 ```bash
 # 1. Get anomaly details
-curl -sf "https://api.cloudforge.io/api/v1/costs/anomalies/anom-001" \
+curl -sf "https://api.aegis.io/api/v1/costs/anomalies/anom-001" \
   -H "Authorization: Bearer $API_TOKEN" | jq .
 
 # 2. Check if it correlates with a deployment
-kubectl rollout history deployment/cloudforge-api -n cloudforge
+kubectl rollout history deployment/aegis-api -n aegis
 
 # 3. Check if it correlates with a traffic spike
-curl -s 'http://prometheus:9090/api/v1/query?query=sum(rate(cloudforge_http_requests_total[1h]))[7d:1h]'
+curl -s 'http://prometheus:9090/api/v1/query?query=sum(rate(aegis_http_requests_total[1h]))[7d:1h]'
 
 # 4. Check cloud-native anomaly detection
 # AWS
@@ -157,12 +157,12 @@ aws ce get-anomalies \
 
 ```bash
 # Monthly chargeback report (CSV)
-curl -sf "https://api.cloudforge.io/api/v1/costs/chargeback?period=2026-02&format=csv" \
+curl -sf "https://api.aegis.io/api/v1/costs/chargeback?period=2026-02&format=csv" \
   -H "Authorization: Bearer $API_TOKEN" \
   -o chargeback-2026-02.csv
 
 # JSON format for programmatic consumption
-curl -sf "https://api.cloudforge.io/api/v1/costs/chargeback?period=2026-02&format=json" \
+curl -sf "https://api.aegis.io/api/v1/costs/chargeback?period=2026-02&format=json" \
   -H "Authorization: Bearer $API_TOKEN" | jq '.teams[] | {team, total_cost, services}'
 ```
 
@@ -172,14 +172,14 @@ curl -sf "https://api.cloudforge.io/api/v1/costs/chargeback?period=2026-02&forma
 
 ```promql
 # Budget utilization
-cloudforge_finops_budget_utilization_percent by (budget_name)
+aegis_finops_budget_utilization_percent by (budget_name)
 
 # Alert send success/failure rate
-rate(cloudforge_finops_alerts_total{status="sent"}[1h])
-rate(cloudforge_finops_alerts_total{status="failed"}[1h])
+rate(aegis_finops_alerts_total{status="sent"}[1h])
+rate(aegis_finops_alerts_total{status="failed"}[1h])
 
 # Cost data freshness (should be <24h)
-time() - cloudforge_finops_last_sync_timestamp
+time() - aegis_finops_last_sync_timestamp
 ```
 
 ## Escalation

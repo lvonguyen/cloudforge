@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-CloudForge needs to support whitelabel deployment for MSP (Managed Security Provider) customers who resell the platform under their own brand. This requires configurable branding without forking the codebase.
+Cloud Aegis needs to support whitelabel deployment for MSP (Managed Security Provider) customers who resell the platform under their own brand. This requires configurable branding without forking the codebase.
 
 The platform already has:
 - A React 19 SPA deployed to Cloudflare Pages
@@ -35,8 +35,8 @@ All branding values are read from environment variables at build time:
 ```typescript
 // frontend/src/lib/branding.ts
 export const branding = {
-  companyName: import.meta.env.VITE_COMPANY_NAME || 'CloudForge',
-  productName: import.meta.env.VITE_PRODUCT_NAME || 'CloudForge',
+  companyName: import.meta.env.VITE_COMPANY_NAME || 'Cloud Aegis',
+  productName: import.meta.env.VITE_PRODUCT_NAME || 'Cloud Aegis',
   tagline: import.meta.env.VITE_TAGLINE || 'Enterprise Cloud Governance',
   // ...
 }
@@ -44,13 +44,13 @@ export const branding = {
 
 Variables documented in `.env.example`. Each Cloudflare Pages deployment sets its own values.
 
-### Phase 2: Theme Configuration (Planned)
+### Phase 2: Theme Configuration (Done)
 
-CSS custom properties for colors, typography, and spacing. Theme file loaded at build time or runtime via CSS variables.
+CSS custom properties for colors, typography, and spacing. `VITE_BRAND_PRIMARY`, `VITE_BRAND_SECONDARY`, `VITE_BRAND_ACCENT`, and `VITE_THEME` are implemented in `frontend/src/lib/branding.ts` and applied via CSS variable overrides at build time.
 
-### Phase 3: Logo/Asset Pipeline (Planned)
+### Phase 3: Logo/Asset Pipeline (Partial)
 
-Asset directory per tenant. Build pipeline selects correct logo, favicon, and OG images based on environment.
+`VITE_LOGO_PATH` is configurable for logo override. Per-tenant asset directory with automated favicon/OG image selection is not yet built.
 
 ### Phase 4: Runtime Multi-Tenant (Planned)
 

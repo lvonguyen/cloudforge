@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers policy lifecycle operations for CloudForge, including:
+This runbook covers policy lifecycle operations for Cloud Aegis, including:
 - OPA policy lifecycle (create, test, deploy, monitor, retire)
 - Dual-OPA architecture operations (external server + embedded engine)
 - Policy bundle management and hot-reload
@@ -15,26 +15,26 @@ This runbook covers policy lifecycle operations for CloudForge, including:
 
 - [ ] OPA CLI installed (`opa version` >= 0.60.0)
 - [ ] conftest installed (`conftest --version` >= 0.47.0)
-- [ ] kubectl access to the CloudForge cluster
-- [ ] CloudForge API token with `policy:manage` scope
+- [ ] kubectl access to the Cloud Aegis cluster
+- [ ] Cloud Aegis API token with `policy:manage` scope
 - [ ] Access to policy bundle S3 bucket
 
 ## Dual-OPA Architecture
 
-CloudForge runs two OPA instances serving distinct domains:
+Cloud Aegis runs two OPA instances serving distinct domains:
 
 | Instance | Type | Namespace | Purpose |
 |----------|------|-----------|---------|
-| External OPA server | HTTP REST sidecar | `cloudforge.provisioning.*` | Cloud provisioning policy gates |
-| Embedded OPA engine | Go library (`internal/ai-governance/opa/engine.go`) | `cloudforge.ai.*` | AI agent governance |
+| External OPA server | HTTP REST sidecar | `aegis.provisioning.*` | Cloud provisioning policy gates |
+| Embedded OPA engine | Go library (`internal/ai-governance/opa/engine.go`) | `aegis.ai.*` | AI agent governance |
 
 ```bash
 # Check external OPA server status
-kubectl exec -n cloudforge deployment/cloudforge-api -- \
+kubectl exec -n aegis deployment/aegis-api -- \
   curl -sf http://localhost:8181/health | jq .
 
 # Check embedded engine status (via API)
-curl -sf https://api.cloudforge.io/api/v1/policies/health | jq .
+curl -sf https://api.aegis.io/api/v1/policies/health | jq .
 # Expected: {"opa_external": "ok", "opa_embedded": "ok"}
 ```
 
@@ -45,15 +45,15 @@ curl -sf https://api.cloudforge.io/api/v1/policies/health | jq .
 All policies live in `deploy/policies/rego/`. Namespace convention:
 
 ```
-cloudforge.provisioning.<domain>   # External OPA: S3, EC2, IAM, network
-cloudforge.ai.<domain>             # Embedded OPA: agent access, PII, rate limits
+aegis.provisioning.<domain>   # External OPA: S3, EC2, IAM, network
+aegis.ai.<domain>             # Embedded OPA: agent access, PII, rate limits
 ```
 
 **Minimal policy template**:
 
 ```rego
 # deploy/policies/rego/provisioning/s3_encryption.rego
-package cloudforge.provisioning.s3
+package aegis.provisioning.s3
 
 import future.keywords.if
 import future.keywords.in
@@ -86,7 +86,7 @@ opa test deploy/policies/rego/provisioning/s3_encryption_test.rego \
 opa eval \
   --input deploy/policies/test-fixtures/s3-unencrypted.json \
   --data deploy/policies/rego/ \
-  'data.cloudforge.provisioning.s3.deny'
+  'data.aegis.provisioning.s3.deny'
 ```
 
 All tests must pass before deploying. Target: 100% rule coverage.
@@ -102,11 +102,11 @@ opa build deploy/policies/rego/provisioning/ \
 
 # Upload bundle to S3
 aws s3 cp deploy/policies/bundle.tar.gz \
-  s3://cloudforge-policy-bundles/provisioning/latest.tar.gz
+  s3://aegis-policy-bundles/provisioning/latest.tar.gz
 
 # Verify bundle checksum
 aws s3api head-object \
-  --bucket cloudforge-policy-bundles \
+  --bucket aegis-policy-bundles \
   --key provisioning/latest.tar.gz \
   --query 'ETag'
 
@@ -121,13 +121,13 @@ curl -s -X POST http://opa-server:8181/v1/policies/reload \
 # Copy Rego files to the embedded engine policy directory
 cp deploy/policies/rego/ai/* internal/ai-governance/policies/
 
-# Rebuild and redeploy CloudForge API
-docker build -t cloudforge:dev .
-kubectl set image deployment/cloudforge-api \
-  api=cloudforge:dev \
-  -n cloudforge
+# Rebuild and redeploy Cloud Aegis API
+docker build -t aegis:dev .
+kubectl set image deployment/aegis-api \
+  api=aegis:dev \
+  -n aegis
 
-kubectl rollout status deployment/cloudforge-api -n cloudforge
+kubectl rollout status deployment/aegis-api -n aegis
 ```
 
 ### 4. Monitor
@@ -142,7 +142,7 @@ See "Policy Decision Monitoring" section below.
 
 # 2. Confirm zero evaluations in last 30 days
 curl -s 'http://prometheus:9090/api/v1/query?query=
-  sum_over_time(cloudforge_policy_decisions_total{policy="s3_encryption"}[30d])' | jq .
+  sum_over_time(aegis_policy_decisions_total{policy="s3_encryption"}[30d])' | jq .
 
 # 3. Remove policy file and update bundle
 git rm deploy/policies/rego/provisioning/s3_encryption.rego
@@ -161,7 +161,7 @@ git commit -m "chore: retire s3_encryption policy (superseded by s3_security_bas
 opa inspect deploy/policies/bundle.tar.gz
 
 # Load bundle to external OPA server via REST
-curl -s -X PUT http://opa-server:8181/v1/policies/cloudforge-provisioning \
+curl -s -X PUT http://opa-server:8181/v1/policies/aegis-provisioning \
   --data-binary @deploy/policies/bundle.tar.gz \
   -H "Content-Type: application/gzip"
 
@@ -175,11 +175,11 @@ External OPA is configured with bundle polling (60s interval). To force immediat
 
 ```bash
 # Force reload via management API
-curl -s http://opa-server:8181/v1/bundles/cloudforge-provisioning/status | jq .
+curl -s http://opa-server:8181/v1/bundles/aegis-provisioning/status | jq .
 
 # Restart OPA sidecar if reload fails
-kubectl rollout restart deployment/opa-server -n cloudforge
-kubectl rollout status deployment/opa-server -n cloudforge
+kubectl rollout restart deployment/opa-server -n aegis
+kubectl rollout status deployment/opa-server -n aegis
 ```
 
 ### Version Pinning
@@ -189,13 +189,13 @@ To pin to a specific bundle version instead of `latest`:
 ```bash
 # Upload versioned bundle
 aws s3 cp deploy/policies/bundle.tar.gz \
-  s3://cloudforge-policy-bundles/provisioning/v1.2.3.tar.gz
+  s3://aegis-policy-bundles/provisioning/v1.2.3.tar.gz
 
 # Update OPA configuration to point to versioned key
-kubectl edit configmap opa-config -n cloudforge
+kubectl edit configmap opa-config -n aegis
 # Change: bundle.resource = "provisioning/v1.2.3.tar.gz"
 
-kubectl rollout restart deployment/opa-server -n cloudforge
+kubectl rollout restart deployment/opa-server -n aegis
 ```
 
 ## IaC Policy Gate Operations
@@ -218,8 +218,8 @@ terraform show -json tfplan.binary > tfplan.json
 ### Interpreting conftest Results
 
 ```
-FAIL - tfplan.json - cloudforge.provisioning.s3 - S3 bucket my-bucket must have server-side encryption enabled
-PASS - tfplan.json - cloudforge.provisioning.network - ...
+FAIL - tfplan.json - aegis.provisioning.s3 - S3 bucket my-bucket must have server-side encryption enabled
+PASS - tfplan.json - aegis.provisioning.network - ...
 2 tests, 1 passed, 1 failed
 
 Exit code: 1
@@ -251,7 +251,7 @@ Exceptions are tracked in `deploy/policies/exceptions/exceptions.yaml`:
 # deploy/policies/exceptions/exceptions.yaml
 exceptions:
   - id: EXC-001
-    policy: cloudforge.provisioning.s3
+    policy: aegis.provisioning.s3
     rule: deny_no_encryption
     resource: legacy-archive-bucket
     justification: "Pre-2024 bucket, migration scheduled Q2 2026"
@@ -283,7 +283,7 @@ opa test deploy/policies/rego/ --coverage | jq '.files | to_entries[] | {file:.k
 
 # Test a single package
 opa test deploy/policies/rego/provisioning/ \
-  --filter "cloudforge.provisioning.s3" -v
+  --filter "aegis.provisioning.s3" -v
 ```
 
 ### conftest Verify
@@ -292,12 +292,12 @@ opa test deploy/policies/rego/provisioning/ \
 # Verify all policies against bundled test fixtures
 conftest verify \
   --policy deploy/policies/rego/provisioning \
-  --update oci://ghcr.io/cloudforge/policies:latest
+  --update oci://ghcr.io/aegis/policies:latest
 
 # Test against specific input fixture
 conftest test deploy/policies/test-fixtures/s3-unencrypted.json \
   --policy deploy/policies/rego/provisioning \
-  --namespace cloudforge.provisioning.s3
+  --namespace aegis.provisioning.s3
 ```
 
 Expected output: `0 tests failed` before any bundle deployment.
@@ -308,15 +308,15 @@ Expected output: `0 tests failed` before any bundle deployment.
 
 ```promql
 # Total decisions per second by policy
-rate(cloudforge_policy_decisions_total[5m]) by (policy, result)
+rate(aegis_policy_decisions_total[5m]) by (policy, result)
 
 # Deny rate by policy (alert threshold: >5%)
-rate(cloudforge_policy_decisions_total{result="deny"}[5m])
-/ rate(cloudforge_policy_decisions_total[5m])
+rate(aegis_policy_decisions_total{result="deny"}[5m])
+/ rate(aegis_policy_decisions_total[5m])
 > 0.05
 
 # OPA query latency P99 (alert threshold: >100ms)
-histogram_quantile(0.99, rate(cloudforge_opa_query_duration_seconds_bucket[5m]))
+histogram_quantile(0.99, rate(aegis_opa_query_duration_seconds_bucket[5m]))
 ```
 
 ### Decision Logs
@@ -325,10 +325,10 @@ External OPA logs all decisions to stdout; they are shipped to CloudWatch/GCP Lo
 
 ```bash
 # Tail decision logs from OPA sidecar
-kubectl logs -n cloudforge -l app=opa-server -f | jq '{policy:.input.policy, result:.result, resource:.input.resource.id}'
+kubectl logs -n aegis -l app=opa-server -f | jq '{policy:.input.policy, result:.result, resource:.input.resource.id}'
 
 # Count denies by policy in last 1h
-kubectl logs -n cloudforge -l app=opa-server --since=1h | \
+kubectl logs -n aegis -l app=opa-server --since=1h | \
   jq -r 'select(.result.deny != null and (.result.deny | length > 0)) | .input.policy' | \
   sort | uniq -c | sort -rn
 ```
@@ -341,13 +341,13 @@ kubectl logs -n cloudforge -l app=opa-server --since=1h | \
 
 **Diagnosis**:
 ```bash
-kubectl get pods -n cloudforge -l app=opa-server
-kubectl logs -n cloudforge -l app=opa-server --tail=50
+kubectl get pods -n aegis -l app=opa-server
+kubectl logs -n aegis -l app=opa-server --tail=50
 ```
 
 **Resolution**:
-1. Restart OPA sidecar: `kubectl rollout restart deployment/opa-server -n cloudforge`
-2. Verify bundle loaded: `curl -sf http://opa-server:8181/v1/bundles/cloudforge-provisioning/status`
+1. Restart OPA sidecar: `kubectl rollout restart deployment/opa-server -n aegis`
+2. Verify bundle loaded: `curl -sf http://opa-server:8181/v1/bundles/aegis-provisioning/status`
 3. If bundle missing, re-upload from S3 (see Deploy section)
 
 ### Unexpected Deny for Known-Good Resource
@@ -357,12 +357,12 @@ kubectl logs -n cloudforge -l app=opa-server --tail=50
 **Diagnosis**:
 ```bash
 # Trace the decision
-curl -s -X POST http://opa-server:8181/v1/data/cloudforge/provisioning \
+curl -s -X POST http://opa-server:8181/v1/data/aegis/provisioning \
   -H "Content-Type: application/json" \
   -d '{"input": <resource-json>}' | jq .
 
 # Enable explain mode
-curl -s -X POST "http://opa-server:8181/v1/data/cloudforge/provisioning?explain=notes" \
+curl -s -X POST "http://opa-server:8181/v1/data/aegis/provisioning?explain=notes" \
   -H "Content-Type: application/json" \
   -d '{"input": <resource-json>}' | jq .result.explanation
 ```
@@ -379,10 +379,10 @@ curl -s -X POST "http://opa-server:8181/v1/data/cloudforge/provisioning?explain=
 **Diagnosis**:
 ```bash
 # Check embedded engine evaluate endpoint
-curl -s -X POST https://api.cloudforge.io/api/v1/policies/evaluate \
+curl -s -X POST https://api.aegis.io/api/v1/policies/evaluate \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"namespace": "cloudforge.ai.access_control", "input": {"agent_id": "agent-001", "action": "read_secrets"}}' | jq .
+  -d '{"namespace": "aegis.ai.access_control", "input": {"agent_id": "agent-001", "action": "read_secrets"}}' | jq .
 ```
 
 **Resolution**:
@@ -397,7 +397,7 @@ curl -s -X POST https://api.cloudforge.io/api/v1/policies/evaluate \
 **Diagnosis**:
 ```bash
 # Check OPA profiling
-curl -s -X POST "http://opa-server:8181/v1/data/cloudforge/provisioning?instrument=true" \
+curl -s -X POST "http://opa-server:8181/v1/data/aegis/provisioning?instrument=true" \
   -H "Content-Type: application/json" \
   -d '{"input": {}}' | jq .metrics
 ```
@@ -405,7 +405,7 @@ curl -s -X POST "http://opa-server:8181/v1/data/cloudforge/provisioning?instrume
 **Resolution**:
 1. Reduce policy complexity — avoid full-document scans in `deny` rules
 2. Enable OPA partial evaluation for hot paths
-3. Increase OPA replica count if load is the cause: `kubectl scale deployment opa-server --replicas=3 -n cloudforge`
+3. Increase OPA replica count if load is the cause: `kubectl scale deployment opa-server --replicas=3 -n aegis`
 
 ## Escalation
 

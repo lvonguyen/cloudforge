@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers rotating secrets used by CloudForge, including:
+This runbook covers rotating secrets used by Cloud Aegis, including:
 - JWT signing keys
 - Cloud provider credentials (AWS, Azure, GCP)
 - Database connection strings
@@ -13,7 +13,7 @@ This runbook covers rotating secrets used by CloudForge, including:
 ## Prerequisites
 
 - [ ] Access to cloud provider secret stores (AWS Secrets Manager, Azure Key Vault, GCP Secret Manager)
-- [ ] kubectl access to the CloudForge cluster
+- [ ] kubectl access to the Cloud Aegis cluster
 - [ ] Database admin access (for connection string rotation)
 - [ ] 1Password vault access for development secrets
 
@@ -48,13 +48,13 @@ openssl rsa -in new-jwt-private.pem -pubout -out new-jwt-public.pem
 ```bash
 # AWS Secrets Manager
 aws secretsmanager update-secret \
-  --secret-id cloudforge/jwt-signing-key \
+  --secret-id aegis/jwt-signing-key \
   --secret-string "$(cat new-jwt-secret.txt)" \
   --region us-east-1
 
 # Azure Key Vault
 az keyvault secret set \
-  --vault-name cloudforge-kv \
+  --vault-name aegis-kv \
   --name jwt-signing-key \
   --value "$(cat new-jwt-secret.txt)"
 ```
@@ -64,21 +64,21 @@ az keyvault secret set \
 During rotation, both old and new keys must be accepted for a grace period (default: 24h). Update the configmap:
 
 ```bash
-kubectl edit configmap cloudforge-config -n cloudforge
+kubectl edit configmap aegis-config -n aegis
 # Add: jwt.previous_signing_key = <old-key>
 # Update: jwt.signing_key = <new-key>
 
-kubectl rollout restart deployment/cloudforge-api -n cloudforge
-kubectl rollout status deployment/cloudforge-api -n cloudforge
+kubectl rollout restart deployment/aegis-api -n aegis
+kubectl rollout status deployment/aegis-api -n aegis
 ```
 
 ### Step 4: Remove Old Key (after grace period)
 
 ```bash
-kubectl edit configmap cloudforge-config -n cloudforge
+kubectl edit configmap aegis-config -n aegis
 # Remove: jwt.previous_signing_key
 
-kubectl rollout restart deployment/cloudforge-api -n cloudforge
+kubectl rollout restart deployment/aegis-api -n aegis
 ```
 
 ### Step 5: Clean Up
@@ -94,18 +94,18 @@ rm new-jwt-secret.txt new-jwt-private.pem new-jwt-public.pem
 ```bash
 # Enable auto-rotation (90-day cycle)
 aws secretsmanager rotate-secret \
-  --secret-id cloudforge/db-password \
+  --secret-id aegis/db-password \
   --rotation-rules AutomaticallyAfterDays=90
 
 # Manual rotation trigger
 aws secretsmanager rotate-secret \
-  --secret-id cloudforge/db-password
+  --secret-id aegis/db-password
 
 # Verify new password works
 aws secretsmanager get-secret-value \
-  --secret-id cloudforge/db-password \
+  --secret-id aegis/db-password \
   --query 'SecretString' --output text | \
-  psql "postgresql://cloudforge:PASSWORD@cloudforge-db.xxx.rds.amazonaws.com/cloudforge" -c "SELECT 1;"
+  psql "postgresql://aegis:PASSWORD@aegis-db.xxx.rds.amazonaws.com/aegis" -c "SELECT 1;"
 ```
 
 ### Manual Rotation
@@ -115,20 +115,20 @@ aws secretsmanager get-secret-value \
 NEW_PASSWORD=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 32)
 
 # 2. Update database password
-psql $DATABASE_URL -c "ALTER USER cloudforge PASSWORD '$NEW_PASSWORD';"
+psql $DATABASE_URL -c "ALTER USER aegis PASSWORD '$NEW_PASSWORD';"
 
 # 3. Update secret store
 aws secretsmanager update-secret \
-  --secret-id cloudforge/db-password \
+  --secret-id aegis/db-password \
   --secret-string "$NEW_PASSWORD"
 
 # 4. Restart API pods to pick up new credentials
-kubectl rollout restart deployment/cloudforge-api -n cloudforge
-kubectl rollout status deployment/cloudforge-api -n cloudforge
+kubectl rollout restart deployment/aegis-api -n aegis
+kubectl rollout status deployment/aegis-api -n aegis
 
 # 5. Verify connectivity
-kubectl exec -n cloudforge deployment/cloudforge-api -- \
-  ./cloudforge health | grep database
+kubectl exec -n aegis deployment/aegis-api -- \
+  ./aegis health | grep database
 ```
 
 ## AI Provider API Key Rotation
@@ -141,14 +141,14 @@ kubectl exec -n cloudforge deployment/cloudforge-api -- \
 
 # 2. Update secret store
 aws secretsmanager update-secret \
-  --secret-id cloudforge/anthropic-api-key \
+  --secret-id aegis/anthropic-api-key \
   --secret-string "$NEW_ANTHROPIC_KEY"
 
 # 3. Restart API pods
-kubectl rollout restart deployment/cloudforge-api -n cloudforge
+kubectl rollout restart deployment/aegis-api -n aegis
 
 # 4. Verify AI provider health
-curl -sf https://api.cloudforge.io/health | jq '.components.ai_provider'
+curl -sf https://api.aegis.io/health | jq '.components.ai_provider'
 
 # 5. Revoke old key in Anthropic console
 ```
@@ -158,10 +158,10 @@ curl -sf https://api.cloudforge.io/health | jq '.components.ai_provider'
 ```bash
 # Same process, different secret ID
 aws secretsmanager update-secret \
-  --secret-id cloudforge/openai-api-key \
+  --secret-id aegis/openai-api-key \
   --secret-string "$NEW_OPENAI_KEY"
 
-kubectl rollout restart deployment/cloudforge-api -n cloudforge
+kubectl rollout restart deployment/aegis-api -n aegis
 ```
 
 ## Identity Provider Secret Rotation
@@ -174,12 +174,12 @@ kubectl rollout restart deployment/cloudforge-api -n cloudforge
 
 # 2. Update secret
 aws secretsmanager update-secret \
-  --secret-id cloudforge/okta-api-token \
+  --secret-id aegis/okta-api-token \
   --secret-string "$NEW_OKTA_TOKEN"
 
 # 3. Restart and verify
-kubectl rollout restart deployment/cloudforge-api -n cloudforge
-curl -sf https://api.cloudforge.io/health | jq '.components.identity_provider'
+kubectl rollout restart deployment/aegis-api -n aegis
+curl -sf https://api.aegis.io/health | jq '.components.identity_provider'
 
 # 4. Revoke old token in Okta Admin Console
 ```
@@ -188,21 +188,21 @@ curl -sf https://api.cloudforge.io/health | jq '.components.identity_provider'
 
 ```bash
 # 1. Create new client secret in Azure Portal
-# App registrations > CloudForge > Certificates & secrets > New client secret
+# App registrations > Cloud Aegis > Certificates & secrets > New client secret
 
 # 2. Update Key Vault
 az keyvault secret set \
-  --vault-name cloudforge-kv \
+  --vault-name aegis-kv \
   --name entra-client-secret \
   --value "$NEW_ENTRA_SECRET"
 
 # 3. Restart and verify
-kubectl rollout restart deployment/cloudforge-api -n cloudforge
+kubectl rollout restart deployment/aegis-api -n aegis
 ```
 
 ## Development Secrets
 
-Development JWT secrets are stored in 1Password (`cloudforge-dev-jwt-secret` vault item) and referenced in `frontend/.env.development` (gitignored).
+Development JWT secrets are stored in 1Password (`aegis-dev-jwt-secret` vault item) and referenced in `frontend/.env.development` (gitignored).
 
 ```bash
 # Rotate dev JWT secret
@@ -220,14 +220,14 @@ After any secret rotation:
 
 ```bash
 # 1. Health check
-curl -sf https://api.cloudforge.io/health | jq .
+curl -sf https://api.aegis.io/health | jq .
 
 # 2. Verify no auth errors in logs (wait 5 minutes)
-kubectl logs -n cloudforge -l app=cloudforge-api --since=5m | \
+kubectl logs -n aegis -l app=aegis-api --since=5m | \
   grep -i "auth.*error\|unauthorized\|forbidden" | head -20
 
 # 3. Run smoke test
-curl -sf https://api.cloudforge.io/api/v1/findings \
+curl -sf https://api.aegis.io/api/v1/findings \
   -H "Authorization: Bearer $API_TOKEN" | jq '.total'
 ```
 

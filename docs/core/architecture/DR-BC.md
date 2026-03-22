@@ -175,10 +175,10 @@ Edge OPA Sidecar:
 ```
 AWS Primary (us-west-2)
 ├── EKS Cluster (3 nodes, 3 AZ)
-│   ├── cloudforge-api (3 replicas)
-│   ├── cloudforge-opa (2 replicas)
+│   ├── aegis-api (3 replicas)
+│   ├── aegis-opa (2 replicas)
 │   ├── temporal-server (2 replicas)
-│   └── cloudforge-worker (2 replicas)
+│   └── aegis-worker (2 replicas)
 ├── RDS PostgreSQL (Multi-AZ, r6g.large)
 ├── ElastiCache Redis (cluster mode)
 ├── S3 (versioned, cross-region replication ON)
@@ -199,10 +199,10 @@ AWS DR (us-east-1)
 ```
 Azure Primary (West US 2)
 ├── AKS Cluster (3 nodes, 3 AZ)
-│   ├── cloudforge-api (3 replicas)
-│   ├── cloudforge-opa (2 replicas)
+│   ├── aegis-api (3 replicas)
+│   ├── aegis-opa (2 replicas)
 │   ├── temporal-server (2 replicas)
-│   └── cloudforge-worker (2 replicas)
+│   └── aegis-worker (2 replicas)
 ├── Azure SQL (Geo-Replicated, Business Critical)
 ├── Azure Cache for Redis (zone-redundant)
 ├── Blob Storage (GRS — geo-redundant)
@@ -223,10 +223,10 @@ Azure DR (East US)
 ```
 GCP Primary (us-west1)
 ├── GKE Cluster (3 nodes, multi-zone)
-│   ├── cloudforge-api (3 replicas)
-│   ├── cloudforge-opa (2 replicas)
+│   ├── aegis-api (3 replicas)
+│   ├── aegis-opa (2 replicas)
 │   ├── temporal-server (2 replicas)
-│   └── cloudforge-worker (2 replicas)
+│   └── aegis-worker (2 replicas)
 ├── Cloud SQL (Regional HA, postgres 15)
 ├── Memorystore Redis (HA)
 ├── GCS (dual-region: NAM4)
@@ -259,13 +259,13 @@ GCP DR (us-east1)
 
 ```
 Step 1: Verify Azure DR database lag < 60s
-        (monitor via cloudforge_replication_lag_seconds metric)
+        (monitor via aegis_replication_lag_seconds metric)
 
 Step 2: Scale up AKS cluster in Azure DR region
-        kubectl scale deploy --replicas=3 -n cloudforge (all deployments)
+        kubectl scale deploy --replicas=3 -n aegis (all deployments)
 
 Step 3: Promote Azure SQL secondary to primary
-        az sql failover-group set-primary --name cloudforge-fg \
+        az sql failover-group set-primary --name aegis-fg \
           --resource-group $RG --server $AZURE_DR_SERVER
 
 Step 4: Restore OPA bundle from Azure Blob
@@ -279,7 +279,7 @@ Step 6: Migrate DNS — Route 53 CNAME → Azure Traffic Manager FQDN
 
 Step 7: Smoke test via synthetic monitor (Checkly / CloudWatch Synthetics)
 
-Step 8: Notify customers via status page (status.cloudforge.io)
+Step 8: Notify customers via status page (status.aegis.io)
 ```
 
 **Data Sync Mechanisms:**
@@ -293,7 +293,7 @@ Step 8: Notify customers via status page (status.cloudforge.io)
 ```
 Step 1: Verify GCP Cloud SQL replica lag < 60s
 Step 2: Scale GKE cluster to target replica counts
-Step 3: Promote Cloud SQL replica: gcloud sql instances promote-replica cloudforge-dr
+Step 3: Promote Cloud SQL replica: gcloud sql instances promote-replica aegis-dr
 Step 4: Sync Blob → GCS via rclone (delta sync)
 Step 5: Restore secrets to GCP Secret Manager
 Step 6: Update DNS: Traffic Manager profile → Cloud DNS managed zone
@@ -588,7 +588,7 @@ Each audit log entry contains:
   }
 
 Hash chain verification:
-  cloudforge-audit verify --tenant $TENANT_ID --from $START --to $END
+  aegis-audit verify --tenant $TENANT_ID --from $START --to $END
   Exit 0 = chain intact. Exit 1 = tamper detected (triggers P1 incident).
 ```
 
@@ -685,7 +685,7 @@ AWS GovCloud (us-gov-east-1) — DR
 **Prometheus Alert Rules (abbreviated):**
 ```yaml
 groups:
-  - name: cloudforge-sla
+  - name: aegis-sla
     rules:
       - alert: APILatencyP99High
         expr: histogram_quantile(0.99, http_request_duration_seconds_bucket) > 1
@@ -693,7 +693,7 @@ groups:
         labels:
           severity: warning
       - alert: APIAvailabilityLow
-        expr: avg_over_time(up{job="cloudforge-api"}[5m]) < 0.995
+        expr: avg_over_time(up{job="aegis-api"}[5m]) < 0.995
         for: 2m
         labels:
           severity: critical
@@ -703,7 +703,7 @@ groups:
         labels:
           severity: warning
       - alert: FindingIngestionStale
-        expr: time() - cloudforge_last_finding_ingested_timestamp > 1800
+        expr: time() - aegis_last_finding_ingested_timestamp > 1800
         for: 1m
         labels:
           severity: critical
@@ -742,8 +742,8 @@ groups:
 ```bash
 # AWS RDS PITR
 aws rds restore-db-instance-to-point-in-time \
-  --source-db-instance-identifier cloudforge-primary \
-  --target-db-instance-identifier cloudforge-restore-$(date +%Y%m%d%H%M) \
+  --source-db-instance-identifier aegis-primary \
+  --target-db-instance-identifier aegis-restore-$(date +%Y%m%d%H%M) \
   --restore-time "2026-02-27T14:30:00Z" \
   --db-instance-class db.r6g.large \
   --no-multi-az \
@@ -751,7 +751,7 @@ aws rds restore-db-instance-to-point-in-time \
 
 # Wait for available status
 aws rds wait db-instance-available \
-  --db-instance-identifier cloudforge-restore-$(date +%Y%m%d%H%M)
+  --db-instance-identifier aegis-restore-$(date +%Y%m%d%H%M)
 
 # Verify row counts post-restore
 psql $RESTORE_DSN -c "
@@ -770,7 +770,7 @@ psql $RESTORE_DSN -c "
 - [ ] All foreign key constraints valid (`pg_constraint` check)
 - [ ] pgaudit logging active on restored instance
 - [ ] Connection pooler (PgBouncer) updated to point to restored instance
-- [ ] Application connection test: `cloudforge-api health --check-db`
+- [ ] Application connection test: `aegis-api health --check-db`
 
 ### 2. Redis Cache Warming Strategy
 
@@ -784,12 +784,12 @@ redis-cli -h $REDIS_HOST ping
 
 # Step 2: Pre-warm policy decision cache (most critical for latency)
 # Run the policy warm-up job; reads top-N tenants from DB and pre-evaluates
-kubectl -n cloudforge exec deploy/cloudforge-worker -- \
-  cloudforge-cli cache warm-policies --top-tenants 100
+kubectl -n aegis exec deploy/aegis-worker -- \
+  aegis-cli cache warm-policies --top-tenants 100
 
 # Step 3: Pre-warm tenant config cache
-kubectl -n cloudforge exec deploy/cloudforge-worker -- \
-  cloudforge-cli cache warm-tenants
+kubectl -n aegis exec deploy/aegis-worker -- \
+  aegis-cli cache warm-tenants
 
 # Step 4: Monitor cache hit rate
 redis-cli -h $REDIS_HOST info stats | grep keyspace_hits
@@ -808,56 +808,56 @@ distributed via signed bundle archives. Restore is a pull from Git, not a backup
 
 ```bash
 # Step 1: Verify Git remote is reachable
-git -C /opt/cloudforge/policies ls-remote origin
+git -C /opt/aegis/policies ls-remote origin
 
 # Step 2: Pull latest policy bundle
-git -C /opt/cloudforge/policies fetch --all
-git -C /opt/cloudforge/policies checkout origin/main -- .
+git -C /opt/aegis/policies fetch --all
+git -C /opt/aegis/policies checkout origin/main -- .
 
 # Step 3: Build and sign bundle
-opa build -b /opt/cloudforge/policies -o bundle.tar.gz
-openssl dgst -sha256 -sign /etc/cloudforge/bundle-signing-key.pem \
+opa build -b /opt/aegis/policies -o bundle.tar.gz
+openssl dgst -sha256 -sign /etc/aegis/bundle-signing-key.pem \
   bundle.tar.gz > bundle.tar.gz.sig
 
 # Step 4: Upload to bundle distribution endpoint
-aws s3 cp bundle.tar.gz s3://$OPA_BUNDLE_BUCKET/cloudforge/bundle.tar.gz
-aws s3 cp bundle.tar.gz.sig s3://$OPA_BUNDLE_BUCKET/cloudforge/bundle.tar.gz.sig
+aws s3 cp bundle.tar.gz s3://$OPA_BUNDLE_BUCKET/aegis/bundle.tar.gz
+aws s3 cp bundle.tar.gz.sig s3://$OPA_BUNDLE_BUCKET/aegis/bundle.tar.gz.sig
 
 # Step 5: Force immediate poll on all OPA sidecars
-kubectl -n cloudforge rollout restart deploy/cloudforge-opa
+kubectl -n aegis rollout restart deploy/aegis-opa
 
 # Step 6: Verify bundle loaded
-kubectl -n cloudforge exec deploy/cloudforge-opa -- \
-  curl -s http://localhost:8181/v1/data/cloudforge | jq '.result | keys'
+kubectl -n aegis exec deploy/aegis-opa -- \
+  curl -s http://localhost:8181/v1/data/aegis | jq '.result | keys'
 ```
 
 **Verification Checklist — OPA:**
 - [ ] Bundle SHA matches Git HEAD: `opa inspect bundle.tar.gz | grep revision`
-- [ ] All expected policy namespaces present in `GET /v1/data/cloudforge`
-- [ ] Policy decision test: `opa eval -d bundle.tar.gz 'data.cloudforge.aws.s3.deny'`
+- [ ] All expected policy namespaces present in `GET /v1/data/aegis`
+- [ ] Policy decision test: `opa eval -d bundle.tar.gz 'data.aegis.aws.s3.deny'`
 - [ ] Decision log shipping to Kafka: `kafka-console-consumer --topic opa-decisions`
 
 ### 4. Kubernetes State Restore (Velero)
 
 ```bash
 # Step 1: List available backups
-velero backup get --namespace velero | grep cloudforge
+velero backup get --namespace velero | grep aegis
 
 # Step 2: Restore latest successful backup
 BACKUP_NAME=$(velero backup get --namespace velero -o json | \
   jq -r '.items | map(select(.status.phase=="Completed")) |
          sort_by(.metadata.creationTimestamp) | last | .metadata.name')
 
-velero restore create cloudforge-restore-$(date +%Y%m%d%H%M) \
+velero restore create aegis-restore-$(date +%Y%m%d%H%M) \
   --from-backup $BACKUP_NAME \
-  --namespace-mappings cloudforge:cloudforge \
+  --namespace-mappings aegis:aegis \
   --wait
 
 # Step 3: Verify restore status
-velero restore describe cloudforge-restore-* | grep -E "Phase|Errors|Warnings"
+velero restore describe aegis-restore-* | grep -E "Phase|Errors|Warnings"
 
 # Step 4: Check all pods are running
-kubectl -n cloudforge get pods --watch
+kubectl -n aegis get pods --watch
 # Wait for all pods: Running, 0 restarts
 ```
 
@@ -866,13 +866,13 @@ kubectl -n cloudforge get pods --watch
 apiVersion: velero.io/v1
 kind: Schedule
 metadata:
-  name: cloudforge-hourly
+  name: aegis-hourly
   namespace: velero
 spec:
   schedule: "0 */4 * * *"
   template:
     includedNamespaces:
-      - cloudforge
+      - aegis
     storageLocation: default
     ttl: 168h0m0s   # 7 days
     snapshotVolumes: true
@@ -898,20 +898,20 @@ spec:
 tctl --address $TEMPORAL_ADDR cluster health
 
 # Step 3: Check open workflows
-tctl --namespace cloudforge workflow list --status open | head -20
+tctl --namespace aegis workflow list --status open | head -20
 
 # Step 4: Identify workflows stuck due to worker unavailability
-tctl --namespace cloudforge workflow list \
+tctl --namespace aegis workflow list \
   --status open --query "WorkflowType='RemediationWorkflow'" | wc -l
 
 # Step 5: Resume stuck workflows (workers reconnect automatically once running)
 # Workflows paused during outage will resume from last checkpoint on worker restart
-kubectl -n cloudforge rollout restart deploy/cloudforge-worker
+kubectl -n aegis rollout restart deploy/aegis-worker
 
 # Step 6: Verify workflow progress
-tctl --namespace cloudforge workflow list --status running | \
+tctl --namespace aegis workflow list --status running | \
   awk '{print $1}' | head -5 | while read wf_id; do
-    tctl --namespace cloudforge workflow show --workflow_id $wf_id | tail -5
+    tctl --namespace aegis workflow show --workflow_id $wf_id | tail -5
   done
 ```
 
@@ -935,22 +935,22 @@ After any DR event, all secrets are considered potentially compromised and must 
 
 # Step 1: Rotate DB password
 aws secretsmanager rotate-secret \
-  --secret-id cloudforge/postgresql/password \
+  --secret-id aegis/postgresql/password \
   --rotation-lambda-arn $ROTATION_LAMBDA_ARN
 
 # Step 2: Rotate AI provider key (Anthropic API key)
 # Generate new key in Anthropic console, then:
 aws secretsmanager put-secret-value \
-  --secret-id cloudforge/ai/anthropic-api-key \
+  --secret-id aegis/ai/anthropic-api-key \
   --secret-string "$NEW_ANTHROPIC_KEY"
 
 # Step 3: Restart services to pick up new secrets (if using static secret mounts)
-kubectl -n cloudforge rollout restart deploy/cloudforge-api
-kubectl -n cloudforge rollout restart deploy/cloudforge-worker
+kubectl -n aegis rollout restart deploy/aegis-api
+kubectl -n aegis rollout restart deploy/aegis-worker
 
 # Step 4: Verify new secrets are active
-kubectl -n cloudforge exec deploy/cloudforge-api -- \
-  cloudforge-cli auth test --all-providers
+kubectl -n aegis exec deploy/aegis-api -- \
+  aegis-cli auth test --all-providers
 ```
 
 **Verification Checklist — Secrets:**
@@ -973,7 +973,7 @@ aws route53 change-resource-record-sets \
     "Changes": [{
       "Action": "UPSERT",
       "ResourceRecordSet": {
-        "Name": "api.cloudforge.io",
+        "Name": "api.aegis.io",
         "Type": "CNAME",
         "TTL": 30,
         "ResourceRecords": [{"Value": "'$DR_LOAD_BALANCER_DNS'"}]
@@ -983,8 +983,8 @@ aws route53 change-resource-record-sets \
 
 # Verify propagation (wait up to 60s)
 for i in {1..12}; do
-  RESOLVED=$(dig +short api.cloudforge.io)
-  echo "[$i] api.cloudforge.io -> $RESOLVED"
+  RESOLVED=$(dig +short api.aegis.io)
+  echo "[$i] api.aegis.io -> $RESOLVED"
   [ "$RESOLVED" = "$DR_LOAD_BALANCER_DNS" ] && echo "Propagated" && break
   sleep 5
 done
@@ -994,7 +994,7 @@ done
 
 **Verification Checklist — DNS:**
 - [ ] DNS resolves to DR endpoint from 3+ geographic locations (use `dig` from different regions)
-- [ ] TLS certificate valid for DR endpoint (`openssl s_client -connect api.cloudforge.io:443`)
+- [ ] TLS certificate valid for DR endpoint (`openssl s_client -connect api.aegis.io:443`)
 - [ ] Synthetic monitor passes from DR endpoint (Checkly check green)
 - [ ] CDN cache purged and serving from DR origin
 
@@ -1097,7 +1097,7 @@ done
 
 ### Data Lifecycle Automation
 
-**AWS S3 Lifecycle Policy (applied to `cloudforge-findings-{tenant}` buckets):**
+**AWS S3 Lifecycle Policy (applied to `aegis-findings-{tenant}` buckets):**
 
 ```json
 {
