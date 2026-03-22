@@ -9,6 +9,10 @@ import (
 	"go.uber.org/zap"
 )
 
+// providerTimeout caps each threat intel provider call block to prevent
+// one slow upstream from consuming the entire request budget.
+const providerTimeout = 10 * time.Second
+
 // ThreatIntelEnrichment holds aggregated threat intelligence data for a finding.
 type ThreatIntelEnrichment struct {
 	EPSSScore       float64   `json:"epss_score"`
@@ -123,54 +127,91 @@ func (e *Enricher) enrichGreyNoise(ctx context.Context, ips []string, result *Th
 	if e.greynoise == nil || len(ips) == 0 {
 		return
 	}
+	ctx, cancel := context.WithTimeout(ctx, providerTimeout)
+	defer cancel()
 	ctx, span := otel.Tracer("aegis.threatintel").Start(ctx, "threatintel.greynoise")
 	defer span.End()
 	span.SetAttributes(
 		attribute.String("feed", "greynoise"),
 		attribute.Int("input.ip_count", len(ips)),
 	)
-	gnResult, err := e.greynoise.ClassifyIP(ctx, ips[0])
-	if err != nil {
-		e.logger.Warn("GreyNoise lookup failed", zap.String("ip", ips[0]), zap.Error(err))
-		return
+	classRank := map[string]int{"malicious": 3, "suspicious": 2, "benign": 1, "unknown": 0}
+	bestRank := -1
+	limit := len(ips)
+	if limit > 5 {
+		limit = 5
 	}
-	result.GreyNoiseClass = gnResult.Classification
-	result.GreyNoiseNoise = gnResult.Noise
+	for _, ip := range ips[:limit] {
+		gnResult, err := e.greynoise.ClassifyIP(ctx, ip)
+		if err != nil {
+			e.logger.Warn("GreyNoise lookup failed", zap.String("ip", ip), zap.Error(err))
+			continue
+		}
+		rank, known := classRank[gnResult.Classification]
+		if !known {
+			e.logger.Warn("unrecognized GreyNoise classification",
+				zap.String("classification", gnResult.Classification), zap.String("ip", ip))
+			continue
+		}
+		if rank > bestRank {
+			bestRank = rank
+			result.GreyNoiseClass = gnResult.Classification
+			result.GreyNoiseNoise = gnResult.Noise
+		}
+	}
 }
 
 func (e *Enricher) enrichHIBP(ctx context.Context, emails []string, result *ThreatIntelEnrichment) {
 	if e.hibp == nil || len(emails) == 0 {
 		return
 	}
+	ctx, cancel := context.WithTimeout(ctx, providerTimeout)
+	defer cancel()
 	ctx, span := otel.Tracer("aegis.threatintel").Start(ctx, "threatintel.hibp")
 	defer span.End()
 	span.SetAttributes(
 		attribute.String("feed", "hibp"),
 		attribute.Int("input.email_count", len(emails)),
 	)
-	count, err := e.hibp.GetBreachCount(ctx, emails[0])
-	if err != nil {
-		e.logger.Warn("HIBP lookup failed", zap.String("email", emails[0]), zap.Error(err))
-		return
+	limit := len(emails)
+	if limit > 5 {
+		limit = 5
 	}
-	result.HIBPBreachCount = count
+	for _, email := range emails[:limit] {
+		count, err := e.hibp.GetBreachCount(ctx, email)
+		if err != nil {
+			e.logger.Warn("HIBP lookup failed", zap.String("email", email), zap.Error(err))
+			continue
+		}
+		result.HIBPBreachCount += count
+	}
 }
 
 func (e *Enricher) enrichOTX(ctx context.Context, ips []string, result *ThreatIntelEnrichment) {
 	if e.otx == nil || len(ips) == 0 {
 		return
 	}
+	ctx, cancel := context.WithTimeout(ctx, providerTimeout)
+	defer cancel()
 	ctx, span := otel.Tracer("aegis.threatintel").Start(ctx, "threatintel.otx")
 	defer span.End()
 	span.SetAttributes(
 		attribute.String("feed", "otx"),
 		attribute.Int("input.ip_count", len(ips)),
 	)
-	indicator, err := e.otx.GetIndicator(ctx, OTXTypeIPv4, ips[0])
-	if err != nil {
-		e.logger.Warn("OTX lookup failed", zap.String("ip", ips[0]), zap.Error(err))
-		return
+	limit := len(ips)
+	if limit > 5 {
+		limit = 5
 	}
-	result.OTXPulseCount = indicator.PulseCount
-	result.OTXTags = indicator.Tags
+	for _, ip := range ips[:limit] {
+		indicator, err := e.otx.GetIndicator(ctx, OTXTypeIPv4, ip)
+		if err != nil {
+			e.logger.Warn("OTX lookup failed", zap.String("ip", ip), zap.Error(err))
+			continue
+		}
+		if indicator.PulseCount > result.OTXPulseCount {
+			result.OTXPulseCount = indicator.PulseCount
+			result.OTXTags = indicator.Tags
+		}
+	}
 }

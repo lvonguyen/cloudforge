@@ -1,10 +1,10 @@
 %% dual-opa-architecture.mmd
-%% CloudForge operates two OPA integration paths:
+%% Cloud Aegis operates two OPA integration paths:
 %%   LEFT  — HTTP REST path: policy.Evaluator sends JSON to an external OPA server
-%%            over HTTP POST /v1/data/cloudforge/provisioning|exception (30 s timeout).
+%%            over HTTP POST /v1/data/aegis/provisioning|exception (30 s timeout).
 %%            Governs cloud resource provisioning and policy exceptions.
 %%   RIGHT — Embedded path: ai-governance/opa.Engine runs OPA in-process via the
-%%            OPA Go SDK (no network hop). Evaluates Rego namespace cloudforge.ai.*
+%%            OPA Go SDK (no network hop). Evaluates Rego namespace aegis.ai.*
 %%            for AI agent tool-access and data-flow controls.
 %%   BOTTOM — Both paths load policies from the shared Rego bundle.
 %%
@@ -16,7 +16,7 @@ flowchart LR
         direction TB
         CP["Cloud Provisioning\nRequest\n(PolicyInput)"]
         EVL["policy.Evaluator\ninternal/policy/evaluator.go\nHTTP client · 30 s timeout"]
-        OPA_SRV["OPA Server\nPOST /v1/data/cloudforge/\nprovisioning · exception"]
+        OPA_SRV["OPA Server\nPOST /v1/data/aegis/\nprovisioning · exception"]
         PD["Policy Decision\nPolicyResult\nallow · deny · warn"]
         TF["Terraform / Cloud APIs\nAWS · Azure · GCP\nResource provisioned or blocked"]
     end
@@ -26,7 +26,7 @@ flowchart LR
         direction TB
         AR["AI Agent Request\n(EvaluationInput)\nagent · tool · data · request"]
         ENG["ai-governance/opa.Engine\ninternal/ai-governance/opa/engine.go\nOPA Go SDK · PreparedEvalQuery · sync.RWMutex"]
-        INPROC["In-Process Evaluation\ndata.cloudforge.ai.*\ntool_access · data_flow\nno network hop"]
+        INPROC["In-Process Evaluation\ndata.aegis.ai.*\ntool_access · data_flow\nno network hop"]
         DEC["Agent Decision\nDecision\nallow · reasons · violations · eval_time_us"]
         REG["Agent Registry\nallow tool / block tool\nredact PII · rate-limit\nenforce data-flow policy"]
     end
@@ -34,13 +34,13 @@ flowchart LR
     %% ── Shared Policy Store (Green) ──────────────────────────────────────────
     subgraph STORE["Shared Rego Policy Bundle"]
         direction LR
-        PROV_POL["cloudforge.provisioning\ncloudforge.exception\n(cloud resource rules)"]
-        AI_POL["cloudforge.ai.tool_access\ncloudforge.ai.data_flow\n(agent security rules)"]
+        PROV_POL["aegis.provisioning\naegis.exception\n(cloud resource rules)"]
+        AI_POL["aegis.ai.tool_access\naegis.ai.data_flow\n(agent security rules)"]
     end
 
     %% ── Provisioning flow ────────────────────────────────────────────────────
     CP  -->|"POST JSON\napplication · resource · region\ntags · requested_by"| EVL
-    EVL -->|"HTTP POST\n/v1/data/cloudforge/provisioning"| OPA_SRV
+    EVL -->|"HTTP POST\n/v1/data/aegis/provisioning"| OPA_SRV
     OPA_SRV -->|"OPAResponse\nallow · deny[] · warn[]"| PD
     PD  -->|"allowed=true\nproceed"| TF
 

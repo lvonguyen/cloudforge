@@ -29,11 +29,16 @@ type graphQueryResponse struct {
 const maxGraphQueryLen = 4096
 
 // graphMutationPattern rejects Gremlin/Cypher mutation keywords.
-var graphMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|drop|property\s*\(|CREATE\b|MERGE\b|DELETE\b|DETACH\b|SET\b|REMOVE\b)`)
+var graphMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|drop|property\s*\(|CREATE\b|MERGE\b|DELETE\b|DETACH\b|SET\b|REMOVE\b|CALL\b)`)
+
+// graphCommentPattern strips Cypher block comments and single-line comments
+// to prevent bypass via CR/**/EATE or similar comment injection.
+var graphCommentPattern = regexp.MustCompile(`/\*[\s\S]*?\*/|//[^\n]*|--[^\n]*`)
 
 // handleGraphQuery proxies graph queries to PuppyGraph.
 // Feature-flagged: returns 501 when PUPPYGRAPH_URL is not configured.
-// Read-only: mutation keywords are rejected.
+// Read-only: mutation keywords are rejected after comment stripping.
+// Defense-in-depth: configure PuppyGraph with a read-only database role.
 func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.handleGraphQuery")
 	defer span.End()
@@ -69,8 +74,10 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Block mutation keywords — read-only proxy.
-	if graphMutationPattern.MatchString(strings.TrimSpace(req.Query)) {
+	// Block mutation keywords — strip comments first to prevent bypass via
+	// comment injection (e.g., CR/**/EATE).
+	normalizedQuery := graphCommentPattern.ReplaceAllString(strings.TrimSpace(req.Query), "")
+	if graphMutationPattern.MatchString(normalizedQuery) {
 		writeErrorResponse(w, "mutation queries are not permitted (read-only)", http.StatusForbidden)
 		return
 	}
@@ -82,7 +89,7 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 
 	result, err := s.graphClient.Query(r.Context(), graph.QueryRequest{
 		Language: req.Language,
-		Query:    req.Query,
+		Query:    normalizedQuery,
 	})
 	if err != nil {
 		s.logger.Warn("graph query failed",

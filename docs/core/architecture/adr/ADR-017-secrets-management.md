@@ -54,7 +54,7 @@ type SecretsProvider interface {
 ### Encryption at Rest
 
 Rollback state uses AES-256-GCM with:
-- Key sourced from `AEGIS_ROLLBACK_KEY` environment variable (32 bytes, hex-encoded)
+- Key sourced from `AEGIS_STATE_ENCRYPTION_KEY` environment variable (32 bytes, hex-encoded)
 - Random 12-byte nonce per encryption operation (never reused)
 - Authenticated encryption prevents both tampering and information leakage
 - Implements STRIDE threat T-02 (rollback state confidentiality)

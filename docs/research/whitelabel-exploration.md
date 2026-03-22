@@ -1,4 +1,4 @@
-# Whitelabel Exploration — CloudForge Platform
+# Whitelabel Exploration — Cloud Aegis Platform
 
 > Design document for multi-tenant branding and white-label deployment support.
 

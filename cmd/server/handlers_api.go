@@ -505,6 +505,7 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 				zap.String("finding_id", id),
 				zap.Strings("reasons", decision.Reasons),
 			)
+			s.logAuditEvent(r, "finding.enrich", "finding", id, "denied")
 			writeErrorResponse(w, "policy denied: AI enrichment not permitted", http.StatusForbidden)
 			return
 		}
@@ -517,6 +518,15 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Enforce ABAC scope — same check as getFinding
+	claims, _ := api.GetClaimsFromContext(r.Context())
+	scope := api.ScopeFromContext(claims)
+	if err := api.EnforceScope(scope, finding); err != nil {
+		api.LogScopeDenial(s.logger, claims.Subject, finding.ID, finding.AccountID, finding.Region, err.Error())
+		writeErrorResponse(w, "forbidden: resource outside authorized scope", http.StatusForbidden)
+		return
+	}
+
 	// Delegate to EnrichmentService (handles cache + AI call)
 	enrichment, err := s.enrichmentSvc.Enrich(ctx, finding)
 	if err != nil {
@@ -525,6 +535,7 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s.logAuditEvent(r, "finding.enrich", "finding", id, "success")
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(enrichment)
 }

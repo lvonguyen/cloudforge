@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-Cloud Aegis currently implements role-based access control (RBAC) with three roles: `admin`, `operator`, and `requester`. This model works for small teams (5-10 users) but breaks down at enterprise scale (100+ operators across multiple business units).
+Cloud Aegis implements role-based access control (RBAC) with four roles: `admin`, `operator`, `requester`, and `viewer`. This model works for small teams (5-10 users) but breaks down at enterprise scale (100+ operators across multiple business units).
 
 ### Current RBAC Model
 
@@ -19,6 +19,7 @@ Cloud Aegis currently implements role-based access control (RBAC) with three rol
 | `admin` | Full access: manage users, execute all tiers of remediation, view all findings |
 | `operator` | Execute T1-T2 remediation, view findings, cannot manage users |
 | `requester` | View findings, request remediation, cannot execute |
+| `viewer` | Read-only access to findings and dashboards (least-privilege default) |
 
 ### Problem Statement
 

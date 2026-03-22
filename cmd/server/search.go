@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -340,18 +341,10 @@ type scoredID struct {
 	score float64
 }
 
-// sortByScoreDesc sorts scored IDs by descending score using insertion sort
-// (efficient for mostly-sorted slices from cosine similarity).
 func sortByScoreDesc(items []scoredID) {
-	for i := 1; i < len(items); i++ {
-		key := items[i]
-		j := i - 1
-		for j >= 0 && items[j].score < key.score {
-			items[j+1] = items[j]
-			j--
-		}
-		items[j+1] = key
-	}
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].score > items[j].score
+	})
 }
 
 // rrfFuse merges two ranked lists using Reciprocal Rank Fusion.
@@ -389,16 +382,9 @@ func rrfFuse(bm25, semantic []ScoredFinding, k int) []ScoredFinding {
 		results = append(results, e.finding)
 	}
 
-	// Sort descending by fused score.
-	for i := 1; i < len(results); i++ {
-		key := results[i]
-		j := i - 1
-		for j >= 0 && results[j].Score < key.Score {
-			results[j+1] = results[j]
-			j--
-		}
-		results[j+1] = key
-	}
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Score > results[j].Score
+	})
 
 	return results
 }

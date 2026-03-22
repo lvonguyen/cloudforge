@@ -42,48 +42,8 @@ type MockData struct {
 // loadMockData loads all mock JSON files from the frontend mock directory.
 // basePath should be the project root (where frontend/ lives).
 func loadMockData(basePath string) (*MockData, error) {
-	mockDir := filepath.Join(basePath, "frontend", "src", "lib", "mock")
-	publicMockDir := filepath.Join(basePath, "frontend", "public", "mock")
-
-	data := &MockData{}
-
-	if err := loadJSON(filepath.Join(publicMockDir, "findings.json"), &data.Findings); err != nil {
-		return nil, fmt.Errorf("loading findings: %w", err)
-	}
-	if err := loadJSON(filepath.Join(mockDir, "agents.json"), &data.Agents); err != nil {
-		return nil, fmt.Errorf("loading agents: %w", err)
-	}
-	if err := loadJSON(filepath.Join(mockDir, "traces.json"), &data.Traces); err != nil {
-		return nil, fmt.Errorf("loading traces: %w", err)
-	}
-	if err := loadJSON(filepath.Join(mockDir, "frameworks.json"), &data.Frameworks); err != nil {
-		return nil, fmt.Errorf("loading frameworks: %w", err)
-	}
-	if err := loadJSON(filepath.Join(mockDir, "costs.json"), &data.Costs); err != nil {
-		return nil, fmt.Errorf("loading costs: %w", err)
-	}
-	if err := loadJSON(filepath.Join(mockDir, "remediations.json"), &data.Remediations); err != nil {
-		return nil, fmt.Errorf("loading remediations: %w", err)
-	}
-	if err := loadJSON(filepath.Join(mockDir, "audit-log.json"), &data.AuditEvents); err != nil {
-		return nil, fmt.Errorf("loading audit log: %w", err)
-	}
-	if err := loadJSON(filepath.Join(mockDir, "users.json"), &data.Users); err != nil {
-		return nil, fmt.Errorf("loading users: %w", err)
-	}
-	if err := loadJSON(filepath.Join(mockDir, "policies.json"), &data.Policies); err != nil {
-		return nil, fmt.Errorf("loading policies: %w", err)
-	}
-	if err := loadJSON(filepath.Join(mockDir, "catalog.json"), &data.CatalogModules); err != nil {
-		return nil, fmt.Errorf("loading catalog: %w", err)
-	}
-
-	// Compute tamper-evident integrity hashes for all findings.
-	for i := range data.Findings {
-		data.Findings[i].IntegrityHash = data.Findings[i].ComputeIntegrityHash()
-	}
-
-	return data, nil
+	findingsPath := filepath.Join(basePath, "frontend", "public", "mock", "findings.json")
+	return loadMockDataFrom(basePath, findingsPath)
 }
 
 // loadTestMockData loads a trimmed findings fixture (200 items, ~370KB) from
@@ -91,14 +51,19 @@ func loadMockData(basePath string) (*MockData, error) {
 // All other mock files (agents, traces, policies, etc.) are loaded normally.
 // This cuts test setup from ~2min to <1s on CI.
 func loadTestMockData(basePath string) (*MockData, error) {
+	findingsPath := filepath.Join(basePath, "cmd", "server", "testdata", "findings_test.json")
+	return loadMockDataFrom(basePath, findingsPath)
+}
+
+// loadMockDataFrom loads mock data with a configurable findings path.
+// Shared implementation for loadMockData and loadTestMockData.
+func loadMockDataFrom(basePath, findingsPath string) (*MockData, error) {
 	mockDir := filepath.Join(basePath, "frontend", "src", "lib", "mock")
-	testdataDir := filepath.Join(basePath, "cmd", "server", "testdata")
 
 	data := &MockData{}
 
-	// Use trimmed findings fixture instead of full 20k dataset
-	if err := loadJSON(filepath.Join(testdataDir, "findings_test.json"), &data.Findings); err != nil {
-		return nil, fmt.Errorf("loading test findings: %w", err)
+	if err := loadJSON(findingsPath, &data.Findings); err != nil {
+		return nil, fmt.Errorf("loading findings: %w", err)
 	}
 	if err := loadJSON(filepath.Join(mockDir, "agents.json"), &data.Agents); err != nil {
 		return nil, fmt.Errorf("loading agents: %w", err)
