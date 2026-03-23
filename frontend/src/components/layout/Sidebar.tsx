@@ -9,7 +9,7 @@ import {
   Activity, AlertTriangle, Wrench, DollarSign, Shield,
   Home, PlusCircle, List, Package, Box, Database, Search,
   ChevronLeft, ChevronRight, X, BarChart3, ListChecks, Link2,
-  KeyRound, Globe, Layers, type LucideIcon,
+  KeyRound, Globe, Layers, Crosshair, type LucideIcon,
 } from 'lucide-react'
 
 interface NavItem {
@@ -60,6 +60,7 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
         { to: '/ops/containers', label: 'Containers', icon: Box },
         { to: '/ops/app-catalog', label: 'Application Catalog', icon: Database },
         { to: '/ops/investigations', label: 'Investigations', icon: Search },
+        { to: '/ops/attack-paths', label: 'Attack Paths', icon: Crosshair },
         { to: '/ops/attack-surface', label: 'Attack Surface', icon: Globe },
         { to: '/ops/data-sources', label: 'Data Sources', icon: Layers },
       ],
@@ -101,6 +102,7 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
         { to: '/ops/containers', label: 'Containers', icon: Box },
         { to: '/ops/app-catalog', label: 'Application Catalog', icon: Database },
         { to: '/ops/investigations', label: 'Investigations', icon: Search },
+        { to: '/ops/attack-paths', label: 'Attack Paths', icon: Crosshair },
         { to: '/ops/attack-surface', label: 'Attack Surface', icon: Globe },
         { to: '/ops/data-sources', label: 'Data Sources', icon: Layers },
       ],

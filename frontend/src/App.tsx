@@ -37,6 +37,7 @@ const Containers = lazy(() => import('@/pages/ops/Containers'))
 const DataClassification = lazy(() => import('@/pages/ops/DataClassification'))
 const Investigations = lazy(() => import('@/pages/ops/Investigations'))
 const AppCatalog = lazy(() => import('@/pages/ops/AppCatalog'))
+const AttackPaths = lazy(() => import('@/pages/ops/AttackPaths'))
 const AttackSurface = lazy(() => import('@/pages/ops/AttackSurface'))
 const DataSources = lazy(() => import('@/pages/ops/DataSources'))
 
@@ -120,6 +121,7 @@ export default function App() {
                     <Route path="/ops/data-classification" element={<DataClassification />} />
                     <Route path="/ops/app-catalog" element={<AppCatalog />} />
                     <Route path="/ops/investigations" element={<Investigations />} />
+                    <Route path="/ops/attack-paths" element={<AttackPaths />} />
                     <Route path="/ops/attack-surface" element={<AttackSurface />} />
                     <Route path="/ops/data-sources" element={<DataSources />} />
                   </Route>

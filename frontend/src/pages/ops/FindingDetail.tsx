@@ -87,7 +87,7 @@ export default function FindingDetail() {
             )}
             {relatedPaths.length > 0 && (
               <button
-                onClick={() => navigate(`/ops/investigations?findingId=${finding.id}`)}
+                onClick={() => navigate(`/ops/attack-paths?findingId=${finding.id}`)}
                 className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 border rounded bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50"
               >
                 <Crosshair className="h-3 w-3" />{relatedPaths.length} Attack Path{relatedPaths.length > 1 ? 's' : ''}
