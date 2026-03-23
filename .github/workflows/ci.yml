@@ -132,7 +132,7 @@ jobs:
           jq 'del(.runs[].results[].fixes)' gosec-results.sarif > tmp.sarif && mv tmp.sarif gosec-results.sarif
 
       - name: Upload Gosec SARIF
-        uses: github/codeql-action/upload-sarif@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
+        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc # v4.34.1
         if: always() && !cancelled() && hashFiles('gosec-results.sarif') != ''
         continue-on-error: true  # Don't fail if SARIF upload unavailable (e.g., forks)
         with:
@@ -150,7 +150,7 @@ jobs:
         continue-on-error: true  # Findings uploaded to SARIF; don't block pipeline
 
       - name: Upload Trivy SARIF
-        uses: github/codeql-action/upload-sarif@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
+        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc # v4.34.1
         if: always() && !cancelled() && hashFiles('trivy-results.sarif') != ''
         continue-on-error: true
         with:
@@ -178,7 +178,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Trivy image SARIF
-        uses: github/codeql-action/upload-sarif@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
+        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc # v4.34.1
         if: always() && !cancelled() && hashFiles('trivy-image.sarif') != ''
         continue-on-error: true
         with:
