@@ -1,128 +1,710 @@
 {
   "period": "2026-02",
-  "total": 2800000,
+  "total": 2823449,
   "by_provider": {
-    "aws": 1820000,
-    "azure": 700000,
-    "gcp": 280000
+    "aws": 1846628,
+    "azure": 689130,
+    "gcp": 274081
   },
   "by_service": {
-    "EC2": 728000,
-    "RDS": 273000,
-    "S3": 182000,
-    "Lambda": 145600,
-    "EKS": 218400,
-    "Other AWS": 273000,
-    "Azure VMs": 245000,
-    "AKS": 140000,
-    "Azure Storage": 105000,
-    "Azure SQL": 105000,
-    "Other Azure": 105000,
-    "BigQuery": 126000,
-    "GKE": 70000,
-    "Cloud SQL": 42000,
-    "Other GCP": 42000
+    "EC2": 745220,
+    "RDS": 274515,
+    "S3": 177090,
+    "Lambda": 143882,
+    "EKS": 212400,
+    "Other AWS": 277257,
+    "Azure VMs": 245886,
+    "AKS": 139859,
+    "Azure Storage": 106956,
+    "Azure SQL": 106794,
+    "Other Azure": 106597,
+    "BigQuery": 124542,
+    "GKE": 72265,
+    "Cloud SQL": 41193,
+    "Other GCP": 41161
   },
   "month_over_month": [
-    { "period": "2025-09", "total": 2240000, "aws": 1456000, "azure": 560000, "gcp": 224000 },
-    { "period": "2025-10", "total": 2352000, "aws": 1528800, "azure": 588000, "gcp": 235200 },
-    { "period": "2025-11", "total": 2464000, "aws": 1601600, "azure": 616000, "gcp": 246400 },
-    { "period": "2025-12", "total": 2576000, "aws": 1674400, "azure": 644000, "gcp": 257600 },
-    { "period": "2026-01", "total": 2688000, "aws": 1747200, "azure": 672000, "gcp": 268800 },
-    { "period": "2026-02", "total": 2800000, "aws": 1820000, "azure": 700000, "gcp": 280000 }
+    {
+      "period": "2025-09",
+      "total": 2254767,
+      "aws": 1416587,
+      "azure": 562214,
+      "gcp": 229756
+    },
+    {
+      "period": "2025-10",
+      "total": 2360193,
+      "aws": 1541506,
+      "azure": 601353,
+      "gcp": 230930
+    },
+    {
+      "period": "2025-11",
+      "total": 2397089,
+      "aws": 1627922,
+      "azure": 630020,
+      "gcp": 240787
+    },
+    {
+      "period": "2025-12",
+      "total": 2569655,
+      "aws": 1661201,
+      "azure": 639095,
+      "gcp": 254959
+    },
+    {
+      "period": "2026-01",
+      "total": 2717676,
+      "aws": 1758816,
+      "azure": 673627,
+      "gcp": 263761
+    },
+    {
+      "period": "2026-02",
+      "total": 2762300,
+      "aws": 1835858,
+      "azure": 688557,
+      "gcp": 286554
+    }
   ],
   "daily": [
-    { "date": "2026-11-29", "aws": 8800, "azure": 3100, "gcp": 1450, "total": 13350 },
-    { "date": "2026-11-30", "aws": 8950, "azure": 3200, "gcp": 1480, "total": 13630 },
-    { "date": "2026-12-01", "aws": 9100, "azure": 3050, "gcp": 1500, "total": 13650 },
-    { "date": "2026-12-02", "aws": 8700, "azure": 3300, "gcp": 1420, "total": 13420 },
-    { "date": "2026-12-03", "aws": 9200, "azure": 3150, "gcp": 1510, "total": 13860 },
-    { "date": "2026-12-04", "aws": 8600, "azure": 2900, "gcp": 1380, "total": 12880 },
-    { "date": "2026-12-05", "aws": 9300, "azure": 3100, "gcp": 1460, "total": 13860 },
-    { "date": "2026-12-06", "aws": 9450, "azure": 3200, "gcp": 1490, "total": 14140 },
-    { "date": "2026-12-07", "aws": 9100, "azure": 3000, "gcp": 1450, "total": 13550 },
-    { "date": "2026-12-08", "aws": 9200, "azure": 3250, "gcp": 1500, "total": 13950 },
-    { "date": "2026-12-09", "aws": 9350, "azure": 3100, "gcp": 1470, "total": 13920 },
-    { "date": "2026-12-10", "aws": 9000, "azure": 3000, "gcp": 1440, "total": 13440 },
-    { "date": "2026-12-11", "aws": 9500, "azure": 3150, "gcp": 1520, "total": 14170 },
-    { "date": "2026-12-12", "aws": 9600, "azure": 3200, "gcp": 1530, "total": 14330 },
-    { "date": "2026-12-13", "aws": 9700, "azure": 3300, "gcp": 1550, "total": 14550 },
-    { "date": "2026-12-14", "aws": 9400, "azure": 3100, "gcp": 1490, "total": 13990 },
-    { "date": "2026-12-15", "aws": 9800, "azure": 3250, "gcp": 1560, "total": 14610 },
-    { "date": "2026-12-16", "aws": 9900, "azure": 3200, "gcp": 1540, "total": 14640 },
-    { "date": "2026-12-17", "aws": 9500, "azure": 3100, "gcp": 1500, "total": 14100 },
-    { "date": "2026-12-18", "aws": 10100, "azure": 3300, "gcp": 1570, "total": 14970 },
-    { "date": "2026-12-19", "aws": 10200, "azure": 3400, "gcp": 1580, "total": 15180 },
-    { "date": "2026-12-20", "aws": 10000, "azure": 3200, "gcp": 1550, "total": 14750 },
-    { "date": "2026-12-21", "aws": 10300, "azure": 3350, "gcp": 1600, "total": 15250 },
-    { "date": "2026-12-22", "aws": 10400, "azure": 3300, "gcp": 1580, "total": 15280 },
-    { "date": "2026-12-23", "aws": 9800, "azure": 3100, "gcp": 1520, "total": 14420 },
-    { "date": "2026-12-24", "aws": 9000, "azure": 2800, "gcp": 1400, "total": 13200 },
-    { "date": "2026-12-25", "aws": 8500, "azure": 2600, "gcp": 1300, "total": 12400 },
-    { "date": "2026-12-26", "aws": 8700, "azure": 2700, "gcp": 1350, "total": 12750 },
-    { "date": "2026-12-27", "aws": 9200, "azure": 3000, "gcp": 1450, "total": 13650 },
-    { "date": "2026-12-28", "aws": 9500, "azure": 3100, "gcp": 1490, "total": 14090 },
-    { "date": "2026-12-29", "aws": 9600, "azure": 3200, "gcp": 1500, "total": 14300 },
-    { "date": "2026-12-30", "aws": 9700, "azure": 3150, "gcp": 1510, "total": 14360 },
-    { "date": "2026-12-31", "aws": 9300, "azure": 3050, "gcp": 1470, "total": 13820 },
-    { "date": "2026-01-01", "aws": 8800, "azure": 2900, "gcp": 1400, "total": 13100 },
-    { "date": "2026-01-02", "aws": 9800, "azure": 3200, "gcp": 1520, "total": 14520 },
-    { "date": "2026-01-03", "aws": 10100, "azure": 3300, "gcp": 1570, "total": 14970 },
-    { "date": "2026-01-04", "aws": 10300, "azure": 3400, "gcp": 1580, "total": 15280 },
-    { "date": "2026-01-05", "aws": 10500, "azure": 3500, "gcp": 1600, "total": 15600 },
-    { "date": "2026-01-06", "aws": 10200, "azure": 3300, "gcp": 1560, "total": 15060 },
-    { "date": "2026-01-07", "aws": 10000, "azure": 3200, "gcp": 1540, "total": 14740 },
-    { "date": "2026-01-08", "aws": 10600, "azure": 3400, "gcp": 1590, "total": 15590 },
-    { "date": "2026-01-09", "aws": 10800, "azure": 3500, "gcp": 1620, "total": 15920 },
-    { "date": "2026-01-10", "aws": 11000, "azure": 3600, "gcp": 1650, "total": 16250 },
-    { "date": "2026-01-11", "aws": 11200, "azure": 3700, "gcp": 1660, "total": 16560 },
-    { "date": "2026-01-12", "aws": 11500, "azure": 3800, "gcp": 1680, "total": 16980 },
-    { "date": "2026-01-13", "aws": 11300, "azure": 3700, "gcp": 1670, "total": 16670 },
-    { "date": "2026-01-14", "aws": 11600, "azure": 3850, "gcp": 1690, "total": 17140 },
-    { "date": "2026-01-15", "aws": 11800, "azure": 3900, "gcp": 1710, "total": 17410 },
-    { "date": "2026-01-16", "aws": 12000, "azure": 4000, "gcp": 1720, "total": 17720 },
-    { "date": "2026-01-17", "aws": 38200, "azure": 4100, "gcp": 1740, "total": 44040 },
-    { "date": "2026-01-18", "aws": 39100, "azure": 4000, "gcp": 1730, "total": 44830 },
-    { "date": "2026-01-19", "aws": 12400, "azure": 4200, "gcp": 1760, "total": 18360 },
-    { "date": "2026-01-20", "aws": 12600, "azure": 4300, "gcp": 1780, "total": 18680 },
-    { "date": "2026-01-21", "aws": 12200, "azure": 4100, "gcp": 1750, "total": 18050 },
-    { "date": "2026-01-22", "aws": 12800, "azure": 4400, "gcp": 1790, "total": 18990 },
-    { "date": "2026-01-23", "aws": 13000, "azure": 4500, "gcp": 1800, "total": 19300 },
-    { "date": "2026-01-24", "aws": 12500, "azure": 4200, "gcp": 1770, "total": 18470 },
-    { "date": "2026-01-25", "aws": 13200, "azure": 4600, "gcp": 1820, "total": 19620 },
-    { "date": "2026-01-26", "aws": 13500, "azure": 4700, "gcp": 1840, "total": 20040 },
-    { "date": "2026-01-27", "aws": 13100, "azure": 7900, "gcp": 1810, "total": 22810 },
-    { "date": "2026-01-28", "aws": 13300, "azure": 7500, "gcp": 1830, "total": 22630 },
-    { "date": "2026-01-29", "aws": 13800, "azure": 4900, "gcp": 1860, "total": 20560 },
-    { "date": "2026-01-30", "aws": 14000, "azure": 5000, "gcp": 1880, "total": 20880 },
-    { "date": "2026-01-31", "aws": 13600, "azure": 4800, "gcp": 1850, "total": 20250 },
-    { "date": "2026-02-01", "aws": 14200, "azure": 5100, "gcp": 1900, "total": 21200 },
-    { "date": "2026-02-02", "aws": 14500, "azure": 5200, "gcp": 1920, "total": 21620 },
-    { "date": "2026-02-03", "aws": 14100, "azure": 5000, "gcp": 1890, "total": 20990 },
-    { "date": "2026-02-04", "aws": 14800, "azure": 5300, "gcp": 1940, "total": 22040 },
-    { "date": "2026-02-05", "aws": 15000, "azure": 5400, "gcp": 1960, "total": 22360 },
-    { "date": "2026-02-06", "aws": 14600, "azure": 5200, "gcp": 1920, "total": 21720 },
-    { "date": "2026-02-07", "aws": 15200, "azure": 5500, "gcp": 1980, "total": 22680 },
-    { "date": "2026-02-08", "aws": 15500, "azure": 5600, "gcp": 2000, "total": 23100 },
-    { "date": "2026-02-09", "aws": 15100, "azure": 5400, "gcp": 1970, "total": 22470 },
-    { "date": "2026-02-10", "aws": 15800, "azure": 5700, "gcp": 2020, "total": 23520 },
-    { "date": "2026-02-11", "aws": 16000, "azure": 5800, "gcp": 2040, "total": 23840 },
-    { "date": "2026-02-12", "aws": 15600, "azure": 5600, "gcp": 2010, "total": 23210 },
-    { "date": "2026-02-13", "aws": 16200, "azure": 5900, "gcp": 2060, "total": 24160 },
-    { "date": "2026-02-14", "aws": 16500, "azure": 6000, "gcp": 2080, "total": 24580 },
-    { "date": "2026-02-15", "aws": 16100, "azure": 5800, "gcp": 2050, "total": 23950 },
-    { "date": "2026-02-16", "aws": 16800, "azure": 6100, "gcp": 2100, "total": 25000 },
-    { "date": "2026-02-17", "aws": 17000, "azure": 6200, "gcp": 2120, "total": 25320 },
-    { "date": "2026-02-18", "aws": 16600, "azure": 6000, "gcp": 2080, "total": 24680 },
-    { "date": "2026-02-19", "aws": 17200, "azure": 6300, "gcp": 2140, "total": 25640 },
-    { "date": "2026-02-20", "aws": 17500, "azure": 6400, "gcp": 2160, "total": 26060 },
-    { "date": "2026-02-21", "aws": 17100, "azure": 6200, "gcp": 2130, "total": 25430 },
-    { "date": "2026-02-22", "aws": 17800, "azure": 6500, "gcp": 2180, "total": 26480 },
-    { "date": "2026-02-23", "aws": 18000, "azure": 6600, "gcp": 2200, "total": 26800 },
-    { "date": "2026-02-24", "aws": 17600, "azure": 6400, "gcp": 2160, "total": 26160 },
-    { "date": "2026-02-25", "aws": 79200, "azure": 6700, "gcp": 2220, "total": 88120 },
-    { "date": "2026-02-26", "aws": 18500, "azure": 6800, "gcp": 2240, "total": 27540 },
-    { "date": "2026-02-27", "aws": 18200, "azure": 6600, "gcp": 2200, "total": 27000 }
+    {
+      "date": "2026-11-29",
+      "aws": 8571,
+      "azure": 3169,
+      "gcp": 1434,
+      "total": 13761
+    },
+    {
+      "date": "2026-11-30",
+      "aws": 8860,
+      "azure": 3210,
+      "gcp": 1452,
+      "total": 13491
+    },
+    {
+      "date": "2026-12-01",
+      "aws": 9289,
+      "azure": 3135,
+      "gcp": 1491,
+      "total": 13681
+    },
+    {
+      "date": "2026-12-02",
+      "aws": 8848,
+      "azure": 3243,
+      "gcp": 1451,
+      "total": 13596
+    },
+    {
+      "date": "2026-12-03",
+      "aws": 9195,
+      "azure": 3173,
+      "gcp": 1543,
+      "total": 14039
+    },
+    {
+      "date": "2026-12-04",
+      "aws": 8762,
+      "azure": 2968,
+      "gcp": 1393,
+      "total": 12762
+    },
+    {
+      "date": "2026-12-05",
+      "aws": 9368,
+      "azure": 3178,
+      "gcp": 1514,
+      "total": 13621
+    },
+    {
+      "date": "2026-12-06",
+      "aws": 9699,
+      "azure": 3278,
+      "gcp": 1472,
+      "total": 13989
+    },
+    {
+      "date": "2026-12-07",
+      "aws": 9405,
+      "azure": 2970,
+      "gcp": 1423,
+      "total": 13936
+    },
+    {
+      "date": "2026-12-08",
+      "aws": 9088,
+      "azure": 3329,
+      "gcp": 1471,
+      "total": 14351
+    },
+    {
+      "date": "2026-12-09",
+      "aws": 9516,
+      "azure": 3160,
+      "gcp": 1479,
+      "total": 14052
+    },
+    {
+      "date": "2026-12-10",
+      "aws": 9320,
+      "azure": 3068,
+      "gcp": 1420,
+      "total": 13455
+    },
+    {
+      "date": "2026-12-11",
+      "aws": 9532,
+      "azure": 3149,
+      "gcp": 1501,
+      "total": 13822
+    },
+    {
+      "date": "2026-12-12",
+      "aws": 9651,
+      "azure": 3122,
+      "gcp": 1521,
+      "total": 14013
+    },
+    {
+      "date": "2026-12-13",
+      "aws": 9482,
+      "azure": 3289,
+      "gcp": 1527,
+      "total": 14866
+    },
+    {
+      "date": "2026-12-14",
+      "aws": 9317,
+      "azure": 3164,
+      "gcp": 1465,
+      "total": 14042
+    },
+    {
+      "date": "2026-12-15",
+      "aws": 9842,
+      "azure": 3171,
+      "gcp": 1531,
+      "total": 14498
+    },
+    {
+      "date": "2026-12-16",
+      "aws": 9776,
+      "azure": 3215,
+      "gcp": 1538,
+      "total": 14628
+    },
+    {
+      "date": "2026-12-17",
+      "aws": 9539,
+      "azure": 3047,
+      "gcp": 1558,
+      "total": 13714
+    },
+    {
+      "date": "2026-12-18",
+      "aws": 10389,
+      "azure": 3266,
+      "gcp": 1583,
+      "total": 14898
+    },
+    {
+      "date": "2026-12-19",
+      "aws": 9996,
+      "azure": 3516,
+      "gcp": 1633,
+      "total": 15249
+    },
+    {
+      "date": "2026-12-20",
+      "aws": 10211,
+      "azure": 3327,
+      "gcp": 1523,
+      "total": 14516
+    },
+    {
+      "date": "2026-12-21",
+      "aws": 10418,
+      "azure": 3283,
+      "gcp": 1574,
+      "total": 15388
+    },
+    {
+      "date": "2026-12-22",
+      "aws": 10253,
+      "azure": 3229,
+      "gcp": 1542,
+      "total": 15501
+    },
+    {
+      "date": "2026-12-23",
+      "aws": 9817,
+      "azure": 3073,
+      "gcp": 1481,
+      "total": 14485
+    },
+    {
+      "date": "2026-12-24",
+      "aws": 8935,
+      "azure": 2774,
+      "gcp": 1390,
+      "total": 13195
+    },
+    {
+      "date": "2026-12-25",
+      "aws": 8489,
+      "azure": 2544,
+      "gcp": 1340,
+      "total": 12111
+    },
+    {
+      "date": "2026-12-26",
+      "aws": 8720,
+      "azure": 2773,
+      "gcp": 1386,
+      "total": 12643
+    },
+    {
+      "date": "2026-12-27",
+      "aws": 9475,
+      "azure": 2991,
+      "gcp": 1464,
+      "total": 13864
+    },
+    {
+      "date": "2026-12-28",
+      "aws": 9760,
+      "azure": 3186,
+      "gcp": 1471,
+      "total": 14334
+    },
+    {
+      "date": "2026-12-29",
+      "aws": 9547,
+      "azure": 3167,
+      "gcp": 1485,
+      "total": 14732
+    },
+    {
+      "date": "2026-12-30",
+      "aws": 9701,
+      "azure": 3087,
+      "gcp": 1540,
+      "total": 13967
+    },
+    {
+      "date": "2026-12-31",
+      "aws": 9410,
+      "azure": 3004,
+      "gcp": 1481,
+      "total": 13899
+    },
+    {
+      "date": "2026-01-01",
+      "aws": 8596,
+      "azure": 2934,
+      "gcp": 1399,
+      "total": 12857
+    },
+    {
+      "date": "2026-01-02",
+      "aws": 9578,
+      "azure": 3279,
+      "gcp": 1560,
+      "total": 14705
+    },
+    {
+      "date": "2026-01-03",
+      "aws": 10084,
+      "azure": 3403,
+      "gcp": 1626,
+      "total": 14721
+    },
+    {
+      "date": "2026-01-04",
+      "aws": 10628,
+      "azure": 3490,
+      "gcp": 1547,
+      "total": 15775
+    },
+    {
+      "date": "2026-01-05",
+      "aws": 10785,
+      "azure": 3583,
+      "gcp": 1572,
+      "total": 15501
+    },
+    {
+      "date": "2026-01-06",
+      "aws": 10448,
+      "azure": 3271,
+      "gcp": 1560,
+      "total": 15385
+    },
+    {
+      "date": "2026-01-07",
+      "aws": 9919,
+      "azure": 3164,
+      "gcp": 1522,
+      "total": 15224
+    },
+    {
+      "date": "2026-01-08",
+      "aws": 10572,
+      "azure": 3402,
+      "gcp": 1633,
+      "total": 16009
+    },
+    {
+      "date": "2026-01-09",
+      "aws": 10626,
+      "azure": 3432,
+      "gcp": 1617,
+      "total": 15991
+    },
+    {
+      "date": "2026-01-10",
+      "aws": 10821,
+      "azure": 3537,
+      "gcp": 1671,
+      "total": 16407
+    },
+    {
+      "date": "2026-01-11",
+      "aws": 11420,
+      "azure": 3765,
+      "gcp": 1650,
+      "total": 17091
+    },
+    {
+      "date": "2026-01-12",
+      "aws": 11669,
+      "azure": 3899,
+      "gcp": 1694,
+      "total": 16879
+    },
+    {
+      "date": "2026-01-13",
+      "aws": 11361,
+      "azure": 3708,
+      "gcp": 1693,
+      "total": 16863
+    },
+    {
+      "date": "2026-01-14",
+      "aws": 11642,
+      "azure": 3754,
+      "gcp": 1672,
+      "total": 17218
+    },
+    {
+      "date": "2026-01-15",
+      "aws": 11990,
+      "azure": 3905,
+      "gcp": 1736,
+      "total": 17589
+    },
+    {
+      "date": "2026-01-16",
+      "aws": 12097,
+      "azure": 4092,
+      "gcp": 1745,
+      "total": 18083
+    },
+    {
+      "date": "2026-01-17",
+      "aws": 37236,
+      "azure": 4259,
+      "gcp": 1779,
+      "total": 44246
+    },
+    {
+      "date": "2026-01-18",
+      "aws": 39645,
+      "azure": 4079,
+      "gcp": 1725,
+      "total": 45252
+    },
+    {
+      "date": "2026-01-19",
+      "aws": 12803,
+      "azure": 4275,
+      "gcp": 1797,
+      "total": 18182
+    },
+    {
+      "date": "2026-01-20",
+      "aws": 12620,
+      "azure": 4322,
+      "gcp": 1791,
+      "total": 19011
+    },
+    {
+      "date": "2026-01-21",
+      "aws": 12391,
+      "azure": 4191,
+      "gcp": 1778,
+      "total": 18112
+    },
+    {
+      "date": "2026-01-22",
+      "aws": 12800,
+      "azure": 4495,
+      "gcp": 1793,
+      "total": 19448
+    },
+    {
+      "date": "2026-01-23",
+      "aws": 13332,
+      "azure": 4552,
+      "gcp": 1804,
+      "total": 19079
+    },
+    {
+      "date": "2026-01-24",
+      "aws": 12435,
+      "azure": 4105,
+      "gcp": 1747,
+      "total": 18715
+    },
+    {
+      "date": "2026-01-25",
+      "aws": 13218,
+      "azure": 4638,
+      "gcp": 1787,
+      "total": 19640
+    },
+    {
+      "date": "2026-01-26",
+      "aws": 13867,
+      "azure": 4837,
+      "gcp": 1828,
+      "total": 20649
+    },
+    {
+      "date": "2026-01-27",
+      "aws": 13407,
+      "azure": 7988,
+      "gcp": 1850,
+      "total": 22864
+    },
+    {
+      "date": "2026-01-28",
+      "aws": 13257,
+      "azure": 7502,
+      "gcp": 1869,
+      "total": 23359
+    },
+    {
+      "date": "2026-01-29",
+      "aws": 13929,
+      "azure": 4970,
+      "gcp": 1822,
+      "total": 20230
+    },
+    {
+      "date": "2026-01-30",
+      "aws": 13800,
+      "azure": 4978,
+      "gcp": 1886,
+      "total": 21305
+    },
+    {
+      "date": "2026-01-31",
+      "aws": 13528,
+      "azure": 4735,
+      "gcp": 1865,
+      "total": 19796
+    },
+    {
+      "date": "2026-02-01",
+      "aws": 13984,
+      "azure": 5228,
+      "gcp": 1849,
+      "total": 21823
+    },
+    {
+      "date": "2026-02-02",
+      "aws": 14835,
+      "azure": 5150,
+      "gcp": 1958,
+      "total": 22320
+    },
+    {
+      "date": "2026-02-03",
+      "aws": 14363,
+      "azure": 4940,
+      "gcp": 1946,
+      "total": 21381
+    },
+    {
+      "date": "2026-02-04",
+      "aws": 15240,
+      "azure": 5345,
+      "gcp": 1961,
+      "total": 22088
+    },
+    {
+      "date": "2026-02-05",
+      "aws": 14792,
+      "azure": 5322,
+      "gcp": 1941,
+      "total": 22902
+    },
+    {
+      "date": "2026-02-06",
+      "aws": 14936,
+      "azure": 5253,
+      "gcp": 1923,
+      "total": 21916
+    },
+    {
+      "date": "2026-02-07",
+      "aws": 15644,
+      "azure": 5394,
+      "gcp": 2011,
+      "total": 23074
+    },
+    {
+      "date": "2026-02-08",
+      "aws": 15333,
+      "azure": 5774,
+      "gcp": 2031,
+      "total": 23600
+    },
+    {
+      "date": "2026-02-09",
+      "aws": 15111,
+      "azure": 5359,
+      "gcp": 2012,
+      "total": 22288
+    },
+    {
+      "date": "2026-02-10",
+      "aws": 15677,
+      "azure": 5766,
+      "gcp": 2007,
+      "total": 23596
+    },
+    {
+      "date": "2026-02-11",
+      "aws": 15750,
+      "azure": 5767,
+      "gcp": 2041,
+      "total": 24198
+    },
+    {
+      "date": "2026-02-12",
+      "aws": 15785,
+      "azure": 5756,
+      "gcp": 1993,
+      "total": 23390
+    },
+    {
+      "date": "2026-02-13",
+      "aws": 16070,
+      "azure": 5983,
+      "gcp": 2055,
+      "total": 23628
+    },
+    {
+      "date": "2026-02-14",
+      "aws": 16469,
+      "azure": 5969,
+      "gcp": 2082,
+      "total": 24734
+    },
+    {
+      "date": "2026-02-15",
+      "aws": 16720,
+      "azure": 5787,
+      "gcp": 2055,
+      "total": 23624
+    },
+    {
+      "date": "2026-02-16",
+      "aws": 17104,
+      "azure": 5996,
+      "gcp": 2162,
+      "total": 24728
+    },
+    {
+      "date": "2026-02-17",
+      "aws": 17135,
+      "azure": 6411,
+      "gcp": 2136,
+      "total": 25901
+    },
+    {
+      "date": "2026-02-18",
+      "aws": 16375,
+      "azure": 5975,
+      "gcp": 2093,
+      "total": 24021
+    },
+    {
+      "date": "2026-02-19",
+      "aws": 17288,
+      "azure": 6401,
+      "gcp": 2140,
+      "total": 25994
+    },
+    {
+      "date": "2026-02-20",
+      "aws": 17566,
+      "azure": 6286,
+      "gcp": 2144,
+      "total": 25491
+    },
+    {
+      "date": "2026-02-21",
+      "aws": 17018,
+      "azure": 6272,
+      "gcp": 2078,
+      "total": 26147
+    },
+    {
+      "date": "2026-02-22",
+      "aws": 17655,
+      "azure": 6406,
+      "gcp": 2213,
+      "total": 26240
+    },
+    {
+      "date": "2026-02-23",
+      "aws": 18061,
+      "azure": 6575,
+      "gcp": 2195,
+      "total": 26144
+    },
+    {
+      "date": "2026-02-24",
+      "aws": 18126,
+      "azure": 6482,
+      "gcp": 2186,
+      "total": 25791
+    },
+    {
+      "date": "2026-02-25",
+      "aws": 77987,
+      "azure": 6742,
+      "gcp": 2201,
+      "total": 87290
+    },
+    {
+      "date": "2026-02-26",
+      "aws": 18842,
+      "azure": 6656,
+      "gcp": 2317,
+      "total": 27790
+    },
+    {
+      "date": "2026-02-27",
+      "aws": 18259,
+      "azure": 6512,
+      "gcp": 2258,
+      "total": 26391
+    }
   ],
   "anomalies": [
     {
@@ -131,8 +713,8 @@
       "account_id": "123456789012",
       "service_name": "S3 Data Transfer",
       "detected_at": "2026-02-25T14:30:00Z",
-      "expected_cost": 18000,
-      "actual_cost": 79200,
+      "expected_cost": 18679,
+      "actual_cost": 81754,
       "deviation_percent": 340,
       "severity": "critical"
     },
@@ -142,8 +724,8 @@
       "account_id": "sub-acme-qa",
       "service_name": "Virtual Machines",
       "detected_at": "2026-01-27T10:00:00Z",
-      "expected_cost": 4200,
-      "actual_cost": 7900,
+      "expected_cost": 4405,
+      "actual_cost": 7643,
       "deviation_percent": 88,
       "severity": "high"
     },
@@ -153,8 +735,8 @@
       "account_id": "123456789012",
       "service_name": "EC2 Compute",
       "detected_at": "2026-01-17T08:00:00Z",
-      "expected_cost": 12000,
-      "actual_cost": 38200,
+      "expected_cost": 12274,
+      "actual_cost": 38454,
       "deviation_percent": 218,
       "severity": "critical"
     },
@@ -164,8 +746,8 @@
       "account_id": "gcp-acme-analytics",
       "service_name": "BigQuery Egress",
       "detected_at": "2026-02-10T06:15:00Z",
-      "expected_cost": 4200,
-      "actual_cost": 18900,
+      "expected_cost": 4213,
+      "actual_cost": 18142,
       "deviation_percent": 350,
       "severity": "critical"
     },
@@ -175,8 +757,8 @@
       "account_id": "234567890123",
       "service_name": "Lambda",
       "detected_at": "2026-02-19T22:45:00Z",
-      "expected_cost": 4800,
-      "actual_cost": 14200,
+      "expected_cost": 4951,
+      "actual_cost": 13870,
       "deviation_percent": 196,
       "severity": "high"
     }
@@ -189,11 +771,11 @@
       "service": "EC2",
       "resource_id": "i-abc123def456",
       "account_id": "123456789012",
-      "current_cost_monthly": 2400,
-      "projected_cost_monthly": 1200,
-      "savings_monthly": 1200,
+      "current_cost_monthly": 2383,
+      "projected_cost_monthly": 1234,
+      "savings_monthly": 1207,
       "savings_percent": 50,
-      "recommendation": "Downsize m5.2xlarge to m5.xlarge — avg CPU 12%",
+      "recommendation": "Downsize m5.2xlarge to m5.xlarge \u2014 avg CPU 12%",
       "confidence": "high",
       "risk": "low"
     },
@@ -204,11 +786,11 @@
       "service": "RDS",
       "resource_id": "db-payments-prod",
       "account_id": "123456789012",
-      "current_cost_monthly": 8500,
-      "projected_cost_monthly": 5100,
-      "savings_monthly": 3400,
+      "current_cost_monthly": 8789,
+      "projected_cost_monthly": 5172,
+      "savings_monthly": 3483,
       "savings_percent": 40,
-      "recommendation": "Purchase 1-year reserved instance for db.r6g.2xlarge — steady utilization 98%",
+      "recommendation": "Purchase 1-year reserved instance for db.r6g.2xlarge \u2014 steady utilization 98%",
       "confidence": "high",
       "risk": "low"
     },
@@ -219,11 +801,11 @@
       "service": "EKS",
       "resource_id": "eks-batch-workers",
       "account_id": "234567890123",
-      "current_cost_monthly": 12000,
-      "projected_cost_monthly": 3600,
-      "savings_monthly": 8400,
+      "current_cost_monthly": 12070,
+      "projected_cost_monthly": 3701,
+      "savings_monthly": 8706,
       "savings_percent": 70,
-      "recommendation": "Convert batch worker node group to Spot instances — workloads are fault-tolerant",
+      "recommendation": "Convert batch worker node group to Spot instances \u2014 workloads are fault-tolerant",
       "confidence": "medium",
       "risk": "medium"
     },
@@ -234,11 +816,11 @@
       "service": "S3",
       "resource_id": "s3://acme-data-lake-archive",
       "account_id": "123456789012",
-      "current_cost_monthly": 4200,
-      "projected_cost_monthly": 420,
-      "savings_monthly": 3780,
+      "current_cost_monthly": 4265,
+      "projected_cost_monthly": 435,
+      "savings_monthly": 3768,
       "savings_percent": 90,
-      "recommendation": "Move 18TB cold data to S3 Glacier Deep Archive — last accessed 14 months ago",
+      "recommendation": "Move 18TB cold data to S3 Glacier Deep Archive \u2014 last accessed 14 months ago",
       "confidence": "high",
       "risk": "low"
     },
@@ -249,11 +831,11 @@
       "service": "EC2",
       "resource_id": "i-staging-loadtest-07",
       "account_id": "234567890123",
-      "current_cost_monthly": 1800,
+      "current_cost_monthly": 1785,
       "projected_cost_monthly": 0,
-      "savings_monthly": 1800,
+      "savings_monthly": 1849,
       "savings_percent": 100,
-      "recommendation": "Terminate idle staging load-test instance — zero traffic for 45 days",
+      "recommendation": "Terminate idle staging load-test instance \u2014 zero traffic for 45 days",
       "confidence": "high",
       "risk": "low"
     },
@@ -264,11 +846,11 @@
       "service": "Azure VMs",
       "resource_id": "vm-catalog-api-03",
       "account_id": "sub-acme-prod",
-      "current_cost_monthly": 3200,
-      "projected_cost_monthly": 1600,
-      "savings_monthly": 1600,
+      "current_cost_monthly": 3216,
+      "projected_cost_monthly": 1593,
+      "savings_monthly": 1632,
       "savings_percent": 50,
-      "recommendation": "Downsize Standard_D8s_v5 to Standard_D4s_v5 — avg CPU 18%, memory 22%",
+      "recommendation": "Downsize Standard_D8s_v5 to Standard_D4s_v5 \u2014 avg CPU 18%, memory 22%",
       "confidence": "high",
       "risk": "low"
     },
@@ -279,11 +861,11 @@
       "service": "Azure SQL",
       "resource_id": "sqldb-acme-analytics",
       "account_id": "sub-acme-prod",
-      "current_cost_monthly": 6400,
-      "projected_cost_monthly": 4160,
-      "savings_monthly": 2240,
+      "current_cost_monthly": 6424,
+      "projected_cost_monthly": 4107,
+      "savings_monthly": 2316,
       "savings_percent": 35,
-      "recommendation": "Purchase 3-year reserved capacity for Business Critical tier — consistent 95% DTU usage",
+      "recommendation": "Purchase 3-year reserved capacity for Business Critical tier \u2014 consistent 95% DTU usage",
       "confidence": "high",
       "risk": "low"
     },
@@ -294,11 +876,11 @@
       "service": "GKE",
       "resource_id": "gke-dev-cluster-02",
       "account_id": "gcp-acme-dev",
-      "current_cost_monthly": 2800,
+      "current_cost_monthly": 2888,
       "projected_cost_monthly": 0,
-      "savings_monthly": 2800,
+      "savings_monthly": 2904,
       "savings_percent": 100,
-      "recommendation": "Delete idle GKE dev cluster — no deployments in 60 days, replaced by gke-dev-cluster-03",
+      "recommendation": "Delete idle GKE dev cluster \u2014 no deployments in 60 days, replaced by gke-dev-cluster-03",
       "confidence": "high",
       "risk": "low"
     }
@@ -306,46 +888,94 @@
   "chargeback": {
     "period": "2026-02",
     "generated_at": "2026-02-27T09:00:00Z",
-    "total_cost": 2800000,
+    "total_cost": 2862527,
     "allocations": [
       {
         "cost_center": "CC-PLATFORM",
         "team": "security-platform",
-        "total_cost": 952000,
-        "by_provider": { "aws": 618800, "azure": 238000, "gcp": 95200 },
-        "by_service": { "EC2": 283000, "EKS": 214000, "RDS": 164000, "Azure Compute": 220000, "GKE": 71000 },
+        "total_cost": 947238,
+        "by_provider": {
+          "aws": 620122,
+          "azure": 242303,
+          "gcp": 94922
+        },
+        "by_service": {
+          "EC2": 278530,
+          "EKS": 209558,
+          "RDS": 164108,
+          "Azure Compute": 219829,
+          "GKE": 73639
+        },
         "percentage": 34
       },
       {
         "cost_center": "CC-PAYMENTS",
         "team": "payments-engineering",
-        "total_cost": 784000,
-        "by_provider": { "aws": 509600, "azure": 196000, "gcp": 78400 },
-        "by_service": { "EC2": 327000, "RDS": 175000, "Lambda": 89000, "Azure Cache": 129000, "GCP SQL": 64000 },
+        "total_cost": 798806,
+        "by_provider": {
+          "aws": 499720,
+          "azure": 190699,
+          "gcp": 76604
+        },
+        "by_service": {
+          "EC2": 326365,
+          "RDS": 176708,
+          "Lambda": 89726,
+          "Azure Cache": 128113,
+          "GCP SQL": 63625
+        },
         "percentage": 28
       },
       {
         "cost_center": "CC-AUTH",
         "team": "auth-service",
-        "total_cost": 504000,
-        "by_provider": { "aws": 327600, "azure": 126000, "gcp": 50400 },
-        "by_service": { "EC2": 185000, "EKS": 98000, "Azure AD B2C": 116000, "GKE": 55000, "Lambda": 50000 },
+        "total_cost": 518772,
+        "by_provider": {
+          "aws": 326900,
+          "azure": 126064,
+          "gcp": 51083
+        },
+        "by_service": {
+          "EC2": 190095,
+          "EKS": 96263,
+          "Azure AD B2C": 118443,
+          "GKE": 54992,
+          "Lambda": 49304
+        },
         "percentage": 18
       },
       {
         "cost_center": "CC-CATALOG",
         "team": "catalog-engineering",
-        "total_cost": 336000,
-        "by_provider": { "aws": 218400, "azure": 84000, "gcp": 33600 },
-        "by_service": { "S3": 126000, "CloudFront": 94000, "Azure Storage": 76000, "GCS": 40000 },
+        "total_cost": 331929,
+        "by_provider": {
+          "aws": 223416,
+          "azure": 87016,
+          "gcp": 34565
+        },
+        "by_service": {
+          "S3": 126645,
+          "CloudFront": 93837,
+          "Azure Storage": 76665,
+          "GCS": 41135
+        },
         "percentage": 12
       },
       {
         "cost_center": "CC-OTHER",
         "team": "shared-services",
-        "total_cost": 224000,
-        "by_provider": { "aws": 145600, "azure": 56000, "gcp": 22400 },
-        "by_service": { "Route53": 22000, "CloudWatch": 50000, "Azure Monitor": 102000, "GCP Monitoring": 50000 },
+        "total_cost": 230706,
+        "by_provider": {
+          "aws": 146467,
+          "azure": 57617,
+          "gcp": 21978
+        },
+        "by_service": {
+          "Route53": 22173,
+          "CloudWatch": 49984,
+          "Azure Monitor": 104457,
+          "GCP Monitoring": 51696
+        },
         "percentage": 8
       }
     ]
