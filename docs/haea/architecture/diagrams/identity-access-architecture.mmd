@@ -1,0 +1,119 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryBorderColor': '#d1d5db', 'primaryTextColor': '#1f2937', 'lineColor': '#6b7280', 'fontSize': '13px', 'fontFamily': 'Georgia, serif', 'secondaryColor': '#f9fafb', 'tertiaryColor': '#f3f4f6'}}}%%
+flowchart TB
+    %% ═══════════════════════════════════════════
+    %% IDENTITY ACCESS ARCHITECTURE — CURRENT STATE
+    %% HAEA Multi-Cloud Identity Provisioning
+    %% Updated Feb 2026: Azure 51 subs, GCP 96 projects
+    %% Styled: Georgia font, CSP icons, clean palette
+    %% Render: mmdc -i this.mmd -o out.svg --configFile mmdc-config.json
+    %% ═══════════════════════════════════════════
+
+    %% ──── SOURCE OF TRUTH ────
+    AD["<img src='data:image/svg+xml;base64,PHN2ZyBkYXRhLW5hbWU9ImZsdWVudF9pY29ucyIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgMTggMTgiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iYSIgeDE9IjEzLjI1IiB5MT0iMTMuMDIiIHgyPSI4LjYyIiB5Mj0iNC4yNSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzE5ODhkOSIvPjxzdG9wIG9mZnNldD0iLjkiIHN0b3AtY29sb3I9IiM1NGFlZjAiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0iYiIgeDE9IjExLjI2IiB5MT0iMTAuNDciIHgyPSIxNC40NiIgeTI9IjE1Ljk5IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIuMSIgc3RvcC1jb2xvcj0iIzU0YWVmMCIvPjxzdG9wIG9mZnNldD0iLjI5IiBzdG9wLWNvbG9yPSIjNGZhYmVlIi8+PHN0b3Agb2Zmc2V0PSIuNTEiIHN0b3AtY29sb3I9IiM0MWEyZTkiLz48c3RvcCBvZmZzZXQ9Ii43NCIgc3RvcC1jb2xvcj0iIzJhOTNlMCIvPjxzdG9wIG9mZnNldD0iLjg4IiBzdG9wLWNvbG9yPSIjMTk4OGQ5Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHBhdGggZmlsbD0iIzUwZTZmZiIgc3R5bGU9Imlzb2xhdGlvbjppc29sYXRlIiBkPSJNMS4wMSAxMC4xOWw3LjkyIDUuMTQgOC4wNi01LjE2TDE4IDExLjM1bC05LjA3IDUuODRMMCAxMS4zNWwxLjAxLTEuMTZ6Ii8+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEuNjEgOS41M0w4LjkzLjgxbDcuNDcgOC43My03LjQ3IDQuNzItNy4zMi00LjczeiIvPjxwYXRoIGZpbGw9IiM1MGU2ZmYiIHN0eWxlPSJpc29sYXRpb246aXNvbGF0ZSIgZD0iTTguOTMuODF2MTMuNDVMMS42MSA5LjUzIDguOTMuODF6Ii8+PHBhdGggZmlsbD0idXJsKCNhKSIgZD0iTTguOTMuODF2MTMuNDVsNy40Ny00LjcyTDguOTMuODF6Ii8+PHBhdGggZmlsbD0iIzUzYjFlMCIgc3R5bGU9Imlzb2xhdGlvbjppc29sYXRlIiBkPSJNOC45MyA3Ljc2bDcuNDcgMS43OC03LjQ3IDQuNzJ2LTYuNXoiLz48cGF0aCBmaWxsPSIjOWNlYmZmIiBzdHlsZT0iaXNvbGF0aW9uOmlzb2xhdGUiIGQ9Ik04LjkzIDE0LjI2TDEuNjEgOS41M2w3LjMyLTEuNzd2Ni41eiIvPjxwYXRoIGZpbGw9InVybCgjYikiIGQ9Ik04LjkzIDE3LjE5TDE4IDExLjM1bC0xLjAxLTEuMTgtOC4wNiA1LjE2djEuODZ6Ii8+PC9zdmc+' width='26' height='26' /><br/><b>Active Directory</b><br/><i>On-Premises Corporate Directory</i><br/>autoeveramerica.com | hmausa.com"]
+
+    subgraph ENTRA["Microsoft Entra ID — HMGNA Tenant (Source of Truth)"]
+        AAD["<img src='data:image/svg+xml;base64,PHN2ZyBkYXRhLW5hbWU9ImZsdWVudF9pY29ucyIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgMTggMTgiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iYSIgeDE9IjEzLjI1IiB5MT0iMTMuMDIiIHgyPSI4LjYyIiB5Mj0iNC4yNSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzE5ODhkOSIvPjxzdG9wIG9mZnNldD0iLjkiIHN0b3AtY29sb3I9IiM1NGFlZjAiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0iYiIgeDE9IjExLjI2IiB5MT0iMTAuNDciIHgyPSIxNC40NiIgeTI9IjE1Ljk5IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIuMSIgc3RvcC1jb2xvcj0iIzU0YWVmMCIvPjxzdG9wIG9mZnNldD0iLjI5IiBzdG9wLWNvbG9yPSIjNGZhYmVlIi8+PHN0b3Agb2Zmc2V0PSIuNTEiIHN0b3AtY29sb3I9IiM0MWEyZTkiLz48c3RvcCBvZmZzZXQ9Ii43NCIgc3RvcC1jb2xvcj0iIzJhOTNlMCIvPjxzdG9wIG9mZnNldD0iLjg4IiBzdG9wLWNvbG9yPSIjMTk4OGQ5Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHBhdGggZmlsbD0iIzUwZTZmZiIgc3R5bGU9Imlzb2xhdGlvbjppc29sYXRlIiBkPSJNMS4wMSAxMC4xOWw3LjkyIDUuMTQgOC4wNi01LjE2TDE4IDExLjM1bC05LjA3IDUuODRMMCAxMS4zNWwxLjAxLTEuMTZ6Ii8+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEuNjEgOS41M0w4LjkzLjgxbDcuNDcgOC43My03LjQ3IDQuNzItNy4zMi00LjczeiIvPjxwYXRoIGZpbGw9IiM1MGU2ZmYiIHN0eWxlPSJpc29sYXRpb246aXNvbGF0ZSIgZD0iTTguOTMuODF2MTMuNDVMMS42MSA5LjUzIDguOTMuODF6Ii8+PHBhdGggZmlsbD0idXJsKCNhKSIgZD0iTTguOTMuODF2MTMuNDVsNy40Ny00LjcyTDguOTMuODF6Ii8+PHBhdGggZmlsbD0iIzUzYjFlMCIgc3R5bGU9Imlzb2xhdGlvbjppc29sYXRlIiBkPSJNOC45MyA3Ljc2bDcuNDcgMS43OC03LjQ3IDQuNzJ2LTYuNXoiLz48cGF0aCBmaWxsPSIjOWNlYmZmIiBzdHlsZT0iaXNvbGF0aW9uOmlzb2xhdGUiIGQ9Ik04LjkzIDE0LjI2TDEuNjEgOS41M2w3LjMyLTEuNzd2Ni41eiIvPjxwYXRoIGZpbGw9InVybCgjYikiIGQ9Ik04LjkzIDE3LjE5TDE4IDExLjM1bC0xLjAxLTEuMTgtOC4wNiA1LjE2djEuODZ6Ii8+PC9zdmc+' width='26' height='26' /><br/><b>Entra ID</b><br/><i>formerly Azure AD</i>"]
+        subgraph GRPCLASS[" "]
+            ADSYNC["AD-Synced Groups<br/><i>On-prem origin, hybrid identity</i>"]
+            CLOUDONLY["Cloud-Only Groups<br/><i>Entra ID native, no AD object</i>"]
+        end
+        AAD --> ADSYNC
+        AAD --> CLOUDONLY
+    end
+
+    AD -->|"Azure AD Connect<br/>Hybrid Sync<br/>(password hash + objects)"| AAD
+
+    %% ──── AWS — 4 Organizations / 132 Accounts ────
+    subgraph AWS["AWS — 4 Organizations / 132 Accounts"]
+        subgraph AWSFED["Entra ID → AWS Federation"]
+            SAML["SAML 2.0<br/><i>Authentication channel</i><br/>User login via SSO portal"]
+            SCIM["SCIM 2.0<br/><i>Provisioning channel</i><br/>Background user/group sync"]
+        end
+        AWSIS["<img src='data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iNjRweCIgaGVpZ2h0PSI2NHB4IiB2aWV3Qm94PSIwIDAgNjQgNjQiIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8IS0tIEdlbmVyYXRvcjogU2tldGNoIDY0ICg5MzUzNykgLSBodHRwczovL3NrZXRjaC5jb20gLS0+CiAgICA8dGl0bGU+SWNvbi1BcmNoaXRlY3R1cmUvNDgvQXJjaF9BV1MtSWRlbnRpdHktYW5kLUFjY2Vzcy1NYW5hZ2VtZW50XzQ4PC90aXRsZT4KICAgIDxkZXNjPkNyZWF0ZWQgd2l0aCBTa2V0Y2guPC9kZXNjPgogICAgPGRlZnM+CiAgICAgICAgPGxpbmVhckdyYWRpZW50IHgxPSIwJSIgeTE9IjEwMCUiIHgyPSIxMDAlIiB5Mj0iMCUiIGlkPSJsaW5lYXJHcmFkaWVudC0xIj4KICAgICAgICAgICAgPHN0b3Agc3RvcC1jb2xvcj0iI0JEMDgxNiIgb2Zmc2V0PSIwJSI+PC9zdG9wPgogICAgICAgICAgICA8c3RvcCBzdG9wLWNvbG9yPSIjRkY1MjUyIiBvZmZzZXQ9IjEwMCUiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPC9kZWZzPgogICAgPGcgaWQ9Ikljb24tQXJjaGl0ZWN0dXJlLzQ4L0FyY2hfQVdTLUlkZW50aXR5LWFuZC1BY2Nlc3MtTWFuYWdlbWVudF80OCIgc3Ryb2tlPSJub25lIiBzdHJva2Utd2lkdGg9IjEiIGZpbGw9Im5vbmUiIGZpbGwtcnVsZT0iZXZlbm9kZCI+CiAgICAgICAgPGcgaWQ9Ikljb24tQXJjaGl0ZWN0dXJlLUJHLzQ4L1NlY3VyaXR5LUlkZW50aXR5LUNvbXBsaWFuY2UiIGZpbGw9InVybCgjbGluZWFyR3JhZGllbnQtMSkiPgogICAgICAgICAgICA8cmVjdCBpZD0iUmVjdGFuZ2xlIiB4PSIwIiB5PSIwIiB3aWR0aD0iNjQiIGhlaWdodD0iNjQiPjwvcmVjdD4KICAgICAgICA8L2c+CiAgICAgICAgPHBhdGggZD0iTTEyLDQ3IEw1Miw0NyBMNTIsMTggTDEyLDE4IEwxMiw0NyBaIE01NCwxNyBMNTQsNDggQzU0LDQ4LjU1MiA1My41NTMsNDkgNTMsNDkgTDExLDQ5IEMxMC40NDcsNDkgMTAsNDguNTUyIDEwLDQ4IEwxMCwxNyBDMTAsMTYuNDQ4IDEwLjQ0NywxNiAxMSwxNiBMNTMsMTYgQzUzLjU1MywxNiA1NCwxNi40NDggNTQsMTcgTDU0LDE3IFogTTM1LDM5IEw0NywzOSBMNDcsMzcgTDM1LDM3IEwzNSwzOSBaIE00NSwzNSBMNDksMzUgTDQ5LDMzIEw0NSwzMyBMNDUsMzUgWiBNMzUsMzUgTDQxLDM1IEw0MSwzMyBMMzUsMzMgTDM1LDM1IFogTTIyLjUsMzcuNSBDMjIuNSwzNy43NzYgMjIuNzI1LDM4IDIzLDM4IEMyMy4yNzUsMzggMjMuNSwzNy43NzYgMjMuNSwzNy41IEMyMy41LDM3LjIyNCAyMy4yNzUsMzcgMjMsMzcgQzIyLjcyNSwzNyAyMi41LDM3LjIyNCAyMi41LDM3LjUgTDIyLjUsMzcuNSBaIE0yNS41LDM3LjUgQzI1LjUsMzguNTIyIDI0Ljg4MiwzOS40MDEgMjQsMzkuNzg4IEwyNCw0MiBMMjIsNDIgTDIyLDM5Ljc4OCBDMjEuMTE4LDM5LjQwMSAyMC41LDM4LjUyMiAyMC41LDM3LjUgQzIwLjUsMzYuMTIyIDIxLjYyMSwzNSAyMywzNSBDMjQuMzc5LDM1IDI1LjUsMzYuMTIyIDI1LjUsMzcuNSBMMjUuNSwzNy41IFogTTE2LDQyLjk5NSBMMjkuOTk1LDQzIEwyOS45OTYsNDEgTDI3LDQxIEwyNywzOSBMMjkuOTk3LDM5IEwyOS45OTgsMzcgTDI3LDM3IEwyNywzNSBMMjkuOTk5LDM1IEwzMCwzMy4wMDUgTDE2LjAwNSwzMyBMMTYsNDIuOTk1IFogTTE4LDMxLjAwMSBMMjguMDAxLDMxLjAwNCBMMjguMDAyLDI2IEMyOC4wMDIsMjQuOTc2IDI3LjIsMjQuMjczIDI2LjcyMiwyMy45NDUgQzI1Ljg0NywyMy4zNDUgMjQuMTc0LDIzIDIzLjAwMiwyMyBMMjMsMjMgQzIwLjg3MywyMyAxOC4wMDMsMjQuMjMyIDE4LjAwMiwyNiBMMTgsMzEuMDAxIFogTTE0LjI5Myw0NC43MDEgQzE0LjEwNSw0NC41MTMgMTQsNDQuMjU5IDE0LDQzLjk5NCBMMTQuMDA1LDMyIEMxNC4wMDUsMzEuNDQ3IDE0LjQ1MywzMSAxNS4wMDUsMzEgTDE2LDMxIEwxNi4wMDIsMjYgQzE2LjAwMywyMi45MTEgMTkuODc2LDIxIDIzLDIxIEwyMy4wMDIsMjEgQzI0LjU2NywyMSAyNi42NTMsMjEuNDczIDI3Ljg1NCwyMi4yOTUgQzI5LjIzOSwyMy4yNDYgMzAuMDAzLDI0LjU2MiAzMC4wMDIsMjYgTDMwLjAwMSwzMS4wMDUgTDMxLDMxLjAwNiBDMzEuMjY2LDMxLjAwNiAzMS41MiwzMS4xMTEgMzEuNzA3LDMxLjI5OSBDMzEuODk1LDMxLjQ4NyAzMiwzMS43NDEgMzIsMzIuMDA2IEwzMS45OTUsNDQgQzMxLjk5NSw0NC41NTMgMzEuNTQ3LDQ1IDMwLjk5NSw0NSBMMTUsNDQuOTk0IEMxNC43MzQsNDQuOTk0IDE0LjQ4LDQ0Ljg4OSAxNC4yOTMsNDQuNzAxIEwxNC4yOTMsNDQuNzAxIFogTTQ3LDMwIEw0OSwzMCBMNDksMjggTDQ3LDI4IEw0NywzMCBaIE0zNSwzMCBMNDQsMzAgTDQ0LDI4IEwzNSwyOCBMMzUsMzAgWiIgaWQ9IkFXUy1JZGVudGl0eS1hbmQtQWNjZXNzLU1hbmFnZW1lbnRfSWNvbl80OF9TcXVpZCIgZmlsbD0iI0ZGRkZGRiI+PC9wYXRoPgogICAgPC9nPgo8L3N2Zz4=' width='26' height='26' /><br/><b>AWS Identity Store</b><br/><i>IAM Identity Center (us-west-2)</i>"]
+        AWSSSO["AWS SSO<br/><i>99 groups / 37 permission sets</i>"]
+        SAMLPROV["SAML Provider per account<br/><i>AWSSSO_*_DO_NOT_DELETE</i><br/>Auto-created by Identity Center"]
+
+        subgraph AWSORGS["AWS Organizations"]
+            HMGNALEG["HMGNA Legacy<br/>56 accounts<br/><i>Mgmt: 254170812053</i><br/><i>Migrating to HMGNA</i>"]
+            HKNA["HKNA<br/>35 accounts"]
+            KNA["KNA<br/>21 accounts"]
+            HMGNA["HMGNA<br/>20 accounts<br/><i>Successor — HAEA, Glovis</i>"]
+        end
+
+        SCIM --> AWSIS
+        SAML --> AWSIS
+        AWSIS --> AWSSSO
+        AWSSSO -->|"Group → Permission Set<br/>→ Account mapping"| AWSORGS
+        AWSSSO -.->|"Creates SAML provider<br/>in each member account"| SAMLPROV
+    end
+
+    %% ──── AZURE — HMGNA Tenant / 51 Subscriptions ────
+    subgraph AZ["Azure — HMGNA Tenant / 51 Subscriptions"]
+        ESM["<b>HAEA ESM Portal</b><br/><i>Access request submission</i>"]
+        APPROVE["Manager Approval<br/>+ Fulfiller Review"]
+        AZRBAC["<img src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NSA2NSI+PHBhdGggZmlsbD0iIzMxNzdiYyIgZD0iTTMyLjU5IDIuNWwyOS41OSAzNS41MUwzMi44MSA2Mi41IDIuODIgMzcuNzkgMzIuNTkgMi41eiIvPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0yOS4wOCAzNS4xNmwuMTUgMTUuMDUgMy4xMyA0LjIyIDQuMTctMy44OS0zLjMxLTIuNzMgMy4zMS0zLjAzLTMuMzEtMy40NiAzLjMxLTIuNTl2LTMuNiIvPjxyZWN0IGZpbGw9IiNmZmYiIHg9IjI0LjQ4IiB5PSIxOC45NiIgd2lkdGg9IjE2LjY2IiBoZWlnaHQ9IjE2LjY2IiByeD0iOC4zMyIgcnk9IjguMzMiLz48Y2lyY2xlIGZpbGw9IiMzMTc3YmMiIGN4PSIzMi41OSIgY3k9IjI1LjMyIiByPSIzLjE1Ii8+PC9zdmc+' width='22' height='22' /> <b>Azure RBAC</b><br/><i>Built-in + custom roles</i>"]
+
+        subgraph AZSUBS["51 Subscriptions — 7 CBUs"]
+            AZKUS["KUS<br/><i>Kia US</i><br/>22 subs"]
+            AZHAEA["HAEA<br/><i>Hyundai AutoEver America</i><br/>14 subs"]
+            AZHMA["HMA<br/><i>Hyundai Motor America</i><br/>6 subs"]
+            AZOTHER["GUS (3) · KIA (2)<br/>HATCI (1) · SS (3)"]
+        end
+
+        ESM --> APPROVE
+        APPROVE -->|"Approved"| AZRBAC
+        AZRBAC -->|"Scope: Subscription<br/>Resource Group / Resource"| AZSUBS
+    end
+
+    %% ──── GCP — 96 Projects / 5 CBUs ────
+    subgraph GC["GCP — 96 Projects / 5 CBUs"]
+        GCPREQ["ESM Ticket<br/><i>Justification + approval + role requested</i>"]
+        GCPADM["GCP Admin<br/><i>Manual user/group provisioning</i>"]
+        GCI["<img src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM2NjlkZjY7fS5jbHMtMSwuY2xzLTJ7ZmlsbC1ydWxlOmV2ZW5vZGQ7fS5jbHMtMntmaWxsOiM0Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfSUFNX0NvbG9yPC90aXRsZT48ZyBkYXRhLW5hbWU9IlByb2R1Y3QgSWNvbnMiPjxnID48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMiwyLDMuNzksNS40MnY1LjYzYzAsNS4wNiwzLjUsOS44LDguMjEsMTEsNC43MS0xLjE1LDguMjEtNS44OSw4LjIxLTEwLjk1VjUuNDJabTAsMy43OWEyLjYzLDIuNjMsMCwxLDEtMS44Ni43N0EyLjYzLDIuNjMsMCwwLDEsMTIsNS43OVptNC4xMSwxMS4xNUE4LjY0LDguNjQsMCwwLDEsMTIsMTkuODdhOC42NCw4LjY0LDAsMCwxLTQuMTEtMi45M1YxNC42OWMwLTEuNjcsMi43NC0yLjUyLDQuMTEtMi41MnM0LjExLjg1LDQuMTEsMi41MnYyLjI1WiIvPjxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTEyLDJWNS43OWEyLjYzLDIuNjMsMCwxLDEsMCw1LjI2djEuMTJjMS4zNywwLDQuMTEuODUsNC4xMSwyLjUydjIuMjVBOC42NCw4LjY0LDAsMCwxLDEyLDE5Ljg3VjIyYzQuNzEtMS4xNSw4LjIxLTUuODksOC4yMS0xMC45NVY1LjQyWiIvPjwvZz48L2c+PC9zdmc+' width='26' height='26' /><br/><b>Google Cloud Identity</b><br/><i>19 groups / 116 users</i>"]
+        GCPIAM["GCP IAM Bindings<br/><i>Role → principal mapping</i>"]
+
+        subgraph GCPHIER["Resource Hierarchy — autoeveramerica.com"]
+            GCPORG["Organization"]
+            GCPHMA["HMA<br/><i>Hyundai Motor America</i><br/>49 projects"]
+            GCPKUS["KUS<br/><i>Kia US</i><br/>21 projects"]
+            GCPHAEA["HAEA<br/><i>Hyundai AutoEver America</i><br/>19 projects"]
+            GCPMISC["CMN (4) · SBX (3)"]
+            GCPORG --> GCPHMA
+            GCPORG --> GCPKUS
+            GCPORG --> GCPHAEA
+            GCPORG --> GCPMISC
+        end
+
+        GCPREQ --> GCPADM
+        GCPADM -->|"Create user or<br/>map requesting group"| GCI
+        GCI --> GCPIAM
+        GCPIAM -->|"Org / Folder /<br/>Project scope"| GCPHIER
+    end
+
+    %% ──── IDENTITY FLOW CONNECTIONS ────
+    ADSYNC -->|"AAD group<br/>membership"| SCIM
+    CLOUDONLY -->|"AAD group<br/>membership"| SCIM
+    ADSYNC -->|"User auth<br/>(SAML assertion)"| SAML
+    CLOUDONLY -->|"User auth<br/>(SAML assertion)"| SAML
+    ADSYNC -->|"Group membership<br/>determines eligibility"| ESM
+    CLOUDONLY -->|"Group membership<br/>determines eligibility"| ESM
+    ADSYNC -->|"Requesting group"| GCPREQ
+    CLOUDONLY -->|"Requesting group"| GCPREQ
+
+    %% ──── STYLES ────
+    %% Clean palette: white backgrounds, thin colored borders, no heavy fills
+    classDef onprem fill:#fff,stroke:#6b7280,stroke-width:2px,color:#1f2937,font-weight:bold
+    classDef identity fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1e3a8a,font-weight:bold
+    classDef grpbox fill:#f8fafc,stroke:#cbd5e1,color:#475569
+    classDef aws fill:#fff,stroke:#d97706,stroke-width:2px,color:#1f2937,font-weight:bold
+    classDef awslegacy fill:#fff,stroke:#d97706,stroke-width:2px,color:#92400e,stroke-dasharray:5 5
+    classDef azure fill:#fff,stroke:#2563eb,stroke-width:2px,color:#1f2937,font-weight:bold
+    classDef gcp fill:#fff,stroke:#4285f4,stroke-width:2px,color:#1f2937,font-weight:bold
+
+    class AD onprem
+    class AAD,ADSYNC,CLOUDONLY identity
+    class GRPCLASS grpbox
+    class SAML,SCIM,AWSIS,AWSSSO,SAMLPROV,HMGNA,HKNA,KNA aws
+    class HMGNALEG awslegacy
+    class ESM,APPROVE,AZRBAC,AZKUS,AZHAEA,AZHMA,AZOTHER azure
+    class GCPREQ,GCPADM,GCI,GCPIAM,GCPORG,GCPHMA,GCPKUS,GCPHAEA,GCPMISC gcp

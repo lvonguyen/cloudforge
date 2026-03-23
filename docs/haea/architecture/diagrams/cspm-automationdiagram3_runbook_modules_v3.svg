@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 550">
+  <defs>
+    <style>
+      .title { font-family: Georgia, serif; font-size: 20px; font-weight: bold; fill: #1a365d; }
+      .module-title { font-family: Georgia, serif; font-size: 11px; font-weight: bold; fill: white; }
+      .module-desc { font-family: Georgia, serif; font-size: 9px; fill: white; opacity: 0.9; }
+      .section-label { font-family: Georgia, serif; font-size: 11px; font-weight: bold; fill: #2d3748; }
+    </style>
+  </defs>
+  
+  <text x="450" y="35" text-anchor="middle" class="title">Diagram 3: Go Module Architecture</text>
+  
+  <!-- Main Binary -->
+  <rect x="250" y="60" width="400" height="70" rx="8" fill="#1e40af"/>
+  <text x="450" y="88" text-anchor="middle" class="module-title" style="font-size: 14px;">cmd/cspm-reporter/main.go</text>
+  <text x="450" y="105" text-anchor="middle" class="module-desc" style="font-size: 10px;">Main Entry Point | Schedule: 1st of month, 8:00 AM PST</text>
+  <text x="450" y="120" text-anchor="middle" class="module-desc">Uses: haea-cloud-security-automation App Registration</text>
+  
+  <!-- Cloud Query Modules -->
+  <text x="170" y="165" text-anchor="middle" class="section-label">internal/providers/</text>
+  <rect x="50" y="180" width="120" height="60" rx="6" fill="#3b82f6"/>
+  <text x="110" y="205" text-anchor="middle" class="module-title">azure/defender.go</text>
+  <text x="110" y="222" text-anchor="middle" class="module-desc">Resource Graph API</text>
+  
+  <rect x="180" y="180" width="120" height="60" rx="6" fill="#f59e0b"/>
+  <text x="240" y="205" text-anchor="middle" class="module-title">aws/securityhub.go</text>
+  <text x="240" y="222" text-anchor="middle" class="module-desc">AWS SDK for Go</text>
+  
+  <rect x="310" y="180" width="120" height="60" rx="6" fill="#22c55e"/>
+  <text x="370" y="205" text-anchor="middle" class="module-title">gcp/scc.go</text>
+  <text x="370" y="222" text-anchor="middle" class="module-desc">SCC SDK + WIF</text>
+  
+  <!-- Processing Modules -->
+  <text x="600" y="165" text-anchor="middle" class="section-label">internal/</text>
+  <rect x="470" y="180" width="120" height="60" rx="6" fill="#8b5cf6"/>
+  <text x="530" y="205" text-anchor="middle" class="module-title">normalizer/</text>
+  <text x="530" y="222" text-anchor="middle" class="module-desc">Common Schema</text>
+  
+  <rect x="600" y="180" width="120" height="60" rx="6" fill="#a855f7"/>
+  <text x="660" y="205" text-anchor="middle" class="module-title">deduplicator/</text>
+  <text x="660" y="222" text-anchor="middle" class="module-desc">FindingIdShort</text>
+  
+  <rect x="730" y="180" width="120" height="60" rx="6" fill="#6366f1"/>
+  <text x="790" y="205" text-anchor="middle" class="module-title">asana/</text>
+  <text x="790" y="222" text-anchor="middle" class="module-desc">Task Management</text>
+  
+  <!-- Output Modules -->
+  <text x="300" y="285" text-anchor="middle" class="section-label">internal/</text>
+  <rect x="130" y="300" width="140" height="60" rx="6" fill="#ec4899"/>
+  <text x="200" y="325" text-anchor="middle" class="module-title">reporter/</text>
+  <text x="200" y="342" text-anchor="middle" class="module-desc">HTML + CSV Generation</text>
+  
+  <rect x="290" y="300" width="160" height="60" rx="6" fill="#f43f5e"/>
+  <text x="370" y="325" text-anchor="middle" class="module-title">email/</text>
+  <text x="370" y="342" text-anchor="middle" class="module-desc">Graph API Mail.Send</text>
+  
+  <!-- Config Module -->
+  <text x="680" y="285" text-anchor="middle" class="section-label">internal/</text>
+  <rect x="580" y="300" width="200" height="60" rx="6" fill="#64748b"/>
+  <text x="680" y="325" text-anchor="middle" class="module-title">config/</text>
+  <text x="680" y="342" text-anchor="middle" class="module-desc">Env Vars | Key Vault | Settings</text>
+  
+  <!-- Connectors from Main -->
+  <line x1="350" y1="130" x2="110" y2="180" stroke="#4a5568" stroke-width="1.5"/>
+  <line x1="400" y1="130" x2="240" y2="180" stroke="#4a5568" stroke-width="1.5"/>
+  <line x1="450" y1="130" x2="370" y2="180" stroke="#4a5568" stroke-width="1.5"/>
+  <line x1="500" y1="130" x2="530" y2="180" stroke="#4a5568" stroke-width="1.5"/>
+  <line x1="550" y1="130" x2="660" y2="180" stroke="#4a5568" stroke-width="1.5"/>
+  <line x1="600" y1="130" x2="790" y2="180" stroke="#4a5568" stroke-width="1.5"/>
+  <line x1="400" y1="130" x2="200" y2="300" stroke="#4a5568" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <line x1="450" y1="130" x2="370" y2="300" stroke="#4a5568" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <line x1="550" y1="130" x2="680" y2="300" stroke="#4a5568" stroke-width="1.5" stroke-dasharray="4,2"/>
+  
+  <!-- Email Recipients -->
+  <rect x="130" y="400" width="320" height="120" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="290" y="425" text-anchor="middle" class="section-label">Email Recipients (via Graph API)</text>
+  <text x="145" y="450" style="font-family: Georgia; font-size: 10px; fill: #4a5568;">InfoSec DL - Monthly summary report</text>
+  <text x="145" y="468" style="font-family: Georgia; font-size: 10px; fill: #4a5568;">haea-aws-securityops@haeaus.com</text>
+  <text x="145" y="486" style="font-family: Georgia; font-size: 10px; fill: #4a5568;">haea-azure-securityops@haeaus.com</text>
+  <text x="145" y="504" style="font-family: Georgia; font-size: 10px; fill: #4a5568;">haea-gcp-securityops@haeaus.com</text>
+  
+  <!-- Go Packages -->
+  <rect x="500" y="400" width="280" height="120" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="640" y="425" text-anchor="middle" class="section-label">Go Dependencies</text>
+  <text x="515" y="450" style="font-family: monospace; font-size: 9px; fill: #4a5568;">github.com/Azure/azure-sdk-for-go/sdk</text>
+  <text x="515" y="468" style="font-family: monospace; font-size: 9px; fill: #4a5568;">github.com/aws/aws-sdk-go-v2</text>
+  <text x="515" y="486" style="font-family: monospace; font-size: 9px; fill: #4a5568;">cloud.google.com/go/securitycenter</text>
+  <text x="515" y="504" style="font-family: monospace; font-size: 9px; fill: #4a5568;">github.com/microsoftgraph/msgraph-sdk-go</text>
+</svg>

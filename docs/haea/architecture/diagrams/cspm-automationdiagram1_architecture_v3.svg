@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+  <defs>
+    <style>
+      .title { font-family: Georgia, serif; font-size: 24px; font-weight: bold; fill: #1a365d; }
+      .subtitle { font-family: Georgia, serif; font-size: 14px; fill: #4a5568; }
+      .box-label { font-family: Georgia, serif; font-size: 11px; font-weight: bold; fill: white; }
+      .box-sublabel { font-family: Georgia, serif; font-size: 9px; fill: white; opacity: 0.9; }
+      .connector-label { font-family: Georgia, serif; font-size: 9px; fill: #4a5568; }
+      .cloud-label { font-family: Georgia, serif; font-size: 13px; font-weight: bold; fill: #2d3748; }
+      .group-label { font-family: Georgia, serif; font-size: 10px; fill: #2d3748; }
+    </style>
+  </defs>
+  
+  <text x="600" y="35" text-anchor="middle" class="title">Diagram 1: Cross-Cloud CSPM Architecture</text>
+  <text x="600" y="55" text-anchor="middle" class="subtitle">Go Binary + Azure Container Instance as Central Hub</text>
+  
+  <!-- AWS Cloud Box -->
+  <rect x="50" y="90" width="280" height="180" rx="10" fill="#fff8e6" stroke="#f59e0b" stroke-width="2"/>
+  <text x="190" y="115" text-anchor="middle" class="cloud-label">AWS Accounts</text>
+  <rect x="70" y="130" width="100" height="50" rx="5" fill="#f59e0b"/>
+  <text x="120" y="152" text-anchor="middle" class="box-label">Security Hub</text>
+  <text x="120" y="167" text-anchor="middle" class="box-sublabel">FSBP + CIS</text>
+  <rect x="180" y="130" width="100" height="50" rx="5" fill="#dc2626"/>
+  <text x="230" y="152" text-anchor="middle" class="box-label">OIDC Federation</text>
+  <text x="230" y="167" text-anchor="middle" class="box-sublabel">SecurityAudit</text>
+  <rect x="70" y="195" width="210" height="22" rx="3" fill="#fef3c7"/>
+  <text x="175" y="210" text-anchor="middle" class="connector-label">AWS SDK for Go | OIDC Token Exchange</text>
+  
+  <!-- Azure Cloud Box -->
+  <rect x="460" y="90" width="280" height="180" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+  <text x="600" y="115" text-anchor="middle" class="cloud-label">Azure Subscriptions</text>
+  <rect x="480" y="130" width="100" height="50" rx="5" fill="#3b82f6"/>
+  <text x="530" y="152" text-anchor="middle" class="box-label">Defender</text>
+  <text x="530" y="167" text-anchor="middle" class="box-sublabel">MCSB v1</text>
+  <rect x="590" y="130" width="100" height="50" rx="5" fill="#1d4ed8"/>
+  <text x="640" y="152" text-anchor="middle" class="box-label">Managed ID</text>
+  <text x="640" y="167" text-anchor="middle" class="box-sublabel">Reader Role</text>
+  <rect x="480" y="195" width="210" height="22" rx="3" fill="#dbeafe"/>
+  <text x="585" y="210" text-anchor="middle" class="connector-label">Azure SDK for Go | No secrets</text>
+  
+  <!-- GCP Cloud Box -->
+  <rect x="870" y="90" width="280" height="180" rx="10" fill="#f0fdf4" stroke="#22c55e" stroke-width="2"/>
+  <text x="1010" y="115" text-anchor="middle" class="cloud-label">GCP Projects</text>
+  <rect x="890" y="130" width="100" height="50" rx="5" fill="#22c55e"/>
+  <text x="940" y="152" text-anchor="middle" class="box-label">SCC</text>
+  <text x="940" y="167" text-anchor="middle" class="box-sublabel">CIS GCP 2.0</text>
+  <rect x="1000" y="130" width="100" height="50" rx="5" fill="#16a34a"/>
+  <text x="1050" y="152" text-anchor="middle" class="box-label">WIF</text>
+  <text x="1050" y="167" text-anchor="middle" class="box-sublabel">Existing SA</text>
+  <rect x="890" y="195" width="210" height="22" rx="3" fill="#dcfce7"/>
+  <text x="995" y="210" text-anchor="middle" class="connector-label">GCP SDK for Go | WIF Token Exchange</text>
+  
+  <!-- Central Orchestration -->
+  <rect x="350" y="340" width="500" height="110" rx="10" fill="#1e40af"/>
+  <text x="600" y="370" text-anchor="middle" class="box-label" style="font-size: 14px;">Azure Container Instance (aci-haea-cspm)</text>
+  <text x="600" y="390" text-anchor="middle" class="box-sublabel" style="font-size: 10px;">Go Binary | System-assigned MI | Monthly Schedule via Logic App</text>
+  <rect x="400" y="405" width="400" height="35" rx="5" fill="#3730a3"/>
+  <text x="600" y="420" text-anchor="middle" class="box-label" style="font-size: 11px;">App Registration: haea-cloud-security-automation</text>
+  <text x="600" y="433" text-anchor="middle" class="box-sublabel">GCP WIF + Graph Mail.Send + AWS OIDC</text>
+  
+  <!-- Connectors to Central -->
+  <line x1="190" y1="270" x2="190" y2="300" stroke="#f59e0b" stroke-width="2"/>
+  <line x1="190" y1="300" x2="450" y2="300" stroke="#f59e0b" stroke-width="2"/>
+  <line x1="450" y1="300" x2="450" y2="340" stroke="#f59e0b" stroke-width="2"/>
+  <line x1="600" y1="270" x2="600" y2="340" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="1010" y1="270" x2="1010" y2="300" stroke="#22c55e" stroke-width="2"/>
+  <line x1="1010" y1="300" x2="750" y2="300" stroke="#22c55e" stroke-width="2"/>
+  <line x1="750" y1="300" x2="750" y2="340" stroke="#22c55e" stroke-width="2"/>
+  
+  <!-- Outputs Row -->
+  <rect x="100" y="520" width="140" height="60" rx="8" fill="#6366f1"/>
+  <text x="170" y="548" text-anchor="middle" class="box-label">Asana</text>
+  <text x="170" y="563" text-anchor="middle" class="box-sublabel">Task Sync</text>
+  
+  <rect x="280" y="520" width="140" height="60" rx="8" fill="#8b5cf6"/>
+  <text x="350" y="548" text-anchor="middle" class="box-label">Graph API</text>
+  <text x="350" y="563" text-anchor="middle" class="box-sublabel">Mail.Send</text>
+  
+  <!-- Email Recipients -->
+  <rect x="480" y="510" width="150" height="45" rx="6" fill="#ec4899"/>
+  <text x="555" y="530" text-anchor="middle" class="box-label" style="font-size: 10px;">InfoSec Team</text>
+  <text x="555" y="545" text-anchor="middle" class="box-sublabel">Monthly Summary</text>
+  
+  <rect x="650" y="510" width="170" height="45" rx="6" fill="#f97316"/>
+  <text x="735" y="530" text-anchor="middle" class="box-label" style="font-size: 10px;">HAEA-AWS-SecurityOps</text>
+  <text x="735" y="545" text-anchor="middle" class="box-sublabel">haea-aws-securityops@haeaus.com</text>
+  
+  <rect x="840" y="510" width="170" height="45" rx="6" fill="#3b82f6"/>
+  <text x="925" y="530" text-anchor="middle" class="box-label" style="font-size: 10px;">HAEA-Azure-SecurityOps</text>
+  <text x="925" y="545" text-anchor="middle" class="box-sublabel">haea-azure-securityops@haeaus.com</text>
+  
+  <rect x="1030" y="510" width="150" height="45" rx="6" fill="#22c55e"/>
+  <text x="1105" y="530" text-anchor="middle" class="box-label" style="font-size: 10px;">HAEA-GCP-SecurityOps</text>
+  <text x="1105" y="545" text-anchor="middle" class="box-sublabel">haea-gcp-securityops@haeaus.com</text>
+  
+  <rect x="650" y="570" width="360" height="35" rx="6" fill="#64748b"/>
+  <text x="830" y="592" text-anchor="middle" class="box-label" style="font-size: 10px;">App/Dev Teams (Direct to PoCs for remediation actions)</text>
+  
+  <!-- Output connectors -->
+  <line x1="450" y1="450" x2="450" y2="485" stroke="#6366f1" stroke-width="2"/>
+  <line x1="450" y1="485" x2="170" y2="485" stroke="#6366f1" stroke-width="2"/>
+  <line x1="170" y1="485" x2="170" y2="520" stroke="#6366f1" stroke-width="2"/>
+  
+  <line x1="550" y1="450" x2="550" y2="485" stroke="#8b5cf6" stroke-width="2"/>
+  <line x1="550" y1="485" x2="350" y2="485" stroke="#8b5cf6" stroke-width="2"/>
+  <line x1="350" y1="485" x2="350" y2="520" stroke="#8b5cf6" stroke-width="2"/>
+  
+  <line x1="420" y1="540" x2="480" y2="532" stroke="#8b5cf6" stroke-width="1.5"/>
+  <line x1="420" y1="545" x2="650" y2="532" stroke="#8b5cf6" stroke-width="1.5"/>
+  <line x1="420" y1="550" x2="840" y2="532" stroke="#8b5cf6" stroke-width="1.5"/>
+  <line x1="420" y1="555" x2="1030" y2="532" stroke="#8b5cf6" stroke-width="1.5"/>
+  <line x1="420" y1="560" x2="650" y2="585" stroke="#8b5cf6" stroke-width="1.5"/>
+</svg>
