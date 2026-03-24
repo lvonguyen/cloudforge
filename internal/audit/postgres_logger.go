@@ -3,6 +3,7 @@ package audit
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -28,7 +29,7 @@ func (p *PostgresAuditLogger) Log(ctx context.Context, entry AuditEntry) error {
 	}
 	entry.IntegrityHash = entry.computeHash()
 
-	tenantID, tenantName := tenantFromCtx(ctx)
+	tenantID, tenantName := tenant.IDFromContext(ctx)
 
 	query := `
 		INSERT INTO audit_log (
@@ -46,7 +47,7 @@ func (p *PostgresAuditLogger) Log(ctx context.Context, entry AuditEntry) error {
 		entry.Resource,
 		entry.ResourceID,
 		entry.Result,
-		fmt.Sprintf(`{"integrity_hash":%q}`, entry.IntegrityHash),
+		mustJSON(map[string]string{"integrity_hash": entry.IntegrityHash}),
 		nilIfEmpty(entry.IP),
 		entry.Timestamp,
 		tenantID,
@@ -60,7 +61,7 @@ func (p *PostgresAuditLogger) Log(ctx context.Context, entry AuditEntry) error {
 
 // List queries audit entries from PostgreSQL, scoped to the current tenant.
 func (p *PostgresAuditLogger) List(ctx context.Context, opts ListOpts) ([]AuditEntry, error) {
-	tenantID, _ := tenantFromCtx(ctx)
+	tenantID, _ := tenant.IDFromContext(ctx)
 
 	limit := opts.Limit
 	if limit <= 0 {
@@ -116,12 +117,14 @@ func (p *PostgresAuditLogger) List(ctx context.Context, opts ListOpts) ([]AuditE
 	return entries, rows.Err()
 }
 
-// tenantFromCtx extracts tenant ID and name from context.
-func tenantFromCtx(ctx context.Context) (id, name string) {
-	if cfg := tenant.FromContext(ctx); cfg != nil {
-		return cfg.ID, cfg.Name
+// mustJSON marshals v to a JSON string. Panics on marshal failure (should never
+// happen with simple map[string]string values).
+func mustJSON(v any) string {
+	b, err := json.Marshal(v)
+	if err != nil {
+		panic(fmt.Sprintf("audit: json.Marshal: %v", err))
 	}
-	return "default", ""
+	return string(b)
 }
 
 // nilIfEmpty returns nil for empty strings (for nullable INET columns).

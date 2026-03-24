@@ -3,6 +3,7 @@ package audit
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,6 +16,7 @@ import (
 type CompositeAuditLogger struct {
 	primary AuditLogger   // used for List() queries
 	stores  []AuditLogger // all stores receive Log() writes
+	onError func(err error)
 }
 
 // NewCompositeAuditLogger creates a composite logger. The first store is the
@@ -23,7 +25,11 @@ func NewCompositeAuditLogger(primary AuditLogger, additional ...AuditLogger) *Co
 	stores := make([]AuditLogger, 0, 1+len(additional))
 	stores = append(stores, primary)
 	stores = append(stores, additional...)
-	return &CompositeAuditLogger{primary: primary, stores: stores}
+	return &CompositeAuditLogger{
+		primary: primary,
+		stores:  stores,
+		onError: func(err error) { log.Printf("[WARN] audit store error: %v", err) },
+	}
 }
 
 // Log writes the entry to all backing stores. Auto-generates ID, timestamp,
@@ -38,9 +44,14 @@ func (c *CompositeAuditLogger) Log(ctx context.Context, entry AuditEntry) error 
 	entry.IntegrityHash = entry.computeHash()
 
 	var firstErr error
-	for _, s := range c.stores {
-		if err := s.Log(ctx, entry); err != nil && firstErr == nil {
-			firstErr = fmt.Errorf("composite audit log: %w", err)
+	for i, s := range c.stores {
+		if err := s.Log(ctx, entry); err != nil {
+			wrapped := fmt.Errorf("composite audit log (store %d): %w", i, err)
+			if firstErr == nil {
+				firstErr = wrapped
+			} else if c.onError != nil {
+				c.onError(wrapped)
+			}
 		}
 	}
 	return firstErr

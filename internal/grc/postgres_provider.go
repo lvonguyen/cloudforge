@@ -26,15 +26,6 @@ func NewPostgresGRCProvider(db *sql.DB) *PostgresGRCProvider {
 	return &PostgresGRCProvider{db: db}
 }
 
-// tenantFromCtx extracts the tenant ID and friendly name from context.
-// Returns ("default", "") when no tenant is set (single-tenant backward compat).
-func tenantFromCtx(ctx context.Context) (id, name string) {
-	if cfg := tenant.FromContext(ctx); cfg != nil {
-		return cfg.ID, cfg.Name
-	}
-	return "default", ""
-}
-
 // CreateException creates a new exception request in the database.
 func (p *PostgresGRCProvider) CreateException(
 	ctx context.Context,
@@ -54,7 +45,7 @@ func (p *PostgresGRCProvider) CreateException(
 	req.UpdatedAt = time.Now()
 	req.Status = StatusPending
 
-	tenantID, tenantName := tenantFromCtx(ctx)
+	tenantID, tenantName := tenant.IDFromContext(ctx)
 
 	// Insert main exception record
 	query := `
@@ -134,7 +125,7 @@ func (p *PostgresGRCProvider) CreateException(
 
 // GetException retrieves an exception by ID, scoped to the current tenant.
 func (p *PostgresGRCProvider) GetException(ctx context.Context, id string) (*ExceptionRequest, error) {
-	tenantID, _ := tenantFromCtx(ctx)
+	tenantID, _ := tenant.IDFromContext(ctx)
 
 	query := `
 		SELECT
@@ -263,7 +254,7 @@ func (p *PostgresGRCProvider) GetException(ctx context.Context, id string) (*Exc
 
 // UpdateException updates an existing exception, scoped to the current tenant.
 func (p *PostgresGRCProvider) UpdateException(ctx context.Context, req *ExceptionRequest) error {
-	tenantID, _ := tenantFromCtx(ctx)
+	tenantID, _ := tenant.IDFromContext(ctx)
 	req.UpdatedAt = time.Now()
 
 	query := `
@@ -298,7 +289,7 @@ func (p *PostgresGRCProvider) ValidateException(
 	ctx context.Context,
 	applicationID, policyCode string,
 ) (*ExceptionValidation, error) {
-	tenantID, _ := tenantFromCtx(ctx)
+	tenantID, _ := tenant.IDFromContext(ctx)
 
 	query := `
 		SELECT id, expiration_date
@@ -340,7 +331,7 @@ func (p *PostgresGRCProvider) SubmitApproval(
 	exceptionID string,
 	approver Approver,
 ) error {
-	tenantID, _ := tenantFromCtx(ctx)
+	tenantID, _ := tenant.IDFromContext(ctx)
 
 	tx, err := p.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -438,7 +429,7 @@ func (p *PostgresGRCProvider) batchGetExceptions(ctx context.Context, ids []stri
 		return nil, nil
 	}
 
-	tenantID, _ := tenantFromCtx(ctx)
+	tenantID, _ := tenant.IDFromContext(ctx)
 
 	// Fetch all core exception rows in one query using ANY($1).
 	coreQuery := `
@@ -532,7 +523,7 @@ func (p *PostgresGRCProvider) GetPendingApprovals(
 	ctx context.Context,
 	approverEmail string,
 ) ([]ExceptionRequest, error) {
-	tenantID, _ := tenantFromCtx(ctx)
+	tenantID, _ := tenant.IDFromContext(ctx)
 
 	query := `
 		SELECT DISTINCT er.id
@@ -571,7 +562,7 @@ func (p *PostgresGRCProvider) GetExceptionsByApplication(
 	ctx context.Context,
 	appID string,
 ) ([]ExceptionRequest, error) {
-	tenantID, _ := tenantFromCtx(ctx)
+	tenantID, _ := tenant.IDFromContext(ctx)
 
 	query := `
 		SELECT id FROM exception_requests
@@ -606,7 +597,7 @@ func (p *PostgresGRCProvider) GetExpiringExceptions(
 	ctx context.Context,
 	withinDays int,
 ) ([]ExceptionRequest, error) {
-	tenantID, _ := tenantFromCtx(ctx)
+	tenantID, _ := tenant.IDFromContext(ctx)
 	cutoff := time.Now().AddDate(0, 0, withinDays)
 
 	query := `
@@ -646,7 +637,7 @@ func (p *PostgresGRCProvider) GetExceptionsByRequestor(
 	ctx context.Context,
 	email string,
 ) ([]ExceptionRequest, error) {
-	tenantID, _ := tenantFromCtx(ctx)
+	tenantID, _ := tenant.IDFromContext(ctx)
 
 	query := `
 		SELECT id FROM exception_requests

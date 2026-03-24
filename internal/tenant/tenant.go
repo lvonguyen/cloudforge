@@ -205,6 +205,15 @@ func FromContext(ctx context.Context) *Config {
 	return cfg
 }
 
+// IDFromContext extracts the tenant ID and name from context.
+// Returns ("default", "") when no tenant is set (single-tenant backward compat).
+func IDFromContext(ctx context.Context) (id, name string) {
+	if cfg := FromContext(ctx); cfg != nil {
+		return cfg.ID, cfg.Name
+	}
+	return "default", ""
+}
+
 // WithContext returns a new context with the tenant config set.
 func WithContext(ctx context.Context, cfg *Config) context.Context {
 	return context.WithValue(ctx, tenantCtxKey, cfg)
