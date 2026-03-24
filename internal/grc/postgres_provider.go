@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"aegis/internal/tenant"
+
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
@@ -22,6 +24,15 @@ type PostgresGRCProvider struct {
 // NewPostgresGRCProvider creates a new PostgreSQL-backed GRC provider.
 func NewPostgresGRCProvider(db *sql.DB) *PostgresGRCProvider {
 	return &PostgresGRCProvider{db: db}
+}
+
+// tenantFromCtx extracts the tenant ID and friendly name from context.
+// Returns ("default", "") when no tenant is set (single-tenant backward compat).
+func tenantFromCtx(ctx context.Context) (id, name string) {
+	if cfg := tenant.FromContext(ctx); cfg != nil {
+		return cfg.ID, cfg.Name
+	}
+	return "default", ""
 }
 
 // CreateException creates a new exception request in the database.
@@ -43,13 +54,16 @@ func (p *PostgresGRCProvider) CreateException(
 	req.UpdatedAt = time.Now()
 	req.Status = StatusPending
 
+	tenantID, tenantName := tenantFromCtx(ctx)
+
 	// Insert main exception record
 	query := `
 		INSERT INTO exception_requests (
 			id, application_id, requestor_email, request_type,
 			policy_violated, resource_requested, business_case,
-			status, expiration_date, created_at, updated_at, metadata
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			status, expiration_date, created_at, updated_at, metadata,
+			tenant_id, tenant_name
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 	`
 
 	_, err = tx.ExecContext(ctx, query,
@@ -65,6 +79,8 @@ func (p *PostgresGRCProvider) CreateException(
 		req.CreatedAt,
 		req.UpdatedAt,
 		"{}",
+		tenantID,
+		tenantName,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert exception: %w", err)
@@ -74,8 +90,8 @@ func (p *PostgresGRCProvider) CreateException(
 	for i, approver := range req.ApproverChain {
 		approverQuery := `
 			INSERT INTO approval_chain (
-				id, exception_id, sequence_order, approver_email, approver_role
-			) VALUES ($1, $2, $3, $4, $5)
+				id, exception_id, sequence_order, approver_email, approver_role, tenant_id
+			) VALUES ($1, $2, $3, $4, $5, $6)
 		`
 		_, err = tx.ExecContext(ctx, approverQuery,
 			uuid.New().String(),
@@ -83,6 +99,7 @@ func (p *PostgresGRCProvider) CreateException(
 			i,
 			approver.Email,
 			approver.Role,
+			tenantID,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to insert approver: %w", err)
@@ -92,8 +109,8 @@ func (p *PostgresGRCProvider) CreateException(
 	// Insert audit log entry
 	auditQuery := `
 		INSERT INTO exception_audit_log (
-			id, exception_id, action, actor_email, new_value, timestamp
-		) VALUES ($1, $2, $3, $4, $5, $6)
+			id, exception_id, action, actor_email, new_value, timestamp, tenant_id
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 	_, err = tx.ExecContext(ctx, auditQuery,
 		uuid.New().String(),
@@ -102,6 +119,7 @@ func (p *PostgresGRCProvider) CreateException(
 		req.RequestorEmail,
 		"{}",
 		time.Now(),
+		tenantID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert audit log: %w", err)
@@ -114,21 +132,23 @@ func (p *PostgresGRCProvider) CreateException(
 	return req, nil
 }
 
-// GetException retrieves an exception by ID.
+// GetException retrieves an exception by ID, scoped to the current tenant.
 func (p *PostgresGRCProvider) GetException(ctx context.Context, id string) (*ExceptionRequest, error) {
+	tenantID, _ := tenantFromCtx(ctx)
+
 	query := `
-		SELECT 
+		SELECT
 			id, application_id, requestor_email, request_type,
 			policy_violated, resource_requested, business_case,
 			status, expiration_date, created_at, updated_at
 		FROM exception_requests
-		WHERE id = $1
+		WHERE id = $1 AND tenant_id = $2
 	`
 
 	req := &ExceptionRequest{}
 	var expiration sql.NullTime
 
-	err := p.db.QueryRowContext(ctx, query, id).Scan(
+	err := p.db.QueryRowContext(ctx, query, id, tenantID).Scan(
 		&req.ID,
 		&req.ApplicationID,
 		&req.RequestorEmail,
@@ -156,10 +176,10 @@ func (p *PostgresGRCProvider) GetException(ctx context.Context, id string) (*Exc
 	approverQuery := `
 		SELECT approver_email, approver_role, decision, comments, decided_at
 		FROM approval_chain
-		WHERE exception_id = $1
+		WHERE exception_id = $1 AND tenant_id = $2
 		ORDER BY sequence_order
 	`
-	rows, err := p.db.QueryContext(ctx, approverQuery, id)
+	rows, err := p.db.QueryContext(ctx, approverQuery, id, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load approvers: %w", err)
 	}
@@ -195,10 +215,10 @@ func (p *PostgresGRCProvider) GetException(ctx context.Context, id string) (*Exc
 	riskQuery := `
 		SELECT risk_level, impact, likelihood, residual_risk, assessed_by, assessed_at
 		FROM risk_assessments
-		WHERE exception_id = $1
+		WHERE exception_id = $1 AND tenant_id = $2
 	`
 	var risk RiskAssessment
-	err = p.db.QueryRowContext(ctx, riskQuery, id).Scan(
+	err = p.db.QueryRowContext(ctx, riskQuery, id, tenantID).Scan(
 		&risk.RiskLevel,
 		&risk.Impact,
 		&risk.Likelihood,
@@ -219,9 +239,9 @@ func (p *PostgresGRCProvider) GetException(ctx context.Context, id string) (*Exc
 	ctrlQuery := `
 		SELECT control_description
 		FROM compensating_controls
-		WHERE exception_id = $1
+		WHERE exception_id = $1 AND tenant_id = $2
 	`
-	ctrlRows, err := p.db.QueryContext(ctx, ctrlQuery, id)
+	ctrlRows, err := p.db.QueryContext(ctx, ctrlQuery, id, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load controls: %w", err)
 	}
@@ -241,14 +261,15 @@ func (p *PostgresGRCProvider) GetException(ctx context.Context, id string) (*Exc
 	return req, nil
 }
 
-// UpdateException updates an existing exception.
+// UpdateException updates an existing exception, scoped to the current tenant.
 func (p *PostgresGRCProvider) UpdateException(ctx context.Context, req *ExceptionRequest) error {
+	tenantID, _ := tenantFromCtx(ctx)
 	req.UpdatedAt = time.Now()
 
 	query := `
 		UPDATE exception_requests
 		SET status = $1, expiration_date = $2, updated_at = $3
-		WHERE id = $4
+		WHERE id = $4 AND tenant_id = $5
 	`
 
 	result, err := p.db.ExecContext(ctx, query,
@@ -256,6 +277,7 @@ func (p *PostgresGRCProvider) UpdateException(ctx context.Context, req *Exceptio
 		req.ExpirationDate,
 		req.UpdatedAt,
 		req.ID,
+		tenantID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update exception: %w", err)
@@ -276,17 +298,19 @@ func (p *PostgresGRCProvider) ValidateException(
 	ctx context.Context,
 	applicationID, policyCode string,
 ) (*ExceptionValidation, error) {
+	tenantID, _ := tenantFromCtx(ctx)
+
 	query := `
-		SELECT id, expiration_date 
-		FROM valid_exceptions 
-		WHERE application_id = $1 AND policy_violated = $2
+		SELECT id, expiration_date
+		FROM valid_exceptions
+		WHERE application_id = $1 AND policy_violated = $2 AND tenant_id = $3
 		LIMIT 1
 	`
 
 	var id string
 	var expiration sql.NullTime
 
-	err := p.db.QueryRowContext(ctx, query, applicationID, policyCode).Scan(&id, &expiration)
+	err := p.db.QueryRowContext(ctx, query, applicationID, policyCode, tenantID).Scan(&id, &expiration)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return &ExceptionValidation{
@@ -316,6 +340,8 @@ func (p *PostgresGRCProvider) SubmitApproval(
 	exceptionID string,
 	approver Approver,
 ) error {
+	tenantID, _ := tenantFromCtx(ctx)
+
 	tx, err := p.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -328,7 +354,7 @@ func (p *PostgresGRCProvider) SubmitApproval(
 	approverQuery := `
 		UPDATE approval_chain
 		SET decision = $1, comments = $2, decided_at = $3
-		WHERE exception_id = $4 AND approver_email = $5
+		WHERE exception_id = $4 AND approver_email = $5 AND tenant_id = $6
 	`
 	approverResult, err := tx.ExecContext(ctx, approverQuery,
 		approver.Decision,
@@ -336,6 +362,7 @@ func (p *PostgresGRCProvider) SubmitApproval(
 		now,
 		exceptionID,
 		approver.Email,
+		tenantID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update approver: %w", err)
@@ -347,14 +374,14 @@ func (p *PostgresGRCProvider) SubmitApproval(
 
 	// Check if all approvers have decided
 	checkQuery := `
-		SELECT 
+		SELECT
 			COUNT(*) FILTER (WHERE decision IS NULL) as pending,
 			COUNT(*) FILTER (WHERE decision = 'REJECTED') as rejected
 		FROM approval_chain
-		WHERE exception_id = $1
+		WHERE exception_id = $1 AND tenant_id = $2
 	`
 	var pending, rejected int
-	err = tx.QueryRowContext(ctx, checkQuery, exceptionID).Scan(&pending, &rejected)
+	err = tx.QueryRowContext(ctx, checkQuery, exceptionID, tenantID).Scan(&pending, &rejected)
 	if err != nil {
 		return fmt.Errorf("failed to check approval status: %w", err)
 	}
@@ -371,9 +398,9 @@ func (p *PostgresGRCProvider) SubmitApproval(
 		statusQuery := `
 			UPDATE exception_requests
 			SET status = $1, updated_at = $2
-			WHERE id = $3
+			WHERE id = $3 AND tenant_id = $4
 		`
-		_, err = tx.ExecContext(ctx, statusQuery, newStatus, now, exceptionID)
+		_, err = tx.ExecContext(ctx, statusQuery, newStatus, now, exceptionID, tenantID)
 		if err != nil {
 			return fmt.Errorf("failed to update status: %w", err)
 		}
@@ -382,8 +409,8 @@ func (p *PostgresGRCProvider) SubmitApproval(
 	// Audit log
 	auditQuery := `
 		INSERT INTO exception_audit_log (
-			id, exception_id, action, actor_email, new_value, timestamp
-		) VALUES ($1, $2, $3, $4, $5, $6)
+			id, exception_id, action, actor_email, new_value, timestamp, tenant_id
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 	// Use json.Marshal for safe JSON construction (prevents injection)
 	commentsJSON, _ := json.Marshal(map[string]string{"comments": approver.Comments})
@@ -394,6 +421,7 @@ func (p *PostgresGRCProvider) SubmitApproval(
 		approver.Email,
 		string(commentsJSON),
 		now,
+		tenantID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert audit log: %w", err)
@@ -410,6 +438,8 @@ func (p *PostgresGRCProvider) batchGetExceptions(ctx context.Context, ids []stri
 		return nil, nil
 	}
 
+	tenantID, _ := tenantFromCtx(ctx)
+
 	// Fetch all core exception rows in one query using ANY($1).
 	coreQuery := `
 		SELECT
@@ -417,9 +447,9 @@ func (p *PostgresGRCProvider) batchGetExceptions(ctx context.Context, ids []stri
 			policy_violated, resource_requested, business_case,
 			status, expiration_date, created_at, updated_at
 		FROM exception_requests
-		WHERE id = ANY($1)
+		WHERE id = ANY($1) AND tenant_id = $2
 	`
-	coreRows, err := p.db.QueryContext(ctx, coreQuery, pq.Array(ids))
+	coreRows, err := p.db.QueryContext(ctx, coreQuery, pq.Array(ids), tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("batch fetching exceptions: %w", err)
 	}
@@ -451,10 +481,10 @@ func (p *PostgresGRCProvider) batchGetExceptions(ctx context.Context, ids []stri
 	approverQuery := `
 		SELECT exception_id, approver_email, approver_role, decision, comments, decided_at
 		FROM approval_chain
-		WHERE exception_id = ANY($1)
+		WHERE exception_id = ANY($1) AND tenant_id = $2
 		ORDER BY exception_id, sequence_order
 	`
-	approverRows, err := p.db.QueryContext(ctx, approverQuery, pq.Array(ids))
+	approverRows, err := p.db.QueryContext(ctx, approverQuery, pq.Array(ids), tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("batch fetching approvers: %w", err)
 	}
@@ -502,6 +532,8 @@ func (p *PostgresGRCProvider) GetPendingApprovals(
 	ctx context.Context,
 	approverEmail string,
 ) ([]ExceptionRequest, error) {
+	tenantID, _ := tenantFromCtx(ctx)
+
 	query := `
 		SELECT DISTINCT er.id
 		FROM exception_requests er
@@ -509,9 +541,10 @@ func (p *PostgresGRCProvider) GetPendingApprovals(
 		WHERE er.status = 'PENDING'
 		  AND ac.approver_email = $1
 		  AND ac.decision IS NULL
+		  AND er.tenant_id = $2
 	`
 
-	rows, err := p.db.QueryContext(ctx, query, approverEmail)
+	rows, err := p.db.QueryContext(ctx, query, approverEmail, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query pending approvals: %w", err)
 	}
@@ -538,13 +571,15 @@ func (p *PostgresGRCProvider) GetExceptionsByApplication(
 	ctx context.Context,
 	appID string,
 ) ([]ExceptionRequest, error) {
+	tenantID, _ := tenantFromCtx(ctx)
+
 	query := `
 		SELECT id FROM exception_requests
-		WHERE application_id = $1
+		WHERE application_id = $1 AND tenant_id = $2
 		ORDER BY created_at DESC
 	`
 
-	rows, err := p.db.QueryContext(ctx, query, appID)
+	rows, err := p.db.QueryContext(ctx, query, appID, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query exceptions: %w", err)
 	}
@@ -571,6 +606,7 @@ func (p *PostgresGRCProvider) GetExpiringExceptions(
 	ctx context.Context,
 	withinDays int,
 ) ([]ExceptionRequest, error) {
+	tenantID, _ := tenantFromCtx(ctx)
 	cutoff := time.Now().AddDate(0, 0, withinDays)
 
 	query := `
@@ -579,10 +615,11 @@ func (p *PostgresGRCProvider) GetExpiringExceptions(
 		  AND expiration_date IS NOT NULL
 		  AND expiration_date <= $1
 		  AND expiration_date > NOW()
+		  AND tenant_id = $2
 		ORDER BY expiration_date ASC
 	`
 
-	rows, err := p.db.QueryContext(ctx, query, cutoff)
+	rows, err := p.db.QueryContext(ctx, query, cutoff, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query expiring exceptions: %w", err)
 	}
@@ -609,13 +646,15 @@ func (p *PostgresGRCProvider) GetExceptionsByRequestor(
 	ctx context.Context,
 	email string,
 ) ([]ExceptionRequest, error) {
+	tenantID, _ := tenantFromCtx(ctx)
+
 	query := `
 		SELECT id FROM exception_requests
-		WHERE requestor_email = $1
+		WHERE requestor_email = $1 AND tenant_id = $2
 		ORDER BY created_at DESC
 	`
 
-	rows, err := p.db.QueryContext(ctx, query, email)
+	rows, err := p.db.QueryContext(ctx, query, email, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query exceptions by requestor: %w", err)
 	}
