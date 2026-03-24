@@ -261,3 +261,58 @@ func TestRoleEnforcer_DevModeAllowsOverride(t *testing.T) {
 		t.Errorf("dev mode should allow X-Aegis-Role override, got %d", rr.Code)
 	}
 }
+
+func TestScopeGuard_BlocksScopedUser(t *testing.T) {
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("handler should not be reached for scoped user")
+	})
+	handler := ScopeGuard()(inner)
+
+	req := httptest.NewRequest("GET", "/guarded", nil)
+	ctx := context.WithValue(req.Context(), ClaimsContextKey, &Claims{
+		Subject: "scoped-user",
+		ResourceScope: &ResourceScope{
+			AccountIDs: []string{"111"},
+		},
+	})
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("scoped user should be blocked, got %d", rr.Code)
+	}
+}
+
+func TestScopeGuard_AllowsUnscopedUser(t *testing.T) {
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := ScopeGuard()(inner)
+
+	req := httptest.NewRequest("GET", "/guarded", nil)
+	ctx := context.WithValue(req.Context(), ClaimsContextKey, &Claims{
+		Subject: "admin-user",
+	})
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("unscoped user should pass, got %d", rr.Code)
+	}
+}
+
+func TestScopeGuard_AllowsNoClaims(t *testing.T) {
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := ScopeGuard()(inner)
+
+	req := httptest.NewRequest("GET", "/guarded", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("no-claims request should pass through, got %d", rr.Code)
+	}
+}

@@ -72,6 +72,37 @@ func ScopeFromContext(claims *Claims) *ResourceScope {
 	return claims.ResourceScope
 }
 
+// ScopeGuard returns middleware that rejects requests from scoped users
+// when the handler has not opted into per-resource scope filtering. Apply
+// to data-returning endpoints that serve account/region-level resources.
+// Endpoints that already call EnforceScope inline (findings, attack paths)
+// or serve global reference data (frameworks, policies) should NOT use this.
+//
+// This is a deny-by-default safety net: new endpoints that forget to
+// implement scope filtering will reject scoped users rather than leak data.
+func ScopeGuard() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			claims, ok := GetClaimsFromContext(r.Context())
+			if !ok {
+				next.ServeHTTP(w, r)
+				return
+			}
+			scope := ScopeFromContext(claims)
+			if scope != nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusForbidden)
+				_ = json.NewEncoder(w).Encode(map[string]string{
+					"error":   "forbidden",
+					"message": "endpoint does not support scoped access; contact admin to widen your scope or use a scope-aware endpoint",
+				})
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // Role represents a Cloud Aegis authorization role.
 type Role string
 

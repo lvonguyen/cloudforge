@@ -765,3 +765,53 @@ func TestGetPolicy_NotFound(t *testing.T) {
 	rr := doRequest(t, router, "GET", "/api/v1/policies/pol-nonexistent", "", jwt)
 	assertStatus(t, rr, http.StatusNotFound)
 }
+
+// TestScopeGuard_BlocksScopedUserOnGuardedEndpoints verifies that scoped
+// users are rejected from endpoints protected by ScopeGuard middleware.
+// These endpoints serve account-scoped data but lack inline scope filtering.
+func TestScopeGuard_BlocksScopedUserOnGuardedEndpoints(t *testing.T) {
+	_, router := testServer(t)
+	jwt := scopedAdminJWT(t, []string{"111"})
+
+	guarded := []string{
+		"/api/v1/agents",
+		"/api/v1/costs/summary",
+		"/api/v1/remediations",
+		"/api/v1/containers",
+		"/api/v1/secrets",
+		"/api/v1/identity/users",
+		"/api/v1/data-classification/assets",
+		"/api/v1/compliance/posture",
+		"/api/v1/asm/assets",
+		"/api/v1/workflows",
+	}
+
+	for _, path := range guarded {
+		rr := doRequest(t, router, "GET", path, "", jwt)
+		if rr.Code != http.StatusForbidden {
+			t.Errorf("%s: scoped user got %d, want 403", path, rr.Code)
+		}
+	}
+}
+
+// TestScopeGuard_UnscopedAdminPassesThrough verifies that admins without
+// scope restrictions can still access guarded endpoints normally.
+func TestScopeGuard_UnscopedAdminPassesThrough(t *testing.T) {
+	_, router := testServer(t)
+	jwt := adminJWT(t)
+
+	endpoints := []string{
+		"/api/v1/agents",
+		"/api/v1/costs/summary",
+		"/api/v1/remediations",
+		"/api/v1/containers",
+		"/api/v1/secrets",
+	}
+
+	for _, path := range endpoints {
+		rr := doRequest(t, router, "GET", path, "", jwt)
+		if rr.Code == http.StatusForbidden {
+			t.Errorf("%s: unscoped admin got 403, should pass through", path)
+		}
+	}
+}

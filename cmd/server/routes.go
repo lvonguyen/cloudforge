@@ -8,6 +8,14 @@ import (
 	"aegis/internal/tenant"
 )
 
+// scopeGuarded wraps a handler with ScopeGuard middleware, blocking scoped
+// users from endpoints that lack per-resource scope filtering. Apply to all
+// data-returning endpoints that serve account/tenant-scoped resources.
+// Exempt: endpoints with inline EnforceScope, global reference data, admin-only.
+func scopeGuarded(h http.Handler) http.Handler {
+	return api.ScopeGuard()(h)
+}
+
 func (s *Server) setupRoutes() {
 	// CORS middleware — applied to all routes (including health for browser fetch).
 	if s.config.CORSOrigins != "" {
@@ -102,9 +110,9 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getFinding)),
 	).Methods("GET")
 
-	// Finding comments
+	// Finding comments — scope-guarded (comments inherit finding scope)
 	apiRouter.Handle("/findings/{id}/comments",
-		s.roles.Require(api.RoleViewer, api.RoleRequester, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listComments)),
+		s.roles.Require(api.RoleViewer, api.RoleRequester, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.listComments))),
 	).Methods("GET")
 	apiRouter.Handle("/findings/{id}/comments", // operator, admin
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.addComment)),
@@ -118,36 +126,36 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listFrameworks)),
 	).Methods("GET")
 
-	// Agents (viewer can see agents read-only)
+	// Agents — scope-guarded (agents may be account-scoped)
 	apiRouter.Handle("/agents",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAgents)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.listAgents))),
 	).Methods("GET")
 	apiRouter.Handle("/agents/{id}",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getAgent)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.getAgent))),
 	).Methods("GET")
 
-	// Costs
+	// Costs — scope-guarded (aggregates cross-account cost data)
 	apiRouter.Handle("/costs/summary",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getCostSummaryComputed)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.getCostSummaryComputed))),
 	).Methods("GET")
 
-	// Remediations
+	// Remediations — scope-guarded (tied to account-scoped findings)
 	apiRouter.Handle("/remediations",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listRemediations)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.listRemediations))),
 	).Methods("GET")
 	apiRouter.Handle("/remediations/{id}/execute", // operator, admin
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.executeRemediation)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.executeRemediation))),
 	).Methods("POST")
 	apiRouter.Handle("/remediations/{id}",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getRemediation)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.getRemediation))),
 	).Methods("GET")
 	apiRouter.Handle("/remediations/{id}", // operator, admin
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.patchRemediation)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.patchRemediation))),
 	).Methods("PATCH")
 
-	// Agent traces (viewer can see traces read-only)
+	// Agent traces — scope-guarded
 	apiRouter.Handle("/agents/{id}/traces",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listAgentTraces)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.listAgentTraces))),
 	).Methods("GET")
 
 	// Audit log — admin only
@@ -188,38 +196,39 @@ func (s *Server) setupRoutes() {
 	).Methods("GET")
 
 	// Graph query proxy (PuppyGraph — feature-flagged via PUPPYGRAPH_URL)
+	// Scope-guarded: graph traversals can reach cross-account data.
 	apiRouter.Handle("/graph/query", // operator, admin
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleGraphQuery)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.handleGraphQuery))),
 	).Methods("POST")
 
-	// Data classification (DSPM)
+	// Data classification (DSPM) — scope-guarded (account-scoped assets)
 	apiRouter.Handle("/data-classification/assets",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listDataClassificationAssets)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.listDataClassificationAssets))),
 	).Methods("GET")
 
-	// Container security
+	// Container security — scope-guarded (account/cluster-scoped)
 	apiRouter.Handle("/containers",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listContainers)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.listContainers))),
 	).Methods("GET")
 	apiRouter.Handle("/containers/{id}",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getContainer)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.getContainer))),
 	).Methods("GET")
 	apiRouter.Handle("/container/scan", // operator, admin
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.scanContainer)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.scanContainer))),
 	).Methods("GET")
 	apiRouter.Handle("/container/admission", // operator, admin
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.checkAdmission)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.checkAdmission))),
 	).Methods("GET")
 
-	// Secrets management
+	// Secrets management — scope-guarded (account-scoped secrets)
 	apiRouter.Handle("/secrets",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listSecrets)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.listSecrets))),
 	).Methods("GET")
 	apiRouter.Handle("/secrets/scan", // operator, admin
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.scanSecrets)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.scanSecrets))),
 	).Methods("POST")
 	apiRouter.Handle("/secrets/{path:.*}",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getSecret)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.getSecret))),
 	).Methods("GET")
 
 	// WAF templates
@@ -230,17 +239,17 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.validateWAFCompliance)),
 	).Methods("GET")
 
-	// Identity & Zero Trust
+	// Identity & Zero Trust — scope-guarded (identity data is tenant-scoped)
 	apiRouter.Handle("/identity/users",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listIdentityUsers)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.listIdentityUsers))),
 	).Methods("GET")
 	apiRouter.Handle("/identity/users/{id}/risk",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getIdentityUserRisk)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.getIdentityUserRisk))),
 	).Methods("GET")
 
-	// NLQ (natural language query) — operator, admin
+	// NLQ (natural language query) — operator, admin; scope-guarded (queries data across accounts)
 	apiRouter.Handle("/ai/nlq",
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.queryNLQ)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.queryNLQ))),
 	).Methods("POST")
 
 	// AI usage/budget status — admin only
@@ -256,12 +265,12 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.abortDeployPreview)),
 	).Methods("POST")
 
-	// Workflow orchestration
+	// Workflow orchestration — scope-guarded (workflows tied to account resources)
 	apiRouter.Handle("/workflows",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listWorkflows)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.listWorkflows))),
 	).Methods("GET")
 	apiRouter.Handle("/workflows/{id}",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getWorkflow)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.getWorkflow))),
 	).Methods("GET")
 	apiRouter.Handle("/workflows/{id}/approve", // admin only
 		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.approveWorkflow)),
@@ -274,7 +283,7 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.integrationHandler.RemediateFinding)),
 	).Methods("POST")
 	apiRouter.Handle("/findings/{id}/ticket",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.integrationHandler.GetFindingTicket)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.integrationHandler.GetFindingTicket))),
 	).Methods("GET")
 
 	// Webhook management
@@ -288,23 +297,23 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.deleteWebhook)),
 	).Methods("DELETE")
 	apiRouter.Handle("/webhooks/{id}/deliveries",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listWebhookDeliveries)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.listWebhookDeliveries))),
 	).Methods("GET")
 
-	// Compliance posture (wired from internal/compliance Manager)
+	// Compliance posture — scope-guarded (aggregates account-level compliance)
 	apiRouter.Handle("/compliance/posture",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getCompliancePosture)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.getCompliancePosture))),
 	).Methods("GET")
 	apiRouter.Handle("/compliance/controls/{fw}",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getComplianceControls)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.getComplianceControls))),
 	).Methods("GET")
 
-	// ASM scanning
+	// ASM scanning — scope-guarded (account-scoped external assets)
 	apiRouter.Handle("/asm/scan", // operator, admin
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleASMScan)),
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.handleASMScan))),
 	).Methods("POST")
 	apiRouter.Handle("/asm/assets",
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleASMAssets)),
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.handleASMAssets))),
 	).Methods("GET")
 
 	// Secrets org-wide scanning
