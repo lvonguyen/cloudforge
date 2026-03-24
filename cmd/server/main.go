@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -36,6 +37,7 @@ import (
 	"aegis/internal/workflow"
 
 	"github.com/gorilla/mux"
+	_ "github.com/lib/pq" // PostgreSQL driver registration
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
@@ -61,6 +63,7 @@ type Config struct {
 	TracingEnabled   bool    // Enable OpenTelemetry tracing
 	OTLPEndpoint     string  // OTLP gRPC endpoint for trace export
 	SamplingRate     float64 // Trace sampling rate (0.0 - 1.0)
+	DatabaseURL      string  // PostgreSQL connection string (optional — memory-only if unset)
 }
 
 // Server holds application state and wires domain services to HTTP routes.
@@ -155,6 +158,7 @@ func main() {
 		TracingEnabled:   os.Getenv("AEGIS_TRACING_ENABLED") == "true",
 		OTLPEndpoint:     getEnv("AEGIS_OTLP_ENDPOINT", "localhost:4317"),
 		SamplingRate:     parseFloatOrDefault(os.Getenv("AEGIS_SAMPLING_RATE"), 1.0),
+		DatabaseURL:      os.Getenv("AEGIS_DATABASE_URL"),
 	}
 
 	// Initialize GRC provider
@@ -394,13 +398,63 @@ func main() {
 	// Initialize tenant store with seed data
 	tenantStore := seedTenants(logger)
 
+	// Initialize PostgreSQL for durable audit logging (optional — graceful degradation)
+	var auditDB *sql.DB
+	if cfg.DatabaseURL != "" {
+		var err error
+		auditDB, err = sql.Open("postgres", cfg.DatabaseURL)
+		if err != nil {
+			logger.Warn("PostgreSQL connection failed, audit will use memory-only",
+				zap.Error(err),
+			)
+		} else {
+			auditDB.SetMaxOpenConns(10)
+			auditDB.SetMaxIdleConns(5)
+			auditDB.SetConnMaxLifetime(5 * time.Minute)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			if err := auditDB.PingContext(ctx); err != nil {
+				logger.Warn("PostgreSQL ping failed, audit will use memory-only",
+					zap.Error(err),
+				)
+				_ = auditDB.Close()
+				auditDB = nil
+			} else {
+				healthChecker.RegisterDatabaseCheck("postgres", auditDB)
+				logger.Info("PostgreSQL connected for durable audit logging")
+			}
+			cancel()
+		}
+	} else {
+		logger.Info("AEGIS_DATABASE_URL not set, audit will use memory-only")
+	}
+	if auditDB != nil {
+		defer func() {
+			if err := auditDB.Close(); err != nil {
+				logger.Warn("Failed to close PostgreSQL connection", zap.Error(err))
+			}
+		}()
+	}
+
+	// Build audit logger — composite (memory + postgres) when DB is available, memory-only otherwise
+	newAuditLogger := func(name string) audit.AuditLogger {
+		mem := audit.NewMemoryAuditLogger()
+		if auditDB != nil {
+			return audit.NewZapAuditLogger(
+				logger.Named("audit."+name),
+				audit.NewCompositeAuditLogger(mem, audit.NewPostgresAuditLogger(auditDB)),
+			)
+		}
+		return audit.NewZapAuditLogger(logger.Named("audit."+name), mem)
+	}
+
 	// Create server
 	srv := &Server{
 		config: cfg,
 		grcHandler: &GRCHandler{
 			provider:    grcProvider,
 			logger:      logger.Named("grc"),
-			auditLogger: audit.NewZapAuditLogger(logger.Named("audit.grc"), audit.NewMemoryAuditLogger()),
+			auditLogger: newAuditLogger("grc"),
 		},
 		router:         mux.NewRouter(),
 		authMiddleware: authMiddleware,
@@ -408,7 +462,7 @@ func main() {
 		healthChecker:  healthChecker,
 		logger:         logger,
 		roles:          &api.RoleEnforcer{DevMode: os.Getenv("APP_ENV") == "development"},
-		auditLogger:    audit.NewZapAuditLogger(logger.Named("audit"), audit.NewMemoryAuditLogger()),
+		auditLogger:    newAuditLogger("server"),
 		data:           dataStore,
 		enrichmentSvc: &EnrichmentService{
 			AI:          aiProvider,
@@ -442,13 +496,10 @@ func main() {
 
 		// Integration layer
 		integrationHandler: &IntegrationHandler{
-			provider: integrations.NewMockProvider(logger.Named("integrations.mock")),
-			router:   integrations.NewRoutingEngine(integrations.DefaultRules()),
-			workflow: workflowEngine,
-			auditLogger: audit.NewZapAuditLogger(
-				logger.Named("audit.integrations"),
-				audit.NewMemoryAuditLogger(),
-			),
+			provider:          integrations.NewMockProvider(logger.Named("integrations.mock")),
+			router:            integrations.NewRoutingEngine(integrations.DefaultRules()),
+			workflow:          workflowEngine,
+			auditLogger:       newAuditLogger("integrations"),
 			logger:            logger.Named("integrations"),
 			asanaWebhookToken: os.Getenv("ASANA_WEBHOOK_TOKEN"),
 		},
