@@ -1,6 +1,9 @@
 package api
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -189,5 +192,72 @@ func TestRoleFromClaims_HighestWins(t *testing.T) {
 	}
 	if role := RoleFromClaims(claims); role != RoleAdmin {
 		t.Errorf("highest role should be admin, got: %s", role)
+	}
+}
+
+func TestRoleEnforcer_NonDevStripsHeader(t *testing.T) {
+	re := &RoleEnforcer{DevMode: false}
+	handler := re.Require(RoleAdmin)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if h := r.Header.Get("X-Aegis-Role"); h != "" {
+			t.Errorf("X-Aegis-Role header should be stripped in non-dev, got: %s", h)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest("GET", "/test", nil)
+	req.Header.Set("X-Aegis-Role", "admin")
+	ctx := context.WithValue(req.Context(), ClaimsContextKey, &Claims{
+		Subject: "attacker",
+		Groups:  []string{"aegis-admin"},
+	})
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestRoleEnforcer_NonDevIgnoresOverride(t *testing.T) {
+	re := &RoleEnforcer{DevMode: false}
+	// Viewer-only user sends X-Aegis-Role: admin — should still be denied.
+	handler := re.Require(RoleAdmin)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("handler should not be reached — viewer cannot escalate to admin")
+	}))
+
+	req := httptest.NewRequest("GET", "/admin-only", nil)
+	req.Header.Set("X-Aegis-Role", "admin")
+	ctx := context.WithValue(req.Context(), ClaimsContextKey, &Claims{
+		Subject: "viewer-user",
+		Groups:  []string{"aegis-viewer"},
+	})
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403 (priv-esc blocked), got %d", rr.Code)
+	}
+}
+
+func TestRoleEnforcer_DevModeAllowsOverride(t *testing.T) {
+	re := &RoleEnforcer{DevMode: true}
+	handler := re.Require(RoleAdmin)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest("GET", "/admin-only", nil)
+	req.Header.Set("X-Aegis-Role", "admin")
+	ctx := context.WithValue(req.Context(), ClaimsContextKey, &Claims{
+		Subject: "dev-user",
+		Groups:  []string{"aegis-viewer"},
+	})
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("dev mode should allow X-Aegis-Role override, got %d", rr.Code)
 	}
 }

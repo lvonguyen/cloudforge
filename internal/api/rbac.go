@@ -125,7 +125,8 @@ type RoleEnforcer struct {
 // Require returns middleware that enforces the request's role is in the allowed set.
 // Must run after AuthMiddleware (claims in context).
 // In dev mode only, the X-Aegis-Role header overrides the JWT-derived role
-// to support the frontend demo role switcher.
+// to support the frontend demo role switcher. In all other environments the
+// header is stripped before it reaches role resolution (defense-in-depth).
 func (re *RoleEnforcer) Require(roles ...Role) func(http.Handler) http.Handler {
 	allowed := make(map[Role]bool, len(roles))
 	for _, r := range roles {
@@ -147,16 +148,21 @@ func (re *RoleEnforcer) Require(roles ...Role) func(http.Handler) http.Handler {
 
 			role := RoleFromClaims(claims)
 
-			// Dev override: allow X-Aegis-Role header to set role for demo.
-			// Only enabled when APP_ENV=="development" was read at startup.
-			// Only valid canonical roles are accepted; invalid values are ignored.
 			if re.DevMode {
+				// Dev override: allow X-Aegis-Role header to set role for demo.
+				// Only enabled when APP_ENV=="development" was read at startup.
+				// Only valid canonical roles are accepted; invalid values are ignored.
 				if override := r.Header.Get("X-Aegis-Role"); override != "" {
 					candidate := Role(strings.ToLower(override))
 					if _, valid := roleRank[candidate]; valid {
 						role = candidate
 					}
 				}
+			} else {
+				// Non-dev: strip the header so it cannot leak to downstream
+				// handlers, access logs, or proxies. This prevents privilege
+				// escalation if another code path inadvertently reads it.
+				r.Header.Del("X-Aegis-Role")
 			}
 
 			if !allowed[role] {
