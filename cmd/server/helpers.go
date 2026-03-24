@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -25,6 +26,11 @@ func logAuditEvent(r *http.Request, logger audit.AuditLogger, action, resource, 
 		actor = claims.Subject
 		actorRole = string(api.RoleFromClaims(claims))
 	}
+	// Strip port from RemoteAddr — PostgreSQL INET rejects "host:port" format.
+	ip := r.RemoteAddr
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		ip = host
+	}
 	if err := logger.Log(r.Context(), audit.AuditEntry{
 		Actor:      actor,
 		ActorRole:  actorRole,
@@ -32,7 +38,7 @@ func logAuditEvent(r *http.Request, logger audit.AuditLogger, action, resource, 
 		Resource:   resource,
 		ResourceID: resourceID,
 		Result:     result,
-		IP:         r.RemoteAddr,
+		IP:         ip,
 	}); err != nil {
 		zap.L().Warn("audit log write failed", zap.String("action", action), zap.Error(err))
 	}

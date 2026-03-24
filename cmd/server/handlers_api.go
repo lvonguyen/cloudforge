@@ -303,16 +303,21 @@ func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
 	}
 	page, perPage := parsePagination(r, 50, 200)
 
-	// Start with mock data (historical events loaded from JSON)
-	results := make([]AuditEvent, 0, len(s.data.AuditEvents))
-	for _, evt := range s.data.AuditEvents {
-		if resultFilter != "" && !strings.EqualFold(evt.Result, resultFilter) {
-			continue
+	// Include mock seed data only when no durable audit backend is configured.
+	// When Postgres backs the audit logger, reads are tenant-scoped via WHERE
+	// tenant_id; mock data has no tenant isolation and must be excluded.
+	var results []AuditEvent
+	if s.config.DatabaseURL == "" {
+		results = make([]AuditEvent, 0, len(s.data.AuditEvents))
+		for _, evt := range s.data.AuditEvents {
+			if resultFilter != "" && !strings.EqualFold(evt.Result, resultFilter) {
+				continue
+			}
+			if actorFilter != "" && !strings.EqualFold(evt.Actor, actorFilter) {
+				continue
+			}
+			results = append(results, evt)
 		}
-		if actorFilter != "" && !strings.EqualFold(evt.Actor, actorFilter) {
-			continue
-		}
-		results = append(results, evt)
 	}
 
 	// Merge real audit events from the audit logger (newest first)

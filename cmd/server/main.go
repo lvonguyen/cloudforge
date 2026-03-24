@@ -451,13 +451,15 @@ func main() {
 		}()
 	}
 
-	// Build audit logger — composite (memory + postgres) when DB is available, memory-only otherwise
+	// Build audit logger — composite (postgres primary + memory secondary) when DB is
+	// available, memory-only otherwise. Postgres primary ensures List() reads durable,
+	// tenant-scoped data; memory secondary provides fast in-process reads for SSE.
 	newAuditLogger := func(name string) audit.AuditLogger {
 		mem := audit.NewMemoryAuditLogger()
 		if auditDB != nil {
 			return audit.NewZapAuditLogger(
 				logger.Named("audit."+name),
-				audit.NewCompositeAuditLogger(mem, audit.NewPostgresAuditLogger(auditDB)),
+				audit.NewCompositeAuditLogger(audit.NewPostgresAuditLogger(auditDB), mem),
 			)
 		}
 		return audit.NewZapAuditLogger(logger.Named("audit."+name), mem)
