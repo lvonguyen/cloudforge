@@ -114,9 +114,13 @@ node_modules/
 # Internal research (competitive intel, not for VCS)
 docs/research/INDUSTRY_LANDSCAPE.md
 
-# HAEA internal docs (account IDs, SSO portals, cost forecasts, KPIs)
-# These are tracked on the `haea` branch and pushed only to GL remotes.
+# HAEA-internal content (tracked on `haea` branch, pushed to GL only)
+# Covers: docs, TF environments, tenant configs, branding, future modules
 docs/haea/
+deploy/terraform/environments/haea/
+configs/haea/
+configs/tenants/haea*
+frontend/.env.haea
 
 # Generated sprint plans (superseded)
 tasks/next-sprint.md
