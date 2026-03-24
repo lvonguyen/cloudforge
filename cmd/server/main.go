@@ -363,11 +363,19 @@ func main() {
 	dataStore := NewDataStore(mockData)
 
 	// Initialize singleton service instances (created once, shared across requests)
-	workflowEngine, err := workflow.NewEngine("memory")
+	workflowProvider, err := workflow.ProviderFromString(getEnv("WORKFLOW_ENGINE", "memory"))
+	if err != nil {
+		logger.Fatal("Invalid workflow engine provider", zap.Error(err))
+	}
+	workflowEngine, err := workflow.NewEngine(workflowProvider)
 	if err != nil {
 		logger.Fatal("Failed to create workflow engine", zap.Error(err))
 	}
-	wafMgr, err := waf.NewTemplateManager("memory")
+	wafProvider, err := waf.ProviderFromString(getEnv("WAF_PROVIDER", "memory"))
+	if err != nil {
+		logger.Fatal("Invalid WAF provider", zap.Error(err))
+	}
+	wafMgr, err := waf.NewTemplateManager(wafProvider)
 	if err != nil {
 		logger.Fatal("Failed to create WAF template manager", zap.Error(err))
 	}

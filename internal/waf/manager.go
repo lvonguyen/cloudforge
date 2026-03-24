@@ -18,6 +18,16 @@ type TemplateManager interface {
 	ValidateCompliance(ctx context.Context, templateID, resourceID string) (*ScanResult, error)
 }
 
+// ProviderFromString validates a WAF provider name.
+func ProviderFromString(s string) (string, error) {
+	switch s {
+	case "memory", "":
+		return "memory", nil
+	default:
+		return "", fmt.Errorf("unsupported WAF provider: %q", s)
+	}
+}
+
 // NewTemplateManager returns a TemplateManager for the given provider name.
 // Supports "memory" (in-process mock). Extend the switch for cloud-backed stores.
 func NewTemplateManager(provider string) (TemplateManager, error) {

@@ -67,6 +67,16 @@ type Engine interface {
 	ApproveWorkflow(ctx context.Context, id, approver string) (*Workflow, error)
 }
 
+// ProviderFromString validates a workflow engine provider name.
+func ProviderFromString(s string) (string, error) {
+	switch s {
+	case "memory", "":
+		return "memory", nil
+	default:
+		return "", fmt.Errorf("unsupported workflow engine provider: %q", s)
+	}
+}
+
 // NewEngine creates a workflow engine for the given provider.
 func NewEngine(provider string) (Engine, error) {
 	switch provider {
