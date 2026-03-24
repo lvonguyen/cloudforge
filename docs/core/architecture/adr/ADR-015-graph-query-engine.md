@@ -1,6 +1,6 @@
 # ADR-015: Graph Query Engine
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-03-19
 **Deciders:** Liem Vo-Nguyen
 **Supersedes:** None

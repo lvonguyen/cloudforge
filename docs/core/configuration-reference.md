@@ -30,6 +30,7 @@ All configuration is via environment variables. Defaults are tuned for local dev
 | `AEGIS_AI_ENABLED` | `false` | No | Enable Bedrock AI enrichment |
 | `AEGIS_AI_REGION` | `us-east-1` | No | AWS region for Bedrock |
 | `AEGIS_AI_MODEL` | *(Sonnet)* | No | Bedrock model ID override |
+| `ANTHROPIC_API_KEY` | *(empty)* | If Anthropic | Anthropic API key (direct provider, bypasses Bedrock) |
 | `AWS_ACCESS_KEY_ID` | *(chain)* | If AI enabled | AWS credential (or use IAM role/SSO) |
 | `AWS_SECRET_ACCESS_KEY` | *(chain)* | If AI enabled | AWS credential |
 
@@ -63,6 +64,24 @@ EPSS and KEV feeds are public (no key required).
 | `AEGIS_REDIS_PASSWORD` | *(empty)* | No | Redis auth password |
 
 Falls back to local (in-memory) rate limiting when Redis is unavailable.
+
+## Database
+
+| Variable | Default | Required | Description |
+|----------|---------|----------|-------------|
+| `AEGIS_DATABASE_URL` | *(empty)* | No | PostgreSQL connection string for durable audit logging (`postgres://user:pass@host:5432/db?sslmode=require`) |
+
+Falls back to in-memory audit logging when unset.
+
+## Provider Selection
+
+These variables control which provider implementation each subsystem uses. All default to `memory` (in-memory mock). See [PROVIDER_CONFIG.md](../PROVIDER_CONFIG.md) for per-provider required configuration.
+
+| Variable | Default | Required | Description |
+|----------|---------|----------|-------------|
+| `WORKFLOW_ENGINE` | `memory` | No | Workflow engine backend (`temporal` for real workflows) |
+| `WAF_PROVIDER` | `memory` | No | WAF backend (`aws`, `cloudflare` for real WAF rules) |
+| `SECRETS_PROVIDER` | `memory` | No | Secrets scanner backend (`aws`, `azure`, `gcp` for real vault scanning) |
 
 ## Graph Database
 
@@ -110,6 +129,7 @@ Falls back to local (in-memory) rate limiting when Redis is unavailable.
 | `ASANA_PAT` | *(empty)* | If Asana | Asana Personal Access Token |
 | `ASANA_WORKSPACE_GID` | *(empty)* | No | Asana workspace GID |
 | `ASANA_DEFAULT_PROJECT_GID` | *(empty)* | No | Default Asana project for ticket creation |
+| `ASANA_WEBHOOK_TOKEN` | *(empty)* | If Asana webhooks | Pre-shared token for Asana webhook handshake auth |
 | `GITLEAKS_LICENSE` | *(empty)* | CI only | Gitleaks license key (CI action) |
 
 ## GRC Provider Credentials
@@ -123,6 +143,19 @@ When `GRC_PROVIDER` is not `memory`, the selected backend requires credentials:
 | `SERVICENOW_PASSWORD` | `servicenow` | ServiceNow API password |
 | `SERVICENOW_CLIENT_ID` | `servicenow` (OAuth) | ServiceNow OAuth client ID |
 | `SERVICENOW_CLIENT_SECRET` | `servicenow` (OAuth) | ServiceNow OAuth client secret |
+
+## CSPM Aggregator
+
+These variables configure the standalone CSPM aggregator binary (`cmd/cspm-aggregator`).
+
+| Variable | Default | Required | Description |
+|----------|---------|----------|-------------|
+| `AWS_ROLE_ARN` | *(empty)* | If AWS | OIDC role ARN for cross-account CSPM reader access |
+| `AZURE_TENANT_ID` | *(empty)* | If Azure | Azure tenant ID for CSPM aggregator (distinct from `ENTRA_TENANT_ID`) |
+| `GCP_ORG_ID` | *(empty)* | If GCP | GCP organization ID for aggregator scans |
+| `GCP_WIF_CONFIG_PATH` | *(empty)* | If GCP | Path to GCP Workload Identity Federation config file |
+| `ASANA_PROJECT_GID` | *(empty)* | No | Asana project GID for aggregator notifications |
+| `MAIL_SENDER_ADDRESS` | *(empty)* | No | Email sender address for aggregator notification emails |
 
 ## Deployment (fly.toml defaults)
 
@@ -188,3 +221,7 @@ When optional services are unavailable, the server degrades gracefully:
 | Threat intel API keys | Respective feed skipped |
 | ws-server URL | Deploy preview SSE disabled |
 | Jira URL | Mock ticket provider |
+| `AEGIS_DATABASE_URL` | In-memory audit logging only |
+| `WORKFLOW_ENGINE` | In-memory workflow stubs |
+| `WAF_PROVIDER` | In-memory WAF stubs |
+| `SECRETS_PROVIDER` | In-memory secrets scanner |
