@@ -38,6 +38,9 @@ func (s *Server) setupRoutes() {
 		s.router.Handle("/metrics", s.telemetry.MetricsHandler()).Methods("GET")
 	}
 
+	// Provider status endpoint (unauthenticated — operators need to verify deployment config)
+	s.router.HandleFunc("/api/v1/providers", s.handleProviderStatus).Methods("GET")
+
 	// Tenant config endpoint (unauthenticated — must load before auth)
 	s.router.HandleFunc("/api/v1/config", s.handleConfig).Methods("GET")
 	s.router.HandleFunc("/config.json", s.handleConfig).Methods("GET")

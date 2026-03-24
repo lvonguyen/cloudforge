@@ -208,3 +208,33 @@ func paginateResult[T any](items []T, page, perPage int) paginatedResponse {
 		TotalPages: totalPages,
 	}
 }
+
+// handleProviderStatus returns the active provider type for each subsystem.
+// Useful for operators verifying deployment configuration.
+func (s *Server) handleProviderStatus(w http.ResponseWriter, _ *http.Request) {
+	// Collect identity provider names
+	idNames := make([]string, 0)
+	if s.identitySvc != nil {
+		for name := range s.identitySvc.providers {
+			idNames = append(idNames, name)
+		}
+	}
+
+	status := map[string]interface{}{
+		"grc":       os.Getenv("GRC_PROVIDER"),
+		"identity":  idNames,
+		"finops":    getEnv("FINOPS_PROVIDER", "memory"),
+		"container": getEnv("CONTAINER_SCANNER", "memory"),
+		"workflow":  getEnv("WORKFLOW_ENGINE", "memory"),
+		"waf":       getEnv("WAF_PROVIDER", "memory"),
+		"secrets":   getEnv("SECRETS_PROVIDER", "memory"),
+	}
+
+	// Fill GRC default
+	if status["grc"] == "" {
+		status["grc"] = "memory"
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(status)
+}

@@ -184,7 +184,7 @@ func main() {
 		JWKSURLEnv:   "AEGIS_JWKS_URL",
 		Issuer:       cfg.JWTIssuer,
 		Audience:     cfg.JWTAudience,
-		SkipPaths:    []string{"/health", "/healthz", "/ready", "/api/v1/config", "/config.json"},
+		SkipPaths:    []string{"/health", "/healthz", "/ready", "/api/v1/config", "/config.json", "/api/v1/providers"},
 	}, logger)
 	if err != nil {
 		logger.Fatal("Failed to initialize auth middleware", zap.Error(err))
