@@ -107,7 +107,7 @@ type Server struct {
 	// Singleton service instances (avoid per-request allocation)
 	workflowEngine   workflow.Engine
 	wafManager       waf.TemplateManager
-	secretsProvider  *secrets.MemoryProvider
+	secretsProvider  secrets.Provider
 	secretsManager   *secrets.Manager
 	containerScanner container.Scanner
 
@@ -354,7 +354,11 @@ func main() {
 	if err != nil {
 		logger.Fatal("Failed to create WAF template manager", zap.Error(err))
 	}
-	containerScnr, err := container.NewScanner(containerScannerProvider())
+	containerType, err := container.ProviderFromString(getEnv("CONTAINER_SCANNER", "memory"))
+	if err != nil {
+		logger.Fatal("Invalid container scanner provider", zap.Error(err))
+	}
+	containerScnr, err := container.NewScannerFromConfig(container.ScannerConfig{Type: containerType})
 	if err != nil {
 		logger.Fatal("Failed to create container scanner", zap.Error(err))
 	}
@@ -391,6 +395,19 @@ func main() {
 	})
 	if err != nil {
 		logger.Fatal("Failed to initialize FinOps aggregator", zap.Error(err))
+	}
+
+	// Initialize secrets provider via factory — provider selection via SECRETS_PROVIDER env var.
+	secretsType, err := secrets.ProviderFromString(getEnv("SECRETS_PROVIDER", "memory"))
+	if err != nil {
+		logger.Fatal("Invalid secrets provider", zap.Error(err))
+	}
+	secretsProv, err := secrets.NewProviderFromConfig(secrets.ProviderConfig{
+		Type:   secretsType,
+		Logger: logger.Named("secrets"),
+	})
+	if err != nil {
+		logger.Fatal("Failed to initialize secrets provider", zap.Error(err))
 	}
 
 	// Initialize tenant store with seed data
@@ -476,7 +493,7 @@ func main() {
 		dedupCache:       ingestion.NewDedupCache(24 * time.Hour),
 		workflowEngine:   workflowEngine,
 		wafManager:       wafMgr,
-		secretsProvider:  secrets.NewMemoryProvider("demo"),
+		secretsProvider:  secretsProv,
 		secretsManager:   secrets.NewManager(logger),
 		containerScanner: containerScnr,
 		tenantStore:      tenantStore,

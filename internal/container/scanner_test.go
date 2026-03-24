@@ -131,7 +131,7 @@ func TestNewScanner_InvalidProvider(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid provider, got nil")
 	}
-	if !strings.Contains(err.Error(), "unsupported") {
-		t.Errorf("expected error message to contain 'unsupported', got: %v", err)
+	if !strings.Contains(err.Error(), "unknown") {
+		t.Errorf("expected error message to contain 'unknown', got: %v", err)
 	}
 }

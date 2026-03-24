@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 	"regexp"
 
 	"go.opentelemetry.io/otel"
@@ -15,13 +14,6 @@ var validImageRef = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._\-/:]*$`)
 
 func validateImageRef(image string) bool {
 	return len(image) <= 255 && validImageRef.MatchString(image)
-}
-
-func containerScannerProvider() string {
-	if p := os.Getenv("CONTAINER_SCANNER"); p != "" {
-		return p
-	}
-	return "memory"
 }
 
 func (s *Server) scanContainer(w http.ResponseWriter, r *http.Request) {

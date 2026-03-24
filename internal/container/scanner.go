@@ -23,15 +23,50 @@ type Scanner interface {
 	CheckAdmission(ctx context.Context, image, tag, namespace string) (*AdmissionDecision, error)
 }
 
+// ProviderType represents the type of container scanner.
+type ProviderType string
+
+const (
+	ProviderTypeMemory ProviderType = "memory"
+	ProviderTypeTrivy  ProviderType = "trivy"
+)
+
+// ScannerConfig contains configuration for creating a container scanner.
+type ScannerConfig struct {
+	Type              ProviderType
+	SeverityThreshold string // Trivy severity threshold (e.g., "HIGH,CRITICAL")
+}
+
 // NewScanner returns a Scanner for the given provider name.
 // Supports "memory" (in-process mock) and "trivy" (Trivy CLI).
 func NewScanner(provider string) (Scanner, error) {
-	switch provider {
-	case "memory", "":
+	t, err := ProviderFromString(provider)
+	if err != nil {
+		return nil, err
+	}
+	return NewScannerFromConfig(ScannerConfig{Type: t})
+}
+
+// NewScannerFromConfig returns a Scanner based on the given configuration.
+func NewScannerFromConfig(cfg ScannerConfig) (Scanner, error) {
+	switch cfg.Type {
+	case ProviderTypeMemory, "":
 		return newMockScanner(), nil
-	case "trivy":
+	case ProviderTypeTrivy:
 		return newTrivyScanner(), nil
 	default:
-		return nil, fmt.Errorf("unsupported container scanner provider: %q", provider)
+		return nil, fmt.Errorf("unsupported container scanner provider: %q", cfg.Type)
+	}
+}
+
+// ProviderFromString converts a string to ProviderType.
+func ProviderFromString(s string) (ProviderType, error) {
+	switch s {
+	case "memory", "":
+		return ProviderTypeMemory, nil
+	case "trivy":
+		return ProviderTypeTrivy, nil
+	default:
+		return "", fmt.Errorf("unknown container scanner provider: %s", s)
 	}
 }
