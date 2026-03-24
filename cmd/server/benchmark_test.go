@@ -13,6 +13,7 @@ import (
 
 	"aegis/internal/api"
 	"aegis/internal/audit"
+	"aegis/internal/finops"
 	"aegis/internal/grc"
 	"aegis/internal/identity"
 	"aegis/internal/observability"
@@ -72,7 +73,7 @@ func benchServer(b *testing.B) (*Server, *mux.Router) {
 			Logger: logger,
 		},
 		roles:     &api.RoleEnforcer{DevMode: false},
-		finopsSvc: newFinopsService(logger),
+		finopsSvc: newFinopsServiceFromAggregator(finops.NewMemoryAggregator()),
 		identitySvc: NewIdentityService(map[string]identity.Provider{
 			"okta":     identity.NewMockOktaProvider(),
 			"entra_id": identity.NewMockEntraIDProvider(),

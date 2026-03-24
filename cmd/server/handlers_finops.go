@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"sort"
 	"time"
 
@@ -14,39 +13,20 @@ import (
 	"aegis/internal/finops/chargeback"
 
 	"go.opentelemetry.io/otel"
-	"go.uber.org/zap"
 )
 
-// finopsService wires the concrete FinOps implementations together.
-// Lives in cmd/server to avoid import cycles (finops → anomaly → finops).
+// finopsService wraps the FinOps subsystems for HTTP handler access.
+// Aggregator is factory-created (see internal/finops/factory.go);
+// detector and allocator are provider-agnostic composites.
 type finopsService struct {
 	aggregator finops.Aggregator
 	detector   *anomaly.Detector
 	allocator  *chargeback.Allocator
 }
 
-// newFinopsService creates the FinOps service with provider selection via FINOPS_PROVIDER env var.
-// "aws" → real AWS Cost Explorer data, "memory" (default) → synthetic 30-day seed.
-func newFinopsService(logger *zap.Logger) *finopsService {
-	var agg finops.Aggregator
-	switch os.Getenv("FINOPS_PROVIDER") {
-	case "aws":
-		region := os.Getenv("FINOPS_AWS_REGION")
-		if region == "" {
-			region = "us-east-1"
-		}
-		a, err := finops.NewAWSAggregator(region, logger)
-		if err != nil {
-			logger.Warn("AWS FinOps aggregator init failed, falling back to memory", zap.Error(err))
-			agg = finops.NewMemoryAggregator()
-		} else {
-			agg = a
-			logger.Info("FinOps using AWS Cost Explorer", zap.String("region", region))
-		}
-	default:
-		agg = finops.NewMemoryAggregator()
-	}
-
+// newFinopsServiceFromAggregator composes a finopsService from a factory-created
+// aggregator and default detector/allocator configs.
+func newFinopsServiceFromAggregator(agg finops.Aggregator) *finopsService {
 	return &finopsService{
 		aggregator: agg,
 		detector: anomaly.NewDetector(anomaly.DetectorConfig{

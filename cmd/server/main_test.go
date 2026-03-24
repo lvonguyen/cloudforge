@@ -17,6 +17,7 @@ import (
 	"aegis/internal/audit"
 	"aegis/internal/compliance"
 	"aegis/internal/container"
+	"aegis/internal/finops"
 	"aegis/internal/grc"
 	"aegis/internal/identity"
 	"aegis/internal/ingestion"
@@ -123,7 +124,7 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		},
 		roles:       &api.RoleEnforcer{DevMode: false},
 		comments:    NewCommentsStore(),
-		finopsSvc:   newFinopsService(logger),
+		finopsSvc:   newFinopsServiceFromAggregator(finops.NewMemoryAggregator()),
 		dedupCache:  ingestion.NewDedupCache(24 * time.Hour),
 		auditLogger: audit.NewMemoryAuditLogger(),
 		identitySvc: NewIdentityService(map[string]identity.Provider{

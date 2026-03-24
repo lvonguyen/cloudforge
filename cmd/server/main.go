@@ -23,6 +23,7 @@ import (
 	"aegis/internal/compliance"
 	"aegis/internal/container"
 	"aegis/internal/cspm/threatintel"
+	"aegis/internal/finops"
 	"aegis/internal/graph"
 	"aegis/internal/grc"
 	"aegis/internal/identity"
@@ -377,6 +378,21 @@ func main() {
 		}
 	}
 
+	// Initialize FinOps aggregator via factory — provider selection via FINOPS_PROVIDER env var.
+	// Detector and allocator are provider-agnostic (always in-memory config).
+	finopsType, err := finops.ProviderFromString(getEnv("FINOPS_PROVIDER", "memory"))
+	if err != nil {
+		logger.Fatal("Invalid FinOps provider", zap.Error(err))
+	}
+	finopsAgg, err := finops.NewAggregator(finops.AggregatorConfig{
+		Type:      finopsType,
+		AWSRegion: getEnv("FINOPS_AWS_REGION", "us-east-1"),
+		Logger:    logger.Named("finops"),
+	})
+	if err != nil {
+		logger.Fatal("Failed to initialize FinOps aggregator", zap.Error(err))
+	}
+
 	// Initialize tenant store with seed data
 	tenantStore := seedTenants(logger)
 
@@ -455,7 +471,7 @@ func main() {
 		opaEngine:        opaEngine,
 		telemetry:        telemetry,
 		comments:         NewCommentsStore(),
-		finopsSvc:        newFinopsService(logger),
+		finopsSvc:        newFinopsServiceFromAggregator(finopsAgg),
 		identitySvc:      NewIdentityService(idProviders),
 		dedupCache:       ingestion.NewDedupCache(24 * time.Hour),
 		workflowEngine:   workflowEngine,
