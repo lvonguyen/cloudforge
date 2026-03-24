@@ -153,7 +153,7 @@ func (p *PostgresGRCProvider) GetException(ctx context.Context, id string) (*Exc
 		&req.UpdatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("exception %s not found", id)
+		return nil, fmt.Errorf("exception %s: %w", id, ErrNotFound)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get exception: %w", err)
