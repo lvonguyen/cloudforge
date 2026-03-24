@@ -2,6 +2,8 @@
 
 > Design document for multi-tenant branding and white-label deployment support.
 
+> **Note:** This is a historical research document. Path references reflect the post-rebrand naming (`aegis-logo.svg`). Code snippets and file locations may have drifted from current source.
+
 ---
 
 ## 1. Current Hardcoded Branding Inventory
@@ -35,7 +37,7 @@
 
 | Location | Path |
 |----------|------|
-| `frontend/src/pages/Landing.tsx:32,80` | `/icons/cloudforge-logo.svg` |
+| `frontend/src/pages/Landing.tsx:32,80` | `/icons/aegis-logo.svg` |
 | `frontend/src/components/layout/TopNav.tsx:31-35` | Inline SVG shield icon |
 | `frontend/index.html:5` | `/logo.svg` favicon |
 
@@ -49,7 +51,7 @@
 # .env.development / .env.example
 VITE_COMPANY_NAME=Contoso
 VITE_PRODUCT_NAME=CloudForge
-VITE_LOGO_PATH=/icons/cloudforge-logo.svg
+VITE_LOGO_PATH=/icons/aegis-logo.svg
 VITE_EMAIL_DOMAIN=contoso.dev
 ```
 
@@ -60,7 +62,7 @@ VITE_EMAIL_DOMAIN=contoso.dev
 export const branding = {
   companyName: import.meta.env.VITE_COMPANY_NAME || 'Contoso',
   productName: import.meta.env.VITE_PRODUCT_NAME || 'CloudForge',
-  logoPath:    import.meta.env.VITE_LOGO_PATH || '/icons/cloudforge-logo.svg',
+  logoPath:    import.meta.env.VITE_LOGO_PATH || '/icons/aegis-logo.svg',
   emailDomain: import.meta.env.VITE_EMAIL_DOMAIN || 'contoso.dev',
 }
 ```

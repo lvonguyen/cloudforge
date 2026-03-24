@@ -1,7 +1,7 @@
 # Sprint: Whitelabel Readiness — Provider Selection Layer
 
 **Created:** 2026-03-16
-**Status:** PLANNED
+**Status:** DONE
 **Goal:** Standardize all 8 stub packages on the GRC factory pattern so CloudForge is config-driven provider selection away from production deployment. No real provider wiring — just the seam.
 **Estimated effort:** ~1 week (5-7 sessions)
 **Strategic context:** Positioning CloudForge as a whitelabel CSPM for HAEA pilot. Portfolio demo stays unchanged (mock providers selected by default). Production deployment only requires setting env vars.
@@ -231,17 +231,20 @@ All W1-W6 are independent — can parallelize across 2-3 sessions.
 
 ## Acceptance Criteria (Sprint Exit)
 
-- [ ] All 6 provider packages (identity, container, finops, workflow, waf, secrets) have:
+- [x] All 6 provider packages (identity, container, finops, workflow, waf, secrets) have:
   - A `NewProvider` or `NewService` factory function
   - A `ProviderFromString` validation function
   - An env var hook read in `cmd/server/main.go`
   - Interface types (not concrete) at the server composition root
-- [ ] Default behavior unchanged: `go run ./cmd/server` with no env vars behaves identically to pre-sprint
-- [ ] `FINOPS_PROVIDER=aws go run ./cmd/server` returns clean errors (not panics)
-- [ ] `/api/health` response includes active provider per package
-- [ ] `docs/PROVIDER_CONFIG.md` documents all env vars
-- [ ] All existing tests pass: `go test -race -timeout 20m ./...`
-- [ ] No new test files required (factory functions tested via existing integration paths)
+- [x] Default behavior unchanged: `go run ./cmd/server` with no env vars behaves identically to pre-sprint
+- [x] `FINOPS_PROVIDER=aws go run ./cmd/server` returns clean errors (not panics)
+- [x] `GET /api/v1/providers` returns active provider per package (separate endpoint, not /health)
+- [x] `docs/PROVIDER_CONFIG.md` documents all env vars
+- [x] All existing tests pass: `go test -race -timeout 20m ./...`
+- [x] No new test files required (factory functions tested via existing integration paths)
+
+**Completed:** 2026-03-23 (session 9) — 4 commits, 1 session (vs. estimated 5-7 sessions)
+**Note:** W4 (workflow) and W5 (waf) were already done before sprint start.
 
 ---
 

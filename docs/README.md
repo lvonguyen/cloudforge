@@ -10,7 +10,7 @@
 | [component-rationale.md](core/architecture/adr/component-rationale.md) | Technology selection and cost analysis |
 | [performance-baseline.md](core/performance-baseline.md) | Go vs Rust benchmark comparison |
 
-## Architecture Decision Records (18 ADRs)
+## Architecture Decision Records (19 ADRs)
 
 | ADR | Decision | Status |
 |-----|----------|--------|
@@ -32,6 +32,7 @@
 | [ADR-016](core/architecture/adr/ADR-016-container-scanning.md) | Container Security Scanning | Accepted |
 | [ADR-017](core/architecture/adr/ADR-017-secrets-management.md) | Secrets Management Architecture | Accepted |
 | [ADR-018](core/architecture/adr/ADR-018-threat-intelligence-feeds.md) | Threat Intelligence Feed Integration | Accepted |
+| [ADR-019](core/architecture/adr/ADR-019-multi-tenant-data-isolation.md) | Multi-Tenant Data Isolation | Accepted |
 
 ## Operational Runbooks
 
@@ -72,4 +73,4 @@ See [cspm/](cspm/) -- Cross-Cloud CSPM Aggregator documentation (separate projec
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | January 2026 | Liem Vo-Nguyen | Initial docs README |
-| 2.0 | March 20, 2026 | Liem Vo-Nguyen | Full reorg: core/archive/research structure, 18 ADRs, updated cross-references |
+| 2.0 | March 20, 2026 | Liem Vo-Nguyen | Full reorg: core/archive/research structure, 19 ADRs, updated cross-references |

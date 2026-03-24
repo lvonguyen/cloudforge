@@ -11,7 +11,7 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 
 > **[Live Demo](https://cloudaegis-demo.lvonguyen.com)** | **[API](https://aegis-api.fly.dev/health)**
 
-> **About this project** — Cloud Aegis demonstrates enterprise security patterns I've designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains throughout my career. My background has always been project-based: assess the current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — I don't stop at design docs, I ship working systems backed by threat models and ADRs (the [18 ADRs](docs/core/architecture/adr/) capture the same decision-making process I'd use to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. I use security-focused systems design as my core discipline and agentic coding workflows (Claude Code) as a force multiplier for delivery.
+> **About this project** — Cloud Aegis demonstrates enterprise security patterns I've designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains throughout my career. My background has always been project-based: assess the current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — I don't stop at design docs, I ship working systems backed by threat models and ADRs (the [19 ADRs](docs/core/architecture/adr/) capture the same decision-making process I'd use to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. I use security-focused systems design as my core discipline and agentic coding workflows (Claude Code) as a force multiplier for delivery.
 >
 > **Development rigor** — Code quality is enforced through a layered toolchain: `golangci-lint` with `gosec`/`gocritic`/`revive` in CI, shared coding standards governing Go patterns, error handling, and security rules across all repos, pre-commit hooks blocking credential leaks, and systematic multi-pass QA reviews (quality, security, bug discovery) before merge. The emphasis is on elegant, maintainable code paired with comprehensive documentation and detailed architecture diagrams — minimizing tech debt throughout the SDLC rather than accruing it for later.
 
@@ -244,7 +244,7 @@ cloudforge/
 ├── docs/
 │   ├── core/
 │   │   └── architecture/          # HLD, DDD, DR-BC, data models
-│   │       └── adr/               # Architecture Decision Records (18 ADRs)
+│   │       └── adr/               # Architecture Decision Records (19 ADRs)
 │   ├── diagrams/                  # Architecture diagrams (SVG + Mermaid)
 │   ├── runbooks/                  # Operational procedures (9 runbooks)
 │   ├── research/                  # Technical research and POC notes
@@ -435,7 +435,7 @@ workflow:
 | [Remediation Dispatcher](docs/core/diagrams/remediation-dispatcher-flow.svg) | Automated remediation routing |
 | [Risk Intelligence Pipeline](docs/core/diagrams/risk-intelligence-pipeline.svg) | Risk scoring data pipeline |
 
-### Architecture Decision Records (18 ADRs)
+### Architecture Decision Records (19 ADRs)
 
 | ADR | Decision |
 | --- | -------- |
@@ -457,6 +457,7 @@ workflow:
 | [ADR-016](docs/core/architecture/adr/ADR-016-container-scanning.md) | Container Security Scanning |
 | [ADR-017](docs/core/architecture/adr/ADR-017-secrets-management.md) | Secrets Management Architecture |
 | [ADR-018](docs/core/architecture/adr/ADR-018-threat-intelligence-feeds.md) | Threat Intelligence Feed Integration |
+| [ADR-019](docs/core/architecture/adr/ADR-019-multi-tenant-data-isolation.md) | Multi-Tenant Data Isolation |
 
 ### Runbooks
 
@@ -584,7 +585,7 @@ Built-in support for 20+ frameworks:
 | **Phase 4: Frontend + QA Hardening** | Self-service portal (React 19 + Vite 7, 35 routes, 3 role views, dark mode), Cloudflare Pages deploy, investigation board, DSPM classification, kanban remediation pipeline, NLQ bar, demo mode hardening. Multi-pass QA reviews (quality 4.5+, security 4.5+, bugs 4.3+) |
 | **Phase 3: IaC + Security** | Multi-cloud Terraform modules (compute, database, redis, IAM, monitoring, secrets), 5 Rego policies (25 rules), policy gate script, resource-scoped RBAC, integrity hashing, audit logging, rollback encryption (AES-256-GCM), CI enforcement (gosec, Trivy, Codecov) |
 | **Phase 2: Remediation + AI Governance** | 10 remediation handlers across 8 domains, batch executor with dry-run + 48h rollback, AI governance module (embedded OPA, agent registry, STRIDE/ATLAS threat models), JWT auth (HS256/RS256 + JWKS), RBAC middleware, security fixes SEC-001 through SEC-012 |
-| **Phase 1: Core Platform** | API server, GRC provider abstraction (Archer, ServiceNow, PostgreSQL), 20+ compliance frameworks, OPA/Rego policy engine, AI provider abstraction (Claude/OpenAI), identity module (Okta + Entra ID), container security, structured logging (zap), PostgreSQL migrations, architecture docs (HLD, DDD, 18 ADRs, DR/BC, 9 runbooks) |
+| **Phase 1: Core Platform** | API server, GRC provider abstraction (Archer, ServiceNow, PostgreSQL), 20+ compliance frameworks, OPA/Rego policy engine, AI provider abstraction (Claude/OpenAI), identity module (Okta + Entra ID), container security, structured logging (zap), PostgreSQL migrations, architecture docs (HLD, DDD, 19 ADRs, DR/BC, 9 runbooks) |
 
 ---
 
