@@ -23,11 +23,6 @@ func (s *Server) setupRoutes() {
 		s.router.Use(api.CORSMiddleware(origins, s.roles.DevMode))
 	}
 
-	// Tenant resolution middleware — resolves tenant from JWT, header, or subdomain.
-	if s.tenantStore != nil {
-		s.router.Use(tenant.Middleware(s.tenantStore, s.logger))
-	}
-
 	// Health check endpoints (unauthenticated - skipped by middleware)
 	s.router.HandleFunc("/health", s.healthChecker.HealthHandler()).Methods("GET")
 	s.router.HandleFunc("/healthz", s.healthChecker.LivenessHandler()).Methods("GET")
@@ -53,6 +48,12 @@ func (s *Server) setupRoutes() {
 
 	// Apply authentication middleware first
 	apiRouter.Use(s.authMiddleware.Middleware)
+
+	// Tenant resolution AFTER auth — JWT claims must be in context before
+	// middleware can extract tenant_id from the token.
+	if s.tenantStore != nil {
+		apiRouter.Use(tenant.Middleware(s.tenantStore, s.logger))
+	}
 
 	// Apply rate limiting after auth (identity is now available in context)
 	if s.rateLimiter != nil {
@@ -117,11 +118,11 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/findings/{id}/comments",
 		s.roles.Require(api.RoleViewer, api.RoleRequester, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.listComments))),
 	).Methods("GET")
-	apiRouter.Handle("/findings/{id}/comments", // operator, admin
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.addComment)),
+	apiRouter.Handle("/findings/{id}/comments", // operator, admin — scope-guarded
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.addComment))),
 	).Methods("POST")
-	apiRouter.Handle("/findings/{id}/comments/{commentId}", // admin only
-		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.deleteComment)),
+	apiRouter.Handle("/findings/{id}/comments/{commentId}", // admin only — scope-guarded
+		s.roles.Require(api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.deleteComment))),
 	).Methods("DELETE")
 
 	// Compliance (viewer can see frameworks read-only)
@@ -275,15 +276,15 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/workflows/{id}",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.getWorkflow))),
 	).Methods("GET")
-	apiRouter.Handle("/workflows/{id}/approve", // admin only
-		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.approveWorkflow)),
+	apiRouter.Handle("/workflows/{id}/approve", // admin only — scope-guarded
+		s.roles.Require(api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.approveWorkflow))),
 	).Methods("POST")
 
 	// --- Integration layer routes ---
 
 	// Remediation ticket routing (IntegrationHandler)
-	apiRouter.Handle("/findings/{id}/remediate", // operator, admin
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.integrationHandler.RemediateFinding)),
+	apiRouter.Handle("/findings/{id}/remediate", // operator, admin — scope-guarded
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.integrationHandler.RemediateFinding))),
 	).Methods("POST")
 	apiRouter.Handle("/findings/{id}/ticket",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.integrationHandler.GetFindingTicket))),

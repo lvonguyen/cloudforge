@@ -83,8 +83,11 @@ func TestMiddleware_HeaderFallback(t *testing.T) {
 
 	req := httptest.NewRequest("GET", "/test", nil)
 	req.Header.Set("X-Tenant-ID", "haea")
-	// Header fallback now requires JWT claims in context
-	ctx := context.WithValue(req.Context(), api.ClaimsContextKey, &api.Claims{Subject: "test-user"})
+	// Header fallback requires admin role — non-admin users cannot switch tenant via header.
+	ctx := context.WithValue(req.Context(), api.ClaimsContextKey, &api.Claims{
+		Subject: "test-admin",
+		Groups:  []string{"aegis-admin"},
+	})
 	req = req.WithContext(ctx)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)

@@ -33,10 +33,13 @@ func Middleware(store Store, logger *zap.Logger) func(http.Handler) http.Handler
 				tenantID = claims.TenantID
 			}
 
-			// 2. X-Tenant-ID header fallback (only when JWT claims are present)
+			// 2. X-Tenant-ID header fallback — admin only. Non-admin users cannot
+			// switch tenant context via header to prevent cross-tenant access.
 			if tenantID == "" {
-				if _, hasClaims := api.GetClaimsFromContext(r.Context()); hasClaims {
-					tenantID = r.Header.Get("X-Tenant-ID")
+				if claims, hasClaims := api.GetClaimsFromContext(r.Context()); hasClaims {
+					if api.RoleFromClaims(claims) == api.RoleAdmin {
+						tenantID = r.Header.Get("X-Tenant-ID")
+					}
 				}
 			}
 
