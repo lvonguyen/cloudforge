@@ -291,41 +291,15 @@ func main() {
 	}
 	tiEnricher := threatintel.NewEnricher(epssClient, kevCatalog, greynoiseClient, hibpClient, otxClient, logger.Named("threatintel"))
 
-	// Initialize identity providers — use real providers when env vars are set,
-	// otherwise fall back to in-memory mocks for local development.
-	idProviders := make(map[string]identity.Provider, 2)
-	if oktaDomain := os.Getenv("OKTA_DOMAIN"); oktaDomain != "" {
-		op, err := identity.NewOktaProvider(identity.OktaConfig{
-			Domain:      oktaDomain,
-			APITokenEnv: "OKTA_API_TOKEN",
-		}, logger)
-		if err != nil {
-			logger.Warn("Okta provider init failed, falling back to mock", zap.Error(err))
-			idProviders["okta"] = identity.NewMockOktaProvider()
-		} else {
-			idProviders["okta"] = op
-			logger.Info("Okta identity provider initialized", zap.String("domain", oktaDomain))
-		}
-	} else {
-		idProviders["okta"] = identity.NewMockOktaProvider()
-		logger.Info("Using mock Okta identity provider (OKTA_DOMAIN not set)")
+	// Initialize identity providers via factory — real providers when env vars
+	// are set, mock providers otherwise (graceful degradation per provider).
+	idConfigs := buildIdentityConfigs(logger)
+	idProviders, err := identity.NewProviders(idConfigs)
+	if err != nil {
+		logger.Fatal("Failed to initialize identity providers", zap.Error(err))
 	}
-	if entraTenantID := os.Getenv("ENTRA_TENANT_ID"); entraTenantID != "" {
-		ep, err := identity.NewEntraIDProvider(identity.EntraIDConfig{
-			TenantIDEnv:     "ENTRA_TENANT_ID",
-			ClientIDEnv:     "ENTRA_CLIENT_ID",
-			ClientSecretEnv: "ENTRA_CLIENT_SECRET",
-		}, logger)
-		if err != nil {
-			logger.Warn("Entra ID provider init failed, falling back to mock", zap.Error(err))
-			idProviders["entra_id"] = identity.NewMockEntraIDProvider()
-		} else {
-			idProviders["entra_id"] = ep
-			logger.Info("Entra ID identity provider initialized", zap.String("tenant_id", entraTenantID))
-		}
-	} else {
-		idProviders["entra_id"] = identity.NewMockEntraIDProvider()
-		logger.Info("Using mock Entra ID identity provider (ENTRA_TENANT_ID not set)")
+	for name := range idProviders {
+		logger.Info("Identity provider initialized", zap.String("provider", name))
 	}
 
 	// Initialize Jira ticket provider when credentials are available
@@ -751,4 +725,39 @@ func seedTenants(logger *zap.Logger) tenant.Store {
 
 	logger.Info("Tenant store seeded", zap.Int("tenants", 2))
 	return store
+}
+
+// buildIdentityConfigs determines which identity providers to create based on
+// available environment variables. Real providers are used when credentials are
+// present; mock providers are used otherwise (graceful degradation).
+func buildIdentityConfigs(logger *zap.Logger) []identity.Config {
+	var cfgs []identity.Config
+
+	// Okta: real provider when OKTA_DOMAIN is set, mock otherwise
+	if domain := os.Getenv("OKTA_DOMAIN"); domain != "" {
+		cfgs = append(cfgs, identity.Config{
+			Type:   identity.ProviderTypeOkta,
+			Okta:   &identity.OktaConfig{Domain: domain, APITokenEnv: "OKTA_API_TOKEN"},
+			Logger: logger,
+		})
+	} else {
+		cfgs = append(cfgs, identity.Config{Type: identity.ProviderTypeMockOkta, Logger: logger})
+	}
+
+	// Entra ID: real provider when ENTRA_TENANT_ID is set, mock otherwise
+	if os.Getenv("ENTRA_TENANT_ID") != "" {
+		cfgs = append(cfgs, identity.Config{
+			Type: identity.ProviderTypeEntraID,
+			EntraID: &identity.EntraIDConfig{
+				TenantIDEnv:     "ENTRA_TENANT_ID",
+				ClientIDEnv:     "ENTRA_CLIENT_ID",
+				ClientSecretEnv: "ENTRA_CLIENT_SECRET",
+			},
+			Logger: logger,
+		})
+	} else {
+		cfgs = append(cfgs, identity.Config{Type: identity.ProviderTypeMockEntra, Logger: logger})
+	}
+
+	return cfgs
 }
