@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "deploy": "npx wrangler@latest pages deploy dist --project-name=cloudforge-demo",
+    "deploy:haea": "npx wrangler@latest pages deploy dist --project-name=cloudguard",
     "test": "vitest run",
     "test:watch": "vitest"
   },

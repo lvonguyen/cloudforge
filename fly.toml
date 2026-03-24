@@ -9,7 +9,7 @@ primary_region = "sjc"
   GRC_PROVIDER = "memory"
   APP_ENV = "production"
   RATE_LIMIT_ENABLED = "true"
-  CORS_ALLOWED_ORIGINS = "https://cloudaegis-demo.lvonguyen.com"
+  CORS_ALLOWED_ORIGINS = "https://cloudaegis-demo.lvonguyen.com,https://cloudguard.lvonguyen.com"
 
 [http_service]
   internal_port = 8080
