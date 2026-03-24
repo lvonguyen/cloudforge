@@ -25,9 +25,9 @@ GitLab CI/CD (haea-sec/cloudguard)
 | Document | Version | Status | Notes |
 |----------|---------|--------|-------|
 | [AWS_OIDC_Setup.md](AWS_OIDC_Setup.md) | **v2** | **Current** | Rewritten for two-hop model (2026-03-23) |
-| [GCP_WIF_Setup.md](GCP_WIF_Setup.md) | v1 | **Stale** | Still references ACI + Azure AD federation — needs rewrite for GitLab OIDC |
-| [AzureAD_AppRegistration.md](AzureAD_AppRegistration.md) | v1 | **Stale** | Still references ACI compute — needs update for ECS + internal DNS approach |
-| [Azure_Infrastructure.md](Azure_Infrastructure.md) | v1 | **Stale** | References ACI, Logic App, Key Vault — architecture moved to AWS ECS |
+| [GCP_WIF_Setup.md](GCP_WIF_Setup.md) | **v2** | **Current** | Rewritten for AWS→GCP WIF federation (2026-03-23) |
+| [AzureAD_AppRegistration.md](AzureAD_AppRegistration.md) | **v2** | **Current** | Rewritten for ECS + client credentials + Security Reader (2026-03-23) |
+| [Azure_Infrastructure.md](Azure_Infrastructure.md) | **v2** | **Current** | Rewritten — Azure reduced to identity + DNS only (2026-03-23) |
 | [HAEA_CS_Read_Automation_Config.docx](HAEA_CS_Read_Automation_Config.docx) | v1 | Partial | Reader role config — policy updated to 12 statements, 95 actions |
 | [SecurityTFT_Validation.docx](SecurityTFT_Validation.docx) | v1 | **Stale** | Needs rewrite for v2 validation steps |
 

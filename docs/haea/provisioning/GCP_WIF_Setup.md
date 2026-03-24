@@ -1,267 +1,220 @@
-# GCP Workload Identity Federation - HAEA Cloud Security Automation
+# GCP Workload Identity Federation — HAEA Cloud Guard (v2)
 
 | Property | Value |
 |----------|-------|
-| Version | 1.0 |
+| Version | 2.0 |
 | Author | Liem Vo-Nguyen |
 | Team | HAEA Security TFT |
-| Date | December 2025 |
-| Status | Draft |
+| Date | March 2026 |
+| Status | Active |
 | Owner | GCP Team |
+| IaC Source | `deploy/terraform/environments/haea/main.tf` (GCP section planned) |
 
 ---
 
-## 1. Overview
-
-This document describes the GCP Workload Identity Federation (WIF) configuration required for the Cross-Cloud CSPM Automation Platform. WIF allows Azure Container Instance to authenticate to GCP without storing service account keys.
-
----
-
-## 2. Account Context
+## 1. Account Context
 
 | Property | Value |
 |----------|-------|
-| GCP Organization | haea.com |
-| Security Project | prj-haea-security |
-| Service Account | sa-cspm-automation@prj-haea-security.iam.gserviceaccount.com |
-| WIF Pool | haea-azure-federation |
-| WIF Provider | azure-oidc |
+| GCP Organization | haea.com (95 projects) |
+| Security Project | prj-haea-security (or designated GCP project) |
+| WIF Pool ID | haea-cg-cspm-pool |
+| WIF Provider | aws-oidc |
+| Service Account | sa-cg-reader@{project}.iam.gserviceaccount.com |
 
 ---
 
-## 3. How WIF Works
+## 2. Architecture — AWS-to-GCP Federation (v2)
+
+Cloud Guard runs on AWS ECS Fargate. GCP access uses Workload Identity Federation to trust the AWS ECS task role, eliminating service account keys.
 
 ```
-Azure Container Instance
-  → Request token from Azure AD (audience: api://{client-id})
-  → Present token to GCP STS (token exchange)
-  → GCP validates token against WIF provider
-  → GCP issues short-lived credentials for service account
-  → Access Security Command Center API
+ECS Task (AWS, 831926608679)
+  |
+  | AWS STS credentials (from haea-cg-prod-app role)
+  v
+GCP Security Token Service
+  | Token exchange (AWS → GCP)
+  v
+GCP WIF Pool: haea-cg-cspm-pool
+  | Provider: aws-oidc (trusts AWS account 831926608679)
+  v
+Service Account: sa-cg-reader
+  | Impersonation (workloadIdentityUser)
+  v
+GCP APIs: SCC, IAM, Compute, Cloud Asset
 ```
 
-**Benefits:**
-- No service account keys to manage or rotate
-- Short-lived credentials (1 hour default)
-- Audit trail of all token exchanges
-- Centralized identity in Azure AD
+**Why AWS→GCP federation?**
+- No service account keys to store or rotate
+- Short-lived credentials (1 hour)
+- Compute runs on AWS — the ECS task role IS the identity
+- Adding GCP projects doesn't require AWS reconfiguration
+
+**Changed from v1:**
+- v1 used Azure ACI → Azure AD → GCP WIF (Azure AD as OIDC provider)
+- v2 uses AWS ECS → AWS STS → GCP WIF (AWS as identity provider)
 
 ---
 
-## 4. Prerequisites
+## 3. Service Account Roles — 4 Reader Roles
 
-| Requirement | Value | Status |
-|-------------|-------|--------|
-| Azure AD App Registration | haea-cloud-security-automation | Pending AD team |
-| Application ID URI | api://{client-id} | Pending AD team |
-| Azure AD Tenant | bd29b3ab-aaa2-425a-b882-9e7f73283ca6 | Existing |
-| Service Account | sa-cspm-automation | Existing or create |
+Validated in `lvn-dev-483106` (test project). All roles are read-only.
+
+| Role | Purpose |
+|------|---------|
+| `roles/securitycenter.findingsViewer` | Read SCC findings + sources |
+| `roles/iam.securityReviewer` | Read IAM policies, roles, service accounts |
+| `roles/compute.viewer` | Read compute instances, networks, firewalls |
+| `roles/cloudasset.viewer` | Read Cloud Asset Inventory (resource + policy search) |
+
+**Scope:** Organization-level (covers all 95 projects). If org-level is not approved, apply per-project.
 
 ---
 
-## 5. WIF Pool Configuration
+## 4. One-Shot Provisioning Checklist
 
-### 5.1 Create Workload Identity Pool
+### Prerequisites
+
+- [ ] `gcloud` CLI authenticated with org admin or project owner
+- [ ] GCP project ID designated for WIF pool (e.g., `prj-haea-security`)
+- [ ] AWS central app role ARN: `arn:aws:iam::831926608679:role/haea-cg-prod-app`
+- [ ] AWS account ID: `831926608679`
+
+### Step 4.1: Create Service Account
 
 ```bash
-# Set project
-gcloud config set project prj-haea-security
+PROJECT_ID="prj-haea-security"  # Replace with actual
+gcloud config set project "$PROJECT_ID"
 
-# Create WIF pool
-gcloud iam workload-identity-pools create haea-azure-federation \
+gcloud iam service-accounts create sa-cg-reader \
+  --display-name="Cloud Guard CSPM Reader" \
+  --description="Read-only service account for multi-cloud CSPM finding ingestion"
+
+SA_EMAIL="sa-cg-reader@${PROJECT_ID}.iam.gserviceaccount.com"
+echo "Service Account: $SA_EMAIL"
+```
+
+### Step 4.2: Create WIF Pool
+
+```bash
+gcloud iam workload-identity-pools create haea-cg-cspm-pool \
   --location="global" \
-  --display-name="HAEA Azure Federation" \
-  --description="WIF pool for Azure AD authentication"
+  --display-name="HAEA Cloud Guard CSPM" \
+  --description="WIF pool for AWS ECS task federation"
 ```
 
-### 5.2 Create WIF Provider
+### Step 4.3: Create AWS Provider
 
 ```bash
-# Create OIDC provider
-gcloud iam workload-identity-pools providers create-oidc azure-oidc \
+AWS_ACCOUNT_ID="831926608679"
+
+gcloud iam workload-identity-pools providers create-aws aws-oidc \
   --location="global" \
-  --workload-identity-pool="haea-azure-federation" \
-  --display-name="Azure AD OIDC" \
-  --issuer-uri="https://sts.windows.net/bd29b3ab-aaa2-425a-b882-9e7f73283ca6/" \
-  --allowed-audiences="api://{client-id}" \
-  --attribute-mapping="google.subject=assertion.sub,attribute.tid=assertion.tid"
+  --workload-identity-pool="haea-cg-cspm-pool" \
+  --display-name="AWS Central Security Account" \
+  --account-id="$AWS_ACCOUNT_ID" \
+  --attribute-mapping="google.subject=assertion.arn,attribute.aws_role=assertion.arn"
 ```
 
-### 5.3 Grant Service Account Impersonation
+### Step 4.4: Grant Service Account Impersonation
 
 ```bash
-# Allow WIF pool to impersonate service account
-gcloud iam service-accounts add-iam-policy-binding \
-  sa-cspm-automation@prj-haea-security.iam.gserviceaccount.com \
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
+
+gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
   --role="roles/iam.workloadIdentityUser" \
-  --member="principalSet://iam.googleapis.com/projects/{project-number}/locations/global/workloadIdentityPools/haea-azure-federation/attribute.tid/bd29b3ab-aaa2-425a-b882-9e7f73283ca6"
+  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/haea-cg-cspm-pool/attribute.aws_role/arn:aws:sts::${AWS_ACCOUNT_ID}:assumed-role/haea-cg-prod-app"
 ```
 
----
-
-## 6. Service Account Permissions
-
-### 6.1 Organization-Level Roles
-
-| Role | Purpose |
-|------|---------|
-| Security Center Findings Viewer | Read SCC findings |
-| Security Center Sources Viewer | Read SCC sources |
+### Step 4.5: Grant Reader Roles (org-level)
 
 ```bash
-# Grant at organization level
-gcloud organizations add-iam-policy-binding {org-id} \
-  --member="serviceAccount:sa-cspm-automation@prj-haea-security.iam.gserviceaccount.com" \
-  --role="roles/securitycenter.findingsViewer"
+ORG_ID="REPLACE_WITH_ORG_ID"
 
-gcloud organizations add-iam-policy-binding {org-id} \
-  --member="serviceAccount:sa-cspm-automation@prj-haea-security.iam.gserviceaccount.com" \
-  --role="roles/securitycenter.sourcesViewer"
+for ROLE in \
+  roles/securitycenter.findingsViewer \
+  roles/iam.securityReviewer \
+  roles/compute.viewer \
+  roles/cloudasset.viewer; do
+  gcloud organizations add-iam-policy-binding "$ORG_ID" \
+    --member="serviceAccount:$SA_EMAIL" \
+    --role="$ROLE"
+done
 ```
 
-### 6.2 Project-Level Roles (Optional)
-
-If project-specific access is needed:
-
-| Role | Purpose |
-|------|---------|
-| Viewer | Read project resources |
-| Security Reviewer | Read IAM policies |
-
----
-
-## 7. Credential Configuration File
-
-Create credential configuration for the Go binary:
-
-```json
-{
-  "type": "external_account",
-  "audience": "//iam.googleapis.com/projects/{project-number}/locations/global/workloadIdentityPools/haea-azure-federation/providers/azure-oidc",
-  "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
-  "token_url": "https://sts.googleapis.com/v1/token",
-  "credential_source": {
-    "file": "/var/run/secrets/azure/token",
-    "format": {
-      "type": "text"
-    }
-  },
-  "service_account_impersonation_url": "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/sa-cspm-automation@prj-haea-security.iam.gserviceaccount.com:generateAccessToken"
-}
-```
-
-Save as `gcp-wif-config.json` and set environment variable:
+### Step 4.6: Generate Credential Configuration
 
 ```bash
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/gcp-wif-config.json
+gcloud iam workload-identity-pools create-cred-config \
+  "projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/haea-cg-cspm-pool/providers/aws-oidc" \
+  --service-account="$SA_EMAIL" \
+  --aws \
+  --output-file="gcp-wif-config.json"
 ```
 
----
+Set on ECS task:
+```bash
+# Environment variable in ECS task definition
+GOOGLE_APPLICATION_CREDENTIALS=/app/config/gcp-wif-config.json
+```
 
-## 8. Provisioning Checklist
-
-### 8.1 Service Account
-
-- [ ] Create service account `sa-cspm-automation` (or use existing)
-- [ ] Note service account email
-- [ ] Grant `securitycenter.findingsViewer` at org level
-- [ ] Grant `securitycenter.sourcesViewer` at org level
-
-### 8.2 Workload Identity Pool
-
-- [ ] Create WIF pool `haea-azure-federation`
-- [ ] Note pool ID and project number
-
-### 8.3 WIF Provider
-
-- [ ] Get Application ID URI from AD team
-- [ ] Create OIDC provider `azure-oidc`
-- [ ] Configure issuer URI (Azure AD tenant)
-- [ ] Configure allowed audiences (App ID URI)
-- [ ] Configure attribute mapping
-
-### 8.4 IAM Binding
-
-- [ ] Grant `workloadIdentityUser` role to WIF pool principal
-- [ ] Restrict to Azure AD tenant ID attribute
-
-### 8.5 Credential Config
-
-- [ ] Generate credential configuration JSON
-- [ ] Provide to Security TFT for container configuration
-
-### 8.6 Validation
-
-- [ ] Test token exchange from Azure
-- [ ] Test SCC API access
-- [ ] Verify audit logs show WIF authentication
-
----
-
-## 9. Usage Examples
-
-### 9.1 List Findings
+### Step 4.7: Validation
 
 ```bash
-# Using gcloud with WIF credentials
+# From an environment with AWS credentials for haea-cg-prod-app:
 export GOOGLE_APPLICATION_CREDENTIALS=gcp-wif-config.json
 
-gcloud scc findings list organizations/{org-id} \
-  --filter="state=\"ACTIVE\" AND severity=\"CRITICAL\""
-```
+# Test SCC access
+gcloud scc findings list "organizations/$ORG_ID" \
+  --filter="state=\"ACTIVE\" AND severity=\"CRITICAL\"" \
+  --limit=1
 
-### 9.2 Programmatic Access (Go)
+# Test IAM access
+gcloud asset search-all-iam-policies --scope="organizations/$ORG_ID" --limit=1
 
-```go
-import (
-    "context"
-    securitycenter "cloud.google.com/go/securitycenter/apiv1"
-)
-
-// Client auto-discovers credentials from GOOGLE_APPLICATION_CREDENTIALS
-client, err := securitycenter.NewClient(context.Background())
+# Test compute access
+gcloud compute instances list --project="$PROJECT_ID" --limit=1
 ```
 
 ---
 
-## 10. Troubleshooting
+## 5. Validated Test Results (2026-03-24)
 
-### 10.1 Token Exchange Failures
+| Test | Environment | Result |
+|------|-------------|--------|
+| WIF pool creation | lvn-dev-483106 | PASS |
+| AWS provider binding | lvn-dev-483106 | PASS |
+| SA impersonation | lvn-dev-483106 | PASS |
+| SCC Viewer access | lvn-dev-483106 | PASS |
+| IAM Reviewer access | lvn-dev-483106 | PASS |
+| Compute Viewer access | lvn-dev-483106 | PASS |
+| Cloud Asset Viewer access | lvn-dev-483106 | PASS |
 
-```bash
-# Check WIF pool exists
-gcloud iam workload-identity-pools describe haea-azure-federation \
-  --location="global"
-
-# Check provider configuration
-gcloud iam workload-identity-pools providers describe azure-oidc \
-  --location="global" \
-  --workload-identity-pool="haea-azure-federation"
-```
-
-### 10.2 Permission Denied
-
-```bash
-# Verify service account roles
-gcloud projects get-iam-policy prj-haea-security \
-  --flatten="bindings[].members" \
-  --filter="bindings.members:sa-cspm-automation"
-
-# Check organization-level bindings
-gcloud organizations get-iam-policy {org-id} \
-  --flatten="bindings[].members" \
-  --filter="bindings.members:sa-cspm-automation"
-```
+**Test resources:** WIF pool `haea-cg-cspm-pool` + SA in `lvn-dev-483106`. Calendar reminder April 20 to teardown.
 
 ---
 
-## 11. Security Considerations
+## 6. Troubleshooting
 
-- WIF eliminates need for service account keys
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `PERMISSION_DENIED` on token exchange | AWS account ID mismatch in WIF provider | Verify `--account-id` matches 831926608679 |
+| `INVALID_ARGUMENT` on credential config | Wrong pool/provider path | Re-run `create-cred-config` with correct project number |
+| SCC returns empty | SCC not enabled in org | `gcloud scc organizations enable $ORG_ID` |
+| `iam.workloadIdentityUser` denied | Attribute mapping mismatch | Check `assertion.arn` matches the assumed-role ARN pattern |
+| Stale credentials | Token expired (1h default) | SDK auto-refreshes; verify `GOOGLE_APPLICATION_CREDENTIALS` is set |
+
+---
+
+## 7. Security Considerations
+
+- No service account keys — WIF provides keyless authentication
 - Short-lived tokens (1 hour) limit blast radius
-- Attribute mapping restricts to specific Azure AD tenant
+- AWS provider restricted to specific account ID (831926608679)
+- Attribute mapping restricts to specific AWS role ARN
 - All authentications logged in Cloud Audit Logs
-- Service account has read-only access (no write permissions)
+- Service account has read-only access only (no write permissions)
 
 ---
 
@@ -269,5 +222,6 @@ gcloud organizations get-iam-policy {org-id} \
 
 | Property | Value |
 |----------|-------|
-| Requestor | Liem Vo-Nguyen (liem.vo-nguyen@haeaus.com) |
+| Primary Contact | Liem Vo-Nguyen (liem.vo-nguyen@haeaus.com) |
+| Backup Contact | Seungwoo Son (seungwooson@haeaus.com) |
 | Team | HAEA Security TFT |
