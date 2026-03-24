@@ -114,6 +114,10 @@ node_modules/
 # Internal research (competitive intel, not for VCS)
 docs/research/INDUSTRY_LANDSCAPE.md
 
+# HAEA internal docs (account IDs, SSO portals, cost forecasts, KPIs)
+# These are tracked on the `haea` branch and pushed only to GL remotes.
+docs/haea/
+
 # Generated sprint plans (superseded)
 tasks/next-sprint.md
 .claude/scheduled_tasks.lock
