@@ -2,11 +2,13 @@ package threatintel
 
 import (
 	"context"
+	"net"
 	"time"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 // providerTimeout caps each threat intel provider call block to prevent
@@ -50,18 +52,30 @@ func NewEnricher(epss *EPSSClient, kev *KEVCatalog, greynoise *GreyNoiseClient, 
 	}
 }
 
-// Enrich queries all configured threat intel providers and returns aggregated results.
-// Each provider is called independently — failures in one do not block others.
+// Enrich queries all configured threat intel providers in parallel and returns
+// aggregated results. Each provider writes to disjoint fields on the result struct,
+// so concurrent access is safe without synchronization. Invalid IPs are filtered
+// before reaching external APIs (SA-016).
 func (e *Enricher) Enrich(ctx context.Context, cves []string, ips []string, emails []string) *ThreatIntelEnrichment {
 	result := &ThreatIntelEnrichment{
 		EnrichedAt: time.Now().UTC(),
 	}
 
-	e.enrichEPSSTraced(ctx, cves, result)
-	e.enrichKEVTraced(ctx, cves, result)
-	e.enrichGreyNoise(ctx, ips, result)
-	e.enrichHIBP(ctx, emails, result)
-	e.enrichOTX(ctx, ips, result)
+	// Validate IPs before passing to external providers (SA-016).
+	validIPs := make([]string, 0, len(ips))
+	for _, ip := range ips {
+		if net.ParseIP(ip) != nil {
+			validIPs = append(validIPs, ip)
+		}
+	}
+
+	g, gCtx := errgroup.WithContext(ctx)
+	g.Go(func() error { e.enrichEPSSTraced(gCtx, cves, result); return nil })
+	g.Go(func() error { e.enrichKEVTraced(gCtx, cves, result); return nil })
+	g.Go(func() error { e.enrichGreyNoise(gCtx, validIPs, result); return nil })
+	g.Go(func() error { e.enrichHIBP(gCtx, emails, result); return nil })
+	g.Go(func() error { e.enrichOTX(gCtx, validIPs, result); return nil })
+	_ = g.Wait()
 
 	return result
 }
