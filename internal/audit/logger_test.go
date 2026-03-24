@@ -153,3 +153,70 @@ func TestZapAuditLogger_DelegatesToStore(t *testing.T) {
 		t.Errorf("entries = %d, want 1", len(results))
 	}
 }
+
+func TestCompositeAuditLogger_WritesToAllStores(t *testing.T) {
+	mem1 := NewMemoryAuditLogger()
+	mem2 := NewMemoryAuditLogger()
+	composite := NewCompositeAuditLogger(mem1, mem2)
+	ctx := context.Background()
+
+	err := composite.Log(ctx, AuditEntry{
+		Actor:  "admin@contoso.dev",
+		Action: "test.composite",
+		Result: "success",
+	})
+	if err != nil {
+		t.Fatalf("Log: %v", err)
+	}
+
+	// Both stores should have the entry.
+	r1, _ := mem1.List(ctx, ListOpts{})
+	r2, _ := mem2.List(ctx, ListOpts{})
+	if len(r1) != 1 {
+		t.Errorf("primary store entries = %d, want 1", len(r1))
+	}
+	if len(r2) != 1 {
+		t.Errorf("secondary store entries = %d, want 1", len(r2))
+	}
+}
+
+func TestCompositeAuditLogger_ListReadsFromPrimary(t *testing.T) {
+	primary := NewMemoryAuditLogger()
+	secondary := NewMemoryAuditLogger()
+	composite := NewCompositeAuditLogger(primary, secondary)
+	ctx := context.Background()
+
+	// Write via composite (both stores get the entry).
+	_ = composite.Log(ctx, AuditEntry{Actor: "admin", Action: "a"})
+
+	// Write directly to secondary only.
+	_ = secondary.Log(ctx, AuditEntry{Actor: "admin", Action: "b"})
+
+	// Composite.List reads from primary only.
+	results, _ := composite.List(ctx, ListOpts{})
+	if len(results) != 1 {
+		t.Errorf("composite list = %d, want 1 (primary only)", len(results))
+	}
+}
+
+func TestCompositeAuditLogger_AutoGeneratesID(t *testing.T) {
+	mem := NewMemoryAuditLogger()
+	composite := NewCompositeAuditLogger(mem)
+	ctx := context.Background()
+
+	_ = composite.Log(ctx, AuditEntry{
+		Actor:  "admin",
+		Action: "test",
+	})
+
+	results, _ := mem.List(ctx, ListOpts{})
+	if len(results) != 1 {
+		t.Fatalf("entries = %d, want 1", len(results))
+	}
+	if results[0].ID == "" {
+		t.Error("expected auto-generated ID from composite logger")
+	}
+	if results[0].IntegrityHash == "" {
+		t.Error("expected integrity hash from composite logger")
+	}
+}
