@@ -17,15 +17,15 @@
 
 **AWS landscape (132 accounts / 4 orgs):**
 
-| Org | SSO Portal | Accounts | Visible | Brands |
+| Org | SSO Portal | Accounts | Visible | CBUs |
 |-----|-----------|----------|---------|--------|
 | HMA Legacy | haea-aws-sso.awsapps.com | 56 | 54 | HMA, KUS, HMGMA, HACC |
 | KNA | d-9267fb4f9b | 21 | 9 | KUS, HCAA (Canada), KAGA (Kia Georgia) |
 | HMNA | d-92678cbdc7 | 35 | 14 | GEA (Glovis Electrifying America), GUS, HAEA |
 | HMGNA | d-92678d8f7b | 20 | 17 | HMA, HKNA ops, successor for Legacy |
 
-- **Achievable:** Deploy read-only CSPM reader roles and SecurityHub delegated admin across all 4 AWS Orgs (132 accounts). CSPM reader policy validated — 21/21 actions pass, two-hop AssumeRole chain confirmed. Produce first scored baseline report (CIS AWS Foundations Benchmark v3.0) covering resource config + tenant policy posture by end of Q2.
-- **Stretch:** Formalize quarterly cadence with stakeholder distribution. Second audit (July) includes delta comparison showing remediation progress. Extend coverage to GCP (95 projects) and Azure (52 subscriptions).
+- **Achievable:** Deploy read-only CSPM reader roles and SecurityHub delegated admin across all 4 AWS Orgs — account visibility from 94/132 (71%) → 132/132 (100%). CSPM reader policy validated — 21/21 actions pass, two-hop AssumeRole chain confirmed. Produce first scored baseline report (CIS AWS Foundations Benchmark v3.0) covering resource config + tenant policy posture. Establish baseline CIS pass rate and triage all critical/high findings with assigned owners. Target: EOD Friday 19 June 2026.
+- **Stretch:** Formalize quarterly cadence with stakeholder distribution. Second audit (July) includes delta comparison showing remediation progress and quarter-over-quarter CIS score improvement. Extend coverage to GCP (95 projects) and Azure (52 subscriptions).
 
 ---
 
@@ -51,17 +51,17 @@ No Cloudflare in the chain. Internal DNS record on existing AD infrastructure pr
 - [ ] Conditional Access policy scoping Cloud Guard to authorized security team members
 - [ ] Cost forecast for compute (ECS/App Service) + data transfer + storage
 
-- **Achievable:** Establish v1.0 Cloud Security Standard covering AWS guardrails (IAM, encryption, network segmentation, logging) for 132 accounts across 4 orgs. Standard maps to CIS benchmarks + NIST 800-53 Rev 5. Dependent on HQ policy response for baseline alignment. Prerequisite deliverables: updated deployment checklists, Azure AD app registration, internal DNS record, cost forecast. Target: end of Q2 2026.
+- **Achievable:** Establish v1.0 Cloud Security Standard covering 25+ controls across IAM, encryption, network segmentation, and logging for 132 accounts across 4 orgs. Standard maps to CIS benchmarks + NIST 800-53 Rev 5. Dependent on HQ policy response for baseline alignment. Prerequisite deliverables: updated deployment checklists, Azure AD app registration, internal DNS record, cost forecast. Target: EOD Friday 19 June 2026.
 - **Stretch:** Extend coverage to GCP (95 projects) + Azure (52 subscriptions). Encode 10+ priority controls as machine-enforceable policies with automated drift detection.
 
 ---
 
 ## 3. Centralized Cloud Logging Strategy
 
-**Current state:** Splunk Cloud instance exists — configuration status and ingestion scope unknown. GCP has per-brand logging projects (4+ brand-specific + 1 aggregate: `prj-cmn-mgmt-aggregate-logging`). AWS has dedicated log archive accounts per org (Legacy: 936680313364, HMNA: 341742814363, HMGNA: 360136158627, KNA: TBD — hidden).
+**Current state:** Splunk Cloud instance exists — configuration status and ingestion scope unknown. GCP has per-CBU logging projects (4+ CBU-specific + 1 aggregate: `prj-cmn-mgmt-aggregate-logging`). AWS has dedicated log archive accounts per org (Legacy: 936680313364, HMNA: 341742814363, HMGNA: 360136158627, KNA: TBD — hidden).
 
-- **Achievable:** Assess existing Splunk Cloud (config, ingestion, gaps), GCP logging projects, and AWS log archive accounts across all 4 orgs. Document target-state logging architecture: AWS CloudTrail org trails (all regions, all 4 orgs, 132 accounts), VPC Flow Logs, S3 access logs → Splunk; GCP Cloud Audit Logs per brand → aggregate project. Published strategy with stakeholder sign-off by end of Q2 2026.
-- **Stretch:** Begin implementation in one pilot AWS org — org-level CloudTrail enabled, logs flowing to Splunk. Unify GCP audit log routing through the existing aggregate logging project. Establish log completeness monitoring for coverage gaps.
+- **Achievable:** Assess existing Splunk Cloud (config, ingestion, gaps), GCP logging projects, and AWS log archive accounts across all 4 orgs. Document target-state logging architecture covering 4 log source types (CloudTrail, VPC Flow Logs, S3 access logs, GuardDuty) across 4 orgs (16 pipelines). GCP Cloud Audit Logs per CBU → aggregate project. Published strategy with stakeholder sign-off by EOD Friday 19 June 2026.
+- **Stretch:** Begin implementation in one pilot AWS org — 100% CloudTrail coverage (all regions, all accounts in org), logs flowing to Splunk. Unify GCP audit log routing through the existing aggregate logging project. Establish log completeness monitoring for coverage gaps.
 
 ---
 
@@ -69,13 +69,13 @@ No Cloudflare in the chain. Internal DNS record on existing AD infrastructure pr
 
 **Current state (discovered 2026-03-23):**
 - **95 active GCP projects** under `autoeveramerica.com` org (was 93 in Dec 2025 — +2 growth)
-- **By brand:** HMA 38 | KUS 19 | HMNA 12 | Shared-Infra 18 | HAEA-direct 5
-- **Architecture present:** Shared VPC host/service separation, Apigee per brand, per-brand logging, Terraform bootstrap
+- **By CBU:** HMA 38 | KUS 19 | HMNA 12 | Shared-Infra 18 | HAEA-direct 5
+- **Architecture present:** Shared VPC host/service separation, Apigee per CBU, per-CBU logging, Terraform bootstrap
 - **Security gaps found:** Security Command Center NOT enabled, default service accounts enabled on infra projects, org-level permissions limited
 - **Applications:** CS chatbots, SmartChat, Halo IT bot, OpenScheduler, MapNSoft, Vision AI POC, NHTSA VOQ classification, GA4 analytics
 
-- **Achievable:** Establish GCP project inventory: 95 projects mapped by brand, environment, and purpose. Assess IAM bindings, enabled APIs, and default SA usage across all projects. Produce prioritized remediation backlog (enable SCC, disable default SAs, orphaned projects, over-permissioned accounts, disabled audit logging). Target: end of May 2026.
-- **Stretch:** Remediate top-5 HIGH-severity findings (SCC enablement, default SA lockdown) by end of Q2. Establish GCP project provisioning guardrails to prevent new debt.
+- **Achievable:** Establish GCP project inventory: 95/95 projects mapped by CBU, environment, and purpose. Assess IAM bindings, enabled APIs, and default SA usage across all projects. Produce prioritized remediation backlog with severity-scored findings (enable SCC, disable default SAs, orphaned projects, over-permissioned accounts, disabled audit logging). Target: EOD Friday 29 May 2026.
+- **Stretch:** Remediate top-5 HIGH-severity findings (SCC enablement, default SA usage → 0 on infrastructure projects) by EOD Friday 19 June 2026. Establish GCP project provisioning guardrails to prevent new debt.
 
 ---
 
@@ -88,5 +88,5 @@ No Cloudflare in the chain. Internal DNS record on existing AD infrastructure pr
 - HMNA: 21/35 accounts hidden
 - HMGNA: 3/20 accounts hidden (best coverage)
 
-- **Achievable:** Deploy Cloud Aegis CSPM aggregator to HAEA central security account (831926608679) with OIDC-federated two-hop trust model. Ingest SecurityHub + Config + GuardDuty findings from the initial 26 HMA accounts by end of Q2 2026. Updated deployment checklists and operational runbooks — new account onboarding <30 min. Total addressable: ~270* environments across 7 cloud tenants.
-- **Stretch:** Enhance coverage to full 132-account AWS footprint across all 4 orgs. Integrate GCP SCC (95 projects). AI-enriched findings with threat-intel severity recalibration. Attack path visualization operational for security operations.
+- **Achievable:** Deploy Cloud Aegis CSPM aggregator to HAEA central security account (831926608679) with OIDC-federated two-hop trust model. Ingest SecurityHub + Config + GuardDuty findings from the initial 26 HMA accounts — account coverage: 26/270 (10%). New account onboarding SLA: <30 min. Mean time to visibility: <24 hrs from account provisioning to first finding ingestion. Updated deployment checklists and operational runbooks. Target: EOD Friday 19 June 2026.
+- **Stretch:** Expand coverage to full 132-account AWS footprint across all 4 orgs — coverage: 132/270 (49%). Integrate GCP SCC (95 projects). AI-enriched findings with threat-intel severity recalibration. Attack path visualization operational for security operations.

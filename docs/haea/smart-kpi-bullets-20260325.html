@@ -1,0 +1,76 @@
+<html>
+<body style="font-family: Segoe UI, sans-serif; font-size: 14px; color: #1a1a1a; max-width: 800px;">
+
+<h1 style="font-size: 20px; border-bottom: 2px solid #1e40af;">SMART KPI Bullets — Cloud Security Governance</h1>
+
+<p>
+<strong>For:</strong> Luis Acevedo → Jordan<br>
+<strong>Meeting:</strong> Wed 2026-03-25 8:00am<br>
+<strong>Scope:</strong> 7 cloud tenants, ~270 subscriptions/accounts/projects across AWS (132 accounts / 4 orgs), GCP (95 projects / 1 org), Azure (52 subscriptions / HMGNA tenant).
+</p>
+
+<hr>
+
+<h2 style="font-size: 16px; color: #1e40af;">1. Quarterly Tenant Configuration Audits</h2>
+
+<table style="border-collapse: collapse; width: 100%; margin-bottom: 12px;" border="1" cellpadding="6">
+<tr style="background: #f0f4ff;">
+  <th>Org</th><th>Accounts</th><th>Visible</th><th>CBUs</th>
+</tr>
+<tr><td>HMA Legacy</td><td>56</td><td>54</td><td>HMA, KUS, HMGMA, HACC</td></tr>
+<tr><td>KNA</td><td>21</td><td>9</td><td>KUS, HCAA (Canada), KAGA (Kia Georgia)</td></tr>
+<tr><td>HMNA</td><td>35</td><td>14</td><td>GEA (Glovis Electrifying America), GUS, HAEA</td></tr>
+<tr><td>HMGNA</td><td>20</td><td>17</td><td>HMA, HKNA ops, successor for Legacy</td></tr>
+</table>
+
+<ul>
+<li><strong>Achievable:</strong> Deploy read-only CSPM reader roles and SecurityHub delegated admin across all 4 AWS Orgs — account visibility from 94/132 (71%) → 132/132 (100%). CSPM reader policy validated — 21/21 actions pass, two-hop AssumeRole chain confirmed. Produce first scored baseline report (CIS AWS Foundations Benchmark v3.0) covering resource config + tenant policy posture. Establish baseline CIS pass rate and triage all critical/high findings with assigned owners. <strong>Target: EOD Friday 19 June 2026.</strong></li>
+<li><strong>Stretch:</strong> Formalize quarterly cadence with stakeholder distribution. Second audit (July) includes delta comparison showing remediation progress and quarter-over-quarter CIS score improvement. Extend coverage to GCP (95 projects) and Azure (52 subscriptions).</li>
+</ul>
+
+<hr>
+
+<h2 style="font-size: 16px; color: #1e40af;">2. HAEA-Wide Cloud Security Standard</h2>
+
+<p><strong>Current state:</strong> No formal cloud security standard exists today. Email sent to HQ inquiring about existing policy as starting point. Pre-requisites in parallel: deployment checklists, cost forecasting, DNS/hosting inventory.</p>
+
+<ul>
+<li><strong>Achievable:</strong> Establish v1.0 Cloud Security Standard covering 25+ controls across IAM, encryption, network segmentation, and logging for 132 accounts across 4 orgs. Standard maps to CIS benchmarks + NIST 800-53 Rev 5. Dependent on HQ policy response for baseline alignment. Prerequisite deliverables: updated deployment checklists, Azure AD app registration, internal DNS record, cost forecast. <strong>Target: EOD Friday 19 June 2026.</strong></li>
+<li><strong>Stretch:</strong> Extend coverage to GCP (95 projects) + Azure (52 subscriptions). Encode 10+ priority controls as machine-enforceable policies with automated drift detection.</li>
+</ul>
+
+<hr>
+
+<h2 style="font-size: 16px; color: #1e40af;">3. Centralized Cloud Logging Strategy</h2>
+
+<p><strong>Current state:</strong> Splunk Cloud instance exists — config/ingestion scope unknown. GCP has per-CBU logging projects (4+ CBU-specific + 1 aggregate). AWS has dedicated log archive accounts per org.</p>
+
+<ul>
+<li><strong>Achievable:</strong> Assess existing Splunk Cloud (config, ingestion, gaps), GCP logging projects, and AWS log archive accounts across all 4 orgs. Document target-state logging architecture covering 4 log source types (CloudTrail, VPC Flow Logs, S3 access logs, GuardDuty) across 4 orgs (16 pipelines). GCP Cloud Audit Logs per CBU → aggregate project. Published strategy with stakeholder sign-off. <strong>Target: EOD Friday 19 June 2026.</strong></li>
+<li><strong>Stretch:</strong> Begin implementation in one pilot AWS org — 100% CloudTrail coverage (all regions, all accounts in org), logs flowing to Splunk. Unify GCP audit log routing through the existing aggregate logging project. Establish log completeness monitoring for coverage gaps.</li>
+</ul>
+
+<hr>
+
+<h2 style="font-size: 16px; color: #1e40af;">4. GCP Technical Debt — Documentation &amp; Remediation</h2>
+
+<p><strong>Current state:</strong> 95 active GCP projects under <code>autoeveramerica.com</code> org. By CBU: HMA 38 | KUS 19 | HMNA 12 | Shared-Infra 18 | HAEA-direct 5. Security gaps: SCC NOT enabled, default SAs on infra projects, org-level permissions limited.</p>
+
+<ul>
+<li><strong>Achievable:</strong> Establish GCP project inventory: 95/95 projects mapped by CBU, environment, and purpose. Assess IAM bindings, enabled APIs, and default SA usage across all projects. Produce prioritized remediation backlog with severity-scored findings (enable SCC, disable default SAs, orphaned projects, over-permissioned accounts, disabled audit logging). <strong>Target: EOD Friday 29 May 2026.</strong></li>
+<li><strong>Stretch:</strong> Remediate top-5 HIGH-severity findings (SCC enablement, default SA usage → 0 on infrastructure projects) by <strong>EOD Friday 19 June 2026.</strong> Establish GCP project provisioning guardrails to prevent new debt.</li>
+</ul>
+
+<hr>
+
+<h2 style="font-size: 16px; color: #1e40af;">5. Enhance CSPM Processes — Consistent Deployment &amp; Operation</h2>
+
+<p><strong>Access gaps:</strong> KNA: 12/21 accounts hidden | HMNA: 21/35 hidden | HMGNA: 3/20 hidden (best coverage).</p>
+
+<ul>
+<li><strong>Achievable:</strong> Deploy Cloud Aegis CSPM aggregator to HAEA central security account with OIDC-federated two-hop trust model. Ingest SecurityHub + Config + GuardDuty findings from the initial 26 HMA accounts — account coverage: 26/270 (10%). New account onboarding SLA: &lt;30 min. Mean time to visibility: &lt;24 hrs from account provisioning to first finding ingestion. Updated deployment checklists and operational runbooks. <strong>Target: EOD Friday 19 June 2026.</strong></li>
+<li><strong>Stretch:</strong> Expand coverage to full 132-account AWS footprint across all 4 orgs — coverage: 132/270 (49%). Integrate GCP SCC (95 projects). AI-enriched findings with threat-intel severity recalibration. Attack path visualization operational for security operations.</li>
+</ul>
+
+</body>
+</html>

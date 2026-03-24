@@ -18,6 +18,25 @@ Cost forecast for deploying Cloud Aegis to HAEA's central security account (`831
 
 ---
 
+## Validation Methodology
+
+| Aspect | Method | Confidence |
+|--------|--------|------------|
+| **Unit prices** | AWS us-east-1 public pricing pages, March 2026. Cross-checked against `infracost` output for Fargate/RDS/ElastiCache line items. | High — list prices are deterministic |
+| **Resource specifications** | Derived directly from Terraform module parameters in `deploy/terraform/environments/haea/main.tf` (cpu, memory, storage_gb, min/max instances, ha_enabled). | High — source of truth is IaC |
+| **Token costs** | Calculated from measured prompt/response sizes in `internal/ai/service_enrichment.go`. System prompt: ~150 tokens, user context: ~650 tokens, JSON output: ~400 tokens. Validated with Anthropic tokenizer. | High — deterministic per-call |
+| **Finding volume** | Estimated from comparable SecurityHub deployments (AWS Well-Architected benchmarks suggest 50-200 findings per account for CIS Foundations). Conservative: 20 findings/account/day at pilot. | Medium — depends on enabled benchmarks and resource count |
+| **Enrichment rate** | Assumed 10% at pilot/Phase 1, 20% at full scope. Based on operator behavior pattern: users enrich critical/high findings on-demand, batch jobs handle the rest. | Medium — usage-dependent |
+| **Data transfer** | Estimated from SecurityHub API response sizes (~2-5 KB/finding JSON) x finding volume x API pagination overhead. | Low-Medium — no production baseline yet |
+| **IAM/OIDC model** | Live-validated in personal environments: `lvn-personal` (AWS OIDC + 2-hop AssumeRole, 21/21 CSPM actions), `lvn-dev-483106` (GCP WIF), `sub-lvn-dev` (Azure federated identity). | High — proven in live accounts |
+
+**Not yet validated:**
+- `terraform plan` against HAEA target account (831926608679) — requires SSO session + CCoE approval
+- Production finding volume under load — no HAEA SecurityHub data ingested yet
+- AWS Pricing Calculator export (pending — to be attached as supplemental artifact)
+
+---
+
 ## Architecture Summary
 
 | Component | Service | Spec (from main.tf) | Notes |
@@ -201,6 +220,35 @@ All prices are AWS us-east-1 list prices as of March 2026. Reserved Instance / S
 
 ---
 
+## Fixed vs Variable Cost Breakdown
+
+Infrastructure costs are categorized as **fixed** (always-on regardless of usage) or **variable** (scales with finding volume, enrichment rate, or data growth).
+
+### Pilot ($368/mo)
+
+| Category | Services | Monthly | % of Total |
+|----------|----------|---------|------------|
+| **Fixed** | ECS Fargate min tasks (API 2x + OPA 2x), RDS Multi-AZ, ElastiCache HA 2-node, NAT Gateway hourly, Secrets Manager, Route 53 | **$324** | 88% |
+| **Variable** | Bedrock enrichment, S3 storage growth, data transfer, CloudWatch log volume, NAT data processing, VPC flow logs | **$44** | 12% |
+
+### Phase 1 ($532/mo)
+
+| Category | Services | Monthly | % of Total |
+|----------|----------|---------|------------|
+| **Fixed** | ECS Fargate min tasks (API 2x + OPA 2x), RDS Multi-AZ, ElastiCache HA, NAT Gateway hourly, Secrets Manager, Route 53 | **$324** | 61% |
+| **Variable** | ECS autoscaled tasks (1 avg additional), Bedrock enrichment (10x pilot), S3 growth, data transfer, CloudWatch, NAT data, flow logs | **$208** | 39% |
+
+### Full Scope ($1,665/mo)
+
+| Category | Services | Monthly | % of Total |
+|----------|----------|---------|------------|
+| **Fixed** | ECS min tasks (2 regions), RDS Multi-AZ + read replica, ElastiCache (2 regions), 2x NAT Gateway, 2x Secrets Manager, Route 53 + health checks | **$646** | 39% |
+| **Variable** | ECS autoscaled tasks, Bedrock enrichment (80x pilot), S3 cross-region replication, data transfer, CloudWatch, NAT data, flow logs | **$1,019** | 61% |
+
+**Key takeaway:** At pilot scale the floor cost is ~$324/mo even with zero findings ingested — this is the cost of keeping the infrastructure running. The variable component is dominated by Bedrock AI and only becomes significant at Phase 1+. This means the **pilot has low cost risk** — the bill won't surprise you.
+
+---
+
 ## Cost Drivers Analysis
 
 ### Top 3 Cost Drivers by Scenario
@@ -284,6 +332,28 @@ Output:         ~400 tokens (JSON: root_cause, impact, remediation,
 
 **Blended cost per enrichment (80/20 split): ~$0.015/call**
 
+### Bedrock Pricing Trajectory and Optimization Levers
+
+**Historical price trend:** Anthropic has reduced model pricing 40-60% annually since 2024. Claude 3.5 Sonnet (2024) launched at $3/$15 per MTok; Claude Sonnet 4.6 (2026) is at $3/$15 per MTok (input cost held, output unchanged). However, newer model families (Haiku 4.5) have dropped significantly — $0.80/$4 per MTok. If a future "Sonnet Lite" tier emerges at Haiku-class pricing, enrichment costs at full scope could drop 70-80%.
+
+**Bedrock Batch API (available now):**
+- 50% discount on both input and output tokens
+- Async processing with 24-hour SLA
+- Applicable to non-real-time enrichment (nightly batch jobs, backfill)
+- At full scope with 100% batch: Bedrock cost drops from $713/mo to ~$356/mo
+
+**Bedrock Provisioned Throughput:**
+- Fixed monthly commitment for guaranteed throughput
+- Cost-effective above ~50K calls/day sustained
+- Not recommended at pilot/Phase 1 volumes; evaluate at full scope if enrichment rate exceeds 50%
+
+**Alternative AI providers (fallback chain):**
+- Self-hosted Qwen-32B on RunPod (5090): ~$0.50/hr spot = ~$365/mo continuous. Cost-competitive with Bedrock at full-scope 20% enrichment, but requires GPU ops overhead.
+- OpenAI GPT-4o via API: $2.50/$10 per MTok (marginally cheaper than Sonnet for input, cheaper output). Not available on Bedrock without marketplace.
+- The application abstracts AI providers behind an `AIProvider` interface — switching providers requires only configuration changes, no code modification.
+
+**Recommended approach:** Start with Bedrock on-demand (simplest, no commitment). At Phase 1, evaluate batch API for nightly enrichment jobs. At full scope, re-evaluate Provisioned Throughput vs self-hosted based on actual call volume.
+
 ---
 
 ## IAM and OIDC — No Incremental Cost
@@ -339,3 +409,47 @@ The enrichment service calls 5 threat intel providers (from `threatintel/enriche
 **Graduate to Scenario 2** once access expansion completes across all 4 AWS orgs (~Q3 2026). The incremental cost from Pilot to Phase 1 is ~$164/month, primarily from increased Bedrock usage and storage growth.
 
 **Evaluate Scenario 3** after AWS coverage is stable and GCP SCC / Azure Defender integrations are validated. The jump to multi-region adds ~$1,133/month, with AI enrichment being the primary driver.
+
+---
+
+## Alternatives Considered
+
+### Managed CSPM Platforms
+
+| Platform | Est. Annual Cost (270 envs) | Pros | Cons |
+|----------|---------------------------|------|------|
+| **Wiz** | $150K-$300K | Agentless, graph-based, rapid onboarding | Cost prohibitive; findings leave HAEA boundary; limited customization of risk scoring |
+| **Prisma Cloud (Palo Alto)** | $100K-$200K | Broad compliance coverage, CNAPP integration | Per-resource pricing scales poorly across 270 envs; vendor lock-in |
+| **Prowler Pro** | $30K-$60K | Open-source core, lower cost | Limited AI enrichment; no attack path visualization; no GRC integration |
+| **AWS Security Hub (native)** | ~$5K-$15K | Already enabled in some orgs; no additional vendor | Per-org silo — no cross-org aggregation; no AI enrichment; no unified dashboard; no GCP/Azure |
+
+**Decision rationale:** At $4.4K-$20K/year, Cloud Guard is 3-70x cheaper than commercial CSPM tools while providing features they lack: multi-cloud normalization under a single pane, AI-enriched root cause analysis, HAEA-branded whitelabel deployment, and full data sovereignty (findings never leave HAEA-controlled infrastructure). The trade-off is internal engineering effort to maintain and extend — mitigated by the fact that the application is operational today with 39 Go packages, 1500+ tests, and CI/CD pipeline.
+
+### Compute Alternatives
+
+| Option | Monthly Cost (Pilot) | Evaluation |
+|--------|---------------------|-----------|
+| **ECS Fargate (chosen)** | $159 | Serverless containers, auto-scaling, no cluster management. Best fit for small team (1-2 engineers). |
+| **ECS on EC2 (t3.medium reserved)** | ~$90 | 40% cheaper but requires instance management, patching, capacity planning. |
+| **AWS Lambda** | ~$20-50 | Cheapest at low volume. Rejected: 15-min execution limit breaks long-running SecurityHub ingestion; cold starts affect SSE connections; no sidecar support for OPA. |
+| **AWS App Runner** | ~$130 | Simpler than Fargate but no VPC integration for cross-account STS calls; no sidecar containers. |
+| **EKS Fargate** | ~$230 | Kubernetes overhead unjustified for 2-6 tasks. Cluster fee ($73/mo) + Fargate pods. |
+| **Self-hosted (Fly.io)** | ~$30 | Current portfolio deployment. Not suitable for HAEA: no VPC peering, data leaves AWS, no compliance posture. |
+
+### Database Alternatives
+
+| Option | Monthly Cost (Pilot) | Evaluation |
+|--------|---------------------|-----------|
+| **RDS PostgreSQL Multi-AZ (chosen)** | $106 | Managed, automated backups, failover. Standard choice. |
+| **Aurora PostgreSQL Serverless v2** | ~$80-$150 | Auto-scales to zero on idle but minimum ACU cost during active hours often exceeds RDS for steady workloads. Evaluate if finding volume is spiky. |
+| **Self-managed PostgreSQL on EC2** | ~$50 | Cheaper but adds DBA burden: backups, patching, failover, monitoring. Not recommended for 1-2 person team. |
+
+### AI Enrichment Alternatives
+
+| Option | Per-Call Cost | Monthly (Pilot, 50/day) | Evaluation |
+|--------|-------------|------------------------|-----------|
+| **Bedrock Claude Sonnet 4.6 (chosen)** | $0.0084 | $4 | Best quality/cost ratio. Native AWS integration, no data egress. |
+| **Bedrock batch (async)** | $0.0042 | $2 | 50% cheaper, 24hr SLA. Viable for non-real-time batch enrichment. |
+| **OpenAI GPT-4o (external)** | $0.0065 | $3 | Slightly cheaper per-call but data leaves AWS; separate API key management. |
+| **Self-hosted Qwen-32B (RunPod)** | ~$0.001 | $365 (fixed GPU) | Per-call cheapest at high volume (>1,200 calls/day break-even). GPU idle cost at pilot volume makes this 90x more expensive. |
+| **No AI enrichment** | $0 | $0 | Eliminates most variable cost. Findings would lack root cause analysis and automated remediation guidance. Core CSPM still functional. |

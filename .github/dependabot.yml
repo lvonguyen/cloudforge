@@ -7,6 +7,10 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    reviewers:
+      - lvonguyen
+    assignees:
+      - lvonguyen
     labels:
       - dependencies
       - go
@@ -17,6 +21,10 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    reviewers:
+      - lvonguyen
+    assignees:
+      - lvonguyen
     labels:
       - dependencies
       - npm
@@ -27,6 +35,10 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    reviewers:
+      - lvonguyen
+    assignees:
+      - lvonguyen
     labels:
       - dependencies
       - ci
