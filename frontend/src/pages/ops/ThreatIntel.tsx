@@ -104,7 +104,7 @@ export default function ThreatIntel() {
 
 /* ---------- Overview ---------- */
 
-function OverviewTab({ stats, onNavigate }: { stats: ReturnType<typeof useStats>; onNavigate: (id: FeedId) => void }) {
+function OverviewTab({ stats, onNavigate }: { stats: ReturnType<typeof usePlaceholderStats>; onNavigate: (id: FeedId) => void }) {
   const kpis = [
     { label: 'Findings with CVEs', value: stats.withCves, total: stats.total, color: 'text-blue-600' },
     { label: 'EPSS Scored', value: stats.withEpss, total: stats.total, color: 'text-violet-600' },
@@ -176,8 +176,6 @@ function OverviewTab({ stats, onNavigate }: { stats: ReturnType<typeof useStats>
   )
 }
 
-// Type helper so OverviewTab can reference stats shape
-type useStats = typeof usePlaceholderStats
 function usePlaceholderStats() {
   return { total: 0, withCves: 0, withEpss: 0, withKev: 0, highEpss: 0, kevCritical: 0, epssBuckets: { low: 0, medium: 0, high: 0, critical: 0 }, epssFindings: [] as any[], kevFindings: [] as any[] }
 }
