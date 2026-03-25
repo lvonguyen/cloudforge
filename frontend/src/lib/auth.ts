@@ -142,9 +142,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isDev = import.meta.env.DEV
   const isDemo = import.meta.env.VITE_DEMO_MODE === 'true'
 
+  const staticToken = import.meta.env.VITE_STATIC_TOKEN as string | undefined
+
   const [user, setUser] = useState<User>(() => {
     if (isDev) return { ...DEFAULT_USER, role: savedRole ?? DEFAULT_USER.role }
     if (isDemo) return { ...DEMO_USER, role: savedRole ?? DEMO_USER.role }
+
+    // Static token: pre-signed JWT for demo deployments without an IdP
+    if (staticToken && !isTokenExpired(staticToken)) {
+      return userFromToken(staticToken, savedRole)
+    }
 
     const token = getStoredToken()
     if (token && !isTokenExpired(token)) {
@@ -155,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     if (isDev || isDemo) return true
+    if (staticToken && !isTokenExpired(staticToken)) return true
     const token = getStoredToken()
     return !!token && !isTokenExpired(token)
   })

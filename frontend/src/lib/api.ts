@@ -48,9 +48,10 @@ export class ApiError extends Error {
 
 function authHeaders(): Record<string, string> {
   const isDev = import.meta.env.DEV
+  const staticToken = import.meta.env.VITE_STATIC_TOKEN as string | undefined
   const token = isDev
     ? (import.meta.env.VITE_DEV_TOKEN as string | undefined)
-    : sessionStorage.getItem(TOKEN_KEY)
+    : (staticToken ?? sessionStorage.getItem(TOKEN_KEY))
   const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
 
   // In dev/demo mode, forward the frontend role override so the backend
