@@ -22,8 +22,10 @@ import { Separator } from '@/components/ui/separator'
 import { useCreateException } from '@/hooks/useExceptions'
 import { useAuth } from '@/lib/auth'
 import { apiClient } from '@/lib/api'
+import { useTracePanel } from '@/lib/trace-panel-context'
 import type { PolicyInput, PolicyResult } from '@/types/policy'
 import type { ExceptionType } from '@/types/grc'
+import type { Span } from '@/types/ai-governance'
 
 // ── Catalog (dynamic) ────────────────────────────────────────────────────────
 
@@ -35,10 +37,13 @@ const REGIONS: Record<string, string[]> = {
 
 // ── Zod schemas ─────────────────────────────────────────────────────────────
 
+const SERVICE_MODELS = ['IaaS', 'PaaS', 'SaaS'] as const
+
 const step1Schema = z.object({
   resourceId: z.string().min(1, 'Select a resource type'),
   cloudProvider: z.string().min(1, 'Select a cloud provider'),
   region: z.string().min(1, 'Select a region'),
+  serviceModel: z.string().min(1, 'Select a service model'),
 })
 
 const step2BaseSchema = z.object({
@@ -82,6 +87,8 @@ function StepResourceSelection({
   onProviderChange,
   region,
   onRegionChange,
+  serviceModel,
+  onServiceModelChange,
   catalog,
 }: {
   selectedId: string
@@ -90,13 +97,16 @@ function StepResourceSelection({
   onProviderChange: (p: string) => void
   region: string
   onRegionChange: (r: string) => void
+  serviceModel: string
+  onServiceModelChange: (m: string) => void
   catalog: { id: string; name: string; description: string; provider: string; resourceType: string; estimatedMonthlyCost: string }[]
 }) {
   const regions = REGIONS[provider] ?? []
+  const filteredCatalog = provider ? catalog.filter(item => item.provider === provider) : catalog
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div className="space-y-1.5">
           <Label>Cloud Provider</Label>
           <Select value={provider} onValueChange={onProviderChange}>
@@ -123,12 +133,25 @@ function StepResourceSelection({
             </SelectContent>
           </Select>
         </div>
+        <div className="space-y-1.5">
+          <Label>Service Model</Label>
+          <Select value={serviceModel} onValueChange={onServiceModelChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select model" />
+            </SelectTrigger>
+            <SelectContent>
+              {SERVICE_MODELS.map(m => (
+                <SelectItem key={m} value={m}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div>
         <h2 className="text-sm font-semibold mb-3">Select Resource Type</h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-          {catalog.map(item => (
+          {filteredCatalog.map(item => (
             <div
               key={item.id}
               className={`cursor-pointer rounded-none ring-2 transition-all ${
@@ -465,6 +488,8 @@ function StepReview({
           <span className="uppercase">{step1.cloudProvider}</span>
           <span className="text-muted-foreground">Region</span>
           <span>{step1.region}</span>
+          <span className="text-muted-foreground">Service Model</span>
+          <span>{serviceModel}</span>
           <span className="text-muted-foreground">Application ID</span>
           <span>{String(formValues.applicationId ?? '')}</span>
           <span className="text-muted-foreground">Team</span>
@@ -519,6 +544,7 @@ export default function Request() {
   const { user } = useAuth()
   const createException = useCreateException()
   const { data: catalogModules = [] } = useCatalog()
+  const { openTimeline } = useTracePanel()
 
   // Map CatalogModule[] to the shape used by ResourceCatalogCard and step components
   const catalog = catalogModules.map(m => ({
@@ -548,6 +574,7 @@ export default function Request() {
     }
     return ''
   })
+  const [serviceModel, setServiceModel] = useState<string>('IaaS')
 
   // Step 2 snapshot — captured when leaving Configuration step
   const [configSnapshot, setConfigSnapshot] = useState<Record<string, unknown>>({})
@@ -562,6 +589,7 @@ export default function Request() {
 
   const form = useForm({
     resolver: zodResolver(step2BaseSchema),
+    mode: 'onTouched',
     defaultValues: {
       applicationId: '',
       tagTeam: '',
@@ -637,6 +665,7 @@ export default function Request() {
       ? (knownTypes.includes(acceptedExceptions[0] as ExceptionType) ? acceptedExceptions[0] as ExceptionType : 'OTHER')
       : 'OTHER'
 
+    const startTime = Date.now()
     await createException.mutateAsync({
       application_id: String(formValues.applicationId),
       requestor_email: user.email,
@@ -649,12 +678,41 @@ export default function Request() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
+    const durationMs = Date.now() - startTime
+
+    // Emit audit trace for the submit action
+    const submitSpan: Span = {
+      trace_id: `nrr-${Date.now()}`,
+      span_id: `submit-${Date.now()}`,
+      name: 'resource_request.submit',
+      type: 'tool',
+      status: 'ok',
+      start_time: new Date(startTime).toISOString(),
+      end_time: new Date().toISOString(),
+      duration_ms: durationMs,
+      data: {
+        tool: {
+          tool_name: 'createException',
+          tool_category: 'grc',
+          parameter_count: 4,
+          external_call: true,
+        },
+      },
+      attributes: {
+        'request.resource': resource?.name ?? selectedResource,
+        'request.provider': cloudProvider,
+        'request.region': region,
+        'request.user': user.email,
+        'request.exceptions': acceptedExceptions.length,
+      },
+    }
+    openTimeline('Resource Request Submitted', [submitSpan])
 
     setSubmitted(true)
     setTimeout(() => navigate('/portal/requests'), 2000)
   }
 
-  const step1Complete = Boolean(selectedResource && cloudProvider && region)
+  const step1Complete = Boolean(selectedResource && cloudProvider && region && serviceModel)
   const step4CanSubmit =
     (acceptedExceptions.length === 0 || businessCase.trim().length > 0) && !createException.isPending
 
@@ -679,6 +737,8 @@ export default function Request() {
           onProviderChange={setCloudProvider}
           region={region}
           onRegionChange={setRegion}
+          serviceModel={serviceModel}
+          onServiceModelChange={setServiceModel}
           catalog={catalog}
         />
       ),

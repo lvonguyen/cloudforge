@@ -64,7 +64,7 @@ describe('CostSummaryCard', () => {
 
   it('formats large amounts correctly', () => {
     renderWithProviders(<CostSummaryCard label="Annual" amount={2500000} />)
-    expect(screen.getByText('$2500K')).toBeInTheDocument()
+    expect(screen.getByText('$2.5M')).toBeInTheDocument()
   })
 
   it('formats small amounts correctly', () => {

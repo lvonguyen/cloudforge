@@ -11,11 +11,11 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { ChevronDown, Eye, ShieldCheck, Terminal, UserCircle } from 'lucide-react'
 
-const ROLES: { value: Role; label: string; icon: React.ReactNode; color: string }[] = [
-  { value: 'admin', label: 'Admin', icon: <ShieldCheck className="h-4 w-4" />, color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
-  { value: 'operator', label: 'Operator', icon: <Terminal className="h-4 w-4" />, color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
-  { value: 'requester', label: 'Requester', icon: <UserCircle className="h-4 w-4" />, color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
-  { value: 'viewer', label: 'Viewer', icon: <Eye className="h-4 w-4" />, color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300' },
+const ROLES: { value: Role; label: string; dropdownLabel: string; icon: React.ReactNode; color: string }[] = [
+  { value: 'admin', label: 'Admin', dropdownLabel: 'Admin — Platform & Users', icon: <ShieldCheck className="h-4 w-4" />, color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
+  { value: 'operator', label: 'Operator', dropdownLabel: 'Operator — SecOps & Intel', icon: <Terminal className="h-4 w-4" />, color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+  { value: 'requester', label: 'Requester', dropdownLabel: 'Requester — Self-Service', icon: <UserCircle className="h-4 w-4" />, color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+  { value: 'viewer', label: 'Demo Viewer', dropdownLabel: 'Demo Viewer — All Modules', icon: <Eye className="h-4 w-4" />, color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300' },
 ]
 
 const ROLE_HOME: Record<Role, string> = {
@@ -47,7 +47,7 @@ export function RoleSwitcher() {
             className="flex items-center gap-2 text-sm"
           >
             {r.icon}
-            <span>{r.label}</span>
+            <span>{r.dropdownLabel}</span>
             {role === r.value && (
               <Badge variant="secondary" className="ml-auto text-[10px] px-1 py-0">
                 active

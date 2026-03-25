@@ -126,11 +126,11 @@ export default function AdminDashboard() {
   const activeAgents = agents?.filter(a => a.status === 'active').length ?? FALLBACK_KPI.active
   const idleAgents = (agents?.length ?? FALLBACK_KPI.agents) - activeAgents
 
-  const KPI_CARDS = [
-    { label: 'Active Policies', value: activePolicies, sub: `${(policies?.filter(p => p.status === 'draft').length ?? FALLBACK_KPI.drafts)} pending review`, icon: FileText, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/20', link: '/admin/policies' },
-    { label: 'AI Agents', value: agentCount, sub: `${activeAgents} active, ${idleAgents} idle`, icon: Bot, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/20', link: '/admin/ai-agents' },
-    { label: 'Compliance Score', value: `${avgCompliance}%`, sub: 'avg across frameworks', icon: ShieldCheck, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/20', link: '/ops/compliance' },
-    { label: 'Open Exceptions', value: openExceptions, sub: `${exceptions?.filter(e => e.status === 'PENDING').length ?? FALLBACK_KPI.drafts} pending`, icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/20', link: '/admin/exceptions' },
+  const KPI_CARDS_BASE = [
+    { label: 'Active Policies', value: activePolicies, sub: `${(policies?.filter(p => p.status === 'draft').length ?? FALLBACK_KPI.drafts)} pending review`, deltaKey: 'pol' as const, icon: FileText, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/20', link: '/admin/policies' },
+    { label: 'AI Agents', value: agentCount, sub: `${activeAgents} active, ${idleAgents} idle`, deltaKey: null, icon: Bot, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/20', link: '/admin/ai-agents' },
+    { label: 'Compliance Score', value: `${avgCompliance}%`, sub: 'avg across frameworks', deltaKey: null, icon: ShieldCheck, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/20', link: '/ops/compliance' },
+    { label: 'Open Exceptions', value: openExceptions, sub: `${exceptions?.filter(e => e.status === 'PENDING').length ?? FALLBACK_KPI.drafts} pending`, deltaKey: 'exc' as const, icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/20', link: '/admin/exceptions' },
   ]
 
   // SLA summary — how many pending exceptions are within SLA
@@ -163,6 +163,16 @@ export default function AdminDashboard() {
 
   const remChange = remediations ? recentVsPrior(completedRemediations) : null
   const excChange = exceptions ? recentVsPrior(approvedExceptions) : null
+
+  // KPI card deltas
+  const kpiDeltas: Record<string, string | null> = {
+    pol: policies ? recentVsPrior(policies.filter(p => p.status === 'active')) : null,
+    exc: exceptions ? recentVsPrior(exceptions) : null,
+  }
+  const KPI_CARDS = KPI_CARDS_BASE.map(card => ({
+    ...card,
+    delta: card.deltaKey ? kpiDeltas[card.deltaKey] : null,
+  }))
 
   const TREND = [
     { label: 'Policies Evaluated', value: trendPolicies, change: null as string | null },
@@ -239,13 +249,20 @@ export default function AdminDashboard() {
       {/* KPI Cards */}
       {showWidget('kpi') && (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {KPI_CARDS.map(({ label, value, sub, icon: Icon, color, bg, link }) => (
+        {KPI_CARDS.map(({ label, value, sub, delta, icon: Icon, color, bg, link }) => (
           <Link key={label} to={link} className="group">
             <Card className="hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className={`text-2xl font-bold ${color}`}>{value}</p>
+                    <div className="flex items-baseline gap-2">
+                      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+                      {delta && (
+                        <span className={`text-[10px] font-medium ${delta.startsWith('+') ? 'text-green-600 dark:text-green-400' : delta.startsWith('-') ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                          {delta} 7d
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs font-medium mt-0.5">{label}</p>
                     <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>
                   </div>

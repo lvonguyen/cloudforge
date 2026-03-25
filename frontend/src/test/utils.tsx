@@ -3,6 +3,7 @@ import { render, type RenderOptions } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { AuthProvider } from '@/lib/auth'
+import { TracePanelProvider } from '@/lib/trace-panel-context'
 
 export function createTestQueryClient() {
   return new QueryClient({
@@ -31,7 +32,9 @@ export function renderWithAuth(
   return render(
     <QueryClientProvider client={client}>
       <AuthProvider>
-        <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
+        <TracePanelProvider>
+          <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
+        </TracePanelProvider>
       </AuthProvider>
     </QueryClientProvider>,
     options

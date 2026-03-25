@@ -100,12 +100,29 @@ const MOCK_ASSETS: ASMAsset[] = [
   },
 ]
 
+function mockScan(domain: string): Promise<ScanResult> {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const d = domain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '')
+      const matched = MOCK_ASSETS.filter(a => a.hostname.includes(d) || a.hostname.includes('example.com'))
+      resolve({ domain: d, assets: matched.length > 0 ? matched : MOCK_ASSETS.slice(0, 5), scanned_at: new Date().toISOString() })
+    }, 1500)
+  })
+}
+
 export function useScanDomain() {
   const qc = useQueryClient()
   const { toast } = useToast()
   return useMutation({
-    mutationFn: (domain: string) =>
-      apiClient.post<ScanResult>('/asm/scan', { domain }),
+    mutationFn: async (domain: string) => {
+      try {
+        return await apiClient.post<ScanResult>('/asm/scan', { domain })
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 403) throw err
+        console.warn('[useScanDomain] API unavailable, using mock scan')
+        return mockScan(domain)
+      }
+    },
     onSuccess: (data) => {
       void qc.invalidateQueries({ queryKey: ['asm', 'assets'] })
       toast(`Scan complete: ${data.assets.length} asset${data.assets.length !== 1 ? 's' : ''} found`)

@@ -101,7 +101,8 @@ export function TraceTimeline({ spans }: { spans: Span[] }) {
     const Icon = SPAN_ICONS[span.type] ?? Bot
     const colorClass = SPAN_COLORS[span.type] ?? SPAN_COLORS.chain
     const children = getChildren(span.span_id)
-    const blocked = span.status === 'blocked'
+    const blocked = span.status === 'blocked' || span.status === 'error'
+    const isOk = span.status === 'ok' || span.status === 'success' || span.status === 'completed'
     const policyDecision = span.data.tool?.policy_decision
     const payload = buildPayload(span)
     const isExpanded = expandedSpans.has(span.span_id)
@@ -115,7 +116,8 @@ export function TraceTimeline({ spans }: { spans: Span[] }) {
           className={cn(
             'rounded-none border px-3 py-2 text-xs',
             colorClass,
-            blocked && 'border-red-400 bg-red-50 dark:border-red-700 dark:bg-red-950/20'
+            blocked && 'border-red-400 bg-red-50 dark:border-red-700 dark:bg-red-950/20',
+            isOk && 'border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950/20'
           )}
         >
           <div className="flex items-start gap-2">
@@ -141,7 +143,12 @@ export function TraceTimeline({ spans }: { spans: Span[] }) {
                 <p className="mt-1 text-red-700 dark:text-red-400 leading-tight">{policyDecision.reason}</p>
               )}
             </div>
-            <span className={cn('text-[10px] font-medium shrink-0', blocked ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground')}>
+            <span className={cn(
+              'text-[10px] font-medium shrink-0',
+              blocked || span.status === 'error' ? 'text-red-600 dark:text-red-400' :
+              span.status === 'ok' || span.status === 'success' || span.status === 'completed' ? 'text-green-600 dark:text-green-400' :
+              'text-muted-foreground'
+            )}>
               {span.status}
             </span>
             {payload && (

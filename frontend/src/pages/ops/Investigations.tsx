@@ -81,9 +81,9 @@ export default function Investigations() {
 
     // Count total entities to compute radius
     let totalEntities = 1 // resource is always present
-    if (finding.assignee) totalEntities++
+    totalEntities++ // assignee (real or placeholder)
     if (finding.technical_contact) totalEntities++
-    totalEntities += Math.min(finding.compliance_mappings?.length ?? 0, 3)
+    totalEntities += Math.max(1, Math.min(finding.compliance_mappings?.length ?? 0, 3)) // at least 1 (inferred fallback)
     totalEntities += Math.min(finding.impacted_resources?.length ?? 0, 3)
     const radius = Math.max(180, 140 + totalEntities * 20)
     const borderWeight = SEVERITY_BORDER_WEIGHT[finding.severity] ?? 1
@@ -161,11 +161,15 @@ export default function Investigations() {
       })
     }
 
-    // Assignee
+    // Assignee (or fallback "Unassigned" placeholder)
     if (finding.assignee) {
       addEntity('assignee', `assignee-${finding.assignee.user_id}`, finding.assignee.user_name, finding.assignee.team, {
         name: finding.assignee.user_name, email: finding.assignee.user_email, team: finding.assignee.team,
         assigned_at: finding.assignee.assigned_at, due_date: finding.due_date,
+      })
+    } else {
+      addEntity('assignee', `assignee-unassigned-${findingId}`, 'Unassigned', 'Pending triage', {
+        name: 'Unassigned', team: 'N/A', status: 'Awaiting assignment',
       })
     }
 
@@ -181,18 +185,32 @@ export default function Investigations() {
       name: finding.resource_name, type: finding.resource_type, region: finding.region, account_id: finding.account_id, finding_count: 1,
     })
 
-    // Compliance mappings
-    if (finding.compliance_mappings) {
+    // Compliance mappings (or inferred fallback)
+    if (finding.compliance_mappings && finding.compliance_mappings.length > 0) {
       for (const cm of finding.compliance_mappings.slice(0, 3)) {
         addEntity('compliance_mapping', `comp-${cm.framework_id}-${cm.control_id}`, `${cm.framework_name} ${cm.control_id}`, cm.control_title?.slice(0, 40), {
           framework_name: cm.framework_name, control_id: cm.control_id, control_title: cm.control_title,
           section: cm.section, subsection: cm.subsection, severity: cm.severity, url: cm.url,
         })
       }
+    } else {
+      // Infer compliance mapping from category
+      const catMap: Record<string, { framework: string; control: string; title: string }> = {
+        identity: { framework: 'CIS', control: 'CIS 5.1', title: 'Identity & Access Management' },
+        network: { framework: 'CIS', control: 'CIS 9.1', title: 'Network Security Configuration' },
+        storage: { framework: 'CIS', control: 'CIS 3.1', title: 'Data Protection at Rest' },
+        compute: { framework: 'CIS', control: 'CIS 7.1', title: 'Compute Resource Hardening' },
+        database: { framework: 'CIS', control: 'CIS 3.4', title: 'Database Security' },
+        container: { framework: 'CIS', control: 'CIS 8.1', title: 'Container Security' },
+      }
+      const inferred = catMap[finding.resource_type] ?? catMap[finding.category] ?? { framework: 'NIST CSF', control: 'PR.IP-1', title: 'Security Baseline' }
+      addEntity('compliance_mapping', `comp-inferred-${findingId}`, `${inferred.framework} ${inferred.control}`, inferred.title, {
+        framework_name: inferred.framework, control_id: inferred.control, control_title: inferred.title, inferred: true,
+      })
     }
 
     // Impacted resources
-    if (finding.impacted_resources) {
+    if (finding.impacted_resources && finding.impacted_resources.length > 0) {
       for (const ir of finding.impacted_resources.slice(0, 3)) {
         addEntity('impacted_resource', `ir-${ir.resource_id}`, ir.resource_name, ir.resource_type, {
           name: ir.resource_name, type: ir.resource_type, relationship: ir.relationship, impact_level: ir.impact_level,
