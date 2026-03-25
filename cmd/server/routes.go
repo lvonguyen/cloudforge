@@ -285,6 +285,15 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/findings/{id}/remediate", // operator, admin — scope-guarded
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.integrationHandler.RemediateFinding))),
 	).Methods("POST")
+	apiRouter.Handle("/findings/{id}/ticket/comments",
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.integrationHandler.GetTicketComments))),
+	).Methods("GET")
+	apiRouter.Handle("/findings/{id}/ticket/comments", // operator, admin
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.integrationHandler.AddTicketComment))),
+	).Methods("POST")
+	apiRouter.Handle("/findings/{id}/ticket/sync", // operator, admin — force-refresh status
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.integrationHandler.SyncTicketStatus))),
+	).Methods("POST")
 	apiRouter.Handle("/findings/{id}/ticket",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.integrationHandler.GetFindingTicket))),
 	).Methods("GET")

@@ -18,6 +18,7 @@ import { useActionCooldown } from '@/hooks/useActionCooldown'
 import { useCreateException } from '@/hooks/useExceptions'
 import { useComments, useAddComment } from '@/hooks/useComments'
 import { useFindingTicket, useRemediateFinding } from '@/hooks/useIntegrations'
+import { RemediationSheet } from '@/components/remediation/RemediationSheet'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
 
@@ -39,6 +40,7 @@ export default function FindingDetail() {
   const addComment = useAddComment(id ?? '')
   const { data: ticket } = useFindingTicket(id ?? '')
   const createTicket = useRemediateFinding()
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   // Fetch attack paths to find any that include this finding
   const { data: attackPathsData } = useAttackPaths(1, 200)
@@ -511,10 +513,23 @@ export default function FindingDetail() {
 
           {/* Ticket tracking card */}
           {ticket ? (
-            <Card>
+            <Card
+              className="cursor-pointer hover:border-primary/40 transition-colors"
+              onClick={() => setSheetOpen(true)}
+            >
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <div className="flex items-center gap-1.5"><TicketIcon className="h-3.5 w-3.5" />External Ticket</div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5"><TicketIcon className="h-3.5 w-3.5" />External Ticket</div>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      className="text-[10px] gap-1"
+                      onClick={(e) => { e.stopPropagation(); setSheetOpen(true) }}
+                    >
+                      <ExternalLink className="h-3 w-3" />View Details
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -540,7 +555,13 @@ export default function FindingDetail() {
                     <div className="flex items-center gap-1 mt-0.5">
                       <code className="text-xs font-mono">{ticket.external_id}</code>
                       {ticket.url && (
-                        <a href={ticket.url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground">
+                        <a
+                          href={ticket.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
@@ -805,6 +826,15 @@ export default function FindingDetail() {
       </Tabs>
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
+
+      {ticket && (
+        <RemediationSheet
+          findingId={finding.id}
+          ticketId={ticket.id}
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+        />
+      )}
     </div>
   )
 }

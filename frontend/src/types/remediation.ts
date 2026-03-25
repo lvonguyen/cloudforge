@@ -48,6 +48,20 @@ export interface RollbackResult {
   error?: string
 }
 
+export interface TicketComment {
+  id: string
+  ticket_id: string
+  author: string
+  body: string
+  created_at: string
+}
+
+export interface TicketSyncResult {
+  ticket_id: string
+  status: string
+  synced_at: string
+}
+
 export interface RemediationRecord {
   id: string
   finding_id: string

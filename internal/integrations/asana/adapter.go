@@ -90,6 +90,27 @@ func (a *Adapter) AddComment(ctx context.Context, externalID, body string) (*int
 	}, nil
 }
 
+// ListComments returns all comments synced from the Asana task.
+func (a *Adapter) ListComments(ctx context.Context, externalID string) ([]integrations.CommentSync, error) {
+	stories, err := a.client.ListStories(ctx, externalID)
+	if err != nil {
+		return nil, fmt.Errorf("listing asana comments: %w", err)
+	}
+
+	comments := make([]integrations.CommentSync, 0, len(stories))
+	for _, s := range stories {
+		createdAt, _ := time.Parse(time.RFC3339, s.CreatedAt)
+		comments = append(comments, integrations.CommentSync{
+			ID:         s.GID,
+			ExternalID: s.GID,
+			Body:       s.Text,
+			Author:     s.CreatedBy.Name,
+			CreatedAt:  createdAt,
+		})
+	}
+	return comments, nil
+}
+
 func (a *Adapter) SyncStatus(ctx context.Context, externalID string) (integrations.TicketStatus, error) {
 	resp, err := a.client.GetTask(ctx, externalID)
 	if err != nil {

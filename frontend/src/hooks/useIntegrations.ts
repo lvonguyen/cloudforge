@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient, ApiError } from '@/lib/api'
 import { useToast } from '@/hooks/useToast'
+import type { TicketComment, TicketSyncResult } from '@/types/remediation'
 
 export interface Ticket {
   id: string
@@ -94,5 +95,97 @@ export function useFindingTicket(findingId: string) {
       }
     },
     enabled: Boolean(findingId),
+  })
+}
+
+const MOCK_COMMENTS: TicketComment[] = [
+  {
+    id: 'tc-seed-1',
+    ticket_id: 'tkt-mock-001',
+    author: 'Sarah Chen',
+    body: 'Ticket created from Cloud Aegis. Escalating to infrastructure team for remediation.',
+    created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'tc-seed-2',
+    ticket_id: 'tkt-mock-001',
+    author: 'Marcus Johnson',
+    body: 'Confirmed scope of impact. Applying compensating controls while permanent fix is deployed.',
+    created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+  },
+]
+
+export function useTicketComments(findingId: string) {
+  return useQuery({
+    queryKey: ['ticket-comments', findingId],
+    queryFn: async () => {
+      try {
+        return await apiClient.get<TicketComment[]>(`/findings/${findingId}/ticket/comments`)
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        console.warn('[useTicketComments] API unavailable, using mock data')
+        return MOCK_COMMENTS
+      }
+    },
+    enabled: !!findingId,
+    refetchInterval: 30_000,
+  })
+}
+
+export function useAddTicketComment(findingId: string) {
+  const qc = useQueryClient()
+  const { toast } = useToast()
+  return useMutation({
+    mutationFn: async (body: string) => {
+      if (import.meta.env.VITE_DEMO_MODE === 'true') {
+        const comment: TicketComment = {
+          id: `tc-${Date.now()}`,
+          ticket_id: 'tkt-mock-001',
+          author: 'Demo User',
+          body,
+          created_at: new Date().toISOString(),
+        }
+        return comment
+      }
+      return apiClient.post<TicketComment>(`/findings/${findingId}/ticket/comments`, { body })
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['ticket-comments', findingId] })
+    },
+    onError: (err: Error) => {
+      if (err instanceof ApiError && err.status === 403) {
+        toast('Adding ticket comments requires admin role', 'error')
+      } else {
+        toast('Failed to add comment', 'error')
+      }
+    },
+  })
+}
+
+export function useSyncTicketStatus(findingId: string) {
+  const qc = useQueryClient()
+  const { toast } = useToast()
+  return useMutation({
+    mutationFn: async () => {
+      if (import.meta.env.VITE_DEMO_MODE === 'true') {
+        return {
+          ticket_id: 'tkt-mock-001',
+          status: 'in_progress',
+          synced_at: new Date().toISOString(),
+        } as TicketSyncResult
+      }
+      return apiClient.post<TicketSyncResult>(`/findings/${findingId}/ticket/sync`, {})
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['ticket', findingId] })
+      toast('Ticket status synced')
+    },
+    onError: (err: Error) => {
+      if (err instanceof ApiError && err.status === 403) {
+        toast('Sync requires admin role', 'error')
+      } else {
+        toast('Failed to sync ticket status', 'error')
+      }
+    },
   })
 }

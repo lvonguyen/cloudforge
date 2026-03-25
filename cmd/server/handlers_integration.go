@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -168,6 +169,147 @@ func (h *IntegrationHandler) GetFindingTicket(w http.ResponseWriter, r *http.Req
 
 	// For non-mock providers, this would query a mapping store.
 	writeErrorResponse(w, "no ticket for this finding", http.StatusNotFound)
+}
+
+// GetTicketComments returns comments on the ticket linked to a finding.
+// GET /api/v1/findings/{id}/ticket/comments
+func (h *IntegrationHandler) GetTicketComments(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.GetTicketComments")
+	defer span.End()
+
+	findingID := mux.Vars(r)["id"]
+	span.SetAttributes(attribute.String("finding.id", findingID))
+	if findingID == "" {
+		writeErrorResponse(w, "finding id required", http.StatusBadRequest)
+		return
+	}
+
+	externalID, err := h.resolveExternalID(findingID)
+	if err != nil {
+		writeErrorResponse(w, "no ticket for this finding", http.StatusNotFound)
+		return
+	}
+
+	type commenter interface {
+		ListComments(ctx context.Context, externalID string) ([]integrations.CommentSync, error)
+	}
+	lc, ok := h.provider.(commenter)
+	if !ok {
+		writeErrorResponse(w, "provider does not support listing comments", http.StatusNotImplemented)
+		return
+	}
+
+	comments, err := lc.ListComments(ctx, externalID)
+	if err != nil {
+		h.logger.Error("listing ticket comments failed", zap.String("finding_id", findingID), zap.Error(err))
+		writeErrorResponse(w, "failed to list comments", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(comments)
+}
+
+// AddTicketComment adds a comment to the ticket linked to a finding.
+// POST /api/v1/findings/{id}/ticket/comments
+func (h *IntegrationHandler) AddTicketComment(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.AddTicketComment")
+	defer span.End()
+
+	findingID := mux.Vars(r)["id"]
+	span.SetAttributes(attribute.String("finding.id", findingID))
+	if findingID == "" {
+		writeErrorResponse(w, "finding id required", http.StatusBadRequest)
+		return
+	}
+
+	var body struct {
+		Body string `json:"body"`
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Body == "" {
+		writeErrorResponse(w, "body field is required", http.StatusBadRequest)
+		return
+	}
+
+	externalID, err := h.resolveExternalID(findingID)
+	if err != nil {
+		writeErrorResponse(w, "no ticket for this finding", http.StatusNotFound)
+		return
+	}
+
+	comment, err := h.provider.AddComment(ctx, externalID, body.Body)
+	if err != nil {
+		h.logger.Error("adding ticket comment failed", zap.String("finding_id", findingID), zap.Error(err))
+		writeErrorResponse(w, "failed to add comment", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(comment)
+}
+
+// SyncTicketStatus force-refreshes the ticket status from the external provider.
+// POST /api/v1/findings/{id}/ticket/sync
+func (h *IntegrationHandler) SyncTicketStatus(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.SyncTicketStatus")
+	defer span.End()
+
+	findingID := mux.Vars(r)["id"]
+	span.SetAttributes(attribute.String("finding.id", findingID))
+	if findingID == "" {
+		writeErrorResponse(w, "finding id required", http.StatusBadRequest)
+		return
+	}
+
+	externalID, err := h.resolveExternalID(findingID)
+	if err != nil {
+		writeErrorResponse(w, "no ticket for this finding", http.StatusNotFound)
+		return
+	}
+
+	status, err := h.provider.SyncStatus(ctx, externalID)
+	if err != nil {
+		h.logger.Error("syncing ticket status failed", zap.String("finding_id", findingID), zap.Error(err))
+		writeErrorResponse(w, "failed to sync status", http.StatusInternalServerError)
+		return
+	}
+
+	ticket, err := h.provider.GetTicket(ctx, externalID)
+	if err != nil {
+		h.logger.Error("getting ticket after sync failed", zap.String("finding_id", findingID), zap.Error(err))
+		writeErrorResponse(w, "failed to fetch ticket", http.StatusInternalServerError)
+		return
+	}
+	ticket.Status = status
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(ticket)
+}
+
+// resolveExternalID maps a finding ID to its external ticket ID.
+// For MockProvider it uses the finding-indexed lookup; for real providers
+// this would query a persistent mapping store.
+func (h *IntegrationHandler) resolveExternalID(findingID string) (string, error) {
+	if mp, ok := h.provider.(*integrations.MockProvider); ok {
+		ticket, found := mp.GetTicketByFindingID(findingID)
+		if !found {
+			return "", fmt.Errorf("no ticket for finding %s", findingID)
+		}
+		return ticket.ExternalID, nil
+	}
+
+	type ticketLookup interface {
+		GetTicket(ctx context.Context, externalID string) (*integrations.Ticket, error)
+	}
+	// For Asana adapter, the externalID IS the finding-ticket mapping key.
+	// In production this would query a DB; for now treat findingID as externalID.
+	if _, ok := h.provider.(ticketLookup); ok {
+		return findingID, nil
+	}
+
+	return "", fmt.Errorf("no ticket mapping for finding %s", findingID)
 }
 
 // AsanaWebhook handles Asana webhook handshake and event delivery.

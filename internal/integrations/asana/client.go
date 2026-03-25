@@ -101,6 +101,26 @@ type asanaStoryResponse struct {
 	} `json:"data"`
 }
 
+type asanaStoriesResponse struct {
+	Data []asanaStoryItem `json:"data"`
+}
+
+type asanaStoryItem struct {
+	GID       string `json:"gid"`
+	Text      string `json:"text"`
+	Type      string `json:"type"`
+	CreatedAt string `json:"created_at"`
+	CreatedBy struct {
+		Name string `json:"name"`
+	} `json:"created_by"`
+}
+
+type asanaTaskUpdateRequest struct {
+	Data struct {
+		Completed bool `json:"completed"`
+	} `json:"data"`
+}
+
 // --- Public methods ---
 
 // CreateTask creates a task in Asana.
@@ -146,6 +166,33 @@ func (c *Client) AddStory(ctx context.Context, taskGID, text string) (*asanaStor
 		return nil, fmt.Errorf("adding story to %s: %w", taskGID, err)
 	}
 	return &resp, nil
+}
+
+// ListStories returns all comment stories on a task.
+func (c *Client) ListStories(ctx context.Context, taskGID string) ([]asanaStoryItem, error) {
+	var resp asanaStoriesResponse
+	path := "/tasks/" + taskGID + "/stories?opt_fields=gid,text,type,created_at,created_by.name"
+	if err := c.doJSON(ctx, http.MethodGet, path, nil, &resp); err != nil {
+		return nil, fmt.Errorf("listing stories for %s: %w", taskGID, err)
+	}
+
+	comments := make([]asanaStoryItem, 0, len(resp.Data))
+	for _, s := range resp.Data {
+		if s.Type == "comment" {
+			comments = append(comments, s)
+		}
+	}
+	return comments, nil
+}
+
+// UpdateTask updates a task's completed status.
+func (c *Client) UpdateTask(ctx context.Context, taskGID string, completed bool) error {
+	payload := asanaTaskUpdateRequest{}
+	payload.Data.Completed = completed
+	if err := c.doJSON(ctx, http.MethodPut, "/tasks/"+taskGID, payload, nil); err != nil {
+		return fmt.Errorf("updating task %s: %w", taskGID, err)
+	}
+	return nil
 }
 
 // --- HTTP plumbing with exponential backoff ---
