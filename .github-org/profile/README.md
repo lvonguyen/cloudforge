@@ -19,9 +19,9 @@
 ## [/] Standards
 
 All projects follow consistent:
-- [Development Guide](https://github.com/lvonguyen/.github/blob/main/DEV_GUIDE.md)
-- [Repository Organization](https://github.com/lvonguyen/.github/blob/main/REPO_ORGANIZATION.md)
-- [Documentation Standards](https://github.com/lvonguyen/.github/blob/main/DOCUMENTATION_STANDARDS.md)
+- [Development Guide](https://github.com/lvonguyen/cloudforge/blob/main/CONTRIBUTING.md)
+- [Repository Organization](https://github.com/lvonguyen/cloudforge/blob/main/docs/README.md)
+- [Documentation Standards](https://github.com/lvonguyen/cloudforge/blob/main/docs/STANDARDS.md)
 
 ---
 

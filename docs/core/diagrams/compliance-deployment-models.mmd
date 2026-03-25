@@ -1,50 +1,50 @@
 flowchart TD
-    CF([Cloud Aegis Deployment]) --> GDPR & PCIDSS & HIPAA & SOX & FEDRAMP
+    CF(["fa:fa-shield-alt Cloud Aegis Deployment"]) --> GDPR & PCIDSS & HIPAA & SOX & FEDRAMP
 
     subgraph GDPR [GDPR — EU Data Residency]
         direction TB
-        G1[Data must stay in EU region\neu-west-1 or eu-central-1]
-        G2[SCCs required for EU to US transfers]
-        G3[Right to Erasure pipeline\nTemporal EraseSubjectWorkflow]
-        G4[PII scrubber before AI API calls]
-        G5[DPA with Anthropic required]
+        G1["fa:fa-globe Data must stay in EU region\neu-west-1 or eu-central-1"]
+        G2["fa:fa-exchange-alt SCCs required for EU to US transfers"]
+        G3["fa:fa-eraser Right to Erasure pipeline\nTemporal EraseSubjectWorkflow"]
+        G4["fa:fa-user-shield PII scrubber before AI API calls"]
+        G5["fa:fa-file-contract DPA with Anthropic required"]
     end
 
     subgraph PCIDSS [PCI-DSS — CDE Adjacent]
         direction TB
-        P1[Network segmentation\nControl Plane isolated from CDE]
-        P2[TLS 1.3 preferred\nAES-256 at rest]
-        P3[HSM-backed KMS\nKey rotation every 90 days]
-        P4[Tamper-evident audit logs\nSHA-256 hash chain]
-        P5[2-approver prod deploy\nSoD enforced in CI]
+        P1["fa:fa-network-wired Network segmentation\nControl Plane isolated from CDE"]
+        P2["fa:fa-lock TLS 1.3 preferred\nAES-256 at rest"]
+        P3["fa:fa-key HSM-backed KMS\nKey rotation every 90 days"]
+        P4["fa:fa-scroll Tamper-evident audit logs\nSHA-256 hash chain"]
+        P5["fa:fa-user-check 2-approver prod deploy\nSoD enforced in CI"]
     end
 
     subgraph HIPAA [HIPAA — PHI-Adjacent]
         direction TB
-        H1[BAA with AWS, Azure, GCP, Anthropic]
-        H2[PHI masking in UI\nhipaa_pii_patterns.yaml]
-        H3[Key rotation every 90 days\nvs 365 standard]
-        H4[CMEK only\nno CSP-managed keys for PHI tenants]
-        H5[Break-glass: 4h elevated creds\nall actions tagged break_glass]
-        H6[Audit log retention: 6 years]
+        H1["fa:fa-file-contract BAA with AWS, Azure, GCP, Anthropic"]
+        H2["fa:fa-eye-slash PHI masking in UI\nhipaa_pii_patterns.yaml"]
+        H3["fa:fa-key Key rotation every 90 days\nvs 365 standard"]
+        H4["fa:fa-lock CMEK only\nno CSP-managed keys for PHI tenants"]
+        H5["fa:fa-exclamation-triangle Break-glass: 4h elevated creds\nall actions tagged break_glass"]
+        H6["fa:fa-archive Audit log retention: 6 years"]
     end
 
     subgraph SOX [SOX — Financial Reporting]
         direction TB
-        X1[Immutable audit logs\nS3 Object Lock Compliance mode]
-        X2[7-year retention\nfinancial findings + change records]
-        X3[SoD: proposal + approval\nseparate Temporal workflow steps]
-        X4[JIT prod access\nVault dynamic credentials]
-        X5[No standing prod access]
+        X1["fa:fa-database Immutable audit logs\nS3 Object Lock Compliance mode"]
+        X2["fa:fa-archive 7-year retention\nfinancial findings + change records"]
+        X3["fa:fa-users SoD: proposal + approval\nseparate Temporal workflow steps"]
+        X4["fa:fa-clock JIT prod access\nVault dynamic credentials"]
+        X5["fa:fa-ban No standing prod access"]
     end
 
     subgraph FEDRAMP [FedRAMP — GovCloud Only]
         direction TB
-        F1[GovCloud deployment\nus-gov-west-1 primary\nus-gov-east-1 DR]
-        F2[FIPS 140-2 validated crypto\nBoringCrypto + FIPS endpoints]
-        F3[ConMon: weekly vuln scan\ndaily config compliance]
-        F4[1h incident notification\nto US-CERT and CISA]
-        F5[3PAO annual pen test\nPOAandM auto-generated from findings]
+        F1["fa:fa-flag-usa GovCloud deployment\nus-gov-west-1 primary\nus-gov-east-1 DR"]
+        F2["fa:fa-shield-alt FIPS 140-2 validated crypto\nBoringCrypto + FIPS endpoints"]
+        F3["fa:fa-search ConMon: weekly vuln scan\ndaily config compliance"]
+        F4["fa:fa-bell 1h incident notification\nto US-CERT and CISA"]
+        F5["fa:fa-clipboard-check 3PAO annual pen test\nPOAandM auto-generated from findings"]
     end
 
     style GDPR fill:#3b82f6,color:#fff

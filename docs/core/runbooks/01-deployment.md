@@ -25,11 +25,12 @@ kubectl top pods -n aegis
 # 2. Check pending database migrations
 ./aegis migrate status
 
-# 3. Verify no active incidents
-open https://status.aegis.io/admin
+# 3. Verify ECS service status
+aws ecs describe-services --cluster aegis-personal --services aegis-personal-api \
+  --profile lvn-personal --region us-east-1 --query 'services[0].{Status:status,Running:runningCount}'
 
-# 4. Backup current config
-kubectl get configmap aegis-config -n aegis -o yaml > backup-config.yaml
+# 4. Check CF Pages deployment
+wrangler pages deployment list --project-name cloudguard | head -5
 ```
 
 ## Deployment Procedure
@@ -45,7 +46,7 @@ fly status -a cloudforge-api
 fly logs -a cloudforge-api
 
 # 3. Verify health
-curl -s https://aegis-api.fly.dev/health | jq .
+curl -s https://api.cloudforge-demo.lvonguyen.com/health | jq .
 ```
 
 ### Option B: Standard CI/CD (Alternative — Kubernetes)

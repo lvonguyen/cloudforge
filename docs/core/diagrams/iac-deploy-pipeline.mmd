@@ -1,42 +1,42 @@
 flowchart LR
-    A([plan-with-policy.sh]) --> S1
+    A(["fa:fa-terminal plan-with-policy.sh"]) --> S1
 
-    S1["Step 1\nterraform init\n-backend=false"]
+    S1["fa:fa-download Step 1\nterraform init\n-backend=false"]
     S1 --> S2
 
-    S2["Step 2\nterraform plan\n-var cloud_provider=PROVIDER\n-out=plan.tfplan"]
+    S2["fa:fa-search Step 2\nterraform plan\n-var cloud_provider=PROVIDER\n-out=plan.tfplan"]
     S2 --> S3
 
-    S3["Step 3\nterraform show -json\nplan.tfplan > plan.json"]
+    S3["fa:fa-file-code Step 3\nterraform show -json\nplan.tfplan > plan.json"]
     S3 --> GATE
 
     subgraph GATE [OPA Policy Gate]
         direction TB
-        CT["Step 4\nconftest test plan.json\n--policy policies/\n--namespace terraform"]
+        CT["fa:fa-shield-alt Step 4\nconftest test plan.json\n--policy policies/\n--namespace terraform"]
         CT --> EXIT{Exit Code}
-        EXIT -->|0 — all passed| ALLOW[Allow Apply]
-        EXIT -->|2 — warnings| WARN[Human Review\nRequired]
-        EXIT -->|1 — violations| BLOCK[Apply Blocked\nFix violations]
+        EXIT -->|0 — all passed| ALLOW["fa:fa-check-circle Allow Apply"]
+        EXIT -->|2 — warnings| WARN["fa:fa-exclamation-triangle Human Review\nRequired"]
+        EXIT -->|1 — violations| BLOCK["fa:fa-ban Apply Blocked\nFix violations"]
     end
 
     ALLOW --> S5
     WARN --> S5
-    BLOCK --> FIX([Fix Rego\nViolations])
+    BLOCK --> FIX(["fa:fa-wrench Fix Rego\nViolations"])
     FIX --> S2
 
-    S5["Step 5\nterraform apply\nplan.tfplan"]
-    S5 --> DONE([Deploy Complete])
+    S5["fa:fa-rocket Step 5\nterraform apply\nplan.tfplan"]
+    S5 --> DONE(["fa:fa-check Deploy Complete"])
 
     subgraph POLICIES [Rego Policies Evaluated]
         direction TB
-        P1[SECURITY-001\nEncryption at rest]
-        P2[SECURITY-002\nS3 server-side encryption]
-        P3[SECURITY-003\nNo public Cloud Run ingress]
-        P4[SECURITY-004\nNo public EC2 IP]
-        P5[SECURITY-005\nTLS 1.2+ on ALB]
-        P6[SECURITY-006\nTLS 1.2+ on GCP SSL]
-        P7[SECURITY-007\nNo default VPC usage]
-        P8[SECURITY-008\nNo wildcard IAM actions]
+        P1["fa:fa-lock SECURITY-001\nEncryption at rest"]
+        P2["fa:fa-lock SECURITY-002\nS3 server-side encryption"]
+        P3["fa:fa-lock SECURITY-003\nNo public Cloud Run ingress"]
+        P4["fa:fa-lock SECURITY-004\nNo public EC2 IP"]
+        P5["fa:fa-lock SECURITY-005\nTLS 1.2+ on ALB"]
+        P6["fa:fa-lock SECURITY-006\nTLS 1.2+ on GCP SSL"]
+        P7["fa:fa-lock SECURITY-007\nNo default VPC usage"]
+        P8["fa:fa-lock SECURITY-008\nNo wildcard IAM actions"]
     end
 
     CT -.->|evaluates| POLICIES

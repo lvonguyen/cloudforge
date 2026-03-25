@@ -14,28 +14,28 @@ flowchart LR
     %% ── Cloud Provisioning Path (Blue) ────────────────────────────────────────
     subgraph PROV["Cloud Provisioning Path"]
         direction TB
-        CP["Cloud Provisioning\nRequest\n(PolicyInput)"]
-        EVL["policy.Evaluator\ninternal/policy/evaluator.go\nHTTP client · 30 s timeout"]
-        OPA_SRV["OPA Server\nPOST /v1/data/aegis/\nprovisioning · exception"]
-        PD["Policy Decision\nPolicyResult\nallow · deny · warn"]
-        TF["Terraform / Cloud APIs\nAWS · Azure · GCP\nResource provisioned or blocked"]
+        CP["fa:fa-cloud Cloud Provisioning\nRequest\n(PolicyInput)"]
+        EVL["fa:fa-cog policy.Evaluator\ninternal/policy/evaluator.go\nHTTP client · 30 s timeout"]
+        OPA_SRV["fa:fa-server OPA Server\nPOST /v1/data/aegis/\nprovisioning · exception"]
+        PD["fa:fa-check-circle Policy Decision\nPolicyResult\nallow · deny · warn"]
+        TF["fa:fa-cogs Terraform / Cloud APIs\nAWS · Azure · GCP\nResource provisioned or blocked"]
     end
 
     %% ── AI Governance Path (Purple) ──────────────────────────────────────────
     subgraph AI["AI Governance Path"]
         direction TB
-        AR["AI Agent Request\n(EvaluationInput)\nagent · tool · data · request"]
-        ENG["ai-governance/opa.Engine\ninternal/ai-governance/opa/engine.go\nOPA Go SDK · PreparedEvalQuery · sync.RWMutex"]
-        INPROC["In-Process Evaluation\ndata.aegis.ai.*\ntool_access · data_flow\nno network hop"]
-        DEC["Agent Decision\nDecision\nallow · reasons · violations · eval_time_us"]
-        REG["Agent Registry\nallow tool / block tool\nredact PII · rate-limit\nenforce data-flow policy"]
+        AR["fa:fa-robot AI Agent Request\n(EvaluationInput)\nagent · tool · data · request"]
+        ENG["fa:fa-microchip ai-governance/opa.Engine\ninternal/ai-governance/opa/engine.go\nOPA Go SDK · PreparedEvalQuery · sync.RWMutex"]
+        INPROC["fa:fa-bolt In-Process Evaluation\ndata.aegis.ai.*\ntool_access · data_flow\nno network hop"]
+        DEC["fa:fa-shield-alt Agent Decision\nDecision\nallow · reasons · violations · eval_time_us"]
+        REG["fa:fa-list-alt Agent Registry\nallow tool / block tool\nredact PII · rate-limit\nenforce data-flow policy"]
     end
 
     %% ── Shared Policy Store (Green) ──────────────────────────────────────────
     subgraph STORE["Shared Rego Policy Bundle"]
         direction LR
-        PROV_POL["aegis.provisioning\naegis.exception\n(cloud resource rules)"]
-        AI_POL["aegis.ai.tool_access\naegis.ai.data_flow\n(agent security rules)"]
+        PROV_POL["fa:fa-file-code aegis.provisioning\naegis.exception\n(cloud resource rules)"]
+        AI_POL["fa:fa-file-code aegis.ai.tool_access\naegis.ai.data_flow\n(agent security rules)"]
     end
 
     %% ── Provisioning flow ────────────────────────────────────────────────────

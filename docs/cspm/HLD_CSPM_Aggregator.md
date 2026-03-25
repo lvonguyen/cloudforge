@@ -362,7 +362,7 @@ resources:
 | ADR-008 | Container Security | Non-root, read-only | Defense in depth |
 | ADR-009 | Network Policy | Egress-only HTTPS | Minimize attack surface |
 
-*Full ADR details in `docs/adr/` directory.*
+*Full ADR details in `docs/core/architecture/adr/` directory.*
 
 ---
 

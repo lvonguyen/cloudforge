@@ -26,7 +26,7 @@ As the product scales beyond demo/POC toward multi-tenant production, a unified 
 
 - **Pros:** No data movement, queries Postgres directly, supports Gremlin + openCypher, managed schema mapping
 - **Cons:** Vendor dependency (30-day trial), enterprise pricing TBD, JVM-based (memory requirements)
-- **Cost:** ~$6/day for r6i.xlarge POC, production pricing TBD
+- **Cost:** ~$12/day for r6i.2xlarge (64GB min required; r6i.xlarge returns UnsupportedOperation), production pricing TBD
 
 ### Option B: Native Go Graph Layer
 

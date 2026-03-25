@@ -9,7 +9,7 @@
 
 Cloud Aegis is a reference architecture and implementation for an Internal Developer Platform (IDP) that enables self-service cloud resource provisioning with built-in governance, compliance guardrails, and exception management workflows.
 
-> **[Live Demo](https://cloudaegis-demo.lvonguyen.com)** | **[API](https://aegis-api.fly.dev/health)**
+> **[Live Demo](https://cloudaegis-demo.lvonguyen.com)** | **[API](https://api.cloudforge-demo.lvonguyen.com/health)**
 
 > **About this project** — Cloud Aegis demonstrates enterprise security patterns I've designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains throughout my career. My background has always been project-based: assess the current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — I don't stop at design docs, I ship working systems backed by threat models and ADRs (the [19 ADRs](docs/core/architecture/adr/) capture the same decision-making process I'd use to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. I use security-focused systems design as my core discipline and agentic coding workflows (Claude Code) as a force multiplier for delivery.
 >
@@ -76,13 +76,13 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 | Terraform modules (compute) | Done | Cloud Run + ECS Fargate + Azure Container Apps |
 | Terraform modules (database) | Done | Cloud SQL + RDS + Azure PostgreSQL |
 | Terraform modules (redis) | Done | Memorystore + ElastiCache + Azure Cache |
-| Rego policies (IaC) | Done | 4 policies, 21 rules (security, cost, network, regions) |
+| Rego policies (IaC) | Done | 5 policies, 27 rules (security, cost, network, naming, AI governance) |
 | Policy gate script | Done | `terraform plan` + `conftest` pipeline |
 | Deploy Dockerfiles | Done | Multi-stage frontend (nginx) + backend (Go) |
 | Environment configs | Done | Dev environment with GCS remote state |
 | **Portal** | | |
 | React SPA (frontend/) | Done | React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui |
-| 35 route pages | Done | Admin, Operator, Requester role views + attack paths + containers |
+| 36 route pages | Done | Admin, Operator, Requester role views + attack paths + containers |
 | Dark mode | Done | CSS variable overrides, anti-flash script |
 | Cloudflare Pages deploy | Done | cloudaegis-demo.lvonguyen.com |
 | API hook migration | Partial | MyRequests, useFindings (R2 fallback), useAttackPaths (mock fallback), useCostAnomalies cache fix, Execute/Retry mutations wired; remaining hooks fall back to mock on 401 in dev |
@@ -127,7 +127,7 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 | ------ | ----- |
 | Go packages | 34 (all passing with `-race`) |
 | Go tests | 1,474 |
-| Frontend tests | 420+ (51 test files) |
+| Frontend tests | 447+ (52 test files) |
 | Benchmarks | 8 |
 | CI gates | 8 (lint, gosec, Trivy, vitest, npm audit, integration, Codecov, Lighthouse) |
 | Coverage thresholds | v8 lines: 70%, functions: 75%, branches: 65% |
@@ -140,7 +140,7 @@ This is a **platform reference implementation**, not production software:
 1. **Temporal Workflows** — Workflow definitions exist, orchestration layer not wired into request flow
 2. **Stub Packages** — secrets, waf modules have interfaces and mock implementations but no production wiring
 3. **RoleViewer** — `RoleViewer` (rank 0) is implemented with read-only surface (`/findings`, `/compliance/frameworks`, `/agents` + traces); fine-grained per-resource viewer scoping is not yet enforced
-4. **Chrome QA Findings** — 35/35 routes passing with error states, focus rings, footer landmark, OG meta tags; React 19 lazy() context edge case under Playwright (pre-existing, not prod)
+4. **Chrome QA Findings** — 35/36 routes passing with error states, focus rings, footer landmark, OG meta tags; React 19 lazy() context edge case under Playwright (pre-existing, not prod)
 5. **OIDC Auth Flow** — JWT middleware is production-ready (HS256/RS256, JWKS); Okta JWKS URL auto-derives from `OKTA_DOMAIN` env var. Full SSO login flow requires Okta app configuration.
 
 **Production Requirements:**
@@ -235,7 +235,7 @@ cloudforge/
 ├── configs/                       # Configuration templates
 ├── frontend/                      # Self-service portal (React 19 + Vite 7)
 │   ├── src/
-│   │   ├── pages/                 # 35 route pages (admin, ops, portal views)
+│   │   ├── pages/                 # 36 route pages (admin, ops, portal views)
 │   │   ├── components/            # shadcn/ui component layer
 │   │   ├── hooks/                 # Custom hooks (deploy preview, etc.)
 │   │   ├── lib/                   # API client, auth, utilities
@@ -298,7 +298,7 @@ Pluggable providers for enterprise GRC platforms:
 ### Infrastructure as Code (Deploy Layer)
 
 - **Multi-cloud Terraform modules** — compute (Cloud Run / ECS Fargate / Azure Container Apps), database (Cloud SQL / RDS / Azure PostgreSQL), redis (Memorystore / ElastiCache / Azure Cache)
-- **Policy-as-code gate** — 5 Rego policies (25 rules) validated via `conftest` against `terraform plan` JSON before any apply
+- **Policy-as-code gate** — 5 Rego policies (27 rules) validated via `conftest` against `terraform plan` JSON before any apply
 - **Three-layer OPA governance** — (1) plan-time IaC validation, (2) runtime policy evaluation via external OPA server, (3) in-process embedded OPA for AI agent governance
 - **Deploy scripts** — dry-run-by-default deployment with policy violation gate and human-readable remediation guidance
 - **Container images** — multi-stage Dockerfiles for frontend (nginx + SPA routing) and backend (Go + healthcheck)
@@ -549,7 +549,7 @@ Built-in support for 20+ frameworks:
 ### Phase 3: IaC, Portal & Workflows (Complete)
 
 - [x] Multi-cloud Terraform modules (compute, database, redis, network)
-- [x] Rego policy gate for IaC validation (4 policies, 21 rules)
+- [x] Rego policy gate for IaC validation (5 policies, 27 rules)
 - [x] Deploy scripts with dry-run-by-default and policy violation gate
 - [x] Container Dockerfiles (frontend nginx + backend Go)
 - [x] Self-service portal UI (React 19 / Vite 7 + shadcn/ui) — deployed to cloudaegis-demo.lvonguyen.com
@@ -582,8 +582,8 @@ Built-in support for 20+ frameworks:
 | Phase | Description |
 | ----- | ----------- |
 | **Phase 5: Risk Intelligence + FinOps** | EPSS/KEV/GreyNoise/HIBP/OTX threat intel, attack path BFS engine + ReactFlow viz, toxic combo detection, blast radius computation, PuppyGraph graph query integration, AWS Bedrock enrichment. FinOps multi-cloud cost aggregation, anomaly detection, chargeback engine, budget alerting |
-| **Phase 4: Frontend + QA Hardening** | Self-service portal (React 19 + Vite 7, 35 routes, 3 role views, dark mode), Cloudflare Pages deploy, investigation board, DSPM classification, kanban remediation pipeline, NLQ bar, demo mode hardening. Multi-pass QA reviews (quality 4.5+, security 4.5+, bugs 4.3+) |
-| **Phase 3: IaC + Security** | Multi-cloud Terraform modules (compute, database, redis, IAM, monitoring, secrets), 5 Rego policies (25 rules), policy gate script, resource-scoped RBAC, integrity hashing, audit logging, rollback encryption (AES-256-GCM), CI enforcement (gosec, Trivy, Codecov) |
+| **Phase 4: Frontend + QA Hardening** | Self-service portal (React 19 + Vite 7, 36 routes, 3 role views, dark mode), Cloudflare Pages deploy, investigation board, DSPM classification, kanban remediation pipeline, NLQ bar, demo mode hardening. Multi-pass QA reviews (quality 4.5+, security 4.5+, bugs 4.3+) |
+| **Phase 3: IaC + Security** | Multi-cloud Terraform modules (compute, database, redis, IAM, monitoring, secrets), 5 Rego policies (27 rules), policy gate script, resource-scoped RBAC, integrity hashing, audit logging, rollback encryption (AES-256-GCM), CI enforcement (gosec, Trivy, Codecov) |
 | **Phase 2: Remediation + AI Governance** | 10 remediation handlers across 8 domains, batch executor with dry-run + 48h rollback, AI governance module (embedded OPA, agent registry, STRIDE/ATLAS threat models), JWT auth (HS256/RS256 + JWKS), RBAC middleware, security fixes SEC-001 through SEC-012 |
 | **Phase 1: Core Platform** | API server, GRC provider abstraction (Archer, ServiceNow, PostgreSQL), 20+ compliance frameworks, OPA/Rego policy engine, AI provider abstraction (Claude/OpenAI), identity module (Okta + Entra ID), container security, structured logging (zap), PostgreSQL migrations, architecture docs (HLD, DDD, 19 ADRs, DR/BC, 9 runbooks) |
 

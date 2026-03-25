@@ -1,11 +1,11 @@
 flowchart TB
-    Client([Client Request]) --> GTM
+    Client(["fa:fa-user Client Request"]) --> GTM
 
     subgraph GTM [Global Traffic Management]
         direction LR
-        R53[AWS Route 53\nLatency Routing]
-        ATM[Azure Traffic Manager\nPerformance]
-        CDNS[GCP Cloud DNS\nGlobal LB]
+        R53["fa:fa-cloud AWS Route 53\nLatency Routing"]
+        ATM["fa:fa-cloud Azure Traffic Manager\nPerformance"]
+        CDNS["fa:fa-cloud GCP Cloud DNS\nGlobal LB"]
     end
 
     GTM --> AWSP
@@ -14,48 +14,48 @@ flowchart TB
 
     subgraph TIER1 [Tier 1 — Active Primary Regions]
         subgraph AWSP [AWS us-east-1]
-            AWSEKS[EKS Cluster 3-AZ\nAPI + OPA + Temporal + Worker]
-            AWSRDS[(RDS PostgreSQL\nMulti-AZ r6g.large)]
-            AWSREDIS[(ElastiCache Redis\nCluster Mode)]
+            AWSEKS["fa:fa-server EKS Cluster 3-AZ\nAPI + OPA + Temporal + Worker"]
+            AWSRDS[("fa:fa-database RDS PostgreSQL\nMulti-AZ r6g.large")]
+            AWSREDIS[("fa:fa-database ElastiCache Redis\nCluster Mode")]
         end
 
         subgraph AZUREP [Azure westeurope]
-            AKSCLUSTER[AKS Cluster 3-AZ\nAPI + OPA + Temporal + Worker]
-            AZURESQL[(Azure SQL\nBusiness Critical)]
-            AZUREDIS[(Azure Cache\nZone-Redundant)]
+            AKSCLUSTER["fa:fa-server AKS Cluster 3-AZ\nAPI + OPA + Temporal + Worker"]
+            AZURESQL[("fa:fa-database Azure SQL\nBusiness Critical")]
+            AZUREDIS[("fa:fa-database Azure Cache\nZone-Redundant")]
         end
     end
 
     subgraph TIER2 [Tier 2 — Warm Standby DR]
         subgraph GCPP [GCP us-east1]
-            GKEDR[GKE Cluster\n0 pods — scale up lt 10min]
-            CLOUDSQLDR[(Cloud SQL\nRegional Replica)]
-            MEMDR[(Memorystore\nCold Standby)]
+            GKEDR["fa:fa-server GKE Cluster\n0 pods — scale up lt 10min"]
+            CLOUDSQLDR[("fa:fa-database Cloud SQL\nRegional Replica")]
+            MEMDR[("fa:fa-database Memorystore\nCold Standby")]
         end
     end
 
     subgraph TIER3 [Tier 3 — Edge — Policy Evaluation Only]
-        EDGE1[OPA Sidecar\nRead-only bundle]
-        EDGE2[OPA Sidecar\nRead-only bundle]
-        EDGE3[OPA Sidecar\nRead-only bundle]
+        EDGE1["fa:fa-shield-alt OPA Sidecar\nRead-only bundle"]
+        EDGE2["fa:fa-shield-alt OPA Sidecar\nRead-only bundle"]
+        EDGE3["fa:fa-shield-alt OPA Sidecar\nRead-only bundle"]
     end
 
     AWSRDS -. "pg_logical async replication RPO lt 5s" .-> CLOUDSQLDR
     AZURESQL -. "pg_logical async replication RPO lt 5s" .-> CLOUDSQLDR
 
     subgraph CDN [CDN Layer]
-        CF[AWS CloudFront\nStatic: 1yr TTL]
-        AFD[Azure Front Door\nStatic: 1yr TTL]
-        GCDN[GCP Cloud CDN\nStatic: 1yr TTL]
+        CF["fa:fa-bolt AWS CloudFront\nStatic: 1yr TTL"]
+        AFD["fa:fa-bolt Azure Front Door\nStatic: 1yr TTL"]
+        GCDN["fa:fa-bolt GCP Cloud CDN\nStatic: 1yr TTL"]
     end
 
     GTM --> CDN
 
     subgraph OPA_BUNDLE [OPA Bundle Distribution]
-        GIT[Git Policy Repo\nSource of Truth]
-        GIT --> S3BUNDLE[S3 Bundle Store\nus-east-1 + eu-west-1]
-        GIT --> BLOBUNDLE[Azure Blob\nGeo-Replicated]
-        GIT --> GCSBUNDLE[GCS Dual-Region\nNAM4 + EUR4]
+        GIT["fa:fa-code-branch Git Policy Repo\nSource of Truth"]
+        GIT --> S3BUNDLE["fa:fa-archive S3 Bundle Store\nus-east-1 + eu-west-1"]
+        GIT --> BLOBUNDLE["fa:fa-archive Azure Blob\nGeo-Replicated"]
+        GIT --> GCSBUNDLE["fa:fa-archive GCS Dual-Region\nNAM4 + EUR4"]
     end
 
     S3BUNDLE -.-> EDGE1
