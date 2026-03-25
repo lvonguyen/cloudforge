@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""Merge and deduplicate SecurityHub findings from multiple exports.
+"""Merge and deduplicate multi-cloud findings from multiple exports.
 
-Reads NDJSON and JSON-array files, deduplicates by ASFF finding Id,
+Reads NDJSON and JSON-array files, deduplicates by cloud-native finding ID,
 writes merged NDJSON output. Streams to avoid loading everything into memory.
+
+Supports: AWS ASFF (Id), Azure ARM (id), GCP SCC (name/finding.name).
 
 Usage:
     python3 scripts/merge-findings.py \
-        --output data/haea-findings-merged.ndjson \
+        --output data/aws-findings-canonical.ndjson \
+        --cloud aws \
         data/haea-findings-all.ndjson \
-        testdata/cspm/raw/aws_securityhub_findings.json
+        testdata/export-outputs/aws_securityhub_guardduty_20260324_190620.json
 """
 import argparse
 import json
@@ -63,13 +66,45 @@ def iter_file(path: str) -> Iterator[dict]:
         return iter_json_array_fallback(path)
 
 
+def _extract_finding_id(finding: dict) -> str:
+    """Extract a unique finding ID across cloud providers.
+
+    Cascade: AWS ASFF 'Id' -> Azure ARM 'id' -> GCP SCC 'name' -> GCP nested 'finding.name'.
+    """
+    # AWS ASFF: uppercase Id field (ARN-style)
+    fid = finding.get("Id", "")
+    if fid:
+        return fid
+    # Azure ARM: lowercase id field (resource path)
+    fid = finding.get("id", "")
+    if fid:
+        return fid
+    # GCP SCC flat: top-level 'name'
+    fid = finding.get("name", "")
+    if fid and fid.startswith("organizations/"):
+        return fid
+    # GCP SCC nested: finding.name (from allstates exports)
+    nested = finding.get("finding")
+    if isinstance(nested, dict):
+        fid = nested.get("name", "")
+        if fid:
+            return fid
+    return ""
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Merge + deduplicate findings")
     parser.add_argument("files", nargs="+", help="Input files (NDJSON or JSON array)")
     parser.add_argument(
         "--output",
-        default="data/haea-findings-merged.ndjson",
+        default="data/findings-merged.ndjson",
         help="Output NDJSON path",
+    )
+    parser.add_argument(
+        "--cloud",
+        choices=["aws", "azure", "gcp"],
+        default=None,
+        help="Stamp _Cloud field on each finding",
     )
     args = parser.parse_args()
 
@@ -85,17 +120,19 @@ def main() -> None:
             print(f"[+] Processing {path}...", file=sys.stderr)
 
             for finding in iter_file(path):
-                fid = finding.get("Id", "")
+                fid = _extract_finding_id(finding)
                 if fid in seen_ids:
                     file_dupes += 1
                     dupes += 1
                     continue
                 seen_ids.add(fid)
+                if args.cloud:
+                    finding["_Cloud"] = args.cloud
                 out.write(json.dumps(finding, default=str) + "\n")
                 total += 1
                 file_count += 1
 
-                product = finding.get("ProductName", "?")
+                product = finding.get("ProductName", finding.get("source", {}).get("name", "?") if isinstance(finding.get("source"), dict) else "?")
                 products[product] = products.get(product, 0) + 1
 
             print(
