@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -47,6 +48,14 @@ func (s *Server) listFindings(w http.ResponseWriter, r *http.Request) {
 		results = append(results, *f)
 	}
 
+	// Server-side sorting
+	sortField := strings.ToLower(r.URL.Query().Get("sort"))
+	sortOrder := strings.ToLower(r.URL.Query().Get("order"))
+	if sortField != "" {
+		desc := sortOrder == "desc"
+		sortFindings(results, sortField, desc)
+	}
+
 	page, perPage := parsePagination(r, 50, 200)
 	resp := paginateResult(results, page, perPage)
 
@@ -63,19 +72,34 @@ func (s *Server) findingsStats(w http.ResponseWriter, r *http.Request) {
 	claims, _ := api.GetClaimsFromContext(r.Context())
 	scope := api.ScopeFromContext(claims)
 
-	type statsResponse struct {
-		Total        int            `json:"total"`
-		BySeverity   map[string]int `json:"by_severity"`
-		ByStatus     map[string]int `json:"by_status"`
-		ByProvider   map[string]int `json:"by_provider"`
-		SLABreached  int            `json:"sla_breached"`
-		AutoRemedial int            `json:"auto_remedial"`
+	type deltaIndicators struct {
+		NewFindings      int `json:"new_findings"`
+		ResolvedFindings int `json:"resolved_findings"`
+		Net              int `json:"net"`
 	}
+
+	type statsResponse struct {
+		Total        int             `json:"total"`
+		BySeverity   map[string]int  `json:"by_severity"`
+		ByStatus     map[string]int  `json:"by_status"`
+		ByProvider   map[string]int  `json:"by_provider"`
+		ByCategory   map[string]int  `json:"by_category"`
+		SLABreached  int             `json:"sla_breached"`
+		AutoRemedial int             `json:"auto_remedial"`
+		Active       int             `json:"active"`
+		Delta24h     deltaIndicators `json:"delta_24h"`
+		Delta7d      deltaIndicators `json:"delta_7d"`
+	}
+
+	now := time.Now()
+	h24Ago := now.Add(-24 * time.Hour)
+	d7Ago := now.Add(-7 * 24 * time.Hour)
 
 	resp := statsResponse{
 		BySeverity: make(map[string]int),
 		ByStatus:   make(map[string]int),
 		ByProvider: make(map[string]int),
+		ByCategory: make(map[string]int),
 	}
 
 	for i := range s.data.Findings {
@@ -87,18 +111,74 @@ func (s *Server) findingsStats(w http.ResponseWriter, r *http.Request) {
 		resp.BySeverity[strings.ToUpper(f.Severity)]++
 		resp.ByStatus[strings.ToLower(f.Status)]++
 		resp.ByProvider[strings.ToLower(f.CloudProvider)]++
+		resp.ByCategory[strings.ToUpper(f.Category)]++
 		if f.SLABreachDate != "" {
 			resp.SLABreached++
 		}
 		if f.AutoRemediatable {
 			resp.AutoRemedial++
 		}
+		if f.Status == "open" || f.Status == "in_progress" {
+			resp.Active++
+		}
+
+		// Delta indicators: count findings first seen within windows
+		if firstFound, err := time.Parse(time.RFC3339, f.FirstFoundAt); err == nil {
+			if firstFound.After(h24Ago) {
+				resp.Delta24h.NewFindings++
+			}
+			if firstFound.After(d7Ago) {
+				resp.Delta7d.NewFindings++
+			}
+		}
+		// Use LastSeenAt as proxy for resolution time on resolved findings
+		if f.Status == "resolved" && f.LastSeenAt != "" {
+			if resolved, err := time.Parse(time.RFC3339, f.LastSeenAt); err == nil {
+				if resolved.After(h24Ago) {
+					resp.Delta24h.ResolvedFindings++
+				}
+				if resolved.After(d7Ago) {
+					resp.Delta7d.ResolvedFindings++
+				}
+			}
+		}
 	}
+
+	resp.Delta24h.Net = resp.Delta24h.NewFindings - resp.Delta24h.ResolvedFindings
+	resp.Delta7d.Net = resp.Delta7d.NewFindings - resp.Delta7d.ResolvedFindings
 
 	span.SetAttributes(attribute.Int("findings.total", resp.Total))
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(resp)
+}
+
+// sortFindings sorts a slice of findings by the given field. Supported fields:
+// severity, ai_risk, first_found_at, title, status. Default order is ascending.
+func sortFindings(findings []Finding, field string, desc bool) {
+	sevOrder := map[string]int{"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}
+
+	sort.Slice(findings, func(i, j int) bool {
+		var less bool
+		switch field {
+		case "severity":
+			less = sevOrder[strings.ToUpper(findings[i].Severity)] < sevOrder[strings.ToUpper(findings[j].Severity)]
+		case "ai_risk", "ai_risk_score":
+			less = findings[i].AIRiskScore < findings[j].AIRiskScore
+		case "first_found_at":
+			less = findings[i].FirstFoundAt < findings[j].FirstFoundAt
+		case "title":
+			less = strings.ToLower(findings[i].Title) < strings.ToLower(findings[j].Title)
+		case "status":
+			less = findings[i].Status < findings[j].Status
+		default:
+			return false
+		}
+		if desc {
+			return !less
+		}
+		return less
+	})
 }
 
 func (s *Server) getFinding(w http.ResponseWriter, r *http.Request) {

@@ -173,8 +173,13 @@ func parsePagination(r *http.Request, defaultPerPage, maxPerPage int) (page, per
 			page = n
 		}
 	}
-	if v := r.URL.Query().Get("per_page"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= maxPerPage {
+	// Accept both "per_page" and "limit" as the page-size parameter
+	ppStr := r.URL.Query().Get("per_page")
+	if ppStr == "" {
+		ppStr = r.URL.Query().Get("limit")
+	}
+	if ppStr != "" {
+		if n, err := strconv.Atoi(ppStr); err == nil && n > 0 && n <= maxPerPage {
 			perPage = n
 		}
 	}
