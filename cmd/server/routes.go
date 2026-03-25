@@ -17,11 +17,10 @@ func scopeGuarded(h http.Handler) http.Handler {
 }
 
 func (s *Server) setupRoutes() {
-	// CORS middleware — applied to all routes (including health for browser fetch).
-	if s.config.CORSOrigins != "" {
-		origins := strings.Split(s.config.CORSOrigins, ",")
-		s.router.Use(api.CORSMiddleware(origins, s.roles.DevMode))
-	}
+	// NOTE: CORS middleware is applied in the outer handler chain (main.go)
+	// rather than via s.router.Use(), because gorilla/mux middleware only
+	// runs for matched routes — OPTIONS preflight requests would 405 before
+	// the middleware fires.
 
 	// Health check endpoints (unauthenticated - skipped by middleware)
 	s.router.HandleFunc("/health", s.healthChecker.HealthHandler()).Methods("GET")

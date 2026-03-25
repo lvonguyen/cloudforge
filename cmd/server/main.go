@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -162,9 +163,28 @@ func main() {
 		DatabaseURL:      os.Getenv("AEGIS_DATABASE_URL"),
 	}
 
+	// Initialize database connection for postgres GRC provider
+	var grcDB *sql.DB
+	if cfg.GRCProvider == grc.ProviderTypePostgres {
+		if cfg.DatabaseURL == "" {
+			logger.Fatal("AEGIS_DATABASE_URL required when GRC_PROVIDER=postgres")
+		}
+		grcDB, err = sql.Open("postgres", cfg.DatabaseURL)
+		if err != nil {
+			logger.Fatal("Failed to open database connection", zap.Error(err))
+		}
+		if pingErr := grcDB.Ping(); pingErr != nil {
+			logger.Fatal("Database ping failed", zap.Error(pingErr))
+		}
+		defer grcDB.Close()
+		logger.Info("Database connection established for GRC provider",
+			zap.String("host", cfg.DatabaseURL[:min(len(cfg.DatabaseURL), 50)]+"..."))
+	}
+
 	// Initialize GRC provider
 	grcProvider, err := grc.NewProvider(grc.Config{
-		Type: cfg.GRCProvider,
+		Type:     cfg.GRCProvider,
+		Postgres: grcDB,
 	})
 	if err != nil {
 		logger.Fatal("Failed to initialize GRC provider", zap.Error(err))
@@ -633,8 +653,16 @@ func main() {
 	// Setup routes
 	srv.setupRoutes()
 
-	// Build middleware chain: gzip -> tracing -> security headers -> router
+	// Build middleware chain: gzip -> tracing -> security headers -> CORS -> router
+	//
+	// CORS wraps the router directly so that OPTIONS preflight requests are
+	// handled before gorilla/mux route matching (mux middleware only runs for
+	// matched routes, so preflight to a GET-only route would 405).
 	var handler http.Handler = srv.router
+	if cfg.CORSOrigins != "" {
+		origins := strings.Split(cfg.CORSOrigins, ",")
+		handler = api.CORSMiddleware(origins, srv.roles.DevMode)(handler)
+	}
 	handler = srv.securityHeadersMiddleware(handler)
 	if telemetry != nil {
 		handler = telemetry.HTTPMiddleware()(handler)
