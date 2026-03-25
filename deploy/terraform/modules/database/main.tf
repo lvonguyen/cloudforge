@@ -83,6 +83,7 @@ resource "aws_db_instance" "this" {
   engine_version              = "15"
   instance_class              = local.tier_map_aws[var.instance_tier]
   allocated_storage           = var.storage_gb
+  storage_type                = "gp3"
   storage_encrypted           = true
   db_name                     = var.db_name
   username                    = "${replace(var.project_name, "-", "_")}_app"
