@@ -19,12 +19,20 @@ import { useCreateException } from '@/hooks/useExceptions'
 import { useComments, useAddComment } from '@/hooks/useComments'
 import { useFindingTicket, useRemediateFinding } from '@/hooks/useIntegrations'
 import { RemediationSheet } from '@/components/remediation/RemediationSheet'
+import { IntegrationViewport } from '@/components/remediation/IntegrationViewport'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
 
-export default function FindingDetail() {
-  const { id } = useParams<{ id: string }>()
+interface FindingDetailProps {
+  mode?: 'page' | 'inline'
+  findingId?: string
+  onClose?: () => void
+}
+
+export default function FindingDetail({ mode = 'page', findingId: propId, onClose }: FindingDetailProps) {
+  const params = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const id = mode === 'inline' ? propId : params.id
   const { user } = useAuth()
   const { data: finding, isLoading } = useFinding(id ?? '')
   const { data: enrichment } = useFindingEnrichment(id ?? '')
@@ -58,19 +66,36 @@ export default function FindingDetail() {
   if (!finding) {
     return (
       <div className="space-y-4 max-w-3xl">
-        <Button variant="ghost" size="sm" className="gap-1.5 -ml-2" onClick={() => navigate('/ops/findings')}>
-          <ArrowLeft className="h-4 w-4" />All Findings
-        </Button>
+        {mode === 'page' && (
+          <Button variant="ghost" size="sm" className="gap-1.5 -ml-2" onClick={() => navigate('/ops/findings')}>
+            <ArrowLeft className="h-4 w-4" />All Findings
+          </Button>
+        )}
         <div className="text-sm text-muted-foreground">Finding not found.</div>
       </div>
     )
   }
 
+  const Wrapper = mode === 'inline' ? 'aside' : 'div'
+  const wrapperClassName = mode === 'inline'
+    ? 'flex flex-col h-full overflow-y-auto p-4 space-y-4'
+    : 'space-y-6 max-w-4xl pb-10'
+
   return (
-    <div className="space-y-6 max-w-4xl pb-10">
-      <Button variant="ghost" size="sm" className="gap-1.5 -ml-2" onClick={() => navigate('/ops/findings')}>
-        <ArrowLeft className="h-4 w-4" />All Findings
-      </Button>
+    <Wrapper className={wrapperClassName}>
+      {mode === 'page' && (
+        <Button variant="ghost" size="sm" className="gap-1.5 -ml-2" onClick={() => navigate('/ops/findings')}>
+          <ArrowLeft className="h-4 w-4" />All Findings
+        </Button>
+      )}
+      {mode === 'inline' && onClose && (
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Finding Detail</span>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+            <XCircle className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-start gap-4">
@@ -825,6 +850,10 @@ export default function FindingDetail() {
         </TabsContent>
       </Tabs>
 
+      {/* Integration viewport — Asana/Jira/ServiceNow tabs */}
+      <Separator />
+      <IntegrationViewport findingId={finding.id} ticket={ticket ?? undefined} />
+
       <ToastStack toasts={toasts} onDismiss={dismiss} />
 
       {ticket && (
@@ -835,6 +864,6 @@ export default function FindingDetail() {
           onOpenChange={setSheetOpen}
         />
       )}
-    </div>
+    </Wrapper>
   )
 }
