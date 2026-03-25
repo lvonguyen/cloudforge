@@ -1,0 +1,7 @@
+# Ignore large seed output files
+*.json
+*.sql
+*.log
+
+# Keep README
+!README.md

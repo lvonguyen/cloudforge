@@ -1,0 +1,214 @@
+#!/usr/bin/env node
+/**
+ * load-findings-to-postgres.mjs — Load findings.json into Postgres
+ *
+ * Generates SQL INSERT statements from findings.json that match the
+ * migrations/002_findings_and_compliance.sql schema.
+ *
+ * Usage:
+ *   node scripts/load-findings-to-postgres.mjs testdata/seed/findings.json > load.sql
+ *   psql $DATABASE_URL < load.sql
+ *
+ * Or direct load:
+ *   node scripts/load-findings-to-postgres.mjs testdata/seed/findings.json | psql $DATABASE_URL
+ *
+ * Options:
+ *   --batch N      Batch size for multi-row inserts (default: 500)
+ *   --truncate     Prepend TRUNCATE findings CASCADE to clear existing data
+ */
+
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
+const args = process.argv.slice(2);
+const getArg = (name) => { const i = args.indexOf(name); return i !== -1 ? args[i + 1] : undefined; };
+const hasFlag = (name) => args.includes(name);
+
+const FINDINGS_FILE = args.find(a => !a.startsWith('--')) || 'testdata/seed/findings.json';
+const BATCH_SIZE = parseInt(getArg('--batch') ?? '500', 10);
+const TRUNCATE = hasFlag('--truncate');
+
+const log = (msg) => process.stderr.write(`[+] ${msg}\n`);
+
+// Read findings
+log(`Loading findings from ${FINDINGS_FILE}...`);
+const findingsPath = resolve(FINDINGS_FILE);
+const findings = JSON.parse(readFileSync(findingsPath, 'utf-8'));
+log(`Loaded ${findings.length} findings`);
+
+// SQL escape functions
+function sqlString(s) {
+  if (s === undefined || s === null) return 'NULL';
+  return "'" + String(s).replace(/'/g, "''") + "'";
+}
+
+function sqlBool(b) {
+  if (b === undefined || b === null) return 'FALSE';
+  return b ? 'TRUE' : 'FALSE';
+}
+
+function sqlNumber(n) {
+  if (n === undefined || n === null) return 'NULL';
+  return String(n);
+}
+
+function sqlTimestamp(t) {
+  if (!t) return 'NULL';
+  // ISO string → TIMESTAMPTZ
+  return sqlString(t);
+}
+
+function sqlArray(arr) {
+  if (!arr || arr.length === 0) return 'ARRAY[]::TEXT[]';
+  return 'ARRAY[' + arr.map(sqlString).join(', ') + ']::TEXT[]';
+}
+
+function sqlJsonb(obj) {
+  if (!obj) return "'{}'::JSONB";
+  if (Array.isArray(obj) && obj.length === 0) return "'[]'::JSONB";
+  return sqlString(JSON.stringify(obj)) + '::JSONB';
+}
+
+// Generate INSERT statements
+function generateInsert(finding) {
+  const cols = [
+    'id',
+    'source',
+    'source_finding_id',
+    'type',
+    'title',
+    'description',
+    'resource_type',
+    'resource_id',
+    'resource_name',
+    'resource_arn',
+    'platform',
+    'cloud_provider',
+    'region',
+    'account_id',
+    'account_name',
+    'environment_type',
+    'static_severity',
+    'severity',
+    'ai_risk_score',
+    'ai_risk_level',
+    'ai_risk_rationale',
+    'ai_contextual_factors',
+    'cvss',
+    'cvss_vector',
+    'epss',
+    'exploit_available',
+    'cves',
+    'mitre_tactics',
+    'mitre_techniques',
+    'compliance_mappings',
+    'remediation',
+    'auto_remediatable',
+    'category',
+    'status',
+    'workflow_status',
+    'suppressed',
+    'service_name',
+    'line_of_business',
+    'first_found_at',
+    'last_seen_at',
+    'sla_breach_date',
+    'due_date',
+    'deduplication_key',
+    'canonical_rule_id',
+  ];
+
+  const values = [
+    sqlString(finding.id),
+    sqlString(finding.source),
+    sqlString(finding.source_finding_id),
+    sqlString(finding.type),
+    sqlString(finding.title),
+    sqlString(finding.description),
+    sqlString(finding.resource_type),
+    sqlString(finding.resource_id),
+    sqlString(finding.resource_name),
+    sqlString(finding.resource_arn),
+    sqlString(finding.platform || 'cloud'),
+    sqlString(finding.cloud_provider),
+    sqlString(finding.region),
+    sqlString(finding.account_id),
+    sqlString(finding.account_name),
+    sqlString(finding.environment_type),
+    sqlString(finding.static_severity),
+    sqlString(finding.severity),
+    sqlNumber(finding.ai_risk_score),
+    sqlString(finding.ai_risk_level),
+    sqlString(finding.ai_risk_rationale),
+    sqlArray(finding.ai_contextual_factors),
+    sqlNumber(finding.cvss),
+    sqlString(finding.cvss_vector),
+    sqlNumber(finding.epss),
+    sqlBool(finding.exploit_available),
+    sqlJsonb(finding.cves),
+    sqlArray(finding.mitre_tactics),
+    sqlArray(finding.mitre_techniques),
+    sqlJsonb(finding.compliance_mappings),
+    sqlString(finding.remediation),
+    sqlBool(finding.auto_remediatable),
+    sqlString(finding.category),
+    sqlString(finding.status),
+    sqlString(finding.workflow_status),
+    sqlBool(finding.suppressed),
+    sqlString(finding.service_name),
+    sqlString(finding.line_of_business),
+    sqlTimestamp(finding.first_found_at),
+    sqlTimestamp(finding.last_seen_at),
+    sqlTimestamp(finding.sla_breach_date),
+    sqlTimestamp(finding.due_date),
+    sqlString(finding.deduplication_key),
+    sqlString(finding.canonical_rule_id),
+  ];
+
+  return { cols, values };
+}
+
+// Output SQL
+console.log('-- Generated by load-findings-to-postgres.mjs');
+console.log(`-- Source: ${FINDINGS_FILE}`);
+console.log(`-- Findings: ${findings.length}`);
+console.log(`-- Batch size: ${BATCH_SIZE}`);
+console.log('');
+
+if (TRUNCATE) {
+  console.log('-- Truncate existing findings');
+  console.log('TRUNCATE findings CASCADE;');
+  console.log('');
+}
+
+console.log('-- Insert findings');
+console.log('BEGIN;');
+console.log('');
+
+// Batch inserts for better performance
+for (let i = 0; i < findings.length; i += BATCH_SIZE) {
+  const batch = findings.slice(i, i + BATCH_SIZE);
+  const { cols } = generateInsert(batch[0]);
+
+  const rows = batch.map(f => {
+    const { values } = generateInsert(f);
+    return '  (' + values.join(', ') + ')';
+  });
+
+  console.log(`INSERT INTO findings (${cols.join(', ')})`);
+  console.log('VALUES');
+  console.log(rows.join(',\n'));
+  console.log('ON CONFLICT (id) DO UPDATE SET');
+  console.log('  updated_at = NOW(),');
+  console.log('  last_seen_at = EXCLUDED.last_seen_at,');
+  console.log('  severity = EXCLUDED.severity,');
+  console.log('  status = EXCLUDED.status,');
+  console.log('  workflow_status = EXCLUDED.workflow_status;');
+  console.log('');
+}
+
+console.log('COMMIT;');
+console.log('');
+console.log(`-- Loaded ${findings.length} findings`);
+
+log('Done. SQL written to stdout.');
