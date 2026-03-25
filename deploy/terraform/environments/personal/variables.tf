@@ -21,3 +21,15 @@ variable "alert_emails" {
   type        = list(string)
   default     = ["liem@vonguyen.io"]
 }
+
+variable "deploy_puppygraph" {
+  description = "Deploy PuppyGraph graph database (adds ~$181/mo for r6i.xlarge)"
+  type        = bool
+  default     = false
+}
+
+variable "puppygraph_allowed_cidr" {
+  description = "CIDR for PuppyGraph UI/SSH access (your IP + /32)"
+  type        = string
+  default     = "47.156.79.74/32"
+}

@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
   }
 
   # Local backend — single operator, temporary demo
@@ -331,6 +335,8 @@ module "secrets" {
     "db-url",
     "jwt-secret",
     "redis-password",
+    "asana-pat",
+    "jira-api-token",
   ])
 
   tags = local.common_tags
@@ -374,13 +380,95 @@ module "aegis_api" {
     # Observability
     AEGIS_TRACING_ENABLED = "true"
     AEGIS_SAMPLING_RATE   = "1.0"
+
+    # Integration: Asana
+    ASANA_WORKSPACE_GID     = "1212540665692548"
+    ASANA_DEFAULT_PROJECT_GID = "1213803357058798"
+
+    # Integration: Jira
+    JIRA_URL         = "https://lvn-jira-dev.atlassian.net"
+    JIRA_USERNAME    = "liem@pvdsolutions.io"
+    JIRA_PROJECT_KEY = "CVRT"
+
+    # Graph: PuppyGraph (empty = disabled)
+    PUPPYGRAPH_URL = var.deploy_puppygraph ? "http://${module.puppygraph[0].private_ip}:8081" : ""
   }
 
   secrets = {
     AEGIS_DATABASE_URL   = module.secrets.secret_ids["db-url"]
     AEGIS_JWT_SECRET     = module.secrets.secret_ids["jwt-secret"]
     AEGIS_REDIS_PASSWORD = module.secrets.secret_ids["redis-password"]
+    ASANA_PAT            = module.secrets.secret_ids["asana-pat"]
+    JIRA_API_TOKEN       = module.secrets.secret_ids["jira-api-token"]
   }
 
   tags = local.common_tags
+}
+
+# ─── PuppyGraph (graph database for attack path traversal) ───────────────────
+# Gated by var.deploy_puppygraph. Uses PuppyGraph Marketplace AMI on EC2,
+# connects to the same RDS Postgres instance for graph-over-relational queries.
+
+resource "tls_private_key" "puppygraph" {
+  count     = var.deploy_puppygraph ? 1 : 0
+  algorithm = "ED25519"
+}
+
+resource "aws_key_pair" "puppygraph" {
+  count      = var.deploy_puppygraph ? 1 : 0
+  key_name   = "${local.name}-puppygraph"
+  public_key = tls_private_key.puppygraph[0].public_key_openssh
+  tags       = local.common_tags
+}
+
+# ECS → PuppyGraph SG rules (the module creates its own SG for operator access)
+resource "aws_security_group_rule" "puppygraph_from_ecs" {
+  for_each = var.deploy_puppygraph ? toset(["8081", "8182", "8184"]) : toset([])
+
+  type                     = "ingress"
+  from_port                = tonumber(each.value)
+  to_port                  = tonumber(each.value)
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.ecs.id
+  security_group_id        = module.puppygraph[0].security_group_id
+  description              = "PuppyGraph port ${each.value} from ECS"
+}
+
+# PuppyGraph → RDS
+resource "aws_security_group_rule" "default_rds_from_puppygraph" {
+  count                    = var.deploy_puppygraph ? 1 : 0
+  type                     = "ingress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  source_security_group_id = module.puppygraph[0].security_group_id
+  security_group_id        = data.aws_security_group.default.id
+  description              = "PostgreSQL from PuppyGraph"
+}
+
+# Fetch RDS managed master password for PuppyGraph connection
+data "aws_secretsmanager_secret_version" "rds_password" {
+  count     = var.deploy_puppygraph ? 1 : 0
+  secret_id = "rds!db-e7e33b94-66a7-4d4d-aa2c-55698e26b8cd"
+}
+
+module "puppygraph" {
+  count  = var.deploy_puppygraph ? 1 : 0
+  source = "../../modules/puppygraph"
+
+  ami_id        = "ami-083dcc3841cd6538b" # PuppyGraph v0.113
+  instance_type = "r6i.2xlarge"           # 64GB — minimum supported by PuppyGraph AMI. TEARDOWN by Mar 28.
+  vpc_id        = module.network.vpc_id
+  subnet_id     = module.network.public_subnet_ids[0]
+  allowed_cidr  = var.puppygraph_allowed_cidr
+  key_name      = aws_key_pair.puppygraph[0].key_name
+  pg_host       = split(":", module.database.connection_name)[0]
+  pg_port       = 5432
+  pg_database   = "aegis"
+  pg_user       = "aegis_app"
+  pg_password   = jsondecode(data.aws_secretsmanager_secret_version.rds_password[0].secret_string)["password"]
+
+  tags = merge(local.common_tags, {
+    component = "puppygraph"
+  })
 }

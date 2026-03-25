@@ -37,3 +37,13 @@ output "secret_arns" {
   description = "Secrets Manager ARNs for post-apply population"
   value       = module.secrets.secret_ids
 }
+
+output "puppygraph_ui_url" {
+  description = "PuppyGraph Web UI URL (operator access only)"
+  value       = var.deploy_puppygraph ? module.puppygraph[0].ui_url : null
+}
+
+output "puppygraph_private_ip" {
+  description = "PuppyGraph private IP (ECS within-VPC access)"
+  value       = var.deploy_puppygraph ? module.puppygraph[0].private_ip : null
+}

@@ -4,10 +4,7 @@
 
 locals {
   common_tags = merge(var.tags, {
-    Project     = "aegis"
-    Component   = "puppygraph"
-    Environment = "poc"
-    ManagedBy   = "terraform"
+    component = "puppygraph"
   })
 }
 
@@ -15,7 +12,7 @@ locals {
 
 resource "aws_security_group" "puppygraph" {
   name_prefix = "puppygraph-poc-"
-  description = "PuppyGraph POC — UI, Gremlin, openCypher from allowed CIDR"
+  description = "PuppyGraph POC - UI, Gremlin, openCypher from allowed CIDR"
   vpc_id      = var.vpc_id
 
   ingress {
@@ -91,15 +88,16 @@ resource "aws_iam_instance_profile" "puppygraph" {
 # --- EC2 Instance ---
 
 resource "aws_instance" "puppygraph" {
-  ami                    = var.ami_id
-  instance_type          = var.instance_type
-  subnet_id              = var.subnet_id
-  vpc_security_group_ids = [aws_security_group.puppygraph.id]
+  ami                         = var.ami_id
+  instance_type               = var.instance_type
+  subnet_id                   = var.subnet_id
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.puppygraph.id]
   iam_instance_profile   = aws_iam_instance_profile.puppygraph.name
   key_name               = var.key_name
 
   root_block_device {
-    volume_size = 50
+    volume_size = 64
     volume_type = "gp3"
     encrypted   = true
   }
@@ -129,7 +127,7 @@ resource "aws_instance" "puppygraph" {
     # Write schema config
     mkdir -p /opt/puppygraph
     cat > /opt/puppygraph/schema.json << 'SCHEMA'
-    ${file("${path.module}/../../docker/puppygraph/schema.json")}
+    ${file("${path.module}/../../../docker/puppygraph/schema.json")}
     SCHEMA
 
     # Start PuppyGraph container

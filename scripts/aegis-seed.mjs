@@ -19,7 +19,7 @@
  *   --frontend      Also write 500-finding subset to frontend/public/mock/findings.json
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, createWriteStream, existsSync, mkdirSync } from 'fs';
 import { createHash } from 'crypto';
 import { join, resolve } from 'path';
 
@@ -288,9 +288,79 @@ function tryReadJSON(path) {
     const raw = readFileSync(path, 'utf-8');
     return JSON.parse(raw);
   } catch (e) {
+    // If string too long, fall back to streaming buffer parser
+    if (e.message.includes('string longer than') || e.message.includes('Invalid string length')) {
+      log(`  String limit hit — using streaming parser for ${path}`);
+      return streamParseJSONArray(path);
+    }
     warn(`Failed to parse ${path}: ${e.message}`);
     return null;
   }
+}
+
+/**
+ * Streaming JSON array parser for files exceeding Node.js string limit (~512MB).
+ * Reads file as a raw Buffer, scans for top-level objects by tracking brace depth,
+ * correctly handles quoted strings and escape sequences.
+ */
+function streamParseJSONArray(path) {
+  const buf = readFileSync(path); // Buffer, no string limit
+  const results = [];
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  let objStart = -1;
+
+  for (let i = 0; i < buf.length; i++) {
+    const c = buf[i];
+    if (escaped) { escaped = false; continue; }
+    if (c === 0x5C && inString) { escaped = true; continue; } // backslash inside string
+    if (c === 0x22) { inString = !inString; continue; } // double quote
+    if (inString) continue;
+
+    if (c === 0x5B && depth === 0) { depth = 1; continue; } // opening [ of array
+    if (c === 0x5D && depth === 1) break; // closing ] of array
+
+    if (c === 0x7B) { // {
+      if (depth === 1) objStart = i;
+      depth++;
+    } else if (c === 0x7D) { // }
+      depth--;
+      if (depth === 1 && objStart >= 0) {
+        try {
+          const objStr = buf.subarray(objStart, i + 1).toString('utf-8');
+          results.push(JSON.parse(objStr));
+        } catch { /* skip malformed objects */ }
+        objStart = -1;
+      }
+    }
+
+    // Progress logging for large files
+    if (results.length > 0 && results.length % 50000 === 0 && c === 0x7D && depth === 1) {
+      log(`  ...parsed ${results.length} objects so far`);
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Write a JSON array incrementally to avoid string length limit on large outputs.
+ */
+function writeJSONArrayStreaming(filePath, items) {
+  const ws = createWriteStream(filePath);
+  ws.write('[');
+  for (let i = 0; i < items.length; i++) {
+    if (i > 0) ws.write(',');
+    ws.write(JSON.stringify(items[i]));
+  }
+  ws.write(']');
+  ws.end();
+  // Wait for the write to finish
+  return new Promise((resolve, reject) => {
+    ws.on('finish', resolve);
+    ws.on('error', reject);
+  });
 }
 
 function parseAwsFindings(data) {
@@ -501,7 +571,7 @@ function collectSources() {
                    provider === 'azure' ? parseAzureFindings : parseGcpFindings;
     const parsed = parser(data);
     log(`  ${path}: ${parsed.length} findings`);
-    rawFindings.push(...parsed);
+    for (const f of parsed) rawFindings.push(f);
   }
 
   // Medium files (always loaded)
@@ -517,7 +587,7 @@ function collectSources() {
     const parser = provider === 'azure' ? parseAzureFindings : parseGcpFindings;
     const parsed = parser(data);
     log(`  ${path}: ${parsed.length} findings`);
-    rawFindings.push(...parsed);
+    for (const f of parsed) rawFindings.push(f);
   }
 
   // Scrubbed files (GCP + Azure JSON)
@@ -532,7 +602,7 @@ function collectSources() {
     const parser = provider === 'azure' ? parseAzureFindings : parseGcpFindings;
     const parsed = parser(data);
     log(`  ${path}: ${parsed.length} findings`);
-    rawFindings.push(...parsed);
+    for (const f of parsed) rawFindings.push(f);
   }
 
   // Large files (only with --full)
@@ -551,7 +621,7 @@ function collectSources() {
                      provider === 'azure' ? parseAzureFindings : parseGcpFindings;
       const parsed = parser(data);
       log(`  ${path}: ${parsed.length} findings`);
-      rawFindings.push(...parsed);
+      for (const f of parsed) rawFindings.push(f);
     }
   }
 
@@ -1103,11 +1173,16 @@ function computeAttackPaths(findings) {
 
 // ── Phase 7: Output ──────────────────────────────────────────────────────────
 
-function writeOutput(findings, attackPaths) {
-  // findings.json
+async function writeOutput(findings, attackPaths) {
+  // findings.json — use streaming writer for large datasets
   const findingsPath = join(OUT_DIR, 'findings.json');
-  writeFileSync(findingsPath, JSON.stringify(findings));
-  log(`Wrote ${findings.length} findings to ${findingsPath} (${(readFileSync(findingsPath).length / 1024 / 1024).toFixed(1)} MB)`);
+  if (findings.length > 50000) {
+    await writeJSONArrayStreaming(findingsPath, findings);
+  } else {
+    writeFileSync(findingsPath, JSON.stringify(findings));
+  }
+  const fSize = (readFileSync(findingsPath).length / 1024 / 1024).toFixed(1);
+  log(`Wrote ${findings.length} findings to ${findingsPath} (${fSize} MB)`);
 
   // attack-paths.json
   const attackPathsPath = join(OUT_DIR, 'attack-paths.json');
@@ -1140,7 +1215,11 @@ function writeOutput(findings, attackPaths) {
   }
   const resources = [...resourceMap.values()];
   const resourcesPath = join(OUT_DIR, 'resources.json');
-  writeFileSync(resourcesPath, JSON.stringify(resources));
+  if (resources.length > 50000) {
+    await writeJSONArrayStreaming(resourcesPath, resources);
+  } else {
+    writeFileSync(resourcesPath, JSON.stringify(resources));
+  }
   log(`Wrote ${resources.length} resources to ${resourcesPath}`);
 
   // accounts.json
@@ -1187,6 +1266,12 @@ function writeOutput(findings, attackPaths) {
   writeFileSync(ticketsPath, JSON.stringify(tickets, null, 2));
   log(`Wrote ${tickets.length} tickets to ${ticketsPath}`);
 
+  // stats.json — pre-computed KPI data with delta indicators
+  const stats = computeStats(findings);
+  const statsPath = join(OUT_DIR, 'stats.json');
+  writeFileSync(statsPath, JSON.stringify(stats, null, 2));
+  log(`Wrote stats to ${statsPath}`);
+
   // Stats summary
   printStats(findings);
 
@@ -1199,6 +1284,88 @@ function writeOutput(findings, attackPaths) {
     writeFileSync(frontendPath, JSON.stringify(subset));
     log(`Wrote 500-finding frontend subset to ${frontendPath}`);
   }
+}
+
+function computeStats(findings) {
+  const total = findings.length;
+  const NOW = new Date('2026-03-24T08:00:00Z');
+  const H24_AGO = new Date(NOW.getTime() - 24 * 60 * 60 * 1000);
+  const D7_AGO = new Date(NOW.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const bySev = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+  const byProvider = { aws: 0, azure: 0, gcp: 0 };
+  const byStatus = {};
+  const byCategory = {};
+  let slaBreached = 0;
+  let autoRem = 0;
+  let active = 0;
+
+  // Delta counters: findings first_found_at within 24h/7d windows
+  let new24h = 0;
+  let new7d = 0;
+  let resolved24h = 0;
+  let resolved7d = 0;
+
+  for (const f of findings) {
+    bySev[f.severity] = (bySev[f.severity] ?? 0) + 1;
+    byProvider[f.cloud_provider] = (byProvider[f.cloud_provider] ?? 0) + 1;
+    byStatus[f.status] = (byStatus[f.status] ?? 0) + 1;
+    byCategory[f.category] = (byCategory[f.category] ?? 0) + 1;
+    if (f.sla_breach_date) slaBreached++;
+    if (f.auto_remediatable) autoRem++;
+    if (['open', 'in_progress'].includes(f.status)) active++;
+
+    const firstFound = new Date(f.first_found_at);
+    if (firstFound >= H24_AGO) new24h++;
+    if (firstFound >= D7_AGO) new7d++;
+    if (f.resolved_at) {
+      const resolved = new Date(f.resolved_at);
+      if (resolved >= H24_AGO) resolved24h++;
+      if (resolved >= D7_AGO) resolved7d++;
+    }
+  }
+
+  // Add jitter to deltas so they look organic
+  const jitter = (base) => {
+    const pct = 0.05 + rand() * 0.08;
+    const sign = rand() < 0.5 ? -1 : 1;
+    return base + Math.round(base * pct * sign);
+  };
+
+  return {
+    total,
+    active,
+    inactive: total - active,
+    severity: bySev,
+    provider: byProvider,
+    status: byStatus,
+    category: byCategory,
+    sla_breached: slaBreached,
+    auto_remediatable: autoRem,
+    compliance_mapped: findings.filter(f => f.compliance_mappings?.length > 0).length,
+    // Delta indicators for KPI cards
+    delta_24h: {
+      new_findings: jitter(new24h) || Math.round(total * 0.002),
+      resolved_findings: jitter(resolved24h) || Math.round(total * 0.001),
+      net: jitter(new24h - resolved24h) || Math.round(total * 0.001),
+    },
+    delta_7d: {
+      new_findings: jitter(new7d) || Math.round(total * 0.015),
+      resolved_findings: jitter(resolved7d) || Math.round(total * 0.008),
+      net: jitter(new7d - resolved7d) || Math.round(total * 0.007),
+    },
+    // Top-level KPI card values
+    kpi: {
+      total_findings: total,
+      critical_findings: bySev.CRITICAL,
+      high_findings: bySev.HIGH,
+      sla_breached: slaBreached,
+      auto_remediatable: autoRem,
+      mean_time_to_remediate_hours: Math.round(72 + rand() * 48),
+      compliance_score: +(70 + rand() * 12).toFixed(1),
+    },
+    generated_at: NOW.toISOString(),
+  };
 }
 
 function printStats(findings) {
@@ -1256,6 +1423,6 @@ addImpactedResources(enriched);
 const attackPaths = computeAttackPaths(enriched);
 
 log('\nPhase 7: Writing output...');
-writeOutput(enriched, attackPaths);
+await writeOutput(enriched, attackPaths);
 
 log('Done.');

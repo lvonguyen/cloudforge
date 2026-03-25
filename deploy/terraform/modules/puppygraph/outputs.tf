@@ -8,6 +8,11 @@ output "public_ip" {
   value       = aws_instance.puppygraph.public_ip
 }
 
+output "private_ip" {
+  description = "Private IP of the PuppyGraph instance (use for within-VPC access)"
+  value       = aws_instance.puppygraph.private_ip
+}
+
 output "ui_url" {
   description = "PuppyGraph Web UI URL"
   value       = "http://${aws_instance.puppygraph.public_ip}:8081"
