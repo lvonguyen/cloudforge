@@ -2,7 +2,9 @@ import { useMemo, useState, useCallback, useRef, useDeferredValue } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Download, ArrowUp, ArrowDown, X, SlidersHorizontal, ListFilter, ChevronDown, ChevronRight } from 'lucide-react'
-import { useFindings, useFinding } from '@/hooks/useFindings'
+import { useFindings } from '@/hooks/useFindings'
+import FindingDetail from '@/pages/ops/FindingDetail'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useDebounce } from '@/hooks/useDebounce'
 import { SeverityBadge } from '@/components/findings/SeverityBadge'
 import { SLACountdown } from '@/components/findings/SLACountdown'
@@ -90,92 +92,6 @@ function formatWorkflowStatus(ws: string): string {
   return ws.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
-function FindingPreviewPanel({ id, onClose, onNavigate }: { id: string; onClose: () => void; onNavigate: () => void }) {
-  const { data: finding, isLoading: previewLoading } = useFinding(id)
-
-  if (previewLoading) return (
-    <div className="w-[380px] shrink-0 border-l border-border p-4">
-      <p className="text-xs text-muted-foreground">Loading...</p>
-    </div>
-  )
-  if (!finding) return null
-
-  return (
-    <div className="w-[380px] shrink-0 border-l border-border overflow-y-auto" style={{ height: 'calc(100vh - 320px)' }}>
-      <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <SeverityBadge severity={finding.severity} />
-          <button onClick={onClose} className="p-1 hover:bg-muted" aria-label="Close preview">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <h3 className="text-sm font-semibold leading-snug">{finding.title}</h3>
-        <p className="text-xs text-muted-foreground line-clamp-3">{finding.description}</p>
-        {finding.ai_risk_score != null && (
-          <div className="flex items-center gap-3">
-            <div className={`h-12 w-12 rounded-full border-[3px] flex items-center justify-center ${
-              finding.ai_risk_score >= 8 ? 'border-red-500' :
-              finding.ai_risk_score >= 6 ? 'border-orange-500' :
-              finding.ai_risk_score >= 4 ? 'border-yellow-500' : 'border-blue-500'
-            }`}>
-              <span className="text-sm font-bold tabular-nums">{finding.ai_risk_score.toFixed(1)}</span>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">AI Risk</p>
-              <p className="text-xs font-medium capitalize">{finding.ai_risk_level}</p>
-            </div>
-          </div>
-        )}
-        <div className="grid grid-cols-2 gap-3 text-xs">
-          <div>
-            <p className="text-[10px] text-muted-foreground uppercase">Resource</p>
-            <p className="font-medium truncate">{finding.resource_name}</p>
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground uppercase">Region</p>
-            <p className="font-medium">{finding.region}</p>
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground uppercase">Provider</p>
-            <ProviderBadge provider={finding.cloud_provider} />
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground uppercase">Environment</p>
-            <p className="font-medium">{finding.environment_type}</p>
-          </div>
-        </div>
-        {finding.compliance_mappings && finding.compliance_mappings.length > 0 && (
-          <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Compliance</p>
-            <div className="flex flex-wrap gap-1">
-              {finding.compliance_mappings.slice(0, 6).map(m => (
-                <span key={`${m.framework_id}-${m.control_id}`} className="text-[9px] font-mono border px-1.5 py-0.5 bg-muted">
-                  {m.framework_name} {m.control_id}
-                </span>
-              ))}
-              {finding.compliance_mappings.length > 6 && (
-                <span className="text-[9px] text-muted-foreground">+{finding.compliance_mappings.length - 6}</span>
-              )}
-            </div>
-          </div>
-        )}
-        {finding.due_date && (
-          <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">SLA</p>
-            <SLACountdown dueDate={finding.due_date} slaBreach={finding.sla_breach_date} />
-          </div>
-        )}
-        <button
-          onClick={onNavigate}
-          className="w-full text-xs text-blue-600 dark:text-blue-400 hover:underline text-left pt-2"
-        >
-          Open full detail →
-        </button>
-      </div>
-    </div>
-  )
-}
-
 export default function Findings() {
   const navigate = useNavigate()
   const { data: allFindings = [], isLoading } = useFindings()
@@ -209,6 +125,7 @@ export default function Findings() {
 
   // Preview panel
   const [previewId, setPreviewId] = useState<string | null>(null)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   // Group by
   const [groupBy, setGroupBy] = useState<'none' | 'rule' | 'resource' | 'provider' | 'category'>('none')
@@ -241,6 +158,10 @@ export default function Findings() {
   }, [columnWidths])
 
   const activeColumns = useMemo(() => ALL_COLUMNS.filter(c => visibleColumns.has(c.key)), [visibleColumns])
+
+  // Compact columns for list-detail split (hide verbose columns when detail panel is open)
+  const COMPACT_KEYS: Set<SortColumn> = useMemo(() => new Set(['severity', 'title', 'provider', 'status'] as SortColumn[]), [])
+  const compactColumns = useMemo(() => ALL_COLUMNS.filter(c => COMPACT_KEYS.has(c.key)), [COMPACT_KEYS])
 
   const hasFilters = selectedCategories.size > 0 || selectedProviders.size > 0 || selectedStatuses.size > 0 || search.length > 0 || filterSLABreached || filterAutoRem
 
@@ -951,87 +872,101 @@ export default function Findings() {
         )}
 
         {/* Flat table view */}
-        {!isLoading && sorted.length > 0 && groupBy === 'none' && (
-          <div className="flex gap-0">
-          <div className="flex-1 min-w-0">
-            <div ref={parentRef} className="overflow-auto [&_[data-slot=table-container]]:overflow-visible" style={{ height: 'calc(100vh - 280px)' }}>
-              <Table style={{ tableLayout: 'fixed', width: activeColumns.reduce((sum, c) => sum + columnWidths[c.key], 0) }}>
-                <TableHeader className="sticky top-0 z-10 bg-background">
-                  <TableRow className="bg-muted/30">
-                    {activeColumns.map(col => (
-                      <TableHead
-                        key={col.key}
-                        className="relative select-none overflow-hidden"
-                        style={{ width: columnWidths[col.key] }}
-                      >
-                        <div className="flex items-center">
-                          <span
-                            className="cursor-pointer flex items-center flex-1"
-                            onClick={() => handleSort(col.key)}
-                          >
-                            {col.label} <SortIcon col={col.key} />
-                          </span>
-                          {renderHeaderFilter(col.key)}
-                        </div>
-                        <div
-                          className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-primary/30 active:bg-primary/50"
-                          onMouseDown={(e) => onResizeStart(col.key, e)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paddingTop > 0 && <tr><td colSpan={activeColumns.length} style={{ height: paddingTop }} /></tr>}
-                  {virtualItems.map(virtualRow => {
-                    const f = sorted[virtualRow.index]
-                    return (
-                      <TableRow
-                        key={f.id}
-                        data-index={virtualRow.index}
-                        ref={virtualizer.measureElement}
-                        className={`cursor-pointer hover:bg-muted/30 transition-colors ${f.id === previewId ? 'bg-muted/40' : ''}`}
-                        tabIndex={0}
-                        role="link"
-                        onClick={() => setPreviewId(f.id)}
-                        onDoubleClick={() => navigate(`/ops/findings/${f.id}`)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') { navigate(`/ops/findings/${f.id}`) }
-                          else if (e.key === 'Escape') { setPreviewId(null) }
-                          else if (e.key === 'ArrowDown') { e.preventDefault(); if (virtualRow.index < sorted.length - 1) setPreviewId(sorted[virtualRow.index + 1].id) }
-                          else if (e.key === 'ArrowUp') { e.preventDefault(); if (virtualRow.index > 0) setPreviewId(sorted[virtualRow.index - 1].id) }
-                        }}
-                      >
-                        {activeColumns.map(col => (
-                          <TableCell key={col.key} className="overflow-hidden" style={{ width: columnWidths[col.key] }}>
-                            {renderCell(f, col.key)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    )
-                  })}
-                  {paddingBottom > 0 && <tr><td colSpan={activeColumns.length} style={{ height: paddingBottom }} /></tr>}
-                </TableBody>
-              </Table>
+        {!isLoading && sorted.length > 0 && groupBy === 'none' && (() => {
+          const isCompact = !!(previewId && isDesktop)
+          const cols = isCompact ? compactColumns : activeColumns
+          return (
+          <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
+            {/* West: Table */}
+            <div className={isCompact ? 'w-[380px] shrink-0 overflow-y-auto border-r border-border transition-all' : 'flex-1 min-w-0 transition-all'}>
+              <div ref={parentRef} className="overflow-auto [&_[data-slot=table-container]]:overflow-visible" style={{ height: 'calc(100vh - 280px)' }}>
+                <Table style={{ tableLayout: 'fixed', width: cols.reduce((sum, c) => sum + columnWidths[c.key], 0) }}>
+                  <TableHeader className="sticky top-0 z-10 bg-background">
+                    <TableRow className="bg-muted/30">
+                      {cols.map(col => (
+                        <TableHead
+                          key={col.key}
+                          className="relative select-none overflow-hidden"
+                          style={{ width: columnWidths[col.key] }}
+                        >
+                          <div className="flex items-center">
+                            <span
+                              className="cursor-pointer flex items-center flex-1"
+                              onClick={() => handleSort(col.key)}
+                            >
+                              {col.label} <SortIcon col={col.key} />
+                            </span>
+                            {renderHeaderFilter(col.key)}
+                          </div>
+                          {!isCompact && (
+                            <div
+                              className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-primary/30 active:bg-primary/50"
+                              onMouseDown={(e) => onResizeStart(col.key, e)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          )}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paddingTop > 0 && <tr><td colSpan={cols.length} style={{ height: paddingTop }} /></tr>}
+                    {virtualItems.map(virtualRow => {
+                      const f = sorted[virtualRow.index]
+                      const isSelected = f.id === previewId
+                      return (
+                        <TableRow
+                          key={f.id}
+                          data-index={virtualRow.index}
+                          ref={virtualizer.measureElement}
+                          className={`cursor-pointer hover:bg-muted/30 transition-colors ${isSelected ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : ''}`}
+                          tabIndex={0}
+                          role="link"
+                          onClick={() => {
+                            if (isDesktop) {
+                              setPreviewId(f.id)
+                            } else {
+                              navigate(`/ops/findings/${f.id}`)
+                            }
+                          }}
+                          onDoubleClick={() => navigate(`/ops/findings/${f.id}`)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') { navigate(`/ops/findings/${f.id}`) }
+                            else if (e.key === 'Escape') { setPreviewId(null) }
+                            else if (e.key === 'ArrowDown') { e.preventDefault(); if (virtualRow.index < sorted.length - 1) setPreviewId(sorted[virtualRow.index + 1].id) }
+                            else if (e.key === 'ArrowUp') { e.preventDefault(); if (virtualRow.index > 0) setPreviewId(sorted[virtualRow.index - 1].id) }
+                          }}
+                        >
+                          {cols.map(col => (
+                            <TableCell key={col.key} className="overflow-hidden" style={{ width: columnWidths[col.key] }}>
+                              {renderCell(f, col.key)}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      )
+                    })}
+                    {paddingBottom > 0 && <tr><td colSpan={cols.length} style={{ height: paddingBottom }} /></tr>}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center pt-2 border-t border-border">
+                <span className="text-xs text-muted-foreground">
+                  Showing {sorted.length} of {allFindings.length} findings
+                </span>
+              </div>
             </div>
 
-            {/* Footer */}
-            <div className="flex items-center pt-2 border-t border-border">
-              <span className="text-xs text-muted-foreground">
-                Showing {sorted.length} of {allFindings.length} findings
-              </span>
-            </div>
+            {/* East: Detail panel */}
+            {previewId && isDesktop && (
+              <div className="flex-1 min-w-0 overflow-hidden border-l border-border">
+                <FindingDetail mode="inline" findingId={previewId} onClose={() => setPreviewId(null)} />
+              </div>
+            )}
           </div>
-          {previewId && (
-            <FindingPreviewPanel
-              id={previewId}
-              onClose={() => setPreviewId(null)}
-              onNavigate={() => navigate(`/ops/findings/${previewId}`)}
-            />
-          )}
-          </div>
-        )}
+          )
+        })()}
       </div>
     </div>
   )
