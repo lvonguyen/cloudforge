@@ -4,17 +4,20 @@ package graph
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 )
 
-// Client wraps PuppyGraph's HTTP query endpoints.
-// Gremlin queries are sent via the HTTP API (not WebSocket) for simplicity.
+// Client wraps PuppyGraph's query endpoints.
+// Gremlin queries use WebSocket (port 8182). Cypher uses HTTP.
 type Client struct {
 	baseURL string
 	client  *http.Client
@@ -46,8 +49,8 @@ type QueryResult struct {
 }
 
 // Query executes a graph query against PuppyGraph.
-// For Gremlin, it uses the HTTP Gremlin endpoint (port 8182).
-// For openCypher, it uses the Cypher HTTP endpoint (port 8184).
+// For Gremlin, it connects via WebSocket on port 8182.
+// For openCypher, it uses the Cypher HTTP endpoint.
 func (c *Client) Query(ctx context.Context, req QueryRequest) (*QueryResult, error) {
 	start := time.Now()
 
@@ -72,11 +75,12 @@ func (c *Client) Query(ctx context.Context, req QueryRequest) (*QueryResult, err
 	}, nil
 }
 
-// Ping checks if PuppyGraph is reachable.
+// Ping checks if PuppyGraph is reachable by hitting the root URL.
+// PuppyGraph does not expose /health, so we use GET / instead.
 func (c *Client) Ping(ctx context.Context) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/health", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/", nil)
 	if err != nil {
-		return fmt.Errorf("creating health request: %w", err)
+		return fmt.Errorf("creating ping request: %w", err)
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -84,47 +88,124 @@ func (c *Client) Ping(ctx context.Context) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("PuppyGraph health check returned %d", resp.StatusCode)
+		return fmt.Errorf("PuppyGraph ping returned %d", resp.StatusCode)
 	}
 	return nil
 }
 
-// gremlinRequest is the Gremlin Server HTTP API request format.
-type gremlinRequest struct {
-	Gremlin string `json:"gremlin"`
+// gremlinWSRequest is the TinkerPop Gremlin Server WebSocket request format.
+type gremlinWSRequest struct {
+	RequestID string           `json:"requestId"`
+	Op        string           `json:"op"`
+	Processor string           `json:"processor"`
+	Args      gremlinWSReqArgs `json:"args"`
+}
+
+type gremlinWSReqArgs struct {
+	Gremlin  string `json:"gremlin"`
+	Language string `json:"language"`
+}
+
+// gremlinWSResponse is the TinkerPop Gremlin Server WebSocket response envelope.
+type gremlinWSResponse struct {
+	Result struct {
+		Data json.RawMessage `json:"data"`
+	} `json:"result"`
+	Status struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	} `json:"status"`
+}
+
+// gremlinWSURL derives the WebSocket Gremlin endpoint from the base HTTP URL.
+// Base URL like "http://host:8081" becomes "ws://host:8182/gremlin".
+func gremlinWSURL(baseURL string) (string, error) {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return "", fmt.Errorf("parsing base URL: %w", err)
+	}
+
+	switch u.Scheme {
+	case "http":
+		u.Scheme = "ws"
+	case "https":
+		u.Scheme = "wss"
+	default:
+		u.Scheme = "ws"
+	}
+
+	host := u.Hostname()
+	u.Host = host + ":8182"
+	u.Path = "/gremlin"
+	return u.String(), nil
+}
+
+// newUUID generates a random UUID v4 using crypto/rand.
+func newUUID() (string, error) {
+	var b [16]byte
+	if _, err := io.ReadFull(rand.Reader, b[:]); err != nil {
+		return "", fmt.Errorf("generating UUID: %w", err)
+	}
+	b[6] = (b[6] & 0x0f) | 0x40 // version 4
+	b[8] = (b[8] & 0x3f) | 0x80 // variant 10
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
+		b[0:4], b[4:6], b[6:8], b[8:10], b[10:16]), nil
 }
 
 func (c *Client) queryGremlin(ctx context.Context, query string) (json.RawMessage, error) {
-	body, err := json.Marshal(gremlinRequest{Gremlin: query})
+	wsURL, err := gremlinWSURL(c.baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("deriving gremlin WebSocket URL: %w", err)
+	}
+
+	reqID, err := newUUID()
+	if err != nil {
+		return nil, err
+	}
+
+	conn, httpResp, err := websocket.DefaultDialer.DialContext(ctx, wsURL, nil)
+	if httpResp != nil && httpResp.Body != nil {
+		httpResp.Body.Close()
+	}
+	if err != nil {
+		return nil, fmt.Errorf("dialing gremlin WebSocket %s: %w", wsURL, err)
+	}
+	defer conn.Close()
+
+	msg := gremlinWSRequest{
+		RequestID: reqID,
+		Op:        "eval",
+		Processor: "",
+		Args: gremlinWSReqArgs{
+			Gremlin:  query,
+			Language: "gremlin-groovy",
+		},
+	}
+
+	payload, err := json.Marshal(msg)
 	if err != nil {
 		return nil, fmt.Errorf("marshalling gremlin request: %w", err)
 	}
 
-	// PuppyGraph Gremlin HTTP API is on port 8182 by default.
-	// The baseURL points to the main service; we derive the Gremlin URL.
-	url := c.baseURL + "/gremlin"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("creating gremlin request: %w", err)
+	if err := conn.WriteMessage(websocket.TextMessage, payload); err != nil {
+		return nil, fmt.Errorf("sending gremlin query: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("executing gremlin query: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20)) // 10MB limit
+	_, respPayload, err := conn.ReadMessage()
 	if err != nil {
 		return nil, fmt.Errorf("reading gremlin response: %w", err)
 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("gremlin query failed (HTTP %d): %s", resp.StatusCode, string(respBody))
+	var resp gremlinWSResponse
+	if err := json.Unmarshal(respPayload, &resp); err != nil {
+		return nil, fmt.Errorf("unmarshalling gremlin response: %w", err)
 	}
 
-	return json.RawMessage(respBody), nil
+	if resp.Status.Code < 200 || resp.Status.Code >= 300 {
+		return nil, fmt.Errorf("gremlin query failed (status %d): %s", resp.Status.Code, resp.Status.Message)
+	}
+
+	return resp.Result.Data, nil
 }
 
 // cypherRequest is the openCypher HTTP API request format.
@@ -138,8 +219,8 @@ func (c *Client) queryCypher(ctx context.Context, query string) (json.RawMessage
 		return nil, fmt.Errorf("marshalling cypher request: %w", err)
 	}
 
-	url := c.baseURL + "/cypher"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	cypherURL := c.baseURL + "/cypher"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, cypherURL, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("creating cypher request: %w", err)
 	}

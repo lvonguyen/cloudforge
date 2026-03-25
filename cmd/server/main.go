@@ -32,6 +32,7 @@ import (
 	"aegis/internal/identity"
 	"aegis/internal/ingestion"
 	"aegis/internal/integrations"
+	"aegis/internal/integrations/ado"
 	"aegis/internal/integrations/asana"
 	"aegis/internal/integrations/jira"
 	"aegis/internal/observability"
@@ -360,6 +361,22 @@ func main() {
 				defaultTicketProvider = jiraAdapter
 			}
 			logger.Info("Jira ticket provider initialized", zap.String("url", jiraURL))
+		}
+	}
+
+	// ADO: wire when ADO_ORG_URL is set
+	if adoURL := os.Getenv("ADO_ORG_URL"); adoURL != "" {
+		adoCfg := ado.ConfigFromEnv()
+		adoClient, err := ado.NewClient(adoCfg, logger.Named("ado"))
+		if err != nil {
+			logger.Warn("ADO client init failed", zap.Error(err))
+		} else {
+			adoAdapter := ado.NewAdapter(adoClient, logger.Named("ado"))
+			ticketProviders["ado"] = adoAdapter
+			if defaultTicketProvider == nil {
+				defaultTicketProvider = adoAdapter
+			}
+			logger.Info("ADO ticket provider initialized", zap.String("url", adoURL), zap.String("project", adoCfg.Project))
 		}
 	}
 

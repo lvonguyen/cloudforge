@@ -337,6 +337,7 @@ module "secrets" {
     "redis-password",
     "asana-pat",
     "jira-api-token",
+    "ado-pat",
   ])
 
   tags = local.common_tags
@@ -350,7 +351,7 @@ module "aegis_api" {
   project_name    = var.project_name
   environment     = "personal"
   service_name    = "api"
-  container_image = "${aws_ecr_repository.aegis.repository_url}:latest"
+  container_image = "${aws_ecr_repository.aegis.repository_url}:session19-20260325-0151"
   container_port  = 8080
   vpc_id          = module.network.vpc_id
   subnet_ids      = module.network.subnet_ids
@@ -390,6 +391,10 @@ module "aegis_api" {
     JIRA_USERNAME    = "liem@pvdsolutions.io"
     JIRA_PROJECT_KEY = "CVRT"
 
+    # Integration: ADO
+    ADO_ORG_URL  = "https://dev.azure.com/lvn-dev-ado"
+    ADO_PROJECT  = "lvn-ado-dev-prj"
+
     # Graph: PuppyGraph (empty = disabled)
     PUPPYGRAPH_URL = var.deploy_puppygraph ? "http://${module.puppygraph[0].private_ip}:8081" : ""
   }
@@ -400,6 +405,7 @@ module "aegis_api" {
     AEGIS_REDIS_PASSWORD = module.secrets.secret_ids["redis-password"]
     ASANA_PAT            = module.secrets.secret_ids["asana-pat"]
     JIRA_API_TOKEN       = module.secrets.secret_ids["jira-api-token"]
+    ADO_PAT              = module.secrets.secret_ids["ado-pat"]
   }
 
   tags = local.common_tags
