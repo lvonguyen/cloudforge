@@ -13,6 +13,7 @@ interface TracePanelState {
   spans: Span[]
   dryRunResult: DryRunResult | null
   isRunning: boolean
+  panelHeight: number
 }
 
 type TracePanelAction =
@@ -21,8 +22,11 @@ type TracePanelAction =
   | { type: 'OPEN_DRY_RUN'; label: string; result: DryRunResult }
   | { type: 'APPEND_EVENT'; event: DeployEvent }
   | { type: 'SET_RUNNING'; isRunning: boolean }
+  | { type: 'SET_HEIGHT'; height: number }
   | { type: 'TOGGLE' }
   | { type: 'CLOSE' }
+
+const DEFAULT_PANEL_HEIGHT = 300
 
 const initialState: TracePanelState = {
   isOpen: false,
@@ -32,6 +36,7 @@ const initialState: TracePanelState = {
   spans: [],
   dryRunResult: null,
   isRunning: false,
+  panelHeight: DEFAULT_PANEL_HEIGHT,
 }
 
 function reducer(state: TracePanelState, action: TracePanelAction): TracePanelState {
@@ -39,6 +44,7 @@ function reducer(state: TracePanelState, action: TracePanelAction): TracePanelSt
     case 'OPEN_STREAMING':
       return {
         ...initialState,
+        panelHeight: state.panelHeight,
         isOpen: true,
         mode: 'streaming',
         actionLabel: action.label,
@@ -47,6 +53,7 @@ function reducer(state: TracePanelState, action: TracePanelAction): TracePanelSt
     case 'OPEN_TIMELINE':
       return {
         ...initialState,
+        panelHeight: state.panelHeight,
         isOpen: true,
         mode: 'timeline',
         actionLabel: action.label,
@@ -55,6 +62,7 @@ function reducer(state: TracePanelState, action: TracePanelAction): TracePanelSt
     case 'OPEN_DRY_RUN':
       return {
         ...initialState,
+        panelHeight: state.panelHeight,
         isOpen: true,
         mode: 'dry-run',
         actionLabel: action.label,
@@ -70,13 +78,18 @@ function reducer(state: TracePanelState, action: TracePanelAction): TracePanelSt
         ...state,
         isRunning: action.isRunning,
       }
+    case 'SET_HEIGHT':
+      return {
+        ...state,
+        panelHeight: Math.min(600, Math.max(150, action.height)),
+      }
     case 'TOGGLE':
       return {
         ...state,
         isOpen: !state.isOpen,
       }
     case 'CLOSE':
-      return initialState
+      return { ...initialState, panelHeight: state.panelHeight }
   }
 }
 
@@ -87,6 +100,7 @@ interface TracePanelContextValue {
   openDryRun: (label: string, result: DryRunResult) => void
   appendEvent: (event: DeployEvent) => void
   setRunning: (isRunning: boolean) => void
+  setHeight: (height: number) => void
   toggle: () => void
   close: () => void
 }
@@ -101,11 +115,12 @@ export function TracePanelProvider({ children }: { children: ReactNode }) {
   const openDryRun = (label: string, result: DryRunResult) => dispatch({ type: 'OPEN_DRY_RUN', label, result })
   const appendEvent = (event: DeployEvent) => dispatch({ type: 'APPEND_EVENT', event })
   const setRunning = (isRunning: boolean) => dispatch({ type: 'SET_RUNNING', isRunning })
+  const setHeight = (height: number) => dispatch({ type: 'SET_HEIGHT', height })
   const toggle = () => dispatch({ type: 'TOGGLE' })
   const close = () => dispatch({ type: 'CLOSE' })
 
   return (
-    <TracePanelContext.Provider value={{ state, openStreaming, openTimeline, openDryRun, appendEvent, setRunning, toggle, close }}>
+    <TracePanelContext.Provider value={{ state, openStreaming, openTimeline, openDryRun, appendEvent, setRunning, setHeight, toggle, close }}>
       {children}
     </TracePanelContext.Provider>
   )

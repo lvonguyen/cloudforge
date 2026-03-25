@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback, useRef, useDeferredValue, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Download, ArrowUp, ArrowDown, X, SlidersHorizontal, ListFilter, ChevronDown, ChevronRight } from 'lucide-react'
+import { Download, ArrowUp, ArrowDown, X, SlidersHorizontal, ListFilter, ChevronDown, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { useFindings } from '@/hooks/useFindings'
 import FindingDetail from '@/pages/ops/FindingDetail'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
@@ -63,8 +63,21 @@ const STATUS_LABELS: Record<string, string> = {
   resolved: 'Resolved',
 }
 
-type SortColumn = 'severity' | 'title' | 'category' | 'provider' | 'resource_type' | 'resource' | 'region' | 'ai_risk' | 'status' | 'sla'
+type SortColumn = 'severity' | 'title' | 'category' | 'provider' | 'resource_type' | 'resource' | 'resource_id' | 'region' | 'ai_risk' | 'status' | 'sla' | 'first_found'
 type SortDir = 'asc' | 'desc'
+
+function relativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  if (days < 30) return `${days}d ago`
+  const months = Math.floor(days / 30)
+  if (months < 12) return `${months}mo ago`
+  return `${Math.floor(months / 12)}y ago`
+}
 
 const ALL_COLUMNS: { key: SortColumn; label: string; defaultWidth: number }[] = [
   { key: 'severity', label: 'Severity', defaultWidth: 100 },
@@ -73,10 +86,12 @@ const ALL_COLUMNS: { key: SortColumn; label: string; defaultWidth: number }[] = 
   { key: 'provider', label: 'Provider', defaultWidth: 80 },
   { key: 'resource_type', label: 'Type', defaultWidth: 90 },
   { key: 'resource', label: 'Resource', defaultWidth: 160 },
+  { key: 'resource_id', label: 'Resource ID', defaultWidth: 140 },
   { key: 'region', label: 'Region', defaultWidth: 120 },
   { key: 'ai_risk', label: 'AI Risk', defaultWidth: 80 },
   { key: 'status', label: 'Status', defaultWidth: 110 },
   { key: 'sla', label: 'SLA', defaultWidth: 100 },
+  { key: 'first_found', label: 'First Observed', defaultWidth: 110 },
 ]
 
 const DEFAULT_WIDTHS: Record<string, number> = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, c.defaultWidth]))
@@ -131,8 +146,16 @@ export default function Findings() {
   const [groupBy, setGroupBy] = useState<'none' | 'rule' | 'resource' | 'provider' | 'category'>('none')
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
 
+  // Pagination
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(100)
+
   // Column visibility & resizable widths
-  const [visibleColumns, setVisibleColumns] = useState<Set<SortColumn>>(() => new Set(ALL_COLUMNS.map(c => c.key)))
+  const [visibleColumns, setVisibleColumns] = useState<Set<SortColumn>>(() => {
+    const defaults = new Set(ALL_COLUMNS.map(c => c.key))
+    defaults.delete('resource_id') // verbose — opt-in via column picker
+    return defaults
+  })
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>(DEFAULT_WIDTHS)
   const resizingRef = useRef<{ col: string; startX: number; startWidth: number } | null>(null)
 
@@ -291,6 +314,13 @@ export default function Findings() {
           return (a.ai_risk_score - b.ai_risk_score) * dir
         case 'status':
           return a.workflow_status.localeCompare(b.workflow_status) * dir
+        case 'resource_id':
+          return a.resource_id.localeCompare(b.resource_id) * dir
+        case 'first_found': {
+          const aFF = a.first_found_at ? new Date(a.first_found_at).getTime() : Infinity
+          const bFF = b.first_found_at ? new Date(b.first_found_at).getTime() : Infinity
+          return (aFF - bFF) * dir
+        }
         case 'sla': {
           const aTime = a.due_date ? new Date(a.due_date).getTime() : Infinity
           const bTime = b.due_date ? new Date(b.due_date).getTime() : Infinity
@@ -302,6 +332,17 @@ export default function Findings() {
     })
     return arr
   }, [filtered, sortCol, sortDir])
+
+  // Pagination — slice sorted into current page
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const paged = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return sorted.slice(start, start + pageSize)
+  }, [sorted, currentPage, pageSize])
+
+  // Reset to page 1 when filter results change
+  useEffect(() => { setPage(1) }, [filtered.length, pageSize])
 
   // Clear stale previewId when the selected finding is filtered out
   useEffect(() => {
@@ -331,9 +372,9 @@ export default function Findings() {
     return [...groups.entries()].sort((a, b) => b[1].length - a[1].length)
   }, [sorted, groupBy])
 
-  // Virtualizer
+  // Virtualizer — operates on current page slice
   const virtualizer = useVirtualizer({
-    count: sorted.length,
+    count: paged.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 48,
     overscan: 10,
@@ -387,6 +428,12 @@ export default function Findings() {
       )
       case 'status': return <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${WORKFLOW_COLORS[f.workflow_status] ?? ''}`}>{formatWorkflowStatus(f.workflow_status)}</Badge>
       case 'sla': return <SLACountdown dueDate={f.due_date} slaBreach={f.sla_breach_date} />
+      case 'resource_id': return <span className="text-xs font-mono text-muted-foreground truncate block" title={f.resource_id}>{f.resource_id}</span>
+      case 'first_found': return (
+        <span className="text-xs text-muted-foreground tabular-nums" title={f.first_found_at ? new Date(f.first_found_at).toLocaleString() : ''}>
+          {f.first_found_at ? relativeTime(f.first_found_at) : '—'}
+        </span>
+      )
     }
   }
 
@@ -919,7 +966,7 @@ export default function Findings() {
                   <TableBody>
                     {paddingTop > 0 && <tr><td colSpan={cols.length} style={{ height: paddingTop }} /></tr>}
                     {virtualItems.map(virtualRow => {
-                      const f = sorted[virtualRow.index]
+                      const f = paged[virtualRow.index]
                       const isSelected = f.id === previewId
                       return (
                         <TableRow
@@ -940,8 +987,8 @@ export default function Findings() {
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') { navigate(`/ops/findings/${f.id}`) }
                             else if (e.key === 'Escape') { setPreviewId(null) }
-                            else if (e.key === 'ArrowDown') { e.preventDefault(); if (virtualRow.index < sorted.length - 1) setPreviewId(sorted[virtualRow.index + 1].id) }
-                            else if (e.key === 'ArrowUp') { e.preventDefault(); if (virtualRow.index > 0) setPreviewId(sorted[virtualRow.index - 1].id) }
+                            else if (e.key === 'ArrowDown') { e.preventDefault(); if (virtualRow.index < paged.length - 1) setPreviewId(paged[virtualRow.index + 1].id) }
+                            else if (e.key === 'ArrowUp') { e.preventDefault(); if (virtualRow.index > 0) setPreviewId(paged[virtualRow.index - 1].id) }
                           }}
                         >
                           {cols.map(col => (
@@ -957,11 +1004,39 @@ export default function Findings() {
                 </Table>
               </div>
 
-              {/* Footer */}
-              <div className="flex items-center pt-2 border-t border-border">
-                <span className="text-xs text-muted-foreground">
-                  Showing {sorted.length} of {allFindings.length} findings
+              {/* Pagination footer */}
+              <div className="flex items-center justify-between pt-2 border-t border-border">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Rows per page</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                    className="h-7 text-xs border border-border bg-background px-1 rounded-none focus:outline-none focus:ring-1 focus:ring-ring"
+                    aria-label="Page size"
+                  >
+                    {[25, 50, 100, 150].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {sorted.length === 0 ? '0' : `${((currentPage - 1) * pageSize + 1).toLocaleString()}–${Math.min(currentPage * pageSize, sorted.length).toLocaleString()}`} of {sorted.length.toLocaleString()}
                 </span>
+                <div className="flex items-center gap-0.5">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage <= 1} onClick={() => setPage(1)} aria-label="First page">
+                    <ChevronsLeft className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage <= 1} onClick={() => setPage(p => p - 1)} aria-label="Previous page">
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </Button>
+                  <span className="text-xs tabular-nums px-2">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage >= totalPages} onClick={() => setPage(p => p + 1)} aria-label="Next page">
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage >= totalPages} onClick={() => setPage(totalPages)} aria-label="Last page">
+                    <ChevronsRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
             </div>
 

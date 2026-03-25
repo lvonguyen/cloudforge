@@ -97,6 +97,9 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/findings",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listFindings)),
 	).Methods("GET")
+	apiRouter.Handle("/findings/stats",
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.findingsStats)),
+	).Methods("GET")
 	apiRouter.Handle("/findings/query",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.queryFindings)),
 	).Methods("GET")

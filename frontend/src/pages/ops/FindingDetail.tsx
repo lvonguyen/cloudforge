@@ -50,8 +50,8 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
   const createTicket = useRemediateFinding()
   const [sheetOpen, setSheetOpen] = useState(false)
 
-  // Fetch attack paths to find any that include this finding
-  const { data: attackPathsData } = useAttackPaths(1, 200)
+  // Fetch attack paths to find any that include this finding (50 max — cached 5 min)
+  const { data: attackPathsData } = useAttackPaths(1, 50)
   const relatedPaths = useMemo(() => {
     if (!attackPathsData?.data || !finding) return []
     return attackPathsData.data.filter(p =>

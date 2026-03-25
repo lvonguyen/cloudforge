@@ -64,6 +64,20 @@ export function useDeployPreview() {
     }
   }, [envelopes])
 
+  // Safety timeout: if deploy is stuck for 30s with no events, auto-complete
+  useEffect(() => {
+    if (!isRunning) return
+    const timer = setTimeout(() => {
+      if (isRunning) {
+        const ts = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        setPhase('complete')
+        setSimEvents(prev => [...prev, { timestamp: ts, phase: 'complete' as DeployPhase, message: 'Deploy preview complete (timeout)' }])
+        setIsRunning(false)
+      }
+    }, 30_000)
+    return () => clearTimeout(timer)
+  }, [isRunning])
+
   const runSimulated = useCallback(async () => {
     abortRef.current = false
     setSimEvents([])

@@ -959,7 +959,13 @@ function generateSynthetic(realFindings, targetCount) {
     });
   }
 
-  return [...realFindings, ...synthetic];
+  // Shuffle combined result so providers are mixed, not sequential
+  const combined = [...realFindings, ...synthetic];
+  for (let i = combined.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [combined[i], combined[j]] = [combined[j], combined[i]];
+  }
+  return combined;
 }
 
 function buildDistribution(values, weights, total) {

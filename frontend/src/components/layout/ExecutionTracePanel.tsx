@@ -1,9 +1,10 @@
+import { useCallback, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { TerminalOutput } from '@/components/portal/TerminalOutput'
 import { TraceTimeline } from '@/components/ai/TraceTimeline'
 import { DryRunPreview } from '@/components/remediation/DryRunPreview'
-import { X, ChevronUp, ChevronDown, Terminal, GitBranch, FlaskConical } from 'lucide-react'
+import { X, ChevronUp, ChevronDown, Terminal, GitBranch, FlaskConical, GripHorizontal } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 const MODE_META: Record<string, { icon: LucideIcon; text: string }> = {
@@ -13,7 +14,31 @@ const MODE_META: Record<string, { icon: LucideIcon; text: string }> = {
 }
 
 export function ExecutionTracePanel() {
-  const { state, toggle, close } = useTracePanel()
+  const { state, toggle, close, setHeight } = useTracePanel()
+  const dragRef = useRef<{ startY: number; startHeight: number } | null>(null)
+
+  const onDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragRef.current = { startY: e.clientY, startHeight: state.panelHeight }
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return
+      const diff = dragRef.current.startY - ev.clientY
+      setHeight(dragRef.current.startHeight + diff)
+    }
+    const onMouseUp = () => {
+      dragRef.current = null
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    document.body.style.cursor = 'row-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }, [state.panelHeight, setHeight])
 
   if (!state.mode) return null
 
@@ -22,11 +47,22 @@ export function ExecutionTracePanel() {
 
   return (
     <div
-      className={cn(
-        'fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background shadow-lg transition-[height] duration-200',
-        state.isOpen ? 'h-[300px]' : 'h-9'
-      )}
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background shadow-lg transition-[height] duration-200"
+      style={{ height: state.isOpen ? `${state.panelHeight}px` : '36px' }}
     >
+      {/* Drag handle — only visible when panel is open */}
+      {state.isOpen && (
+        <div
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize trace panel"
+          onMouseDown={onDragStart}
+          className="absolute -top-1 left-0 right-0 h-2 cursor-row-resize flex items-center justify-center group z-10"
+        >
+          <GripHorizontal className="h-3 w-5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+        </div>
+      )}
+
       {/* Header bar */}
       <div
         role="button"

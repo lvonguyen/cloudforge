@@ -141,10 +141,12 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		// Integration layer
 		integrationHandler: &IntegrationHandler{
 			provider:    integrations.NewMockProvider(logger),
+			providers:   map[string]integrations.TicketProvider{"mock": integrations.NewMockProvider(logger)},
 			router:      integrations.NewRoutingEngine(integrations.DefaultRules()),
 			workflow:    wfEngine,
 			auditLogger: audit.NewMemoryAuditLogger(),
 			logger:      logger,
+			ticketStore: make(map[string]*integrations.Ticket),
 		},
 		webhookEngine: webhooks.NewMemoryEngine(logger),
 		complianceMgr: compliance.NewManager(logger),

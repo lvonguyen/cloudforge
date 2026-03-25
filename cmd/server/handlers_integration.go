@@ -26,15 +26,49 @@ import (
 // IntegrationHandler mirrors the GRCHandler pattern — owns provider, router,
 // workflow ref, and audit logger as self-contained fields.
 type IntegrationHandler struct {
-	provider    integrations.TicketProvider
+	provider    integrations.TicketProvider            // default provider (first available: asana > jira > mock)
+	providers   map[string]integrations.TicketProvider // all available providers keyed by name
 	router      integrations.RoutingEngine
 	workflow    workflow.Engine
 	auditLogger audit.AuditLogger
 	logger      *zap.Logger
 
+	ticketMu    sync.RWMutex
+	ticketStore map[string]*integrations.Ticket // finding ID → ticket (in-memory mapping)
+
 	mu                 sync.RWMutex
 	asanaWebhookSecret string // persisted from handshake for event signature validation
 	asanaWebhookToken  string // pre-shared token from ASANA_WEBHOOK_TOKEN for handshake auth
+}
+
+// selectProvider returns the named provider or the default.
+func (h *IntegrationHandler) selectProvider(name string) integrations.TicketProvider {
+	if name != "" && h.providers != nil {
+		if p, ok := h.providers[name]; ok {
+			return p
+		}
+	}
+	return h.provider
+}
+
+// providerForFinding returns the provider that created the ticket for a finding.
+func (h *IntegrationHandler) providerForFinding(findingID string) integrations.TicketProvider {
+	h.ticketMu.RLock()
+	ticket, ok := h.ticketStore[findingID]
+	h.ticketMu.RUnlock()
+	if ok && h.providers != nil {
+		if p, exists := h.providers[ticket.Provider]; exists {
+			return p
+		}
+	}
+	return h.provider
+}
+
+// storeTicket persists the finding→ticket mapping in memory.
+func (h *IntegrationHandler) storeTicket(findingID string, ticket *integrations.Ticket) {
+	h.ticketMu.Lock()
+	h.ticketStore[findingID] = ticket
+	h.ticketMu.Unlock()
 }
 
 // RemediateFinding creates a ticket and starts a remediation workflow.
@@ -56,6 +90,7 @@ func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Req
 		Severity     string `json:"severity"`
 		IsChokePoint bool   `json:"is_choke_point"`
 		Assignee     string `json:"assignee,omitempty"`
+		Provider     string `json:"provider,omitempty"` // "asana", "jira" — overrides default
 	}
 	if r.Body != nil && r.ContentLength != 0 {
 		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
@@ -83,8 +118,9 @@ func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Req
 	// Compute SLA deadline
 	dueDate := decision.SLADeadline(time.Now().UTC())
 
-	// Create ticket in external system
-	ticket, err := h.provider.CreateTicket(r.Context(), integrations.CreateTicketRequest{
+	// Create ticket in external system (use requested provider or default)
+	provider := h.selectProvider(body.Provider)
+	ticket, err := provider.CreateTicket(r.Context(), integrations.CreateTicketRequest{
 		FindingID:   findingID,
 		Title:       fmt.Sprintf("[Cloud Aegis] Remediate finding %s", findingID),
 		Description: fmt.Sprintf("Priority: %s | Team: %s | SLA: %dh", decision.Priority, decision.Team, decision.SLAHours),
@@ -101,6 +137,9 @@ func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Req
 		writeErrorResponse(w, "ticket creation failed", http.StatusInternalServerError)
 		return
 	}
+
+	// Persist finding→ticket mapping for later lookups
+	h.storeTicket(findingID, ticket)
 
 	// Start a remediation workflow
 	wf, err := h.workflow.StartWorkflow(r.Context(), &workflow.Workflow{
@@ -154,20 +193,25 @@ func (h *IntegrationHandler) GetFindingTicket(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// For the mock provider, look up by finding ID.
-	// Real providers would use a mapping table.
-	if mp, ok := h.provider.(*integrations.MockProvider); ok {
-		ticket, found := mp.GetTicketByFindingID(findingID)
-		if !found {
-			writeErrorResponse(w, "no ticket for this finding", http.StatusNotFound)
-			return
-		}
+	// Look up from ticket store (works for all providers: real and mock)
+	h.ticketMu.RLock()
+	ticket, ok := h.ticketStore[findingID]
+	h.ticketMu.RUnlock()
+	if ok {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(ticket)
 		return
 	}
 
-	// For non-mock providers, this would query a mapping store.
+	// Fallback: mock provider's internal index (for tests that bypass storeTicket)
+	if mp, ok := h.provider.(*integrations.MockProvider); ok {
+		if t, found := mp.GetTicketByFindingID(findingID); found {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(t)
+			return
+		}
+	}
+
 	writeErrorResponse(w, "no ticket for this finding", http.StatusNotFound)
 }
 
@@ -193,7 +237,7 @@ func (h *IntegrationHandler) GetTicketComments(w http.ResponseWriter, r *http.Re
 	type commenter interface {
 		ListComments(ctx context.Context, externalID string) ([]integrations.CommentSync, error)
 	}
-	lc, ok := h.provider.(commenter)
+	lc, ok := h.providerForFinding(findingID).(commenter)
 	if !ok {
 		writeErrorResponse(w, "provider does not support listing comments", http.StatusNotImplemented)
 		return
@@ -238,7 +282,7 @@ func (h *IntegrationHandler) AddTicketComment(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	comment, err := h.provider.AddComment(ctx, externalID, body.Body)
+	comment, err := h.providerForFinding(findingID).AddComment(ctx, externalID, body.Body)
 	if err != nil {
 		h.logger.Error("adding ticket comment failed", zap.String("finding_id", findingID), zap.Error(err))
 		writeErrorResponse(w, "failed to add comment", http.StatusInternalServerError)
@@ -269,14 +313,15 @@ func (h *IntegrationHandler) SyncTicketStatus(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	status, err := h.provider.SyncStatus(ctx, externalID)
+	prov := h.providerForFinding(findingID)
+	status, err := prov.SyncStatus(ctx, externalID)
 	if err != nil {
 		h.logger.Error("syncing ticket status failed", zap.String("finding_id", findingID), zap.Error(err))
 		writeErrorResponse(w, "failed to sync status", http.StatusInternalServerError)
 		return
 	}
 
-	ticket, err := h.provider.GetTicket(ctx, externalID)
+	ticket, err := prov.GetTicket(ctx, externalID)
 	if err != nil {
 		h.logger.Error("getting ticket after sync failed", zap.String("finding_id", findingID), zap.Error(err))
 		writeErrorResponse(w, "failed to fetch ticket", http.StatusInternalServerError)
@@ -289,24 +334,21 @@ func (h *IntegrationHandler) SyncTicketStatus(w http.ResponseWriter, r *http.Req
 }
 
 // resolveExternalID maps a finding ID to its external ticket ID.
-// For MockProvider it uses the finding-indexed lookup; for real providers
-// this would query a persistent mapping store.
 func (h *IntegrationHandler) resolveExternalID(findingID string) (string, error) {
-	if mp, ok := h.provider.(*integrations.MockProvider); ok {
-		ticket, found := mp.GetTicketByFindingID(findingID)
-		if !found {
-			return "", fmt.Errorf("no ticket for finding %s", findingID)
-		}
+	// Primary: ticket store (works for all providers)
+	h.ticketMu.RLock()
+	ticket, ok := h.ticketStore[findingID]
+	h.ticketMu.RUnlock()
+	if ok {
 		return ticket.ExternalID, nil
 	}
 
-	type ticketLookup interface {
-		GetTicket(ctx context.Context, externalID string) (*integrations.Ticket, error)
-	}
-	// For Asana adapter, the externalID IS the finding-ticket mapping key.
-	// In production this would query a DB; for now treat findingID as externalID.
-	if _, ok := h.provider.(ticketLookup); ok {
-		return findingID, nil
+	// Fallback: mock provider's internal index (for tests)
+	if mp, ok := h.provider.(*integrations.MockProvider); ok {
+		t, found := mp.GetTicketByFindingID(findingID)
+		if found {
+			return t.ExternalID, nil
+		}
 	}
 
 	return "", fmt.Errorf("no ticket mapping for finding %s", findingID)

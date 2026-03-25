@@ -298,7 +298,7 @@ module "database" {
   environment    = "personal"
   vpc_id         = module.network.vpc_id
   subnet_ids     = module.network.subnet_ids
-  instance_tier  = "SMALL"
+  instance_tier  = "STANDARD"
   storage_gb     = 20
   backup_enabled = false
   region         = var.region
@@ -350,8 +350,8 @@ module "aegis_api" {
   subnet_ids      = module.network.subnet_ids
   min_instances   = 1
   max_instances   = 1
-  cpu             = "256"
-  memory          = "512"
+  cpu             = "512"
+  memory          = "1024"
   region          = var.region
 
   aws_ecs_cluster_id = aws_ecs_cluster.this.id
@@ -363,9 +363,17 @@ module "aegis_api" {
     GRC_PROVIDER         = "postgres"
     APP_ENV              = "production"
     RATE_LIMIT_ENABLED   = "true"
-    AEGIS_AI_ENABLED     = "false"
-    CORS_ALLOWED_ORIGINS = "https://cloudguard.lvonguyen.com"
+    CORS_ALLOWED_ORIGINS = "https://cloudguard.lvonguyen.com,https://cloudaegis-demo.lvonguyen.com"
     REDIS_ADDR           = "${module.redis.host}:${module.redis.port}"
+
+    # AI enrichment (Bedrock)
+    AEGIS_AI_ENABLED = "true"
+    AEGIS_AI_REGION  = "us-east-1"
+    AEGIS_AI_MODEL   = "us.anthropic.claude-sonnet-4-6"
+
+    # Observability
+    AEGIS_TRACING_ENABLED = "true"
+    AEGIS_SAMPLING_RATE   = "1.0"
   }
 
   secrets = {

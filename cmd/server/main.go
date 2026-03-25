@@ -32,6 +32,7 @@ import (
 	"aegis/internal/identity"
 	"aegis/internal/ingestion"
 	"aegis/internal/integrations"
+	"aegis/internal/integrations/asana"
 	"aegis/internal/integrations/jira"
 	"aegis/internal/observability"
 	"aegis/internal/secrets"
@@ -325,19 +326,53 @@ func main() {
 		logger.Info("Identity provider initialized", zap.String("provider", name))
 	}
 
-	// Initialize Jira ticket provider when credentials are available
+	// Build ticket provider map — real providers when env vars are set, mock fallback.
+	ticketProviders := make(map[string]integrations.TicketProvider)
+	var defaultTicketProvider integrations.TicketProvider
+
+	// Asana: wire when ASANA_PAT is set
+	if pat := os.Getenv("ASANA_PAT"); pat != "" {
+		asanaCfg := asana.ConfigFromEnv()
+		asanaClient, err := asana.NewClient(asanaCfg, logger.Named("asana"))
+		if err != nil {
+			logger.Warn("Asana client init failed", zap.Error(err))
+		} else {
+			asanaAdapter := asana.NewAdapter(asanaClient, logger.Named("asana"))
+			ticketProviders["asana"] = asanaAdapter
+			defaultTicketProvider = asanaAdapter
+			logger.Info("Asana ticket provider initialized",
+				zap.String("workspace", asanaCfg.WorkspaceGID),
+				zap.String("project", asanaCfg.DefaultProjectID),
+			)
+		}
+	}
+
+	// Jira: wire when JIRA_URL is set
 	if jiraURL := os.Getenv("JIRA_URL"); jiraURL != "" {
 		jiraCfg := jira.ConfigFromEnv()
 		jiraClient, err := jira.NewClient(jiraCfg, logger.Named("jira"))
 		if err != nil {
-			logger.Warn("Jira client init failed, using mock ticket provider", zap.Error(err))
+			logger.Warn("Jira client init failed", zap.Error(err))
 		} else {
 			jiraAdapter := jira.NewAdapter(jiraClient, logger.Named("jira"))
+			ticketProviders["jira"] = jiraAdapter
+			if defaultTicketProvider == nil {
+				defaultTicketProvider = jiraAdapter
+			}
 			logger.Info("Jira ticket provider initialized", zap.String("url", jiraURL))
-			// Will be wired to integrationHandler below
-			_ = jiraAdapter // placeholder — wire when integrationHandler accepts provider injection
 		}
 	}
+
+	// Mock fallback (always available)
+	mockProvider := integrations.NewMockProvider(logger.Named("integrations.mock"))
+	ticketProviders["mock"] = mockProvider
+	if defaultTicketProvider == nil {
+		defaultTicketProvider = mockProvider
+	}
+	logger.Info("Ticket providers initialized",
+		zap.Int("count", len(ticketProviders)),
+		zap.String("default", defaultTicketProvider.Name()),
+	)
 
 	// Initialize PuppyGraph client (feature-flagged — nil when PUPPYGRAPH_URL is empty)
 	var graphClient *graph.Client
@@ -533,13 +568,15 @@ func main() {
 		},
 		deployTracker: newDeployTracker(),
 
-		// Integration layer
+		// Integration layer — real providers when env vars are set, mock fallback
 		integrationHandler: &IntegrationHandler{
-			provider:          integrations.NewMockProvider(logger.Named("integrations.mock")),
+			provider:          defaultTicketProvider,
+			providers:         ticketProviders,
 			router:            integrations.NewRoutingEngine(integrations.DefaultRules()),
 			workflow:          workflowEngine,
 			auditLogger:       newAuditLogger("integrations"),
 			logger:            logger.Named("integrations"),
+			ticketStore:       make(map[string]*integrations.Ticket),
 			asanaWebhookToken: os.Getenv("ASANA_WEBHOOK_TOKEN"),
 		},
 		webhookEngine: webhooks.NewMemoryEngine(logger.Named("webhooks")),

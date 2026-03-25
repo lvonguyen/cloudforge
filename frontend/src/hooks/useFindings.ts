@@ -123,6 +123,31 @@ export function useFindingEnrichment(findingId: string) {
   })
 }
 
+export interface FindingsStats {
+  total: number
+  by_severity: Record<string, number>
+  by_status: Record<string, number>
+  by_provider: Record<string, number>
+  sla_breached: number
+  auto_remedial: number
+}
+
+export function useFindingsStats() {
+  return useQuery({
+    queryKey: ['findings', 'stats'],
+    queryFn: async () => {
+      try {
+        return await apiClient.get<FindingsStats>('/findings/stats')
+      } catch (err) {
+        if (err instanceof ApiError && err.status < 500) throw err
+        if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'true') throw err
+        return null
+      }
+    },
+    staleTime: 30_000, // 30s — stats are cheap but change on ingest
+  })
+}
+
 export function useFinding(id: string) {
   return useQuery({
     queryKey: ['findings', id],

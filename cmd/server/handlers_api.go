@@ -56,6 +56,51 @@ func (s *Server) listFindings(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
+func (s *Server) findingsStats(w http.ResponseWriter, r *http.Request) {
+	_, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.findingsStats")
+	defer span.End()
+
+	claims, _ := api.GetClaimsFromContext(r.Context())
+	scope := api.ScopeFromContext(claims)
+
+	type statsResponse struct {
+		Total        int            `json:"total"`
+		BySeverity   map[string]int `json:"by_severity"`
+		ByStatus     map[string]int `json:"by_status"`
+		ByProvider   map[string]int `json:"by_provider"`
+		SLABreached  int            `json:"sla_breached"`
+		AutoRemedial int            `json:"auto_remedial"`
+	}
+
+	resp := statsResponse{
+		BySeverity: make(map[string]int),
+		ByStatus:   make(map[string]int),
+		ByProvider: make(map[string]int),
+	}
+
+	for i := range s.data.Findings {
+		f := &s.data.Findings[i]
+		if err := api.EnforceScope(scope, f); err != nil {
+			continue
+		}
+		resp.Total++
+		resp.BySeverity[strings.ToUpper(f.Severity)]++
+		resp.ByStatus[strings.ToLower(f.Status)]++
+		resp.ByProvider[strings.ToLower(f.CloudProvider)]++
+		if f.SLABreachDate != "" {
+			resp.SLABreached++
+		}
+		if f.AutoRemediatable {
+			resp.AutoRemedial++
+		}
+	}
+
+	span.SetAttributes(attribute.Int("findings.total", resp.Total))
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
 func (s *Server) getFinding(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getFinding")
 	defer span.End()

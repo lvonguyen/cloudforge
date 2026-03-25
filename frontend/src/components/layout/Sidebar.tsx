@@ -134,6 +134,16 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
 function NavContent({ collapsed }: { collapsed: boolean }) {
   const { role } = useAuth()
   const location = useLocation()
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
+
+  const toggleSection = (section: string) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev)
+      if (next.has(section)) next.delete(section)
+      else next.add(section)
+      return next
+    })
+  }
 
   // Derive nav context from route prefix, clamped to user's actual role
   const ROLE_RANK: Record<Role, number> = { viewer: 0, requester: 1, operator: 2, admin: 3 }
@@ -170,42 +180,66 @@ function NavContent({ collapsed }: { collapsed: boolean }) {
         </li>
       </ul>
       <Separator className="mb-3" />
-      {sections.map((section, si) => (
-        <div key={section.section} className={cn(si > 0 && 'mt-4')}>
-          {!collapsed && (
-            <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              {section.section}
-            </p>
-          )}
-          {si > 0 && collapsed && <Separator className="my-2" />}
-          <ul className="space-y-0.5">
-            {section.items.map(item => {
-              const Icon = item.icon
-              const active = location.pathname === item.to ||
-                (item.to !== '/' && item.to !== '/admin' && item.to !== '/ops' && item.to !== '/portal' &&
-                  location.pathname.startsWith(item.to))
-              return (
-                <li key={item.to}>
-                  <NavLink
-                    to={item.to}
-                    end={item.to === '/admin' || item.to === '/ops' || item.to === '/portal'}
-                    className={cn(
-                      'flex items-center gap-2.5 rounded-none px-2 py-1.5 text-sm transition-colors',
-                      active
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                    )}
-                    title={collapsed ? item.label : undefined}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    {!collapsed && <span>{item.label}</span>}
-                  </NavLink>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      ))}
+      {sections.map((section, si) => {
+        const isSectionCollapsed = collapsedSections.has(section.section)
+        const hasActiveChild = section.items.some(item =>
+          location.pathname === item.to ||
+          (item.to !== '/' && item.to !== '/admin' && item.to !== '/ops' && item.to !== '/portal' &&
+            location.pathname.startsWith(item.to))
+        )
+
+        return (
+          <div key={section.section} className={cn(si > 0 && 'mt-4')}>
+            {!collapsed && (
+              <button
+                type="button"
+                onClick={() => toggleSection(section.section)}
+                className="flex items-center gap-1 w-full mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+                aria-expanded={!isSectionCollapsed}
+                aria-label={`${isSectionCollapsed ? 'Expand' : 'Collapse'} ${section.section}`}
+              >
+                {isSectionCollapsed
+                  ? <ChevronRight className="h-2.5 w-2.5 shrink-0" />
+                  : <ChevronLeft className="h-2.5 w-2.5 shrink-0 rotate-[-90deg]" />
+                }
+                <span>{section.section}</span>
+                {isSectionCollapsed && hasActiveChild && (
+                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-accent" />
+                )}
+              </button>
+            )}
+            {si > 0 && collapsed && <Separator className="my-2" />}
+            {(!isSectionCollapsed || collapsed) && (
+              <ul className="space-y-0.5">
+                {section.items.map(item => {
+                  const Icon = item.icon
+                  const active = location.pathname === item.to ||
+                    (item.to !== '/' && item.to !== '/admin' && item.to !== '/ops' && item.to !== '/portal' &&
+                      location.pathname.startsWith(item.to))
+                  return (
+                    <li key={item.to}>
+                      <NavLink
+                        to={item.to}
+                        end={item.to === '/admin' || item.to === '/ops' || item.to === '/portal'}
+                        className={cn(
+                          'flex items-center gap-2.5 rounded-none px-2 py-1.5 text-sm transition-colors',
+                          active
+                            ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
+                            : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                        )}
+                        title={collapsed ? item.label : undefined}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        {!collapsed && <span>{item.label}</span>}
+                      </NavLink>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        )
+      })}
     </>
   )
 }
