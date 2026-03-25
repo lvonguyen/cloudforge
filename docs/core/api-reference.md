@@ -119,6 +119,112 @@ Full-text and semantic search over findings. Combines Bleve BM25 text search wit
 }
 ```
 
+#### POST /api/v1/findings/ingest
+
+Ingest a new finding. Deduplication is keyed on `source` + `source_finding_id`.
+
+**Request body:**
+
+```json
+{
+  "source": "aws-securityhub",
+  "source_finding_id": "arn:aws:securityhub:us-east-1:...",
+  "resource_id": "arn:aws:s3:::my-bucket",
+  "account_id": "123456789012",
+  "severity": "CRITICAL",
+  "finding_type": "Software and Configuration Checks",
+  "title": "S3 bucket is publicly accessible",
+  "description": "The S3 bucket allows public read access..."
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `source` | string | yes | Originating scanner (e.g., `aws-securityhub`, `azure-defender`) |
+| `source_finding_id` | string | yes | Scanner-native finding ID for dedup |
+| `resource_id` | string | yes | Cloud resource ARN/ID |
+| `account_id` | string | yes | Cloud account ID |
+| `severity` | string | yes | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `INFO` |
+| `finding_type` | string | yes | Finding category |
+| `title` | string | yes | Short finding title |
+| `description` | string | yes | Detailed description |
+
+#### POST /api/v1/ai/nlq
+
+Parse a natural language query into structured finding filters.
+
+**Request body:**
+
+```json
+{ "query": "show me critical AWS findings from last week" }
+```
+
+#### POST /api/v1/graph/query
+
+Proxy a Gremlin or Cypher query to PuppyGraph.
+
+**Request body:**
+
+```json
+{ "language": "gremlin", "query": "g.V().hasLabel('finding').count()" }
+```
+
+#### POST /api/v1/asm/scan
+
+Trigger an external attack surface scan for a domain.
+
+**Request body:**
+
+```json
+{ "domain": "example.com" }
+```
+
+#### POST /api/v1/webhooks
+
+Register a new webhook endpoint.
+
+**Request body:**
+
+```json
+{
+  "url": "https://hooks.example.com/aegis",
+  "secret": "whsec_...",
+  "events": ["finding.created", "remediation.completed"]
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `url` | string | yes | HTTPS endpoint URL |
+| `secret` | string | yes | HMAC signing secret |
+| `events` | string[] | no | Event filter (empty = all events) |
+
+#### POST /api/v1/exceptions
+
+Create an exception request.
+
+**Request body:**
+
+```json
+{
+  "application_id": "app-payments",
+  "requestor_email": "engineer@example.com",
+  "request_type": "waiver",
+  "policy_violated": "REGION-001",
+  "resource_requested": "us-west-2 deployment for latency SLA",
+  "business_case": "Payment processing requires <50ms latency..."
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `application_id` | string | yes | Target application ID |
+| `policy_violated` | string | yes | Policy code being excepted |
+| `requestor_email` | string | no | Requestor email (validated) |
+| `request_type` | string | no | `waiver`, `extension`, `exemption` |
+| `resource_requested` | string | no | What is being requested |
+| `business_case` | string | no | Business justification |
+
 ### Compliance
 
 | Method | Path | Roles | Paginated | Description |
