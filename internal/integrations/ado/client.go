@@ -179,6 +179,9 @@ type adoIdentity struct {
 
 // CreateWorkItem creates a work item in ADO using JSON Patch.
 func (c *Client) CreateWorkItem(ctx context.Context, title, description string, priority int, assignee string, tags []string, dueDate *time.Time) (*workItemResponse, error) {
+	if title == "" {
+		return nil, fmt.Errorf("title is required for ADO work item creation")
+	}
 	ops := []patchOp{
 		{Op: "add", Path: "/fields/System.Title", Value: title},
 	}

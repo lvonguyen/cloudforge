@@ -187,25 +187,68 @@ func (c *Client) queryGremlin(ctx context.Context, query string) (json.RawMessag
 		return nil, fmt.Errorf("marshalling gremlin request: %w", err)
 	}
 
+	// Propagate context deadline to WebSocket read/write to prevent indefinite blocking.
+	if deadline, ok := ctx.Deadline(); ok {
+		conn.SetWriteDeadline(deadline)
+		conn.SetReadDeadline(deadline)
+	}
+
 	if err := conn.WriteMessage(websocket.TextMessage, payload); err != nil {
 		return nil, fmt.Errorf("sending gremlin query: %w", err)
 	}
 
-	_, respPayload, err := conn.ReadMessage()
+	// Read loop: TinkerPop uses status 206 for multi-message (partial) responses.
+	// Accumulate data from all 206 messages, return on 200 (final batch).
+	var allData []json.RawMessage
+	for {
+		_, respPayload, err := conn.ReadMessage()
+		if err != nil {
+			return nil, fmt.Errorf("reading gremlin response: %w", err)
+		}
+
+		var resp gremlinWSResponse
+		if err := json.Unmarshal(respPayload, &resp); err != nil {
+			return nil, fmt.Errorf("unmarshalling gremlin response: %w", err)
+		}
+
+		if resp.Status.Code < 200 || resp.Status.Code >= 300 {
+			return nil, fmt.Errorf("gremlin query failed (status %d): %s", resp.Status.Code, resp.Status.Message)
+		}
+
+		allData = append(allData, resp.Result.Data)
+
+		if resp.Status.Code != 206 {
+			break // 200 = final batch
+		}
+	}
+
+	// Single message: return data directly (common case).
+	if len(allData) == 1 {
+		return allData[0], nil
+	}
+
+	// Multiple messages: merge JSON arrays.
+	merged, err := mergeJSONArrays(allData)
 	if err != nil {
-		return nil, fmt.Errorf("reading gremlin response: %w", err)
+		return nil, fmt.Errorf("merging gremlin partial responses: %w", err)
 	}
+	return merged, nil
+}
 
-	var resp gremlinWSResponse
-	if err := json.Unmarshal(respPayload, &resp); err != nil {
-		return nil, fmt.Errorf("unmarshalling gremlin response: %w", err)
+// mergeJSONArrays combines multiple JSON array responses into a single array.
+// If any element is not an array, it is wrapped in one.
+func mergeJSONArrays(parts []json.RawMessage) (json.RawMessage, error) {
+	var merged []json.RawMessage
+	for _, part := range parts {
+		var arr []json.RawMessage
+		if err := json.Unmarshal(part, &arr); err != nil {
+			// Not an array — wrap as single element
+			merged = append(merged, part)
+			continue
+		}
+		merged = append(merged, arr...)
 	}
-
-	if resp.Status.Code < 200 || resp.Status.Code >= 300 {
-		return nil, fmt.Errorf("gremlin query failed (status %d): %s", resp.Status.Code, resp.Status.Message)
-	}
-
-	return resp.Result.Data, nil
+	return json.Marshal(merged)
 }
 
 // cypherRequest is the openCypher HTTP API request format.
