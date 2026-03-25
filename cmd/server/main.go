@@ -1,3 +1,5 @@
+// Command server is the Cloud Aegis API server — the primary HTTP entry point
+// that registers all route handlers, middleware, and background workers.
 package main
 
 import (
