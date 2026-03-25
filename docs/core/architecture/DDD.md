@@ -45,8 +45,8 @@
 | Document | Link |
 |----------|------|
 | High-Level Design | [HLD.md](./HLD.md) |
-| Component Rationale | [component-rationale.md](./component-rationale.md) |
-| DR/BC Plan | [../DR-BC.md](../DR-BC.md) |
+| Component Rationale | [component-rationale.md](./adr/component-rationale.md) |
+| DR/BC Plan | [DR-BC.md](./DR-BC.md) |
 | API Specification | *Planned — not yet created* |
 
 ---

@@ -117,4 +117,4 @@ No tier distinction, all remediations execute automatically.
 
 - `pkg/remediation/` — Executor engine, Remediator interface, types
 - `internal/remediation/` — Domain handler implementations (8 subdirectories)
-- Runbook: [05-remediation-operations.md](../runbooks/05-remediation-operations.md)
+- Runbook: [05-remediation-operations.md](../../runbooks/05-remediation-operations.md)

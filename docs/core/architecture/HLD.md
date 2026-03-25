@@ -13,7 +13,7 @@
 | Document | Description |
 |----------|-------------|
 | [Detailed Design Document (DDD)](./DDD.md) | Implementation-level technical specifications |
-| [Component Rationale](./component-rationale.md) | Technology selection with cost analysis |
+| [Component Rationale](./adr/component-rationale.md) | Technology selection with cost analysis |
 | [DR/BC Plan](./DR-BC.md) | Disaster Recovery and Business Continuity |
 | [Pitch Deck](../../archive/pitch-deck.md) | Executive presentation |
 | [ADRs](./adr/) | Architecture Decision Records (ADR-001 through ADR-019) |
@@ -236,7 +236,7 @@ Four backend roles enforce API access control:
 | Requester | End user | Read + submit: own exceptions, catalog browsing |
 | Viewer | Read-only observer (rank 0) | GET only: /findings, /compliance/frameworks, /agents + traces |
 
-See [ADR-006](../adr/ADR-006-authentication.md) for the full RBAC design. See [ADR-013](../adr/ADR-013-resource-scoped-rbac.md) for resource-scoped RBAC (ABAC) with `ResourceScope` in JWT claims.
+See [ADR-006](./adr/ADR-006-authentication.md) for the full RBAC design. See [ADR-013](./adr/ADR-013-resource-scoped-rbac.md) for resource-scoped RBAC (ABAC) with `ResourceScope` in JWT claims.
 
 ### 5.3 Zero Trust Policies
 
@@ -276,7 +276,7 @@ The remediation dispatcher provides automated security fix execution with a tier
 
 State snapshots are stored in S3/GCS before every remediation. Rollback window: 48 hours.
 
-See [ADR-009](../adr/ADR-009-remediation-dispatcher.md) for the full architecture decision.
+See [ADR-009](./adr/ADR-009-remediation-dispatcher.md) for the full architecture decision.
 
 ---
 
@@ -303,7 +303,7 @@ For multi-hop traversal queries beyond the BFS engine (e.g., "find all findings 
 | /api/v1/attack-paths/{id} | GET | Single path with full finding details |
 | /api/v1/attack-paths/stats | GET | Coverage stats (findings in paths vs isolated) |
 
-See [ADR-008](../adr/ADR-008-attack-path-computation.md) for the architecture decision.
+See [ADR-008](./adr/ADR-008-attack-path-computation.md) for the architecture decision.
 
 ---
 
@@ -326,7 +326,7 @@ Budget alerts are sent via two channels:
 - **Slack**: Block Kit formatted messages
 - **PagerDuty**: Events API v2 integration
 
-See [ADR-010](../adr/ADR-010-finops-cost-aggregation.md) for the architecture decision.
+See [ADR-010](./adr/ADR-010-finops-cost-aggregation.md) for the architecture decision.
 
 ---
 

@@ -138,7 +138,7 @@ Developer Request → Policy Evaluation → Automated Approval → Secure Provis
 
 *Includes compute, database, cache, AI analysis, monitoring*
 
-See [Component Rationale](./architecture/component-rationale.md) for detailed breakdown.
+See [Component Rationale](../core/architecture/adr/component-rationale.md) for detailed breakdown.
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Trial Start:** 2026-03-19
 **Trial End:** 2026-04-18 (30 days)
-**ADR:** [ADR-015](../adr/ADR-015-graph-query-engine.md)
+**ADR:** [ADR-015](../core/architecture/adr/ADR-015-graph-query-engine.md)
 
 ## Deployment
 
