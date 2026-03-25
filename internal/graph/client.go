@@ -189,8 +189,8 @@ func (c *Client) queryGremlin(ctx context.Context, query string) (json.RawMessag
 
 	// Propagate context deadline to WebSocket read/write to prevent indefinite blocking.
 	if deadline, ok := ctx.Deadline(); ok {
-		conn.SetWriteDeadline(deadline)
-		conn.SetReadDeadline(deadline)
+		_ = conn.SetWriteDeadline(deadline)
+		_ = conn.SetReadDeadline(deadline)
 	}
 
 	if err := conn.WriteMessage(websocket.TextMessage, payload); err != nil {
