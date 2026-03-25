@@ -25,7 +25,9 @@
             "category": { "column": "category", "type": "string" },
             "cloud_provider": { "column": "cloud_provider", "type": "string" },
             "status": { "column": "status", "type": "string" },
-            "resource_id": { "column": "resource_id", "type": "string" }
+            "resource_id": { "column": "resource_id", "type": "string" },
+            "account_id": { "column": "account_id", "type": "string" },
+            "service_name": { "column": "service_name", "type": "string" }
           }
         }
       ]
@@ -42,39 +44,25 @@
             "name": { "column": "name", "type": "string" },
             "type": { "column": "resource_type", "type": "string" },
             "region": { "column": "region", "type": "string" },
-            "account_id": { "column": "account_id", "type": "string" }
+            "account_id": { "column": "account_id", "type": "string" },
+            "cloud_provider": { "column": "cloud_provider", "type": "string" }
           }
         }
       ]
     },
     {
-      "label": "identity",
+      "label": "compliance_framework",
       "oneOf": [
         {
-          "tableName": "identities",
+          "tableName": "compliance_frameworks",
           "catalog": "aegis_pg",
           "schema": "public",
           "mappings": {
             "id": { "column": "id", "type": "string" },
-            "name": { "column": "display_name", "type": "string" },
-            "email": { "column": "email", "type": "string" },
-            "provider": { "column": "provider", "type": "string" }
-          }
-        }
-      ]
-    },
-    {
-      "label": "compliance_control",
-      "oneOf": [
-        {
-          "tableName": "compliance_controls",
-          "catalog": "aegis_pg",
-          "schema": "public",
-          "mappings": {
-            "id": { "column": "id", "type": "string" },
-            "framework": { "column": "framework_id", "type": "string" },
-            "control_id": { "column": "control_id", "type": "string" },
-            "title": { "column": "title", "type": "string" }
+            "name": { "column": "name", "type": "string" },
+            "version": { "column": "version", "type": "string" },
+            "category": { "column": "category", "type": "string" },
+            "score": { "column": "score", "type": "double" }
           }
         }
       ]
@@ -98,65 +86,17 @@
       ]
     },
     {
-      "label": "can_access",
-      "from": "identity",
-      "to": "resource",
-      "oneOf": [
-        {
-          "tableName": "identity_access",
-          "catalog": "aegis_pg",
-          "schema": "public",
-          "mappings": {
-            "from": { "column": "identity_id" },
-            "to": { "column": "resource_id" }
-          }
-        }
-      ]
-    },
-    {
       "label": "maps_to",
       "from": "finding",
-      "to": "compliance_control",
+      "to": "compliance_framework",
       "oneOf": [
         {
-          "tableName": "finding_compliance_mappings",
+          "tableName": "compliance_mappings",
           "catalog": "aegis_pg",
           "schema": "public",
           "mappings": {
             "from": { "column": "finding_id" },
-            "to": { "column": "control_id" }
-          }
-        }
-      ]
-    },
-    {
-      "label": "runs_on",
-      "from": "resource",
-      "to": "resource",
-      "oneOf": [
-        {
-          "tableName": "resource_relationships",
-          "catalog": "aegis_pg",
-          "schema": "public",
-          "mappings": {
-            "from": { "column": "parent_resource_id" },
-            "to": { "column": "child_resource_id" }
-          }
-        }
-      ]
-    },
-    {
-      "label": "trusts",
-      "from": "identity",
-      "to": "identity",
-      "oneOf": [
-        {
-          "tableName": "identity_trusts",
-          "catalog": "aegis_pg",
-          "schema": "public",
-          "mappings": {
-            "from": { "column": "trustor_id" },
-            "to": { "column": "trustee_id" }
+            "to": { "column": "framework_id" }
           }
         }
       ]

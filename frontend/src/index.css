@@ -1,6 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* Class-based dark mode — required for ThemeToggle .dark class to activate dark: utilities */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Platform design tokens — light mode (neutral preset) */
   --color-background: #F4F4F5;

@@ -20,6 +20,7 @@ function calcMoM(daily: DailyProviderCost[], key: keyof Pick<DailyProviderCost, 
 
 export default function Spend() {
   const [period, setPeriod] = useState<Period>('90')
+  const [selectedAnomaly, setSelectedAnomaly] = useState<string | null>(null)
   const { data: summary, isLoading, isError } = useCostSummary()
 
   if (isLoading) {
@@ -111,7 +112,7 @@ export default function Spend() {
           </CardHeader>
           <CardContent className="space-y-2 pt-0">
             {anomalies.map(a => (
-              <AnomalyAlertCard key={a.id} anomaly={a} />
+              <AnomalyAlertCard key={a.id} anomaly={a} onClick={() => setSelectedAnomaly(selectedAnomaly === a.id ? null : a.id)} />
             ))}
           </CardContent>
         </Card>

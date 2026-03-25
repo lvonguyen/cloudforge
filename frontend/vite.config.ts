@@ -49,6 +49,12 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      modulePreload: {
+        // Don't preload heavy vendor chunks only used by lazy routes.
+        // vendor-recharts (412KB) + vendor-xyflow (96KB) = 508KB saved on first paint.
+        resolveDependencies: (_filename, deps) =>
+          deps.filter(d => !d.includes('vendor-recharts') && !d.includes('vendor-xyflow')),
+      },
       rollupOptions: {
         output: {
           manualChunks(id) {

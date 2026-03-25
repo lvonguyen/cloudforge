@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ShieldCheck, ShieldAlert, Shield, ChevronDown, ChevronRight, Library, LayoutList } from 'lucide-react'
-import { RadialBarChart, RadialBar, ResponsiveContainer } from 'recharts'
 
 const FRAMEWORK_METADATA: Record<string, { doc_link: string; last_assessed: string }> = {
   'nist-csf':  { doc_link: 'https://www.nist.gov/cyberframework', last_assessed: '2026-03-01' },
@@ -208,7 +207,13 @@ export default function Compliance() {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {frameworks.slice(0, 5).map(fw => {
-                  const color = fw.score >= 80 ? '#16a34a' : fw.score >= 60 ? '#ca8a04' : '#dc2626'
+                  const color = fw.score >= 85 ? '#16a34a' : fw.score >= 75 ? '#ca8a04' : fw.score >= 60 ? '#ea580c' : '#dc2626'
+                  const trackColor = fw.score >= 85 ? '#16a34a20' : fw.score >= 75 ? '#ca8a0420' : fw.score >= 60 ? '#ea580c20' : '#dc262620'
+                  const pct = fw.score / 100
+                  const r = 34
+                  const circumference = 2 * Math.PI * r
+                  const dashLen = circumference * pct
+                  const gapLen = circumference - dashLen
                   return (
                     <button
                       key={fw.id}
@@ -216,19 +221,16 @@ export default function Compliance() {
                       className="flex flex-col items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-none p-0"
                       onClick={() => setSelectedFramework(fw)}
                     >
-                      <div className="h-[80px] w-[80px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <RadialBarChart
-                            cx="50%" cy="50%"
-                            innerRadius="70%" outerRadius="100%"
-                            startAngle={90} endAngle={-270}
-                            data={[{ value: fw.score, fill: color }]}
-                            barSize={6}
-                          >
-                            <RadialBar dataKey="value" background={{ fill: 'hsl(var(--muted))' }} cornerRadius={3} />
-                          </RadialBarChart>
-                        </ResponsiveContainer>
-                      </div>
+                      <svg width={80} height={80} viewBox="0 0 80 80" className="rotate-[-90deg]">
+                        {/* Track arc (faint) */}
+                        <circle cx={40} cy={40} r={r} fill="none" stroke={trackColor} strokeWidth={6} strokeLinecap="round" />
+                        {/* Score arc */}
+                        <circle
+                          cx={40} cy={40} r={r} fill="none"
+                          stroke={color} strokeWidth={6} strokeLinecap="round"
+                          strokeDasharray={`${dashLen} ${gapLen}`}
+                        />
+                      </svg>
                       <p className={`text-sm font-bold tabular-nums ${scoreClass(fw.score)}`}>{fw.score}%</p>
                       <p className="text-[10px] text-muted-foreground text-center leading-tight">{fw.name}</p>
                     </button>

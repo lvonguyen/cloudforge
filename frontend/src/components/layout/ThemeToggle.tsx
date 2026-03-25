@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { applyTheme as applyPreset } from '@/lib/apply-theme'
 
 type ThemeMode = 'light' | 'dark'
 
@@ -22,6 +23,8 @@ export function ThemeToggle() {
 
   const applyTheme = useCallback((m: ThemeMode) => {
     document.documentElement.classList.toggle('dark', m === 'dark')
+    // Re-apply active whitelabel preset so dark-mode palette overrides take effect
+    applyPreset()
   }, [])
 
   useEffect(() => {

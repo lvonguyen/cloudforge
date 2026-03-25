@@ -10,9 +10,19 @@ const SEVERITY_CLASS: Record<string, string> = {
   low: 'border-blue-300 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/20',
 }
 
-export function AnomalyAlertCard({ anomaly }: { anomaly: AnomalyAlert }) {
+export function AnomalyAlertCard({ anomaly, onClick }: { anomaly: AnomalyAlert; onClick?: () => void }) {
   return (
-    <Card className={cn('border', SEVERITY_CLASS[anomaly.severity] ?? SEVERITY_CLASS.medium)}>
+    <Card
+      className={cn(
+        'border transition-colors',
+        SEVERITY_CLASS[anomaly.severity] ?? SEVERITY_CLASS.medium,
+        onClick && 'cursor-pointer hover:ring-1 hover:ring-ring'
+      )}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } } : undefined}
+    >
       <CardContent className="p-3 flex items-start gap-2">
         <AlertTriangle className="h-4 w-4 mt-0.5 text-orange-500 dark:text-orange-400 shrink-0" />
         <div className="text-xs space-y-0.5">

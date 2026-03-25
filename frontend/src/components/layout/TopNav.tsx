@@ -55,13 +55,13 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
       </button>
 
       {/* Logo */}
-      <div className="flex items-center gap-2 min-w-[160px]">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6 text-primary">
+      <div className="flex items-center gap-2.5 min-w-[180px]">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-7 w-7 text-primary">
           <path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" />
           <circle cx="12" cy="12" r="3" />
           <path d="M12 7v2M12 15v2M7 12h2M15 12h2" />
         </svg>
-        <span className="font-semibold text-sm tracking-tight text-foreground">{branding.productName}</span>
+        <span className="font-semibold text-base tracking-tight text-foreground">{branding.productName}</span>
       </div>
 
       {/* Search — opens command palette */}

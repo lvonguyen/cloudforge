@@ -265,8 +265,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Enforce: requested role must not exceed JWT-derived authority.
     // In dev/demo mode the default user's role is the ceiling.
     const token = getStoredToken()
+    // Demo mode allows unrestricted role switching for portfolio walkthrough.
+    // Production: ceiling is JWT-derived role. Dev: ceiling is DEFAULT_USER.role.
     const maxRole = token ? deriveRoleFromGroups((parseJWTPayload(token)?.groups as string[]) ?? [])
-      : (isDev ? DEFAULT_USER.role : isDemo ? DEMO_USER.role : 'requester')
+      : (isDev ? DEFAULT_USER.role : isDemo ? 'admin' as Role : 'requester')
     const effective = ROLE_RANK[role] <= ROLE_RANK[maxRole] ? role : maxRole
     sessionStorage.setItem(ROLE_KEY, effective)
     setUser((prev) => ({ ...prev, role: effective }))

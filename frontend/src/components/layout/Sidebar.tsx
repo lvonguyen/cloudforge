@@ -196,7 +196,7 @@ function NavContent({ collapsed }: { collapsed: boolean }) {
               <button
                 type="button"
                 onClick={() => toggleSection(section.section)}
-                className="flex items-center gap-1 w-full mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center gap-1 w-full mb-1 px-2 text-[11px] font-bold uppercase tracking-widest text-foreground/60 hover:text-foreground transition-colors"
                 aria-expanded={!isSectionCollapsed}
                 aria-label={`${isSectionCollapsed ? 'Expand' : 'Collapse'} ${section.section}`}
               >
@@ -231,7 +231,7 @@ function NavContent({ collapsed }: { collapsed: boolean }) {
                         )}
                         title={collapsed ? item.label : undefined}
                       >
-                        <Icon className="h-4 w-4 shrink-0" />
+                        <Icon className="h-[18px] w-[18px] shrink-0" />
                         {!collapsed && <span>{item.label}</span>}
                       </NavLink>
                     </li>
@@ -255,7 +255,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen: boolean; on
       <aside
         className={cn(
           'relative hidden md:flex flex-col border-r border-border bg-sidebar-background transition-all duration-200',
-          collapsed ? 'w-14' : 'w-48'
+          collapsed ? 'w-14' : 'w-52'
         )}
       >
         <nav className="flex-1 overflow-y-auto py-4 px-2">

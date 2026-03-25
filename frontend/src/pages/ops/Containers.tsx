@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -161,6 +162,7 @@ function VulnCountBadge({ count }: { count: number }) {
 }
 
 export default function Containers() {
+  const navigate = useNavigate()
   const { data, isLoading, isError } = useContainers()
   const [expandedClusters, setExpandedClusters] = useState<Set<string>>(new Set())
   const [expandedPods, setExpandedPods] = useState<Set<string>>(new Set())
@@ -276,7 +278,12 @@ export default function Containers() {
                                       {ctExpanded && container.vulns && container.vulns.length > 0 && (
                                         <div className="ml-6 mt-1 space-y-1 mb-2">
                                           {container.vulns.map(v => (
-                                            <div key={v.cve_id} className="flex items-center gap-2 text-[11px] px-2 py-1 bg-muted/30">
+                                            <button
+                                              key={v.cve_id}
+                                              type="button"
+                                              className="w-full flex items-center gap-2 text-[11px] px-2 py-1 bg-muted/30 cursor-pointer hover:bg-muted/60 transition-colors text-left"
+                                              onClick={() => navigate(`/ops/findings?search=${encodeURIComponent(v.cve_id)}`)}
+                                            >
                                               <Badge variant="outline" className={`text-[9px] px-1 py-0 rounded-none ${SEVERITY_COLORS[v.severity] ?? ''}`}>
                                                 {v.severity}
                                               </Badge>
@@ -284,7 +291,7 @@ export default function Containers() {
                                               <span className="text-muted-foreground">{v.package} {v.version}</span>
                                               {v.fixed_in && <span className="text-green-600 dark:text-green-400">Fix: {v.fixed_in}</span>}
                                               <span className="ml-auto font-mono">CVSS {v.cvss.toFixed(1)}</span>
-                                            </div>
+                                            </button>
                                           ))}
                                         </div>
                                       )}
