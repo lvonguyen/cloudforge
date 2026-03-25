@@ -34,6 +34,6 @@ Each runbook follows this structure:
 | Role | Contact | Hours |
 |------|---------|-------|
 | On-Call Engineer | PagerDuty | 24/7 |
-| Security Team | security@contoso.dev | 24/7 |
-| Platform Team | platform@contoso.dev | Business hours |
+| Security Team | security@example.com | 24/7 |
+| Platform Team | platform@example.com | Business hours |
 
