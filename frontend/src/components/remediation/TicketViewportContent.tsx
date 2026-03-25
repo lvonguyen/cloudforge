@@ -37,7 +37,10 @@ const PRIORITY_COLORS: Record<string, string> = {
 }
 
 function formatRelativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
+  const ts = new Date(iso).getTime()
+  if (isNaN(ts)) return '--'
+  const diff = Date.now() - ts
+  if (diff < 0) return 'upcoming'
   const mins = Math.floor(diff / 60_000)
   if (mins < 1) return 'just now'
   if (mins < 60) return `${mins}m ago`
@@ -48,8 +51,10 @@ function formatRelativeTime(iso: string): string {
 }
 
 function computeSlaCountdown(createdAt: string, priority: string): { text: string; overdue: boolean } {
+  const ts = new Date(createdAt).getTime()
+  if (isNaN(ts)) return { text: '--', overdue: false }
   const slaHours: Record<string, number> = { critical: 4, high: 24, medium: 72, low: 168 }
-  const hours = slaHours[priority] ?? 72
+  const hours = slaHours[priority.toLowerCase()] ?? 72
   const deadline = new Date(createdAt).getTime() + hours * 60 * 60 * 1000
   const remaining = deadline - Date.now()
 
@@ -76,7 +81,7 @@ interface TicketViewportContentProps {
 }
 
 export function TicketViewportContent({ findingId, className }: TicketViewportContentProps) {
-  const { data: ticket } = useFindingTicket(findingId)
+  const { data: ticket, isLoading: ticketLoading, isError: ticketError } = useFindingTicket(findingId)
   const { data: comments = [] } = useTicketComments(findingId)
   const addComment = useAddTicketComment(findingId)
   const syncStatus = useSyncTicketStatus(findingId)
@@ -126,7 +131,7 @@ export function TicketViewportContent({ findingId, className }: TicketViewportCo
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Priority</p>
                   <Badge
                     variant="outline"
-                    className={`text-[10px] mt-0.5 ${PRIORITY_COLORS[ticket.priority] ?? ''}`}
+                    className={`text-[10px] mt-0.5 ${PRIORITY_COLORS[ticket.priority.toLowerCase()] ?? ''}`}
                   >
                     {ticket.priority}
                   </Badge>
@@ -166,8 +171,22 @@ export function TicketViewportContent({ findingId, className }: TicketViewportCo
         ) : (
           <Card>
             <CardContent className="p-4 flex items-center gap-2 text-muted-foreground">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="text-xs">No ticket data available.</span>
+              {ticketLoading ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <span className="text-xs">Loading ticket data...</span>
+                </>
+              ) : ticketError ? (
+                <>
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <span className="text-xs">Failed to load ticket. Try refreshing.</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="text-xs">No ticket data available.</span>
+                </>
+              )}
             </CardContent>
           </Card>
         )}
@@ -226,6 +245,7 @@ export function TicketViewportContent({ findingId, className }: TicketViewportCo
               onClick={() => {
                 addComment.mutate(commentBody.trim(), {
                   onSuccess: () => setCommentBody(''),
+                  onError: () => { /* toast handled by useAddTicketComment's onError */ },
                 })
               }}
             >
@@ -253,7 +273,7 @@ export function TicketViewportContent({ findingId, className }: TicketViewportCo
           <Button size="sm" variant="outline" className="text-xs gap-1.5" asChild>
             <a href={ticket.url} target="_blank" rel="noreferrer">
               <ExternalLink className="h-3.5 w-3.5" />
-              Open in Asana
+              Open in {ticket.provider}
             </a>
           </Button>
         )}
@@ -262,10 +282,8 @@ export function TicketViewportContent({ findingId, className }: TicketViewportCo
           size="sm"
           variant="default"
           className="text-xs gap-1.5 ml-auto"
-          disabled={ticket?.status === 'resolved' || ticket?.status === 'closed'}
-          onClick={() => {
-            syncStatus.mutate()
-          }}
+          disabled
+          title="Resolve via external provider — API endpoint pending"
         >
           <CheckCircle2 className="h-3.5 w-3.5" />
           Mark Resolved

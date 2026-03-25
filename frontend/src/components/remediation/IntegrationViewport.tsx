@@ -1,13 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TicketViewportContent } from './TicketViewportContent'
 import { ExternalLink, CheckSquare, Headphones } from 'lucide-react'
+import type { Ticket } from '@/hooks/useIntegrations'
 
-interface Ticket {
-  id: string
-  provider: string
-  status: string
-  [key: string]: unknown
-}
+const KNOWN_PROVIDERS = ['asana', 'jira', 'servicenow'] as const
 
 interface IntegrationViewportProps {
   findingId: string
@@ -18,8 +14,9 @@ export function IntegrationViewport({ findingId, ticket }: IntegrationViewportPr
   const hasAsana = ticket?.provider === 'asana'
   const hasJira = ticket?.provider === 'jira'
   const hasSNow = ticket?.provider === 'servicenow'
-  const hasAnyTicket = hasAsana || hasJira || hasSNow
-  const defaultTab = ticket?.provider ?? 'asana'
+  const defaultTab = (KNOWN_PROVIDERS as readonly string[]).includes(ticket?.provider ?? '')
+    ? ticket!.provider
+    : 'asana'
 
   return (
     <div className="space-y-2">

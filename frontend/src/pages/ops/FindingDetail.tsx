@@ -61,15 +61,33 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
   }, [attackPathsData, finding])
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground p-6">Loading finding…</div>
+    return (
+      <div className="text-sm text-muted-foreground p-6">
+        {mode === 'inline' && onClose && (
+          <div className="flex justify-end mb-2">
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+              <XCircle className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        Loading finding…
+      </div>
+    )
   }
   if (!finding) {
     return (
-      <div className="space-y-4 max-w-3xl">
+      <div className="space-y-4 max-w-3xl p-4">
         {mode === 'page' && (
           <Button variant="ghost" size="sm" className="gap-1.5 -ml-2" onClick={() => navigate('/ops/findings')}>
             <ArrowLeft className="h-4 w-4" />All Findings
           </Button>
+        )}
+        {mode === 'inline' && onClose && (
+          <div className="flex justify-end">
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+              <XCircle className="h-4 w-4" />
+            </Button>
+          </div>
         )}
         <div className="text-sm text-muted-foreground">Finding not found.</div>
       </div>

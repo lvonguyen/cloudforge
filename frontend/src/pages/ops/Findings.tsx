@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef, useDeferredValue } from 'react'
+import { useMemo, useState, useCallback, useRef, useDeferredValue, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Download, ArrowUp, ArrowDown, X, SlidersHorizontal, ListFilter, ChevronDown, ChevronRight } from 'lucide-react'
@@ -302,6 +302,13 @@ export default function Findings() {
     })
     return arr
   }, [filtered, sortCol, sortDir])
+
+  // Clear stale previewId when the selected finding is filtered out
+  useEffect(() => {
+    if (previewId && sorted.length > 0 && !sorted.some(f => f.id === previewId)) {
+      setPreviewId(null)
+    }
+  }, [sorted, previewId])
 
   // Grouped data for GROUP BY view
   const groupedFindings = useMemo(() => {
