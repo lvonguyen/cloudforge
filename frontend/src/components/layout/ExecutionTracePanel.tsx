@@ -1,5 +1,4 @@
 import { useCallback, useRef } from 'react'
-import { cn } from '@/lib/utils'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { TerminalOutput } from '@/components/portal/TerminalOutput'
 import { TraceTimeline } from '@/components/ai/TraceTimeline'

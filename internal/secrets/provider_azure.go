@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
@@ -155,8 +154,3 @@ func extractAzureSecretName(id string) string {
 	return name
 }
 
-// azureExpiresAt converts a duration to an Azure-compatible expiry time pointer.
-func azureExpiresAt(d time.Duration) *time.Time {
-	t := time.Now().Add(d)
-	return &t
-}

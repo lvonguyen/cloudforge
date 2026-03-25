@@ -489,7 +489,7 @@ function StepReview({
           <span className="text-muted-foreground">Region</span>
           <span>{step1.region}</span>
           <span className="text-muted-foreground">Service Model</span>
-          <span>{serviceModel}</span>
+          <span>{step1.serviceModel}</span>
           <span className="text-muted-foreground">Application ID</span>
           <span>{String(formValues.applicationId ?? '')}</span>
           <span className="text-muted-foreground">Team</span>
@@ -696,6 +696,8 @@ export default function Request() {
           tool_category: 'grc',
           parameter_count: 4,
           external_call: true,
+          input_hash: 'sha256:req-' + Date.now().toString(16),
+          output_hash: 'sha256:res-' + Date.now().toString(16),
         },
       },
       attributes: {
@@ -776,7 +778,7 @@ export default function Request() {
       label: 'Review',
       content: (
         <StepReview
-          step1={{ resourceId: selectedResource, cloudProvider, region }}
+          step1={{ resourceId: selectedResource, cloudProvider, region, serviceModel }}
           formValues={{ ...formValues, ...configSnapshot }}
           policyResult={policyResult}
           acceptedExceptions={acceptedExceptions}

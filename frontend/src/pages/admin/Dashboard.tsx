@@ -166,7 +166,7 @@ export default function AdminDashboard() {
 
   // KPI card deltas
   const kpiDeltas: Record<string, string | null> = {
-    pol: policies ? recentVsPrior(policies.filter(p => p.status === 'active')) : null,
+    pol: policies ? recentVsPrior(policies.filter(p => p.status === 'active').map(p => ({ created_at: p.last_updated }))) : null,
     exc: exceptions ? recentVsPrior(exceptions) : null,
   }
   const KPI_CARDS = KPI_CARDS_BASE.map(card => ({

@@ -88,7 +88,7 @@ func (p *PostgresAuditLogger) List(ctx context.Context, opts ListOpts) ([]AuditE
 		argN++
 	}
 
-	query += fmt.Sprintf(" ORDER BY timestamp DESC LIMIT $%d", argN)
+	query += fmt.Sprintf(" ORDER BY timestamp DESC LIMIT $%d", argN) //nolint:gosec // G202: all values use parameterized placeholders ($N), no user input in query string
 	args = append(args, limit)
 
 	rows, err := p.db.QueryContext(ctx, query, args...)
