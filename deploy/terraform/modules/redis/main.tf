@@ -56,7 +56,7 @@ resource "azurerm_redis_cache" "this" {
   capacity            = var.memory_size_gb <= 1 ? 0 : 1
   family              = "C"
   sku_name            = var.ha_enabled ? "Standard" : "Basic"
-  enable_non_ssl_port = false
+  non_ssl_port_enabled = false
   minimum_tls_version = "1.2"
   redis_version       = "6"
   subnet_id           = length(var.subnet_ids) > 0 ? var.subnet_ids[0] : null

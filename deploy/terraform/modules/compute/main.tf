@@ -109,6 +109,15 @@ resource "aws_ecs_service" "this" {
     assign_public_ip = false  # Always private — policy enforced
   }
 
+  dynamic "load_balancer" {
+    for_each = var.target_group_arn != "" ? [1] : []
+    content {
+      target_group_arn = var.target_group_arn
+      container_name   = var.service_name
+      container_port   = var.container_port
+    }
+  }
+
   tags = local.common_tags
 }
 

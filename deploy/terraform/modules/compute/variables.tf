@@ -43,8 +43,15 @@ variable "max_instances" {
   default = 5
 }
 
-variable "cpu"    { type = string; default = "1" }
-variable "memory" { type = string; default = "512Mi" }
+variable "cpu" {
+  type    = string
+  default = "1"
+}
+
+variable "memory" {
+  type    = string
+  default = "512Mi"
+}
 
 variable "env_vars" {
   description = "Environment variables for the container"
@@ -65,12 +72,29 @@ variable "security_group_ids" {
   type        = list(string)
   default     = []
 }
-variable "service_account" { type = string; default = "" }
-variable "tags"            { type = map(string); default = {} }
-variable "region"          { type = string; default = "us-central1" }
+variable "service_account" {
+  type    = string
+  default = ""
+}
+
+variable "tags" {
+  type    = map(string)
+  default = {}
+}
+
+variable "region" {
+  type    = string
+  default = "us-central1"
+}
 
 variable "aws_ecs_cluster_id" {
   description = "ECS cluster ID (AWS only)"
+  type        = string
+  default     = ""
+}
+
+variable "target_group_arn" {
+  description = "ALB/NLB target group ARN for ECS service registration (AWS only)"
   type        = string
   default     = ""
 }
