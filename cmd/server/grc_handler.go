@@ -46,6 +46,8 @@ type ValidateExceptionRequest struct {
 	PolicyCode    string `json:"policy_code"`
 }
 
+// CreateException handles POST /exceptions — validates the request body and
+// delegates to the GRC provider to persist the exception.
 func (h *GRCHandler) CreateException(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.createException")
 	defer span.End()
@@ -100,6 +102,7 @@ func (h *GRCHandler) CreateException(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(created)
 }
 
+// GetException handles GET /exceptions/{id} — returns a single exception by ID.
 func (h *GRCHandler) GetException(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getException")
 	defer span.End()
@@ -135,6 +138,8 @@ func (h *GRCHandler) GetException(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(exc)
 }
 
+// SubmitApproval handles POST /exceptions/{id}/approve — records an approval
+// decision from the authenticated approver.
 func (h *GRCHandler) SubmitApproval(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.submitApproval")
 	defer span.End()
@@ -173,6 +178,8 @@ func (h *GRCHandler) SubmitApproval(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "approval recorded"})
 }
 
+// GetPendingApprovals handles GET /exceptions/pending — lists exceptions
+// awaiting the current user's approval.
 func (h *GRCHandler) GetPendingApprovals(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getPendingApprovals")
 	defer span.End()
@@ -202,6 +209,8 @@ func (h *GRCHandler) GetPendingApprovals(w http.ResponseWriter, r *http.Request)
 	_ = json.NewEncoder(w).Encode(pending)
 }
 
+// GetMyExceptions handles GET /exceptions/mine — lists exceptions created
+// by the authenticated user (ownership-scoped).
 func (h *GRCHandler) GetMyExceptions(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getMyExceptions")
 	defer span.End()
