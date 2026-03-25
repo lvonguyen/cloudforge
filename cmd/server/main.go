@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	_ "net/http/pprof" //nolint:gosec // G108: pprof is dev-only (APP_ENV==development, loopback:6060)
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -181,8 +182,13 @@ func main() {
 			logger.Fatal("Database ping failed", zap.Error(pingErr))
 		}
 		defer grcDB.Close()
-		logger.Info("Database connection established for GRC provider",
-			zap.String("host", cfg.DatabaseURL[:min(len(cfg.DatabaseURL), 50)]+"..."))
+		if dbURL, parseErr := url.Parse(cfg.DatabaseURL); parseErr == nil {
+			logger.Info("Database connection established for GRC provider",
+				zap.String("host", dbURL.Hostname()+":"+dbURL.Port()))
+		} else {
+			logger.Info("Database connection established for GRC provider",
+				zap.String("host", "<unparseable>"))
+		}
 	}
 
 	// Initialize GRC provider

@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,6 +36,9 @@ func NewMemoryEngine(logger *zap.Logger) Engine {
 		deliveries: make([]Delivery, 0),
 		client: &http.Client{
 			Timeout: 10 * time.Second,
+			Transport: &http.Transport{
+				DialContext: safeDialContext,
+			},
 		},
 		logger: logger,
 	}
@@ -194,6 +198,29 @@ func containsEvent(events []string, target string) bool {
 		}
 	}
 	return false
+}
+
+// safeDialContext wraps net.Dialer with a Control callback that rejects private/internal IPs
+// after DNS resolution, preventing DNS rebinding attacks on webhook delivery.
+func safeDialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	d := &net.Dialer{
+		Timeout: 10 * time.Second,
+		Control: func(network, address string, c syscall.RawConn) error {
+			host, _, err := net.SplitHostPort(address)
+			if err != nil {
+				return err
+			}
+			ip := net.ParseIP(host)
+			if ip == nil {
+				return nil
+			}
+			if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.Equal(net.ParseIP("169.254.169.254")) {
+				return fmt.Errorf("webhook delivery to private IP %s blocked", ip)
+			}
+			return nil
+		},
+	}
+	return d.DialContext(ctx, network, addr)
 }
 
 // validateWebhookURL rejects URLs that target internal/private networks (SSRF protection).

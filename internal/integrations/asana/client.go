@@ -10,6 +10,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"regexp"
 	"time"
 
 	"go.uber.org/zap"
@@ -121,6 +122,17 @@ type asanaTaskUpdateRequest struct {
 	} `json:"data"`
 }
 
+// --- GID validation ---
+
+var asanaGIDPattern = regexp.MustCompile(`^\d+$`)
+
+func validateGID(gid string) error {
+	if !asanaGIDPattern.MatchString(gid) {
+		return fmt.Errorf("invalid Asana GID %q: must be numeric", gid)
+	}
+	return nil
+}
+
 // --- Public methods ---
 
 // CreateTask creates a task in Asana.
@@ -149,6 +161,9 @@ func (c *Client) CreateTask(ctx context.Context, name, notes, assignee string, d
 
 // GetTask retrieves a task by GID.
 func (c *Client) GetTask(ctx context.Context, gid string) (*asanaTaskResponse, error) {
+	if err := validateGID(gid); err != nil {
+		return nil, err
+	}
 	var resp asanaTaskResponse
 	if err := c.doJSON(ctx, http.MethodGet, "/tasks/"+gid, nil, &resp); err != nil {
 		return nil, fmt.Errorf("getting task %s: %w", gid, err)
@@ -158,6 +173,9 @@ func (c *Client) GetTask(ctx context.Context, gid string) (*asanaTaskResponse, e
 
 // AddStory adds a comment (story) to a task.
 func (c *Client) AddStory(ctx context.Context, taskGID, text string) (*asanaStoryResponse, error) {
+	if err := validateGID(taskGID); err != nil {
+		return nil, err
+	}
 	payload := asanaStoryRequest{}
 	payload.Data.Text = text
 
@@ -170,6 +188,9 @@ func (c *Client) AddStory(ctx context.Context, taskGID, text string) (*asanaStor
 
 // ListStories returns all comment stories on a task.
 func (c *Client) ListStories(ctx context.Context, taskGID string) ([]asanaStoryItem, error) {
+	if err := validateGID(taskGID); err != nil {
+		return nil, err
+	}
 	var resp asanaStoriesResponse
 	path := "/tasks/" + taskGID + "/stories?opt_fields=gid,text,type,created_at,created_by.name"
 	if err := c.doJSON(ctx, http.MethodGet, path, nil, &resp); err != nil {
@@ -187,6 +208,9 @@ func (c *Client) ListStories(ctx context.Context, taskGID string) ([]asanaStoryI
 
 // UpdateTask updates a task's completed status.
 func (c *Client) UpdateTask(ctx context.Context, taskGID string, completed bool) error {
+	if err := validateGID(taskGID); err != nil {
+		return err
+	}
 	payload := asanaTaskUpdateRequest{}
 	payload.Data.Completed = completed
 	if err := c.doJSON(ctx, http.MethodPut, "/tasks/"+taskGID, payload, nil); err != nil {
