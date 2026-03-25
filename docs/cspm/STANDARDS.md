@@ -358,7 +358,7 @@ rsvg-convert -d 300 -p 300 input.svg -o output.png
 ### Markdown Embedding
 
 ```markdown
-![Diagram Title](diagrams/diagram_name.png)
+![Architecture Overview](docs/core/diagrams/architecture.svg)
 ```
 
 ### DOCX Export
