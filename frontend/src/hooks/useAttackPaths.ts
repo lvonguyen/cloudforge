@@ -134,11 +134,12 @@ async function fetchAttackPathStats(): Promise<AttackPathStats> {
   }
 }
 
-export function useAttackPaths(page = 1, perPage = 20) {
+export function useAttackPaths(page = 1, perPage = 20, opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['attack-paths', page, perPage],
     queryFn: () => fetchAttackPaths(page, perPage),
     staleTime: 5 * 60 * 1000, // 5 min — attack paths change infrequently
+    enabled: opts?.enabled ?? true,
   })
 }
 

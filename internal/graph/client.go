@@ -172,6 +172,8 @@ func (c *Client) queryGremlin(ctx context.Context, query string) (json.RawMessag
 	}
 	defer conn.Close()
 
+	conn.SetReadLimit(10 << 20) // 10MB
+
 	msg := gremlinWSRequest{
 		RequestID: reqID,
 		Op:        "eval",
@@ -191,6 +193,10 @@ func (c *Client) queryGremlin(ctx context.Context, query string) (json.RawMessag
 	if deadline, ok := ctx.Deadline(); ok {
 		_ = conn.SetWriteDeadline(deadline)
 		_ = conn.SetReadDeadline(deadline)
+	} else {
+		fallback := time.Now().Add(30 * time.Second)
+		_ = conn.SetWriteDeadline(fallback)
+		_ = conn.SetReadDeadline(fallback)
 	}
 
 	if err := conn.WriteMessage(websocket.TextMessage, payload); err != nil {
@@ -199,7 +205,11 @@ func (c *Client) queryGremlin(ctx context.Context, query string) (json.RawMessag
 
 	// Read loop: TinkerPop uses status 206 for multi-message (partial) responses.
 	// Accumulate data from all 206 messages, return on 200 (final batch).
+	const maxPartialMessages = 1000
+	const maxTotalSize = 10 << 20 // 10MB
 	var allData []json.RawMessage
+	var partialCount int
+	var totalSize int
 	for {
 		_, respPayload, err := conn.ReadMessage()
 		if err != nil {
@@ -213,6 +223,17 @@ func (c *Client) queryGremlin(ctx context.Context, query string) (json.RawMessag
 
 		if resp.Status.Code < 200 || resp.Status.Code >= 300 {
 			return nil, fmt.Errorf("gremlin query failed (status %d): %s", resp.Status.Code, resp.Status.Message)
+		}
+
+		totalSize += len(respPayload)
+		if resp.Status.Code == 206 {
+			partialCount++
+			if partialCount > maxPartialMessages {
+				return nil, fmt.Errorf("gremlin response exceeded %d partial messages", maxPartialMessages)
+			}
+		}
+		if totalSize > maxTotalSize {
+			return nil, fmt.Errorf("gremlin response exceeded %d bytes", maxTotalSize)
 		}
 
 		allData = append(allData, resp.Result.Data)

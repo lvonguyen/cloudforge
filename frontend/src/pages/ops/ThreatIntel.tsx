@@ -55,8 +55,8 @@ export default function ThreatIntel() {
       highEpss: highEpss.length,
       kevCritical: kevCritical.length,
       epssBuckets,
-      epssFindings: withEpss.sort((a, b) => (b.epss ?? 0) - (a.epss ?? 0)).slice(0, 20),
-      kevFindings: withKev.sort((a, b) => {
+      epssFindings: [...withEpss].sort((a, b) => (b.epss ?? 0) - (a.epss ?? 0)).slice(0, 20),
+      kevFindings: [...withKev].sort((a, b) => {
         const sevOrder: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
         return (sevOrder[a.severity] ?? 4) - (sevOrder[b.severity] ?? 4)
       }).slice(0, 20),
@@ -104,12 +104,24 @@ export default function ThreatIntel() {
 
 /* ---------- Overview ---------- */
 
-function OverviewTab({ stats, onNavigate }: { stats: ReturnType<typeof usePlaceholderStats>; onNavigate: (id: FeedId) => void }) {
+interface TIStats {
+  total: number
+  withCves: number
+  withEpss: number
+  withKev: number
+  highEpss: number
+  kevCritical: number
+  epssBuckets: { low: number; medium: number; high: number; critical: number }
+  epssFindings: any[]
+  kevFindings: any[]
+}
+
+function OverviewTab({ stats, onNavigate }: { stats: TIStats; onNavigate: (id: FeedId) => void }) {
   const kpis = [
-    { label: 'Findings with CVEs', value: stats.withCves, total: stats.total, color: 'text-blue-600' },
-    { label: 'EPSS Scored', value: stats.withEpss, total: stats.total, color: 'text-violet-600' },
+    { label: 'Findings with CVEs', value: stats.withCves, total: stats.total || 1, color: 'text-blue-600' },
+    { label: 'EPSS Scored', value: stats.withEpss, total: stats.total || 1, color: 'text-violet-600' },
     { label: 'EPSS >= 0.7 (Critical)', value: stats.highEpss, total: stats.withEpss || 1, color: 'text-red-600' },
-    { label: 'KEV Exploited', value: stats.withKev, total: stats.total, color: 'text-amber-600' },
+    { label: 'KEV Exploited', value: stats.withKev, total: stats.total || 1, color: 'text-amber-600' },
   ]
 
   const feeds = [
@@ -174,10 +186,6 @@ function OverviewTab({ stats, onNavigate }: { stats: ReturnType<typeof usePlaceh
       </div>
     </div>
   )
-}
-
-function usePlaceholderStats() {
-  return { total: 0, withCves: 0, withEpss: 0, withKev: 0, highEpss: 0, kevCritical: 0, epssBuckets: { low: 0, medium: 0, high: 0, critical: 0 }, epssFindings: [] as any[], kevFindings: [] as any[] }
 }
 
 /* ---------- EPSS ---------- */

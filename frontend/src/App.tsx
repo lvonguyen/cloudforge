@@ -7,13 +7,19 @@ import { ConfigProvider } from '@/lib/config-context'
 import { branding } from '@/lib/branding'
 import { TracePanelProvider } from '@/lib/trace-panel-context'
 import { AppShell } from '@/components/layout/AppShell'
-import { ExecutionTracePanel } from '@/components/layout/ExecutionTracePanel'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { RoutingErrorBoundary } from '@/components/ErrorBoundary'
 
-// Eager (always needed)
-import Landing from '@/pages/Landing'
+// Lazy: only renders when trace panel mode is set (returns null otherwise)
+const ExecutionTracePanel = lazy(() =>
+  import('@/components/layout/ExecutionTracePanel').then(m => ({ default: m.ExecutionTracePanel })),
+)
+
+// NotFound is small (17 lines) — keep eager for instant 404 rendering
 import NotFound from '@/pages/NotFound'
+
+// Landing is only served at "/" — lazy load to reduce initial bundle
+const Landing = lazy(() => import('@/pages/Landing'))
 
 // Admin pages (lazy)
 const AdminDashboard = lazy(() => import('@/pages/admin/Dashboard'))
@@ -80,7 +86,7 @@ export default function App() {
               <Route path="/callback" element={<Suspense fallback={<PageFallback />}><Callback /></Suspense>} />
               <Route element={<AppShell />}>
                 {/* Platform landing page */}
-                <Route index element={<Landing />} />
+                <Route index element={<Suspense fallback={<PageFallback />}><Landing /></Suspense>} />
 
                 {/* Admin routes */}
                 <Route element={<ProtectedRoute roles={['admin', 'viewer']}><Outlet /></ProtectedRoute>}>
@@ -144,7 +150,7 @@ export default function App() {
                 <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>
-            <ExecutionTracePanel />
+            <Suspense fallback={null}><ExecutionTracePanel /></Suspense>
           </BrowserRouter>
         </TracePanelProvider>
       </AuthProvider>

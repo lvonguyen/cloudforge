@@ -341,8 +341,8 @@ export default function Findings() {
     return sorted.slice(start, start + pageSize)
   }, [sorted, currentPage, pageSize])
 
-  // Reset to page 1 when filter results change
-  useEffect(() => { setPage(1) }, [filtered.length, pageSize])
+  // Reset to page 1 when filter inputs change
+  useEffect(() => { setPage(1) }, [selectedCategories, selectedProviders, selectedStatuses, deferredSearch, severityTab, filterSLABreached, filterAutoRem, pageSize])
 
   // Clear stale previewId when the selected finding is filtered out
   useEffect(() => {

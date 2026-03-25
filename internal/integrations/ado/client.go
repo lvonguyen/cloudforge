@@ -243,16 +243,21 @@ func (c *Client) AddComment(ctx context.Context, id, text string) (*commentRespo
 func (c *Client) doRequest(ctx context.Context, method, path, contentType string, body, dst interface{}) error {
 	const maxRetries = 3
 
-	var reqBody io.Reader
+	var bodyBytes []byte
 	if body != nil {
 		b, err := json.Marshal(body)
 		if err != nil {
 			return fmt.Errorf("marshalling request: %w", err)
 		}
-		reqBody = bytes.NewReader(b)
+		bodyBytes = b
 	}
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
+		var reqBody io.Reader
+		if bodyBytes != nil {
+			reqBody = bytes.NewReader(bodyBytes)
+		}
+
 		req, err := http.NewRequestWithContext(ctx, method, c.orgURL+path, reqBody)
 		if err != nil {
 			return err
@@ -281,10 +286,6 @@ func (c *Client) doRequest(ctx context.Context, method, path, contentType string
 					return ctx.Err()
 				case <-time.After(backoff):
 				}
-				if body != nil {
-					b, _ := json.Marshal(body)
-					reqBody = bytes.NewReader(b)
-				}
 				continue
 			}
 			return fmt.Errorf("ADO API %s %s: HTTP %d after %d retries", method, path, resp.StatusCode, maxRetries)
@@ -307,7 +308,7 @@ func (c *Client) doRequest(ctx context.Context, method, path, contentType string
 		}
 		return nil
 	}
-	return fmt.Errorf("unreachable")
+	return fmt.Errorf("ADO API %s %s: exhausted %d retries", method, path, maxRetries)
 }
 
 // ExternalID returns the string form of a work item ID for use as the TicketProvider external ID.

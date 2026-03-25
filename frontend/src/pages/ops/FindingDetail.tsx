@@ -50,8 +50,11 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
   const createTicket = useRemediateFinding()
   const [sheetOpen, setSheetOpen] = useState(false)
 
-  // Fetch attack paths to find any that include this finding (50 max — cached 5 min)
-  const { data: attackPathsData } = useAttackPaths(1, 50)
+  // Defer attack path fetch until Investigation tab is active (perf: avoids
+  // 50-item fetch on every FindingDetail mount when user only views Overview)
+  const [attackPathsRequested, setAttackPathsRequested] = useState(false)
+  const attackPathsEnabled = attackPathsRequested || activeTab === 'investigation'
+  const { data: attackPathsData } = useAttackPaths(1, 50, { enabled: attackPathsEnabled })
   const relatedPaths = useMemo(() => {
     if (!attackPathsData?.data || !finding) return []
     return attackPathsData.data.filter(p =>
@@ -447,7 +450,14 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {relatedPaths.length > 0 ? (
+              {!attackPathsEnabled ? (
+                <button
+                  onClick={() => setAttackPathsRequested(true)}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Load attack path analysis...
+                </button>
+              ) : relatedPaths.length > 0 ? (
                 <>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800">

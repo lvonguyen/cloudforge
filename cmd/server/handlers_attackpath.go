@@ -178,6 +178,8 @@ func (s *Server) buildAttackPathAnalysis(ctx context.Context, path *AttackPath) 
 	}
 
 	// If PuppyGraph is available and ID is safe, query for real connected resource counts.
+	// Safe: path.ID is validated by safeGraphID (alphanumeric, hyphens, underscores only),
+	// preventing Gremlin injection in the string concatenation below.
 	if s.graphClient != nil && safeGraphID.MatchString(path.ID) {
 		query := "g.V().has('id', '" + path.ID + "').both().both().dedup().count()"
 		result, err := s.graphClient.Query(ctx, graph.QueryRequest{

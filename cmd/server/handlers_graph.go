@@ -31,7 +31,7 @@ const maxGraphQueryLen = 4096
 // gremlinMutationPattern rejects Gremlin-specific mutation steps.
 // Uses [\s\x{00a0}\x{2000}-\x{200b}]* instead of \s* to match Unicode
 // whitespace (non-breaking space, em space, etc.) that Go's \s excludes.
-var gremlinMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|mergeV|mergeE|drop|sideEffect|inject|io|call|choose|property[\s\x{00a0}\x{2000}-\x{200b}]*\()`)
+var gremlinMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|mergeV|mergeE|drop|sideEffect|inject|io|call|choose|property[\s\x{00a0}\x{2000}-\x{200b}]*\(|map[\s\x{00a0}\x{2000}-\x{200b}]*\{|flatMap[\s\x{00a0}\x{2000}-\x{200b}]*\{|sack[\s\x{00a0}\x{2000}-\x{200b}]*\{|withComputer|Runtime|Thread|System|ProcessBuilder|Class\.forName)`)
 
 // cypherMutationPattern rejects Cypher-specific mutation keywords.
 var cypherMutationPattern = regexp.MustCompile(`(?i)\b(CREATE|MERGE|DELETE|DETACH|SET|REMOVE|CALL)\b`)
