@@ -46,7 +46,7 @@ See [diagrams/README.md](core/diagrams/README.md) -- 8 architecture diagrams (SV
 
 | Document | Description |
 |----------|-------------|
-| [wiz-attack-path-enhancements.md](research/wiz-attack-path-enhancements.md) | Graph-based attack path analysis roadmap |
+| [attack-path-enhancements.md](research/attack-path-enhancements.md) | Graph-based attack path analysis roadmap |
 | [INDUSTRY_LANDSCAPE.md](research/INDUSTRY_LANDSCAPE.md) | CSPM/CNAPP competitive landscape |
 | [puppygraph-poc.md](research/puppygraph-poc.md) | PuppyGraph zero-ETL graph POC notes |
 | [whitelabel-exploration.md](research/whitelabel-exploration.md) | Whitelabel strategy (4-phase) |

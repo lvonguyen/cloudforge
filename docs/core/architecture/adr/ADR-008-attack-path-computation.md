@@ -11,7 +11,7 @@ The project already has:
 - `AttackPathContext` struct in `internal/cspm/normalizer/schema.go` (score, blast radius, toxic combo flags)
 - `attack_path` field on the Finding type (frontend + backend)
 - Risk scoring integration in `internal/cspm/scoring/risk_scorer.go` that includes attack path context
-- Detailed research doc: `docs/research/wiz-attack-path-enhancements.md`
+- Detailed research doc: `docs/research/attack-path-enhancements.md`
 
 The question is: what level of implementation is appropriate for a portfolio reference implementation vs. a production system?
 
@@ -99,7 +99,7 @@ The Rust engine maintains identical output semantics to the Go engine — same J
 
 ## References
 
-- `docs/research/wiz-attack-path-enhancements.md` — industry research and architecture roadmap
+- `docs/research/attack-path-enhancements.md` — industry research and architecture roadmap
 - `internal/cspm/normalizer/schema.go` — AttackPathContext struct
 - `internal/cspm/scoring/risk_scorer.go` — risk scoring with attack path context
 - `rust/libaegispath/` — Rust library source (lib.rs, Cargo.toml)

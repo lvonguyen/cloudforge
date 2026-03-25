@@ -427,7 +427,7 @@ workflow:
 | [DR/BC Plan](docs/core/architecture/DR-BC.md) | Disaster recovery procedures (v2.1) |
 | [Component Rationale](docs/core/architecture/adr/component-rationale.md) | Build vs buy decisions |
 | [Dual-OPA Architecture](docs/core/diagrams/dual-opa-architecture.svg) | Cloud provisioning OPA (HTTP) vs AI governance OPA (embedded) |
-| [Attack Path Enhancements](docs/research/wiz-attack-path-enhancements.md) | Wiz-adjacent graph-based attack path analysis roadmap |
+| [Attack Path Enhancements](docs/research/attack-path-enhancements.md) | Graph-based attack path analysis roadmap |
 | [Compliance Deployment Models](docs/core/diagrams/compliance-deployment-models.svg) | Multi-cloud compliance topology |
 | [Failover Sequence](docs/core/diagrams/failover-sequence.svg) | DR failover steps and timing |
 | [Global Deployment](docs/core/diagrams/global-deployment-architecture.svg) | Multi-region deployment layout |

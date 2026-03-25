@@ -51,7 +51,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added (prior sprints)
 
-- **Sprint E**: Client-side mock attack path generator for standalone demo; `AttackPathMiniGraph` embedded in `FindingDetail` Investigation tab (Wiz pattern) (Sprint E)
+- **Sprint E**: Client-side mock attack path generator for standalone demo; `AttackPathMiniGraph` embedded in `FindingDetail` Investigation tab (industry pattern) (Sprint E)
 - **Sprint E**: `SecurityGraph` focus mode — BFS 2-hop subgraph from selected node; connected-only default (hides isolated nodes) (Sprint E)
 - **Sprint E**: AI cost budget guard — `MonthlyBudgetCents` config, `ErrBudgetExhausted` error, enforced before enrichment calls (Sprint E)
 - **Sprint E**: Extended Bedrock enrichment — confidence scoring field, Opus/Sonnet tier routing based on finding severity (Sprint E)
