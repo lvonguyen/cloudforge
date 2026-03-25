@@ -682,7 +682,6 @@ export default function Request() {
 
     // Emit audit trace for the submit action
     const submitSpan: Span = {
-      trace_id: `nrr-${Date.now()}`,
       span_id: `submit-${Date.now()}`,
       name: 'resource_request.submit',
       type: 'tool',
@@ -700,6 +699,7 @@ export default function Request() {
           output_hash: 'sha256:res-' + Date.now().toString(16),
         },
       },
+      events: [],
       attributes: {
         'request.resource': resource?.name ?? selectedResource,
         'request.provider': cloudProvider,

@@ -153,4 +153,3 @@ func extractAzureSecretName(id string) string {
 	}
 	return name
 }
-
