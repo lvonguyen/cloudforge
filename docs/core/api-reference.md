@@ -50,6 +50,12 @@ Error codes: `BAD_REQUEST`, `FORBIDDEN`, `NOT_FOUND`, `{RESOURCE}_NOT_FOUND`, `C
 | GET | `/api/v1/config` | Tenant branding + feature flags |
 | GET | `/config.json` | Alias for config (frontend SPA) |
 
+### Providers (Unauthenticated)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/providers` | Provider status for all integration subsystems (GRC, identity, FinOps, container, workflow, WAF, secrets) |
+
 ### Findings
 
 | Method | Path | Roles | Paginated | Description |
@@ -64,6 +70,9 @@ Error codes: `BAD_REQUEST`, `FORBIDDEN`, `NOT_FOUND`, `{RESOURCE}_NOT_FOUND`, `C
 | DELETE | `/api/v1/findings/{id}/comments/{commentId}` | operator, admin | No | Delete finding comment |
 | POST | `/api/v1/findings/{id}/remediate` | operator, admin | No | Create remediation ticket (integration layer) |
 | GET | `/api/v1/findings/{id}/ticket` | operator, admin | No | Get linked ticket status |
+| GET | `/api/v1/findings/{id}/ticket/comments` | viewer, operator, admin | No | List ticket comments (from integration) |
+| POST | `/api/v1/findings/{id}/ticket/comments` | operator, admin | No | Add comment to linked ticket |
+| POST | `/api/v1/findings/{id}/ticket/sync` | operator, admin | No | Force-refresh ticket status from integration |
 | POST | `/api/v1/findings/search` | operator, admin | Yes | BM25 + semantic hybrid search |
 
 #### POST /api/v1/findings/search
