@@ -76,7 +76,7 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 | Terraform modules (compute) | Done | Cloud Run + ECS Fargate + Azure Container Apps |
 | Terraform modules (database) | Done | Cloud SQL + RDS + Azure PostgreSQL |
 | Terraform modules (redis) | Done | Memorystore + ElastiCache + Azure Cache |
-| Rego policies (IaC) | Done | 5 policies, 25 rules (security, cost, naming, network, AI) |
+| Rego policies (IaC) | Done | 4 policies, 21 rules (security, cost, network, regions) |
 | Policy gate script | Done | `terraform plan` + `conftest` pipeline |
 | Deploy Dockerfiles | Done | Multi-stage frontend (nginx) + backend (Go) |
 | Environment configs | Done | Dev environment with GCS remote state |
@@ -549,7 +549,7 @@ Built-in support for 20+ frameworks:
 ### Phase 3: IaC, Portal & Workflows (Complete)
 
 - [x] Multi-cloud Terraform modules (compute, database, redis, network)
-- [x] Rego policy gate for IaC validation (5 policies, 25 rules)
+- [x] Rego policy gate for IaC validation (4 policies, 21 rules)
 - [x] Deploy scripts with dry-run-by-default and policy violation gate
 - [x] Container Dockerfiles (frontend nginx + backend Go)
 - [x] Self-service portal UI (React 19 / Vite 7 + shadcn/ui) — deployed to cloudaegis-demo.lvonguyen.com

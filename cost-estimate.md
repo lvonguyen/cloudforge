@@ -71,7 +71,7 @@
 | Infrastructure           | 3.5/5  | Docker multi-stage, fly.toml (Fly.io), Cloudflare Pages, R2 storage, GitHub Actions CI (gosec, Trivy, Codecov, vitest, npm audit, CycloneDX SBOM), goreleaser, Terraform (1,627 LOC), k6 load test scripts. No K8s yet. |
 | Data layer               | 4.0/5  | Mock data architecture with LFS (42MB), trim script for demo (20K to 500), R2 CDN fallback chain, dedup cache with background eviction, singleflight for enrichment, DataStore with 4 lookup maps, attack path BFS topology. |
 | Integration surface      | 4.0/5  | Okta + Entra ID (config-driven, mock fallback), Asana/Jira/ServiceNow stubs (GRC), AI provider abstraction (Anthropic/OpenAI/Bedrock), comment CRUD, webhook system, container scanner, VCS integrations (GitHub/GitLab/Azure DevOps). |
-| Documentation maturity   | 4.5/5  | 14 ADRs, STRIDE threat model (T-01/T-02 implemented), HANDOFF doc (92%), CHANGELOG, HLD, DDD analysis, 28K lines of markdown. Comprehensive inline docs. |
+| Documentation maturity   | 4.5/5  | 19 ADRs, STRIDE threat model (T-01/T-02 implemented), HANDOFF doc (92%), CHANGELOG, HLD, DDD analysis, 28K lines of markdown. Comprehensive inline docs. |
 | **Weighted average**     | **4.14/5** | |
 
 ---
@@ -305,7 +305,7 @@
 
 [*] Quality indicators that would increase human team cost:
 - 56% test-to-source ratio exceeds the industry average (~30%).
-- 14 ADRs is unusual for a project of this age -- most teams defer or skip architectural decision records.
+- 19 ADRs is unusual for a project of this age -- most teams defer or skip architectural decision records.
 - STRIDE threat model with implemented mitigations (T-01, T-02) is rare outside compliance-mandated environments.
 - The iterative QA process (3 blind agents, 4.5+ threshold) has no direct human equivalent without dedicated QA headcount.
 

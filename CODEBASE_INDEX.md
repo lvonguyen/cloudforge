@@ -124,6 +124,6 @@ Layer key format: `"group:value"` — parsed via `parseLayerKey()`, built via `l
 
 ## Test Infrastructure
 
-- **Frontend**: Vitest + jsdom + @testing-library/react, 323 tests across 38 files
-- **Backend**: Go standard testing, 1474 tests across 34 packages, -race clean, sync.Once for 42MB LFS fixture
+- **Frontend**: Vitest + jsdom + @testing-library/react, 543 tests across 52 files
+- **Backend**: Go standard testing, 1276 tests across 39 packages, -race clean, sync.Once for 42MB LFS fixture
 - **CI**: GitHub Actions — Frontend Checks, Build & Test, Lint, Security Scan, OPA Policy Test, Cloudflare Pages

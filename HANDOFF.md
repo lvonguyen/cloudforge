@@ -14,7 +14,7 @@
 [+] Audit: real audit logging with integrity hashes (MemoryAuditLogger + ZapAuditLogger)
 [+] Ingest: POST /api/v1/findings/ingest with SHA-256 dedup, 24h TTL
 [+] STRIDE: T-01 (integrity) and T-02 (rollback encryption) controls implemented
-[+] Testing: 34 Go packages / 1474 tests (-race clean), 323 frontend tests (38 files), 8 benchmarks
+[+] Testing: 39 Go packages / 1276 tests (-race clean), 543 frontend tests (52 files), 8 benchmarks
 [+] Previous: Sprint 4 (9 commits), Sprint 5-7 (test coverage, docs, interview holes)
 
 ## Sprint 4 Summary
@@ -43,8 +43,8 @@
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| Go backend | Healthy | `go build ./...` clean, `go vet ./...` clean, 1474 tests passing (34 packages), `-race` clean |
-| Frontend | Healthy | `tsc` clean, 323 tests passing, Cloudflare Pages deployed, Lighthouse CI budgeted |
+| Go backend | Healthy | `go build ./...` clean, `go vet ./...` clean, 1276 tests passing (39 packages), `-race` clean |
+| Frontend | Healthy | `tsc` clean, 543 tests passing, Cloudflare Pages deployed, Lighthouse CI budgeted |
 | Benchmarks | Passing | 8/8 (GetFinding, ListAttackPaths, ServerStartup, GetCached_Hit/Miss, EvictExpired_5000, AttackPathComputation, ListFindings) |
 | CI | Green | golangci-lint clean, all GitHub Actions passing |
 | Dev mode | Working | `make dev` starts backend (:8080) + frontend (:5173) |
