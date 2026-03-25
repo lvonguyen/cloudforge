@@ -86,6 +86,7 @@ docs/STANDARDS.md
 # Raw findings exports (large, scrubbed but not for VCS)
 testdata/export-scripts/output/
 export-outputs/
+__pycache__/
 
 # Stale backups
 *.bck.yml
@@ -121,6 +122,9 @@ deploy/terraform/environments/haea/
 configs/haea/
 configs/tenants/haea*
 frontend/.env.haea
+
+# Raw findings data (HAEA-sensitive, never commit)
+data/
 
 # Generated sprint plans (superseded)
 tasks/next-sprint.md
