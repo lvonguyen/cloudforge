@@ -1,0 +1,4 @@
+FROM postgres:16-alpine
+COPY migrations/ /migrations/
+ENTRYPOINT ["sh", "-c"]
+CMD ["for f in /migrations/*.sql; do echo \"=== Running $f ===\"; psql \"${AEGIS_DATABASE_URL:-$DATABASE_URL}\" -f \"$f\" || exit 1; done && echo '=== All migrations complete ==='"]
