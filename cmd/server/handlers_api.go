@@ -154,9 +154,11 @@ func (s *Server) findingsStats(w http.ResponseWriter, r *http.Request) {
 }
 
 // sortFindings sorts a slice of findings by the given field. Supported fields:
-// severity, ai_risk, first_found_at, title, status. Default order is ascending.
+// severity, ai_risk, first_found_at, title, status. Default order is ascending;
+// for severity, "desc" means most severe first (CRITICAL → LOW).
 func sortFindings(findings []Finding, field string, desc bool) {
-	sevOrder := map[string]int{"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}
+	// Higher number = more severe, so desc sorts CRITICAL first
+	sevOrder := map[string]int{"INFO": 0, "LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4}
 
 	sort.Slice(findings, func(i, j int) bool {
 		var less bool
