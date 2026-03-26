@@ -3,7 +3,7 @@ import { TrendingUp, TrendingDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 function formatDollars(amount: number): string {
-  if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(2)}M`
+  if (amount >= 1_000_000) return `$${parseFloat((amount / 1_000_000).toFixed(2))}M`
   if (amount >= 1_000) return `$${(amount / 1_000).toFixed(0)}K`
   return `$${amount.toFixed(0)}`
 }
