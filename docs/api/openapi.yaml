@@ -1,0 +1,3022 @@
+openapi: 3.1.0
+info:
+  title: Cloud Aegis API
+  version: 1.0.0-beta
+  description: |
+    Multi-cloud CSPM platform API providing security findings, compliance posture,
+    attack path analysis, remediation workflows, cost management, and integrated
+    terminal access. RBAC is enforced via JWT claims with four roles:
+    viewer, requester, operator, admin (least to most privileged).
+  contact:
+    name: Liem Vo-Nguyen
+    email: liem@vonguyen.io
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://api-personal.lvonguyen.com
+    description: Production (AWS ECS Fargate)
+  - url: http://localhost:8080
+    description: Development
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: System
+    description: Health checks, metrics, provider status, and configuration
+  - name: Findings
+    description: Security findings from CSPM scanners with filtering, search, and RQL query
+  - name: Compliance
+    description: Compliance frameworks, posture scoring, and control mapping
+  - name: Agents
+    description: AI agent registry and execution traces
+  - name: Costs
+    description: FinOps cost summary with anomaly detection and chargeback
+  - name: Remediations
+    description: Remediation execution records and status management
+  - name: Exceptions
+    description: GRC policy exception lifecycle (request, approve, withdraw)
+  - name: Policies
+    description: OPA policy registry and evaluation statistics
+  - name: Attack Paths
+    description: Computed attack path chains with AI-enriched analysis
+  - name: Graph
+    description: PuppyGraph query proxy for Gremlin and Cypher traversals
+  - name: Containers
+    description: Container topology, vulnerability scanning, and admission control
+  - name: Secrets
+    description: Secret inventory, scanning, upload analysis, and org-wide scans
+  - name: WAF
+    description: WAF template management and compliance validation
+  - name: Identity
+    description: Identity provider user listing and risk scoring
+  - name: AI/NLQ
+    description: Natural language query parsing and AI usage budget
+  - name: Deploy
+    description: Infrastructure deploy preview orchestration
+  - name: Workflows
+    description: Workflow orchestration with approval gates
+  - name: Webhooks
+    description: Webhook endpoint management and delivery history
+  - name: ASM
+    description: Attack surface management scanning and asset discovery
+  - name: Terminal
+    description: Integrated terminal with WebSocket and ticket-based auth
+  - name: Integration
+    description: Ticket provider routing (Asana, Jira, ADO) and comment sync
+
+paths:
+  # ---------------------------------------------------------------------------
+  # System (unauthenticated)
+  # ---------------------------------------------------------------------------
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      tags: [System]
+      security: []
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /healthz:
+    get:
+      operationId: getLiveness
+      summary: Kubernetes liveness probe
+      tags: [System]
+      security: []
+      responses:
+        "200":
+          description: Alive
+
+  /ready:
+    get:
+      operationId: getReadiness
+      summary: Kubernetes readiness probe
+      tags: [System]
+      security: []
+      responses:
+        "200":
+          description: Ready
+        "503":
+          description: Not ready
+
+  /metrics:
+    get:
+      operationId: getMetrics
+      summary: Prometheus metrics
+      tags: [System]
+      security: []
+      responses:
+        "200":
+          description: Prometheus text exposition format
+          content:
+            text/plain: {}
+
+  /api/v1/providers:
+    get:
+      operationId: getProviderStatus
+      summary: Provider deployment status
+      description: Returns configured provider names for each subsystem. Unauthenticated.
+      tags: [System]
+      security: []
+      responses:
+        "200":
+          description: Provider status map
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  grc:
+                    type: string
+                  identity:
+                    type: array
+                    items:
+                      type: string
+                  finops:
+                    type: string
+                  container:
+                    type: string
+                  workflow:
+                    type: string
+                  waf:
+                    type: string
+
+  /api/v1/config:
+    get:
+      operationId: getConfig
+      summary: Tenant branding and feature configuration
+      description: Returns whitelabel branding, enabled modules, and feature flags. Unauthenticated -- must load before auth.
+      tags: [System]
+      security: []
+      responses:
+        "200":
+          description: Runtime configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfigResponse"
+
+  /config.json:
+    get:
+      operationId: getConfigJSON
+      summary: Alias for /api/v1/config
+      tags: [System]
+      security: []
+      responses:
+        "200":
+          description: Runtime configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfigResponse"
+
+  # ---------------------------------------------------------------------------
+  # Findings
+  # ---------------------------------------------------------------------------
+  /api/v1/findings:
+    get:
+      operationId: listFindings
+      summary: List security findings
+      description: "RBAC: viewer, operator, admin. Scope-filtered by JWT claims."
+      tags: [Findings]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/severity"
+        - $ref: "#/components/parameters/provider"
+        - $ref: "#/components/parameters/status"
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [severity, ai_risk, ai_risk_score, first_found_at, title, status]
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/perPage"
+      responses:
+        "200":
+          description: Paginated findings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedFindings"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/v1/findings/stats:
+    get:
+      operationId: getFindingsStats
+      summary: Findings aggregate statistics
+      description: "RBAC: viewer, operator, admin."
+      tags: [Findings]
+      x-rbac: [viewer, operator, admin]
+      responses:
+        "200":
+          description: Aggregate stats by severity, status, provider, category with delta indicators
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FindingsStats"
+
+  /api/v1/findings/query:
+    get:
+      operationId: queryFindings
+      summary: RQL-based finding query
+      description: "RBAC: viewer, operator, admin. Evaluates RQL expressions against all findings."
+      tags: [Findings]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: RQL query string (max 1024 chars)
+          schema:
+            type: string
+            maxLength: 1024
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/perPage"
+      responses:
+        "200":
+          description: Paginated matching findings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedFindings"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/findings/search:
+    post:
+      operationId: searchFindings
+      summary: Full-text and semantic finding search
+      description: "RBAC: operator, admin. BM25 keyword, semantic embedding, or hybrid search."
+      tags: [Findings]
+      x-rbac: [operator, admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchRequest"
+      responses:
+        "200":
+          description: Scored search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          description: Search service not available
+
+  /api/v1/findings/ingest:
+    post:
+      operationId: ingestFinding
+      summary: Ingest a new finding
+      description: "RBAC: admin only. Deduplicates by SHA-256 key (source + source_finding_id + resource_id + account_id)."
+      tags: [Findings]
+      x-rbac: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IngestRequest"
+      responses:
+        "201":
+          description: Finding accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Duplicate finding
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestResponse"
+
+  /api/v1/findings/{id}:
+    get:
+      operationId: getFinding
+      summary: Get a single finding
+      description: "RBAC: viewer, operator, admin. Scope-enforced."
+      tags: [Findings]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/findingId"
+      responses:
+        "200":
+          description: Finding detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Finding"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/findings/{id}/enrich:
+    post:
+      operationId: enrichFinding
+      summary: AI-enrich a finding
+      description: "RBAC: operator, admin. OPA policy gate applies when configured."
+      tags: [Findings]
+      x-rbac: [operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/findingId"
+      responses:
+        "200":
+          description: Enrichment result
+          content:
+            application/json:
+              schema:
+                type: object
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          description: AI enrichment not enabled
+
+  /api/v1/findings/{id}/comments:
+    get:
+      operationId: listFindingComments
+      summary: List comments on a finding
+      description: "RBAC: viewer, requester, operator, admin. Scope-guarded."
+      tags: [Findings]
+      x-rbac: [viewer, requester, operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/findingId"
+      responses:
+        "200":
+          description: Array of comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FindingComment"
+    post:
+      operationId: addFindingComment
+      summary: Add a comment to a finding
+      description: "RBAC: operator, admin. Scope-guarded."
+      tags: [Findings]
+      x-rbac: [operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/findingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
+                  maxLength: 4096
+      responses:
+        "201":
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FindingComment"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/findings/{id}/comments/{commentId}:
+    delete:
+      operationId: deleteFindingComment
+      summary: Delete a comment
+      description: "RBAC: admin only. Scope-guarded."
+      tags: [Findings]
+      x-rbac: [admin]
+      parameters:
+        - $ref: "#/components/parameters/findingId"
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Comment deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # Compliance
+  # ---------------------------------------------------------------------------
+  /api/v1/compliance/frameworks:
+    get:
+      operationId: listFrameworks
+      summary: List compliance frameworks
+      description: "RBAC: viewer, operator, admin."
+      tags: [Compliance]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/perPage"
+      responses:
+        "200":
+          description: Paginated compliance frameworks
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
+
+  /api/v1/compliance/posture:
+    get:
+      operationId: getCompliancePosture
+      summary: Compliance posture overview
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Compliance]
+      x-rbac: [viewer, operator, admin]
+      responses:
+        "200":
+          description: Array of framework summaries with control counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompliancePostureSummary"
+
+  /api/v1/compliance/controls/{fw}:
+    get:
+      operationId: getComplianceControls
+      summary: Controls for a specific framework
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Compliance]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: fw
+          in: path
+          required: true
+          description: Framework ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Array of controls
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ComplianceControl"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # Agents
+  # ---------------------------------------------------------------------------
+  /api/v1/agents:
+    get:
+      operationId: listAgents
+      summary: List AI agents
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Agents]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/perPage"
+      responses:
+        "200":
+          description: Paginated agents
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
+
+  /api/v1/agents/{id}:
+    get:
+      operationId: getAgent
+      summary: Get agent detail
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Agents]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Agent detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agent"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/agents/{id}/traces:
+    get:
+      operationId: listAgentTraces
+      summary: Agent execution traces
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Agents]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Array of execution traces
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AgentTrace"
+
+  # ---------------------------------------------------------------------------
+  # Costs
+  # ---------------------------------------------------------------------------
+  /api/v1/costs/summary:
+    get:
+      operationId: getCostSummary
+      summary: FinOps cost summary (30-day)
+      description: "RBAC: viewer, operator, admin. Scope-guarded. Computed from aggregator with anomaly detection and chargeback allocation."
+      tags: [Costs]
+      x-rbac: [viewer, operator, admin]
+      responses:
+        "200":
+          description: Cost summary with daily breakdown, anomalies, and chargeback
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CostSummary"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  # ---------------------------------------------------------------------------
+  # Remediations
+  # ---------------------------------------------------------------------------
+  /api/v1/remediations:
+    get:
+      operationId: listRemediations
+      summary: List remediation records
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Remediations]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/status"
+        - name: tier
+          in: query
+          schema:
+            type: integer
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/perPage"
+      responses:
+        "200":
+          description: Paginated remediations
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
+
+  /api/v1/remediations/{id}:
+    get:
+      operationId: getRemediation
+      summary: Get remediation detail
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Remediations]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Remediation record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RemediationRecord"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: patchRemediation
+      summary: Update remediation status
+      description: "RBAC: operator, admin. Scope-guarded."
+      tags: [Remediations]
+      x-rbac: [operator, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [pending, in_progress, completed, failed, skipped]
+      responses:
+        "200":
+          description: Updated remediation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RemediationRecord"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/remediations/{id}/execute:
+    post:
+      operationId: executeRemediation
+      summary: Execute a remediation
+      description: "RBAC: operator, admin. Scope-guarded."
+      tags: [Remediations]
+      x-rbac: [operator, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Execution started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: executing
+                  remediation_id:
+                    type: string
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # Exceptions (GRC)
+  # ---------------------------------------------------------------------------
+  /api/v1/exceptions:
+    post:
+      operationId: createException
+      summary: Create a policy exception request
+      description: "RBAC: operator, admin."
+      tags: [Exceptions]
+      x-rbac: [operator, admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExceptionRequest"
+      responses:
+        "201":
+          description: Exception created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exception"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/exceptions/pending:
+    get:
+      operationId: getPendingExceptions
+      summary: List pending approval exceptions
+      description: "RBAC: viewer, operator, admin."
+      tags: [Exceptions]
+      x-rbac: [viewer, operator, admin]
+      responses:
+        "200":
+          description: Array of pending exceptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Exception"
+
+  /api/v1/exceptions/expiring:
+    get:
+      operationId: getExpiringExceptions
+      summary: List soon-to-expire exceptions
+      description: "RBAC: viewer, operator, admin."
+      tags: [Exceptions]
+      x-rbac: [viewer, operator, admin]
+      responses:
+        "200":
+          description: Array of expiring exceptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Exception"
+
+  /api/v1/exceptions/mine:
+    get:
+      operationId: getMyExceptions
+      summary: List current user's exceptions
+      description: "RBAC: viewer, requester, operator, admin."
+      tags: [Exceptions]
+      x-rbac: [viewer, requester, operator, admin]
+      responses:
+        "200":
+          description: Array of user's exceptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Exception"
+
+  /api/v1/exceptions/{id}:
+    get:
+      operationId: getException
+      summary: Get exception detail
+      description: "RBAC: viewer, operator, admin."
+      tags: [Exceptions]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Exception detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exception"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/exceptions/{id}/approve:
+    post:
+      operationId: approveException
+      summary: Submit approval decision
+      description: "RBAC: admin only."
+      tags: [Exceptions]
+      x-rbac: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Approval recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exception"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/exceptions/{id}/withdraw:
+    post:
+      operationId: withdrawException
+      summary: Withdraw an exception request
+      description: "RBAC: requester, operator, admin."
+      tags: [Exceptions]
+      x-rbac: [requester, operator, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Exception withdrawn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exception"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/applications/{appId}/exceptions:
+    get:
+      operationId: getExceptionsByApp
+      summary: Exceptions for an application
+      description: "RBAC: viewer, operator, admin."
+      tags: [Exceptions]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Array of exceptions for the application
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Exception"
+
+  /api/v1/validate/exception:
+    post:
+      operationId: validateException
+      summary: Validate exception feasibility
+      description: "RBAC: operator, admin. Pre-flight check before creating an exception."
+      tags: [Exceptions]
+      x-rbac: [operator, admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [application_id, policy_code]
+              properties:
+                application_id:
+                  type: string
+                policy_code:
+                  type: string
+      responses:
+        "200":
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ---------------------------------------------------------------------------
+  # Policies
+  # ---------------------------------------------------------------------------
+  /api/v1/policies:
+    get:
+      operationId: listPolicies
+      summary: List OPA policies
+      description: "RBAC: viewer, operator, admin."
+      tags: [Policies]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/status"
+        - name: category
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/perPage"
+      responses:
+        "200":
+          description: Paginated policies
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
+
+  /api/v1/policies/{id}:
+    get:
+      operationId: getPolicy
+      summary: Get policy detail
+      description: "RBAC: viewer, operator, admin."
+      tags: [Policies]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Policy detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Policy"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # Attack Paths
+  # ---------------------------------------------------------------------------
+  /api/v1/attack-paths:
+    get:
+      operationId: listAttackPaths
+      summary: List attack paths
+      description: "RBAC: viewer, operator, admin. Scope-filtered."
+      tags: [Attack Paths]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/perPage"
+      responses:
+        "200":
+          description: Paginated attack paths
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
+
+  /api/v1/attack-paths/stats:
+    get:
+      operationId: getAttackPathStats
+      summary: Attack path statistics
+      description: "RBAC: viewer, operator, admin."
+      tags: [Attack Paths]
+      x-rbac: [viewer, operator, admin]
+      responses:
+        "200":
+          description: Attack path aggregates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttackPathStats"
+
+  /api/v1/attack-paths/{id}:
+    get:
+      operationId: getAttackPath
+      summary: Get attack path detail
+      description: "RBAC: viewer, operator, admin. Scope-filtered."
+      tags: [Attack Paths]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Attack path detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttackPath"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/attack-paths/{id}/analysis:
+    get:
+      operationId: getAttackPathAnalysis
+      summary: AI-enriched attack path analysis
+      description: "RBAC: viewer, operator, admin. Uses PuppyGraph when available for blast radius."
+      tags: [Attack Paths]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Analysis with remediation steps and risk factors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttackPathAnalysis"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # Graph
+  # ---------------------------------------------------------------------------
+  /api/v1/graph/query:
+    post:
+      operationId: queryGraph
+      summary: Execute a graph query
+      description: "RBAC: operator, admin. Scope-guarded. Read-only -- mutation keywords are rejected. Feature-flagged via PUPPYGRAPH_URL."
+      tags: [Graph]
+      x-rbac: [operator, admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GraphQueryRequest"
+      responses:
+        "200":
+          description: Query result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphQueryResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          description: Mutation query rejected
+        "501":
+          description: Graph engine not configured
+        "502":
+          description: Graph query execution failed
+
+  # ---------------------------------------------------------------------------
+  # Data Classification (DSPM)
+  # ---------------------------------------------------------------------------
+  /api/v1/data-classification/assets:
+    get:
+      operationId: listDataClassificationAssets
+      summary: List data classification assets
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Findings]
+      x-rbac: [viewer, operator, admin]
+      responses:
+        "200":
+          description: Data classification assets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+
+  # ---------------------------------------------------------------------------
+  # Containers
+  # ---------------------------------------------------------------------------
+  /api/v1/containers:
+    get:
+      operationId: listContainers
+      summary: Container cluster topology
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Containers]
+      x-rbac: [viewer, operator, admin]
+      responses:
+        "200":
+          description: Container topology with clusters, namespaces, pods
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContainerTopology"
+
+  /api/v1/containers/{id}:
+    get:
+      operationId: getContainer
+      summary: Get container detail
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Containers]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Container with vulnerability list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Container"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/container/scan:
+    get:
+      operationId: scanContainer
+      summary: Scan a container image
+      description: "RBAC: operator, admin. Scope-guarded."
+      tags: [Containers]
+      x-rbac: [operator, admin]
+      parameters:
+        - name: image
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: tag
+          in: query
+          schema:
+            type: string
+            default: latest
+      responses:
+        "200":
+          description: Scan result
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/container/admission:
+    get:
+      operationId: checkAdmission
+      summary: Container admission check
+      description: "RBAC: operator, admin. Scope-guarded."
+      tags: [Containers]
+      x-rbac: [operator, admin]
+      parameters:
+        - name: image
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: tag
+          in: query
+          schema:
+            type: string
+            default: latest
+        - name: namespace
+          in: query
+          schema:
+            type: string
+            default: default
+      responses:
+        "200":
+          description: Admission decision
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ---------------------------------------------------------------------------
+  # Secrets
+  # ---------------------------------------------------------------------------
+  /api/v1/secrets:
+    get:
+      operationId: listSecrets
+      summary: List secret paths
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Secrets]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: prefix
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Secret paths
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  provider:
+                    type: string
+                  paths:
+                    type: array
+                    items:
+                      type: string
+                  count:
+                    type: integer
+
+  /api/v1/secrets/scan:
+    post:
+      operationId: scanSecrets
+      summary: Scan content for embedded secrets
+      description: "RBAC: operator, admin. Scope-guarded."
+      tags: [Secrets]
+      x-rbac: [operator, admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+      responses:
+        "200":
+          description: Scan findings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  findings:
+                    type: array
+                    items:
+                      type: object
+                  count:
+                    type: integer
+
+  /api/v1/secrets/upload:
+    post:
+      operationId: uploadSuspectedSecret
+      summary: Upload suspected secret for ephemeral analysis
+      description: "RBAC: operator, admin. Scope-guarded. TLS required. Content is never persisted."
+      tags: [Secrets]
+      x-rbac: [operator, admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [secret_type, content]
+              properties:
+                secret_type:
+                  type: string
+                  enum:
+                    - api_token
+                    - ssh_keypair
+                    - oauth_secret
+                    - aws_access_key
+                    - azure_spn
+                    - gcp_sa_key
+                    - generic_password
+                    - certificate_pem
+                content:
+                  type: string
+                  maxLength: 65536
+      responses:
+        "200":
+          description: Ephemeral scan result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secret_type:
+                    type: string
+                  findings:
+                    type: array
+                    items:
+                      type: object
+                  count:
+                    type: integer
+                  ephemeral:
+                    type: boolean
+        "403":
+          description: TLS required
+        "413":
+          description: Content exceeds 64KB limit
+
+  /api/v1/secrets/org-scan:
+    post:
+      operationId: orgSecretsScan
+      summary: Org-wide secrets scan
+      description: "RBAC: admin only."
+      tags: [Secrets]
+      x-rbac: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [org_name]
+              properties:
+                org_name:
+                  type: string
+      responses:
+        "200":
+          description: Org scan result
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/secrets/{path}:
+    get:
+      operationId: getSecret
+      summary: Get secret metadata (value never exposed)
+      description: "RBAC: viewer, operator, admin. Scope-guarded. Wildcard path segment."
+      tags: [Secrets]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Secret metadata (no value)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  path:
+                    type: string
+                  version:
+                    type: string
+                  metadata:
+                    type: object
+                  created:
+                    type: string
+                  updated:
+                    type: string
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # WAF
+  # ---------------------------------------------------------------------------
+  /api/v1/waf/templates:
+    get:
+      operationId: listWAFTemplates
+      summary: List WAF templates
+      description: "RBAC: viewer, operator, admin."
+      tags: [WAF]
+      x-rbac: [viewer, operator, admin]
+      responses:
+        "200":
+          description: WAF templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items:
+                      type: object
+                  count:
+                    type: integer
+
+  /api/v1/waf/compliance/{templateId}:
+    get:
+      operationId: validateWAFCompliance
+      summary: Validate WAF compliance
+      description: "RBAC: viewer, operator, admin."
+      tags: [WAF]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: resource
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Compliance validation result
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # Identity
+  # ---------------------------------------------------------------------------
+  /api/v1/identity/users:
+    get:
+      operationId: listIdentityUsers
+      summary: List identity provider users
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Identity]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: provider
+          in: query
+          description: Identity provider name (default okta)
+          schema:
+            type: string
+            default: okta
+      responses:
+        "200":
+          description: Identity users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  provider:
+                    type: string
+                  users:
+                    type: array
+                    items:
+                      type: object
+                  count:
+                    type: integer
+
+  /api/v1/identity/users/{id}/risk:
+    get:
+      operationId: getIdentityUserRisk
+      summary: Get identity user risk score
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Identity]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: provider
+          in: query
+          schema:
+            type: string
+            default: okta
+      responses:
+        "200":
+          description: User risk assessment
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # AI/NLQ
+  # ---------------------------------------------------------------------------
+  /api/v1/ai/nlq:
+    post:
+      operationId: queryNLQ
+      summary: Natural language query to structured filters
+      description: "RBAC: operator, admin. Scope-guarded. Rate-limited to ~20 req/min per user."
+      tags: [AI/NLQ]
+      x-rbac: [operator, admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  maxLength: 500
+      responses:
+        "200":
+          description: Parsed structured filters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NLQResponse"
+        "429":
+          description: Rate limit exceeded
+        "503":
+          description: AI provider not configured
+
+  /api/v1/ai/usage:
+    get:
+      operationId: getAIUsage
+      summary: AI budget and usage status
+      description: "RBAC: admin only."
+      tags: [AI/NLQ]
+      x-rbac: [admin]
+      responses:
+        "200":
+          description: AI usage and budget status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  monthly_budget_cents:
+                    type: integer
+                  spent_cents:
+                    type: integer
+                  remaining_cents:
+                    type: integer
+                  exhausted:
+                    type: boolean
+                  tiers:
+                    type: array
+                    items:
+                      type: object
+
+  # ---------------------------------------------------------------------------
+  # Deploy
+  # ---------------------------------------------------------------------------
+  /api/v1/deploy/preview:
+    post:
+      operationId: startDeployPreview
+      summary: Start a deploy preview
+      description: "RBAC: operator, admin. Returns execution ID; progress is streamed via WebSocket."
+      tags: [Deploy]
+      x-rbac: [operator, admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeployPreviewConfig"
+      responses:
+        "202":
+          description: Preview started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  execution_id:
+                    type: string
+
+  /api/v1/deploy/preview/{id}/abort:
+    post:
+      operationId: abortDeployPreview
+      summary: Abort a running deploy preview
+      description: "RBAC: operator, admin."
+      tags: [Deploy]
+      x-rbac: [operator, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Aborted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: aborted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # Workflows
+  # ---------------------------------------------------------------------------
+  /api/v1/workflows:
+    get:
+      operationId: listWorkflows
+      summary: List workflows
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Workflows]
+      x-rbac: [viewer, operator, admin]
+      responses:
+        "200":
+          description: Workflow list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workflows:
+                    type: array
+                    items:
+                      type: object
+                  count:
+                    type: integer
+
+  /api/v1/workflows/{id}:
+    get:
+      operationId: getWorkflow
+      summary: Get workflow detail
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Workflows]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Workflow detail
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/workflows/{id}/approve:
+    post:
+      operationId: approveWorkflow
+      summary: Approve a workflow
+      description: "RBAC: admin only. Scope-guarded."
+      tags: [Workflows]
+      x-rbac: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approver]
+              properties:
+                approver:
+                  type: string
+      responses:
+        "200":
+          description: Workflow approved
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  # ---------------------------------------------------------------------------
+  # Webhooks
+  # ---------------------------------------------------------------------------
+  /api/v1/webhooks:
+    get:
+      operationId: listWebhooks
+      summary: List webhook endpoints
+      description: "RBAC: operator, admin."
+      tags: [Webhooks]
+      x-rbac: [operator, admin]
+      responses:
+        "200":
+          description: Array of webhook endpoints
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+    post:
+      operationId: registerWebhook
+      summary: Register a webhook endpoint
+      description: "RBAC: admin only."
+      tags: [Webhooks]
+      x-rbac: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Webhook registered
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/webhooks/{id}:
+    delete:
+      operationId: deleteWebhook
+      summary: Delete a webhook endpoint
+      description: "RBAC: admin only."
+      tags: [Webhooks]
+      x-rbac: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Webhook deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/webhooks/{id}/deliveries:
+    get:
+      operationId: listWebhookDeliveries
+      summary: Webhook delivery history
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Webhooks]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Array of delivery records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  # ---------------------------------------------------------------------------
+  # ASM
+  # ---------------------------------------------------------------------------
+  /api/v1/asm/scan:
+    post:
+      operationId: startASMScan
+      summary: Run attack surface scan for a domain
+      description: "RBAC: operator, admin. Scope-guarded."
+      tags: [ASM]
+      x-rbac: [operator, admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [domain]
+              properties:
+                domain:
+                  type: string
+      responses:
+        "200":
+          description: Scan result with discovered assets
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/asm/assets:
+    get:
+      operationId: listASMAssets
+      summary: List cached ASM assets
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [ASM]
+      x-rbac: [viewer, operator, admin]
+      responses:
+        "200":
+          description: Array of ASM assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  # ---------------------------------------------------------------------------
+  # Terminal
+  # ---------------------------------------------------------------------------
+  /api/v1/terminal/ticket:
+    post:
+      operationId: issueTerminalTicket
+      summary: Issue a terminal WebSocket ticket
+      description: "RBAC: operator, admin. Returns a short-lived one-time-use nonce for WS auth (SA-002)."
+      tags: [Terminal]
+      x-rbac: [operator, admin]
+      responses:
+        "200":
+          description: Ticket nonce
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/v1/terminal/ws:
+    get:
+      operationId: terminalWebSocket
+      summary: Terminal WebSocket connection
+      description: |
+        WebSocket upgrade endpoint for integrated terminal. Auth via ?ticket= (preferred, SA-002)
+        or ?token= (legacy JWT). Unauthenticated at the middleware level -- auth is validated
+        during WebSocket handshake.
+      tags: [Terminal]
+      security: []
+      parameters:
+        - name: ticket
+          in: query
+          description: One-time ticket from POST /terminal/ticket
+          schema:
+            type: string
+        - name: token
+          in: query
+          description: Legacy JWT token (deprecated)
+          schema:
+            type: string
+      responses:
+        "101":
+          description: WebSocket upgrade
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ---------------------------------------------------------------------------
+  # Integration (Ticketing)
+  # ---------------------------------------------------------------------------
+  /api/v1/findings/{id}/remediate:
+    post:
+      operationId: remediateFinding
+      summary: Create remediation ticket and workflow
+      description: "RBAC: operator, admin. Scope-guarded. Routes to configured ticket provider."
+      tags: [Integration]
+      x-rbac: [operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/findingId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                severity:
+                  type: string
+                  default: MEDIUM
+                is_choke_point:
+                  type: boolean
+                assignee:
+                  type: string
+                provider:
+                  type: string
+                  description: Ticket provider override (asana, jira, ado)
+      responses:
+        "201":
+          description: Ticket created with routing decision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RemediateResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/findings/{id}/ticket:
+    get:
+      operationId: getFindingTicket
+      summary: Get the ticket linked to a finding
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Integration]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/findingId"
+      responses:
+        "200":
+          description: Ticket detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/findings/{id}/ticket/comments:
+    get:
+      operationId: getTicketComments
+      summary: List ticket comments
+      description: "RBAC: viewer, operator, admin. Scope-guarded."
+      tags: [Integration]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/findingId"
+      responses:
+        "200":
+          description: Array of comments from the ticket provider
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "501":
+          description: Provider does not support listing comments
+    post:
+      operationId: addTicketComment
+      summary: Add a comment to the linked ticket
+      description: "RBAC: operator, admin. Scope-guarded."
+      tags: [Integration]
+      x-rbac: [operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/findingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
+      responses:
+        "201":
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/findings/{id}/ticket/sync:
+    post:
+      operationId: syncTicketStatus
+      summary: Force-refresh ticket status from provider
+      description: "RBAC: operator, admin. Scope-guarded."
+      tags: [Integration]
+      x-rbac: [operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/findingId"
+      responses:
+        "200":
+          description: Updated ticket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/webhooks/asana:
+    post:
+      operationId: asanaWebhook
+      summary: Asana webhook handler
+      description: |
+        Handles Asana webhook handshake (X-Hook-Secret) and HMAC-verified event delivery.
+        Unauthenticated per Asana protocol; handshake protected by ASANA_WEBHOOK_TOKEN query param.
+      tags: [Integration]
+      security: []
+      responses:
+        "200":
+          description: Handshake acknowledged or event processed
+        "401":
+          description: Invalid signature or unauthorized handshake
+
+  # ---------------------------------------------------------------------------
+  # Audit & Users (admin)
+  # ---------------------------------------------------------------------------
+  /api/v1/audit-log:
+    get:
+      operationId: listAuditLog
+      summary: List audit log events
+      description: "RBAC: admin only."
+      tags: [System]
+      x-rbac: [admin]
+      parameters:
+        - name: result
+          in: query
+          schema:
+            type: string
+            enum: [success, failure, blocked, denied]
+        - name: actor
+          in: query
+          schema:
+            type: string
+            maxLength: 255
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/perPage"
+      responses:
+        "200":
+          description: Paginated audit events
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
+
+  /api/v1/users:
+    get:
+      operationId: listUsers
+      summary: List platform users
+      description: "RBAC: admin only."
+      tags: [System]
+      x-rbac: [admin]
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/perPage"
+      responses:
+        "200":
+          description: Paginated users
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
+
+  /api/v1/catalog/modules:
+    get:
+      operationId: listCatalogModules
+      summary: List infrastructure catalog modules
+      description: "RBAC: viewer, operator, admin."
+      tags: [System]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/provider"
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/perPage"
+      responses:
+        "200":
+          description: Paginated catalog modules
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedEnvelope"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT with claims: sub, email, groups (aegis-admin, aegis-operator,
+        aegis-requester, aegis-viewer), scope, tenant_id.
+
+  parameters:
+    findingId:
+      name: id
+      in: path
+      required: true
+      description: Finding ID
+      schema:
+        type: string
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    perPage:
+      name: per_page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    severity:
+      name: severity
+      in: query
+      schema:
+        type: string
+        enum: [CRITICAL, HIGH, MEDIUM, LOW, INFO]
+    provider:
+      name: provider
+      in: query
+      schema:
+        type: string
+        enum: [aws, azure, gcp]
+    status:
+      name: status
+      in: query
+      schema:
+        type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Insufficient permissions or out of scope
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+    PaginatedEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items: {}
+        page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+
+    PaginatedFindings:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Finding"
+        page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+
+    ConfigResponse:
+      type: object
+      properties:
+        companyName:
+          type: string
+        productName:
+          type: string
+        logoPath:
+          type: string
+        emailDomain:
+          type: string
+        repoPrefix:
+          type: string
+        enabledModules:
+          type: array
+          items:
+            type: string
+        storagePrefix:
+          type: string
+        theme:
+          type: object
+          additionalProperties:
+            type: string
+        features:
+          type: object
+          additionalProperties:
+            type: boolean
+
+    Finding:
+      type: object
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+        source_finding_id:
+          type: string
+        type:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        resource_type:
+          type: string
+        resource_id:
+          type: string
+        resource_name:
+          type: string
+        resource_arn:
+          type: string
+        platform:
+          type: string
+        cloud_provider:
+          type: string
+        region:
+          type: string
+        account_id:
+          type: string
+        account_name:
+          type: string
+        environment_type:
+          type: string
+        static_severity:
+          type: string
+        severity:
+          type: string
+          enum: [CRITICAL, HIGH, MEDIUM, LOW, INFO]
+        ai_risk_score:
+          type: number
+        ai_risk_level:
+          type: string
+        status:
+          type: string
+          enum: [open, in_progress, resolved, suppressed]
+        workflow_status:
+          type: string
+        category:
+          type: string
+        service_name:
+          type: string
+        line_of_business:
+          type: string
+        first_found_at:
+          type: string
+          format: date-time
+        last_seen_at:
+          type: string
+          format: date-time
+        sla_breach_date:
+          type: string
+          format: date-time
+        due_date:
+          type: string
+        exploit_available:
+          type: boolean
+        auto_remediatable:
+          type: boolean
+        suppressed:
+          type: boolean
+        deduplication_key:
+          type: string
+        canonical_rule_id:
+          type: string
+        cves:
+          type: array
+          items:
+            $ref: "#/components/schemas/CVE"
+        compliance_mappings:
+          type: array
+          items:
+            $ref: "#/components/schemas/ComplianceMapping"
+        mitre_tactics:
+          type: array
+          items:
+            type: string
+        mitre_techniques:
+          type: array
+          items:
+            type: string
+        remediation:
+          type: string
+
+    CVE:
+      type: object
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+        cvss:
+          type: number
+        cvss_vector:
+          type: string
+        epss:
+          type: number
+        cisa_known_exploited:
+          type: boolean
+        published:
+          type: string
+        modified:
+          type: string
+
+    ComplianceMapping:
+      type: object
+      properties:
+        framework_id:
+          type: string
+        framework_name:
+          type: string
+        control_id:
+          type: string
+        control_title:
+          type: string
+        section:
+          type: string
+        severity:
+          type: string
+
+    FindingComment:
+      type: object
+      properties:
+        id:
+          type: string
+        finding_id:
+          type: string
+        author:
+          type: string
+        body:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    FindingsStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        by_severity:
+          type: object
+          additionalProperties:
+            type: integer
+        by_status:
+          type: object
+          additionalProperties:
+            type: integer
+        by_provider:
+          type: object
+          additionalProperties:
+            type: integer
+        by_category:
+          type: object
+          additionalProperties:
+            type: integer
+        sla_breached:
+          type: integer
+        auto_remedial:
+          type: integer
+        active:
+          type: integer
+        delta_24h:
+          $ref: "#/components/schemas/DeltaIndicators"
+        delta_7d:
+          $ref: "#/components/schemas/DeltaIndicators"
+
+    DeltaIndicators:
+      type: object
+      properties:
+        new_findings:
+          type: integer
+        resolved_findings:
+          type: integer
+        net:
+          type: integer
+
+    SearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          maxLength: 1000
+        mode:
+          type: string
+          enum: [keyword, semantic, hybrid]
+          default: hybrid
+        filters:
+          type: object
+          properties:
+            severity:
+              type: array
+              items:
+                type: string
+            provider:
+              type: array
+              items:
+                type: string
+            status:
+              type: array
+              items:
+                type: string
+        page:
+          type: integer
+        per_page:
+          type: integer
+
+    SearchResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              finding:
+                $ref: "#/components/schemas/Finding"
+              score:
+                type: number
+        total:
+          type: integer
+        page:
+          type: integer
+        per_page:
+          type: integer
+        max_score:
+          type: number
+        took_ms:
+          type: integer
+        mode:
+          type: string
+
+    IngestRequest:
+      type: object
+      required: [source, source_finding_id, resource_id, account_id, severity]
+      properties:
+        source:
+          type: string
+        source_finding_id:
+          type: string
+        resource_id:
+          type: string
+        account_id:
+          type: string
+        severity:
+          type: string
+          enum: [CRITICAL, HIGH, MEDIUM, LOW, INFO]
+        finding_type:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+
+    IngestResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [accepted, duplicate]
+        finding_id:
+          type: string
+        dedup_key:
+          type: string
+        existing_entry:
+          type: object
+
+    Agent:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        framework:
+          type: string
+        version:
+          type: string
+        status:
+          type: string
+        risk_level:
+          type: string
+        last_active_at:
+          type: string
+
+    AgentTrace:
+      type: object
+      properties:
+        trace_id:
+          type: string
+        agent_id:
+          type: string
+        session_id:
+          type: string
+        start_time:
+          type: string
+        end_time:
+          type: string
+        duration_ms:
+          type: integer
+        status:
+          type: string
+
+    CostSummary:
+      type: object
+      properties:
+        period:
+          type: string
+        total:
+          type: number
+        by_provider:
+          type: object
+          additionalProperties:
+            type: number
+        by_service:
+          type: object
+          additionalProperties:
+            type: number
+        daily:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+              total:
+                type: number
+              aws:
+                type: number
+              azure:
+                type: number
+              gcp:
+                type: number
+        anomalies:
+          type: array
+          items:
+            $ref: "#/components/schemas/CostAnomaly"
+        chargeback:
+          type: object
+          properties:
+            period:
+              type: string
+            total_cost:
+              type: number
+            allocations:
+              type: array
+              items:
+                type: object
+
+    CostAnomaly:
+      type: object
+      properties:
+        id:
+          type: string
+        provider:
+          type: string
+        account_id:
+          type: string
+        service_name:
+          type: string
+        detected_at:
+          type: string
+        expected_cost:
+          type: number
+        actual_cost:
+          type: number
+        deviation_percent:
+          type: number
+        severity:
+          type: string
+
+    RemediationRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        finding_id:
+          type: string
+        domain:
+          type: string
+        handler:
+          type: string
+        tier:
+          type: integer
+        status:
+          type: string
+          enum: [pending, in_progress, completed, failed, skipped]
+        result:
+          type: object
+        validation:
+          type: object
+        created_at:
+          type: string
+        updated_at:
+          type: string
+
+    Exception:
+      type: object
+      properties:
+        id:
+          type: string
+        application_id:
+          type: string
+        requestor_email:
+          type: string
+        request_type:
+          type: string
+        policy_violated:
+          type: string
+        resource_requested:
+          type: string
+        business_case:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, denied, withdrawn, expired]
+        approver_chain:
+          type: array
+          items:
+            type: object
+        expiration_date:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ExceptionRequest:
+      type: object
+      required: [application_id, policy_violated]
+      properties:
+        application_id:
+          type: string
+        requestor_email:
+          type: string
+          format: email
+        request_type:
+          type: string
+        policy_violated:
+          type: string
+        resource_requested:
+          type: string
+        business_case:
+          type: string
+        compensating_controls:
+          type: array
+          items:
+            type: string
+        expiration_date:
+          type: string
+          format: date-time
+
+    Policy:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        namespace:
+          type: string
+        status:
+          type: string
+        category:
+          type: string
+        evaluations:
+          type: integer
+        denials:
+          type: integer
+        last_updated:
+          type: string
+
+    AttackPath:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+        score:
+          type: number
+        hop_count:
+          type: integer
+        entry_point:
+          $ref: "#/components/schemas/AttackPathNode"
+        target:
+          $ref: "#/components/schemas/AttackPathNode"
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttackPathNode"
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttackPathEdge"
+        mitre_tactics:
+          type: array
+          items:
+            type: string
+        finding_ids:
+          type: array
+          items:
+            type: string
+        ai_enriched:
+          type: boolean
+
+    AttackPathNode:
+      type: object
+      properties:
+        id:
+          type: string
+        finding_id:
+          type: string
+        resource_id:
+          type: string
+        resource_name:
+          type: string
+        resource_type:
+          type: string
+        provider:
+          type: string
+        account_id:
+          type: string
+        region:
+          type: string
+        severity:
+          type: string
+        category:
+          type: string
+        label:
+          type: string
+
+    AttackPathEdge:
+      type: object
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+        target:
+          type: string
+        label:
+          type: string
+        edge_type:
+          type: string
+
+    AttackPathStats:
+      type: object
+      properties:
+        total_findings:
+          type: integer
+        findings_in_paths:
+          type: integer
+        isolated_findings:
+          type: integer
+        coverage_percent:
+          type: number
+        total_paths:
+          type: integer
+        critical_paths:
+          type: integer
+        high_paths:
+          type: integer
+        medium_paths:
+          type: integer
+        by_provider:
+          type: object
+          additionalProperties:
+            type: integer
+
+    AttackPathAnalysis:
+      type: object
+      properties:
+        analysis:
+          type: string
+        remediation_steps:
+          type: array
+          items:
+            type: string
+        risk_factors:
+          type: array
+          items:
+            type: string
+        blast_radius:
+          type: object
+          properties:
+            direct:
+              type: integer
+            indirect:
+              type: integer
+            total:
+              type: integer
+
+    GraphQueryRequest:
+      type: object
+      required: [language, query]
+      properties:
+        language:
+          type: string
+          enum: [gremlin, cypher]
+        query:
+          type: string
+          maxLength: 4096
+
+    GraphQueryResponse:
+      type: object
+      properties:
+        data: {}
+        elapsed:
+          type: string
+
+    ContainerTopology:
+      type: object
+      properties:
+        clusters:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              provider:
+                type: string
+              region:
+                type: string
+              namespaces:
+                type: array
+                items:
+                  type: object
+
+    Container:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        image:
+          type: string
+        registry:
+          type: string
+        status:
+          type: string
+        vuln_count:
+          type: integer
+        vulns:
+          type: array
+          items:
+            type: object
+            properties:
+              cve_id:
+                type: string
+              severity:
+                type: string
+              package:
+                type: string
+              version:
+                type: string
+              fixed_in:
+                type: string
+              cvss:
+                type: number
+
+    NLQResponse:
+      type: object
+      properties:
+        severity:
+          type: array
+          items:
+            type: string
+        provider:
+          type: array
+          items:
+            type: string
+        category:
+          type: array
+          items:
+            type: string
+        status:
+          type: array
+          items:
+            type: string
+        environment:
+          type: array
+          items:
+            type: string
+        text:
+          type: string
+
+    DeployPreviewConfig:
+      type: object
+      required: [resourceType, provider, region]
+      properties:
+        resourceType:
+          type: string
+        provider:
+          type: string
+        region:
+          type: string
+        appId:
+          type: string
+        configuration:
+          type: object
+
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: string
+        external_id:
+          type: string
+        provider:
+          type: string
+        status:
+          type: string
+        priority:
+          type: string
+        title:
+          type: string
+        url:
+          type: string
+        created_at:
+          type: string
+        updated_at:
+          type: string
+
+    RemediateResponse:
+      type: object
+      properties:
+        ticket:
+          $ref: "#/components/schemas/Ticket"
+        routing:
+          type: object
+          properties:
+            priority:
+              type: string
+            team:
+              type: string
+            sla_hours:
+              type: integer
+            reason:
+              type: string
+        workflow_id:
+          type: string
+
+    CompliancePostureSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        description:
+          type: string
+        sector:
+          type: string
+        controls:
+          type: integer
+
+    ComplianceControl:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        section:
+          type: string
+        category:
+          type: string
+        severity:
+          type: string
+        keywords:
+          type: array
+          items:
+            type: string

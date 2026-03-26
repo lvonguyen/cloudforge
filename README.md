@@ -172,7 +172,7 @@ Cloud Aegis bridges these needs with a unified platform that provides:
 
 ## [/] Architecture
 
-<img src="docs/core/diagrams/architecture.svg" alt="Cloud Aegis Architecture" width="720">
+<img src="docs/core/diagrams/architecture-figma.svg" alt="Cloud Aegis Architecture" width="720">
 
 ---
 

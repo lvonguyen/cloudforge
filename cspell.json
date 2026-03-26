@@ -241,7 +241,11 @@
     "qwen", "parallelizable", "Cherny",
     "agentic", "techdebt",
     "worktree", "worktrees",
-    "sultano", "Antipattern"
+    "sultano", "Antipattern",
+    "liemvonguyen", "Mgmt", "STIG", "STIGs",
+    "ITGC", "DISA", "exploitability", "HMAC",
+    "ABAC", "PUPPYGRAPH", "puppygraph",
+    "Opsgenie", "healthz"
   ],
   "ignorePaths": [
     "node_modules",
