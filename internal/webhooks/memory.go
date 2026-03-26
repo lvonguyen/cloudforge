@@ -231,8 +231,8 @@ func validateWebhookURL(raw string) error {
 	}
 
 	scheme := strings.ToLower(u.Scheme)
-	if scheme != "https" && scheme != "http" {
-		return fmt.Errorf("unsupported scheme %q: must be http or https", scheme)
+	if scheme != "https" {
+		return fmt.Errorf("unsupported scheme %q: webhook URLs must use https", scheme)
 	}
 
 	host := u.Hostname()
