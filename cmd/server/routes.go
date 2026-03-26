@@ -339,9 +339,15 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.handleOrgScan)),
 	).Methods("POST")
 
-	// Integrated terminal (WebSocket — auth via query param, operator+ only)
+	// Terminal ticket endpoint — issues a short-lived nonce for WS auth (SA-002).
+	// Registered on apiRouter so auth middleware validates the JWT in the header.
+	apiRouter.Handle("/terminal/ticket",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.terminalHandler.IssueTicket)),
+	).Methods("POST")
+
+	// Integrated terminal (WebSocket — auth via ticket nonce or legacy JWT query param)
 	// Registered on base router (not apiRouter) because WebSocket upgrade requires
-	// manual JWT validation from query parameter before Upgrade().
+	// manual validation from query parameter before Upgrade().
 	s.router.Handle("/api/v1/terminal/ws", s.terminalHandler).Methods("GET")
 
 	// Asana webhook (unauthenticated handshake, HMAC-verified events)

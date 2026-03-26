@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { apiClient } from '@/lib/api'
 import { TOKEN_KEY } from '@/lib/auth'
 
 export interface ServerMessage {
@@ -33,11 +34,30 @@ function getWsUrl(): string {
     return `${proto}//${location.host}/api/v1/terminal/ws`
   }
 
-  // Absolute URL: swap http(s) → ws(s).
+  // Absolute URL: swap http(s) -> ws(s).
   return apiUrl
     .replace(/^https:/, 'wss:')
     .replace(/^http:/, 'ws:')
     .replace(/\/api\/v1\/?$/, '') + '/api/v1/terminal/ws'
+}
+
+/**
+ * Fetch a short-lived ticket nonce from the backend (SA-002).
+ * Falls back to the raw JWT token if the ticket endpoint is unavailable
+ * (backward compatibility with older backends).
+ */
+async function acquireTicket(): Promise<{ ticket: string } | { token: string } | null> {
+  const token = sessionStorage.getItem(TOKEN_KEY)
+  if (!token) return null
+
+  try {
+    const resp = await apiClient.post<{ ticket: string }>('/terminal/ticket', {})
+    if (resp?.ticket) return { ticket: resp.ticket }
+  } catch {
+    // Ticket endpoint unavailable — fall back to legacy JWT-in-URL.
+  }
+
+  return { token }
 }
 
 export function useTerminalWS(opts: UseTerminalWSOptions = {}): UseTerminalWSReturn {
@@ -58,12 +78,17 @@ export function useTerminalWS(opts: UseTerminalWSOptions = {}): UseTerminalWSRet
   // Track whether the hook is still mounted to prevent reconnect after cleanup.
   const mountedRef = useRef(true)
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (!mountedRef.current) return
-    const token = sessionStorage.getItem(TOKEN_KEY)
-    if (!token) return
 
-    const url = `${getWsUrl()}?token=${encodeURIComponent(token)}`
+    const cred = await acquireTicket()
+    if (!cred || !mountedRef.current) return
+
+    // Build WS URL with ticket (preferred) or legacy token.
+    const param = 'ticket' in cred
+      ? `ticket=${encodeURIComponent(cred.ticket)}`
+      : `token=${encodeURIComponent(cred.token)}`
+    const url = `${getWsUrl()}?${param}`
     const ws = new WebSocket(url)
     wsRef.current = ws
 

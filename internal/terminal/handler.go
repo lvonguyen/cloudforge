@@ -52,6 +52,7 @@ type Handler struct {
 	auditLogger    audit.AuditLogger
 	logger         *zap.Logger
 	allowedOrigins []string
+	tickets        *TicketStore
 
 	// Per-user session tracking.
 	mu       sync.Mutex
@@ -66,6 +67,7 @@ func NewHandler(authMW *api.AuthMiddleware, auditLogger audit.AuditLogger, logge
 		auditLogger:    auditLogger,
 		logger:         logger,
 		allowedOrigins: allowedOrigins,
+		tickets:        NewTicketStore(logger),
 		sessions:       make(map[string]int),
 	}
 	h.upgrader = websocket.Upgrader{
@@ -95,19 +97,21 @@ func (h *Handler) checkOrigin(r *http.Request) bool {
 	return false
 }
 
-// ServeHTTP handles the WebSocket upgrade with manual JWT auth.
-func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Extract token from query parameter (WS API cannot send custom headers).
-	token := r.URL.Query().Get("token")
-	if token == "" {
-		http.Error(w, `{"error":"missing token parameter"}`, http.StatusUnauthorized)
+// IssueTicket is an HTTP handler for POST /api/v1/terminal/ticket.
+// It validates the JWT from the Authorization header, checks RBAC, and returns
+// a short-lived, one-time-use ticket for WebSocket authentication (SA-002).
+func (h *Handler) IssueTicket(w http.ResponseWriter, r *http.Request) {
+	// Extract JWT from Authorization header.
+	authHeader := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		http.Error(w, `{"error":"missing or invalid Authorization header"}`, http.StatusUnauthorized)
 		return
 	}
+	raw := strings.TrimPrefix(authHeader, "Bearer ")
 
-	// Validate JWT.
-	claims, err := h.authMW.ValidateTokenString(token)
+	claims, err := h.authMW.ValidateTokenString(raw)
 	if err != nil {
-		h.logger.Warn("terminal: auth failed", zap.Error(err), zap.String("remote_addr", r.RemoteAddr))
+		h.logger.Warn("terminal: ticket auth failed", zap.Error(err), zap.String("remote_addr", r.RemoteAddr))
 		http.Error(w, `{"error":"authentication failed"}`, http.StatusUnauthorized)
 		return
 	}
@@ -115,29 +119,78 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// RBAC: require operator or admin.
 	role := api.RoleFromClaims(claims)
 	if role != api.RoleOperator && role != api.RoleAdmin {
-		h.logger.Warn("terminal: insufficient role",
-			zap.String("subject", claims.Subject),
-			zap.String("role", string(role)),
-		)
 		http.Error(w, `{"error":"forbidden: operator or admin role required"}`, http.StatusForbidden)
+		return
+	}
+
+	ticket, err := h.tickets.Issue(claims.Subject, role, claims.Groups)
+	if err != nil {
+		h.logger.Error("terminal: ticket issue failed", zap.Error(err))
+		http.Error(w, `{"error":"internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]string{"ticket": ticket})
+}
+
+// ServeHTTP handles the WebSocket upgrade with ticket or JWT auth.
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var subject string
+	var role api.Role
+	var claims *api.Claims
+
+	// SA-002: prefer ?ticket= (one-time nonce), fall back to ?token= (legacy JWT).
+	if ticket := r.URL.Query().Get("ticket"); ticket != "" {
+		sub, rl, groups, err := h.tickets.Consume(ticket)
+		if err != nil {
+			h.logger.Warn("terminal: ticket auth failed", zap.Error(err), zap.String("remote_addr", r.RemoteAddr))
+			http.Error(w, `{"error":"invalid or expired ticket"}`, http.StatusUnauthorized)
+			return
+		}
+		subject = sub
+		role = rl
+		claims = &api.Claims{Subject: sub, Groups: groups}
+	} else if token := r.URL.Query().Get("token"); token != "" {
+		// Legacy path: JWT in query parameter (backward compatibility).
+		c, err := h.authMW.ValidateTokenString(token)
+		if err != nil {
+			h.logger.Warn("terminal: auth failed", zap.Error(err), zap.String("remote_addr", r.RemoteAddr))
+			http.Error(w, `{"error":"authentication failed"}`, http.StatusUnauthorized)
+			return
+		}
+		claims = c
+		subject = c.Subject
+		role = api.RoleFromClaims(c)
+
+		if role != api.RoleOperator && role != api.RoleAdmin {
+			h.logger.Warn("terminal: insufficient role",
+				zap.String("subject", claims.Subject),
+				zap.String("role", string(role)),
+			)
+			http.Error(w, `{"error":"forbidden: operator or admin role required"}`, http.StatusForbidden)
+			return
+		}
+	} else {
+		http.Error(w, `{"error":"missing ticket or token parameter"}`, http.StatusUnauthorized)
 		return
 	}
 
 	// Enforce per-user session limit.
 	h.mu.Lock()
-	if h.sessions[claims.Subject] >= maxSessionsUser {
+	if h.sessions[subject] >= maxSessionsUser {
 		h.mu.Unlock()
 		http.Error(w, `{"error":"too many active terminal sessions"}`, http.StatusTooManyRequests)
 		return
 	}
-	h.sessions[claims.Subject]++
+	h.sessions[subject]++
 	h.mu.Unlock()
 
 	defer func() {
 		h.mu.Lock()
-		h.sessions[claims.Subject]--
-		if h.sessions[claims.Subject] <= 0 {
-			delete(h.sessions, claims.Subject)
+		h.sessions[subject]--
+		if h.sessions[subject] <= 0 {
+			delete(h.sessions, subject)
 		}
 		h.mu.Unlock()
 	}()
