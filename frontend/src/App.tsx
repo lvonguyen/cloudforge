@@ -6,6 +6,7 @@ import { AuthProvider } from '@/lib/auth'
 import { ConfigProvider } from '@/lib/config-context'
 import { branding } from '@/lib/branding'
 import { TracePanelProvider } from '@/lib/trace-panel-context'
+import { TerminalPanelProvider } from '@/lib/terminal-context'
 import { AppShell } from '@/components/layout/AppShell'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { RoutingErrorBoundary } from '@/components/ErrorBoundary'
@@ -13,6 +14,9 @@ import { RoutingErrorBoundary } from '@/components/ErrorBoundary'
 // Lazy: only renders when trace panel mode is set (returns null otherwise)
 const ExecutionTracePanel = lazy(() =>
   import('@/components/layout/ExecutionTracePanel').then(m => ({ default: m.ExecutionTracePanel })),
+)
+const TerminalPanel = lazy(() =>
+  import('@/components/layout/TerminalPanel').then(m => ({ default: m.TerminalPanel })),
 )
 
 // NotFound is small (17 lines) — keep eager for instant 404 rendering
@@ -79,6 +83,7 @@ export default function App() {
     <ConfigProvider>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <TerminalPanelProvider>
         <TracePanelProvider>
           <BrowserRouter>
             <Routes>
@@ -151,8 +156,10 @@ export default function App() {
               </Route>
             </Routes>
             <Suspense fallback={null}><ExecutionTracePanel /></Suspense>
+            <Suspense fallback={null}><TerminalPanel /></Suspense>
           </BrowserRouter>
         </TracePanelProvider>
+        </TerminalPanelProvider>
       </AuthProvider>
     </QueryClientProvider>
     </ConfigProvider>

@@ -1,0 +1,124 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { TOKEN_KEY } from '@/lib/auth'
+
+export interface ServerMessage {
+  type: 'output' | 'exit' | 'error' | 'ping'
+  id?: string
+  stream?: 'stdout' | 'stderr'
+  data?: string
+  code?: number
+  elapsed_ms?: number
+  message?: string
+}
+
+interface UseTerminalWSOptions {
+  enabled?: boolean
+  onMessage?: (msg: ServerMessage) => void
+  onConnected?: () => void
+  onDisconnected?: () => void
+}
+
+interface UseTerminalWSReturn {
+  send: (msg: unknown) => void
+  isConnected: boolean
+}
+
+/** Derive WebSocket URL from the API base URL. */
+function getWsUrl(): string {
+  const apiUrl = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+
+  // If empty or relative, use current host.
+  if (!apiUrl || apiUrl.startsWith('/')) {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
+    return `${proto}//${location.host}/api/v1/terminal/ws`
+  }
+
+  // Absolute URL: swap http(s) → ws(s).
+  return apiUrl
+    .replace(/^https:/, 'wss:')
+    .replace(/^http:/, 'ws:')
+    .replace(/\/api\/v1\/?$/, '') + '/api/v1/terminal/ws'
+}
+
+export function useTerminalWS(opts: UseTerminalWSOptions = {}): UseTerminalWSReturn {
+  const { enabled = true, onMessage, onConnected, onDisconnected } = opts
+  const wsRef = useRef<WebSocket | null>(null)
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const backoffRef = useRef(1000) // Start at 1s, max 30s.
+  const [isConnected, setIsConnected] = useState(false)
+
+  // Stable refs for callbacks.
+  const onMessageRef = useRef(onMessage)
+  onMessageRef.current = onMessage
+  const onConnectedRef = useRef(onConnected)
+  onConnectedRef.current = onConnected
+  const onDisconnectedRef = useRef(onDisconnected)
+  onDisconnectedRef.current = onDisconnected
+
+  const connect = useCallback(() => {
+    const token = sessionStorage.getItem(TOKEN_KEY)
+    if (!token) return
+
+    const url = `${getWsUrl()}?token=${encodeURIComponent(token)}`
+    const ws = new WebSocket(url)
+    wsRef.current = ws
+
+    ws.onopen = () => {
+      setIsConnected(true)
+      backoffRef.current = 1000
+      onConnectedRef.current?.()
+    }
+
+    ws.onmessage = (ev) => {
+      try {
+        const msg: ServerMessage = JSON.parse(ev.data)
+        // Auto-respond to server pings.
+        if (msg.type === 'ping') {
+          ws.send(JSON.stringify({ type: 'pong' }))
+          return
+        }
+        onMessageRef.current?.(msg)
+      } catch {
+        // Ignore malformed messages.
+      }
+    }
+
+    ws.onclose = () => {
+      setIsConnected(false)
+      wsRef.current = null
+      onDisconnectedRef.current?.()
+
+      // Reconnect with exponential backoff.
+      if (enabled) {
+        reconnectTimer.current = setTimeout(() => {
+          backoffRef.current = Math.min(backoffRef.current * 2, 30000)
+          connect()
+        }, backoffRef.current)
+      }
+    }
+
+    ws.onerror = () => {
+      ws.close()
+    }
+  }, [enabled])
+
+  useEffect(() => {
+    if (!enabled) {
+      wsRef.current?.close()
+      return
+    }
+    connect()
+    return () => {
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
+      wsRef.current?.close()
+    }
+  }, [enabled, connect])
+
+  const send = useCallback((msg: unknown) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(msg))
+    }
+  }, [])
+
+  return { send, isConnected }
+}

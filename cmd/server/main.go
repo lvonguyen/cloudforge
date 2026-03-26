@@ -39,6 +39,7 @@ import (
 	"aegis/internal/observability"
 	"aegis/internal/secrets"
 	"aegis/internal/tenant"
+	"aegis/internal/terminal"
 	"aegis/internal/waf"
 	"aegis/internal/webhooks"
 	"aegis/internal/workflow"
@@ -129,6 +130,9 @@ type Server struct {
 
 	// Full-text search (BM25 + optional semantic/hybrid)
 	searchSvc *SearchService
+
+	// Integrated terminal (WebSocket — operator+ only)
+	terminalHandler *terminal.Handler
 }
 
 func main() {
@@ -632,6 +636,9 @@ func main() {
 		zap.Int("indexed_findings", len(mockData.Findings)),
 		zap.Int("vocab_size", embedSvc.vocabSize),
 	)
+
+	// Integrated terminal (WebSocket — operator+ only)
+	srv.terminalHandler = terminal.NewHandler(authMiddleware, newAuditLogger("terminal"), logger.Named("terminal"))
 
 	// Compute attack paths from findings
 	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings)

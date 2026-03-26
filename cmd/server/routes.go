@@ -339,6 +339,11 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleAdmin)(http.HandlerFunc(s.handleOrgScan)),
 	).Methods("POST")
 
+	// Integrated terminal (WebSocket — auth via query param, operator+ only)
+	// Registered on base router (not apiRouter) because WebSocket upgrade requires
+	// manual JWT validation from query parameter before Upgrade().
+	s.router.Handle("/api/v1/terminal/ws", s.terminalHandler).Methods("GET")
+
 	// Asana webhook (unauthenticated handshake, HMAC-verified events)
 	s.router.HandleFunc("/api/v1/webhooks/asana", s.integrationHandler.AsanaWebhook).Methods("POST")
 }

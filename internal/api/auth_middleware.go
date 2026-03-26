@@ -369,6 +369,14 @@ func (m *AuthMiddleware) validateClaims(claims *Claims) error {
 	return nil
 }
 
+// ValidateTokenString validates a raw JWT string and returns the claims.
+// Exported for use by WebSocket handlers that receive tokens via query parameters
+// rather than the Authorization header (WebSocket API does not support custom headers
+// during the initial HTTP handshake).
+func (m *AuthMiddleware) ValidateTokenString(raw string) (*Claims, error) {
+	return m.validateToken(raw)
+}
+
 // unauthorized sends a 401 response with the given message.
 func (m *AuthMiddleware) unauthorized(w http.ResponseWriter, message string) {
 	w.Header().Set("Content-Type", "application/json")

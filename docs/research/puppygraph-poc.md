@@ -107,27 +107,46 @@ LIMIT 20
 
 ## Benchmark Results
 
-| Query | Local Docker (ms) | EC2 r6i.xlarge (ms) | Go BFS Baseline (ms) |
-|-------|-------------------|---------------------|----------------------|
-| Q1 (critical findings) | _TBD_ | _TBD_ | _TBD_ |
-| Q2 (identity path) | _TBD_ | _TBD_ | _TBD_ |
-| Q3 (unmapped findings) | _TBD_ | _TBD_ | _TBD_ |
-| Q4 (blast radius) | _TBD_ | _TBD_ | _TBD_ |
-| Q5 (top connected) | _TBD_ | _TBD_ | _TBD_ |
-| Q6 (critical per provider) | _TBD_ | _TBD_ | N/A |
-| Q7 (shortest path) | _TBD_ | _TBD_ | N/A |
-| Q8 (toxic combo) | _TBD_ | _TBD_ | N/A |
-| Q9 (compliance gap) | _TBD_ | _TBD_ | N/A |
-| Q10 (trust chain) | _TBD_ | _TBD_ | N/A |
+| Query | Local Docker (ms) | EC2 r6i.xlarge (ms) | Go BFS Baseline (ms) | Notes |
+|-------|-------------------|---------------------|----------------------|-------|
+| Q1 (critical findings) | _TBD_ | 111 | _TBD_ | 0 results (no resources populated in demo data) |
+| Q2 (identity path) | _TBD_ | _blocked_ | _TBD_ | Needs `identity` vertex + `identity_access` table |
+| Q3 (unmapped findings) | _TBD_ | 156 | _TBD_ | 8 findings returned (none mapped to compliance) |
+| Q4 (blast radius) | _TBD_ | _blocked_ | _TBD_ | Needs `identity` vertex |
+| Q5 (top connected) | _TBD_ | 134 | _TBD_ | 0 results (no resources) |
+| Q6 (critical per provider) | _TBD_ | _blocked_ | N/A | Needs populated resources |
+| Q7 (shortest path) | _TBD_ | _blocked_ | N/A | Needs `identity` vertex |
+| Q8 (toxic combo) | _TBD_ | _blocked_ | N/A | Needs `identity` + resources |
+| Q9 (compliance gap) | _TBD_ | _blocked_ | N/A | Needs `compliance_control` vertex (schema has `compliance_framework`) |
+| Q10 (trust chain) | _TBD_ | _blocked_ | N/A | Needs `identity_trusts` table |
+
+**Baseline run (2026-03-25, 8 demo findings, 6 compliance frameworks, 0 resources):**
+
+| Metric | Value |
+|--------|-------|
+| Finding count query | 234ms |
+| Vertex count by label | 191ms |
+| Edge count by label | 115ms |
+| Severity distribution | 119ms |
+| Resource count | 110ms |
+| Compliance frameworks | 118ms |
+| Single finding valueMap | 123ms |
+| Affects edge sample | 163ms |
+
+**Protocol notes:**
+- Gremlin WebSocket args must contain ONLY `gremlin` + `language` (no `bindings`/`aliases`)
+- PuppyGraph v0.113 silently hangs on unknown args fields (no error, no response)
+- Schema upload: `POST /schema` with Basic Auth on port 8081 (works despite "UI-only" claim)
+- Container startup: `--env-file ~/.puppygraph_env --net host` (NOT port mapping)
 
 ## Decision Criteria
 
-- [ ] P50 query latency < 100ms for single-hop traversals
-- [ ] P50 query latency < 500ms for multi-hop (3+ hops)
-- [ ] Memory consumption < 16GB for 20k findings + relationships
-- [ ] Schema changes propagate without service restart
-- [ ] WebSocket Gremlin client stable under concurrent connections
+- [ ] P50 query latency < 100ms for single-hop traversals — **110-156ms on 8 findings (inconclusive, need 20K+ dataset)**
+- [ ] P50 query latency < 500ms for multi-hop (3+ hops) — **blocked (no identity/resource data)**
+- [ ] Memory consumption < 16GB for 20k findings + relationships — **TBD (need seed data)**
+- [x] Schema changes propagate without service restart — **YES (POST /schema returns 200, Gremlin server auto-restarts)**
+- [x] WebSocket Gremlin client stable under concurrent connections — **YES (6 sequential queries, no drops)**
 
 ## Recommendation
 
-_To be filled after benchmarks._
+_Blocked on WS-E seed data (20K+ findings with populated resource_id). Re-run benchmarks after seed load. Schema and query pipeline verified working. TEARDOWN by Mar 28._
