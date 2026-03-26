@@ -37,7 +37,7 @@ const THEME = {
 
 const PROMPT = '\x1b[38;5;39m❯\x1b[0m '
 
-export function XTermView({ onCommand, panelHeight, isConnected, isExecuting }: XTermViewProps) {
+export function XTermView({ onCommand, panelHeight, isConnected: _isConnected, isExecuting }: XTermViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)

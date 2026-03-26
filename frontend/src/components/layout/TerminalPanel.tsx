@@ -3,7 +3,7 @@ import { useAuth } from '@/lib/auth'
 import { useTerminalPanel } from '@/lib/terminal-context'
 import { useTerminalWS, type ServerMessage } from '@/hooks/useTerminalWS'
 import { XTermView } from '@/components/layout/XTermView'
-import { X, ChevronUp, ChevronDown, TerminalSquare, GripHorizontal, Wifi, WifiOff } from 'lucide-react'
+import { X, TerminalSquare, GripHorizontal, Wifi, WifiOff } from 'lucide-react'
 import { Terminal as XTerminal } from '@xterm/xterm'
 
 const PROMPT = '\x1b[38;5;39m❯\x1b[0m '
@@ -101,12 +101,6 @@ export function TerminalPanel() {
     document.addEventListener('mouseup', onMouseUp)
   }, [state.panelHeight, setHeight])
 
-  // Capture the xterm instance from XTermView for writing output.
-  const onTermReady = useCallback((container: HTMLDivElement | null) => {
-    if (!container) return
-    // Access the Terminal instance via the xterm container.
-    // The XTermView manages its own Terminal — we access it via onData/write.
-  }, [])
 
   if (!state.isOpen) return null
 
