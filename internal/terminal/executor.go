@@ -176,7 +176,7 @@ func (e *Executor) Execute(ctx context.Context, binary string, args []string) (*
 	ctx, cancel := context.WithTimeout(ctx, e.timeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, binary, args...)
+	cmd := exec.CommandContext(ctx, binary, args...) //nolint:gosec // binary+args validated by Validate() allowlist
 	cmd.Env = safeEnv()
 
 	var stdout, stderr bytes.Buffer

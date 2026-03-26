@@ -173,7 +173,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	done := make(chan struct{})
 	go h.pingLoop(wc, done)
 
-	h.readLoop(wc, connCtx, r, claims, role, done)
+	h.readLoop(connCtx, wc, r, claims, role, done)
 }
 
 // wsConn wraps a websocket.Conn with a write mutex for gorilla/websocket safety.
@@ -192,7 +192,7 @@ func (wc *wsConn) writeJSON(v interface{}) error {
 	return wc.Conn.WriteJSON(v)
 }
 
-func (h *Handler) readLoop(wc *wsConn, connCtx context.Context, r *http.Request, claims *api.Claims, role api.Role, done chan struct{}) {
+func (h *Handler) readLoop(connCtx context.Context, wc *wsConn, r *http.Request, claims *api.Claims, role api.Role, done chan struct{}) {
 	defer close(done)
 
 	for {
@@ -217,7 +217,7 @@ func (h *Handler) readLoop(wc *wsConn, connCtx context.Context, r *http.Request,
 
 		switch msg.Type {
 		case "execute":
-			h.handleExecute(wc, connCtx, r, claims, role, msg)
+			h.handleExecute(connCtx, wc, r, claims, role, msg)
 		case "pong":
 			// Client responded to ping — connection is alive.
 		default:
@@ -226,7 +226,7 @@ func (h *Handler) readLoop(wc *wsConn, connCtx context.Context, r *http.Request,
 	}
 }
 
-func (h *Handler) handleExecute(wc *wsConn, connCtx context.Context, r *http.Request, claims *api.Claims, role api.Role, msg ClientMessage) {
+func (h *Handler) handleExecute(connCtx context.Context, wc *wsConn, r *http.Request, claims *api.Claims, role api.Role, msg ClientMessage) {
 	binary, args, err := h.executor.Validate(msg.Command)
 	if err != nil {
 		h.logAudit(r, claims, role, audit.ActionTerminalDenied, msg.Command, audit.ResultDenied)
