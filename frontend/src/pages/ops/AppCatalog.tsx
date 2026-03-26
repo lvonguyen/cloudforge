@@ -109,17 +109,17 @@ export default function AppCatalog() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Application Catalog</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Registered applications and data classification</p>
+        <h1 className="text-2xl font-semibold">Application Catalog</h1>
+        <p className="text-sm text-muted-foreground mt-1">Registered applications and data classification</p>
       </div>
 
       <Tabs defaultValue="applications">
         <TabsList className="bg-transparent border-b border-border rounded-none p-0 w-full justify-start">
-          <TabsTrigger value="applications" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs">
-            <AppWindow className="h-3.5 w-3.5" />Applications
+          <TabsTrigger value="applications" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-sm">
+            <AppWindow className="h-4 w-4" />Applications
           </TabsTrigger>
-          <TabsTrigger value="data-classification" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs">
-            <Database className="h-3.5 w-3.5" />Data Classification
+          <TabsTrigger value="data-classification" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-sm">
+            <Database className="h-4 w-4" />Data Classification
           </TabsTrigger>
         </TabsList>
 
@@ -134,7 +134,7 @@ export default function AppCatalog() {
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search applications..."
                 aria-label="Search applications"
-                className="w-full pl-7 pr-7 py-1.5 text-xs bg-muted/50 border border-border outline-none"
+                className="w-full pl-7 pr-7 py-2 text-sm bg-muted/50 border border-border outline-none"
               />
               {search && (
                 <button onClick={() => setSearch('')} aria-label="Clear search" className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -148,7 +148,7 @@ export default function AppCatalog() {
                 <button
                   key={cat}
                   onClick={() => setCategory(cat)}
-                  className={`text-[10px] px-2 py-1 transition-colors ${
+                  className={`text-xs px-2.5 py-1 transition-colors ${
                     category === cat
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted/50 text-muted-foreground hover:bg-muted'
@@ -162,20 +162,20 @@ export default function AppCatalog() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">{filtered.length} application{filtered.length !== 1 ? 's' : ''}</CardTitle>
+              <CardTitle className="text-base font-medium">{filtered.length} application{filtered.length !== 1 ? 's' : ''}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xs pl-4">Name</TableHead>
-                    <TableHead className="text-xs">Owner</TableHead>
-                    <TableHead className="text-xs">LoB</TableHead>
-                    <TableHead className="text-xs">Criticality</TableHead>
-                    <TableHead className="text-xs">Type</TableHead>
-                    <TableHead className="text-xs">SLA</TableHead>
-                    <TableHead className="text-xs">Classification</TableHead>
-                    <TableHead className="text-xs">Hosting</TableHead>
+                    <TableHead className="text-sm pl-4">Name</TableHead>
+                    <TableHead className="text-sm">Owner</TableHead>
+                    <TableHead className="text-sm">LoB</TableHead>
+                    <TableHead className="text-sm">Criticality</TableHead>
+                    <TableHead className="text-sm">Type</TableHead>
+                    <TableHead className="text-sm">SLA</TableHead>
+                    <TableHead className="text-sm">Classification</TableHead>
+                    <TableHead className="text-sm">Hosting</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -190,27 +190,27 @@ export default function AppCatalog() {
                       <TableRow key={app.id} className="cursor-pointer hover:bg-muted/30" onClick={() => setSelectedApp(app)}>
                         <TableCell className="pl-4">
                           <div>
-                            <p className="text-xs font-medium">{app.name}</p>
-                            <p className="text-[10px] text-muted-foreground truncate max-w-[200px]">{app.description}</p>
+                            <p className="text-sm font-medium">{app.name}</p>
+                            <p className="text-xs text-muted-foreground truncate max-w-[240px]">{app.description}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="text-xs">{app.owner}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{app.lob}</TableCell>
+                        <TableCell className="text-sm">{app.owner}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{app.lob}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={`text-[10px] ${CRITICALITY_COLORS[app.criticality] ?? ''}`}>
+                          <Badge variant="outline" className={`text-xs ${CRITICALITY_COLORS[app.criticality] ?? ''}`}>
                             {app.criticality}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={`text-[10px] ${TYPE_COLORS[app.type] ?? ''}`}>
+                          <Badge variant="outline" className={`text-xs ${TYPE_COLORS[app.type] ?? ''}`}>
                             {app.type.toUpperCase()}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-xs tabular-nums">{app.sla_hours}h</TableCell>
+                        <TableCell className="text-sm tabular-nums">{app.sla_hours}h</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[10px]">{app.data_classification}</Badge>
+                          <Badge variant="outline" className="text-xs">{app.data_classification}</Badge>
                         </TableCell>
-                        <TableCell>{['AWS', 'Azure', 'GCP'].includes(app.csp_hosting) ? <ProviderBadge provider={app.csp_hosting.toLowerCase()} /> : <span className="text-xs text-muted-foreground">{app.csp_hosting}</span>}</TableCell>
+                        <TableCell>{['AWS', 'Azure', 'GCP'].includes(app.csp_hosting) ? <ProviderBadge provider={app.csp_hosting.toLowerCase()} size="md" /> : <span className="text-sm text-muted-foreground">{app.csp_hosting}</span>}</TableCell>
                       </TableRow>
                     ))
                   )}

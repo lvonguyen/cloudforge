@@ -12,6 +12,13 @@ interface Category {
   score: number
 }
 
+interface FrameworkScope {
+  environments: number
+  prod_environments: number
+  lines_of_business: number
+  csp_sources: string[]
+}
+
 interface Framework {
   id: string
   name: string
@@ -22,6 +29,7 @@ interface Framework {
   score: number
   category: string
   categories?: Category[]
+  scope?: FrameworkScope
 }
 
 const CATEGORY_COLORS: Record<string, string> = {

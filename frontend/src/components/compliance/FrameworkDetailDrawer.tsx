@@ -30,6 +30,13 @@ interface Category {
   controls?: ControlDetail[]
 }
 
+interface FrameworkScope {
+  environments: number
+  prod_environments: number
+  lines_of_business: number
+  csp_sources: string[]
+}
+
 interface Framework {
   id: string
   name: string
@@ -40,6 +47,7 @@ interface Framework {
   score: number
   category: string
   categories?: Category[]
+  scope?: FrameworkScope
 }
 
 // generateControls creates placeholder controls from category stats when
@@ -209,6 +217,28 @@ export function FrameworkDetailDrawer({
               {framework.controls_passing}/{framework.total_controls} controls passing
             </span>
           </div>
+
+          {/* Scope annotation */}
+          {framework.scope && (
+            <div className="grid grid-cols-2 gap-3 rounded-sm border border-border p-3">
+              <div>
+                <p className="text-[10px] text-muted-foreground">Environments</p>
+                <p className="text-sm font-semibold tabular-nums">{framework.scope.environments}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">Production</p>
+                <p className="text-sm font-semibold tabular-nums">{framework.scope.prod_environments}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">Lines of Business</p>
+                <p className="text-sm font-semibold tabular-nums">{framework.scope.lines_of_business}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">CSP Sources</p>
+                <p className="text-sm font-semibold">{framework.scope.csp_sources.map(s => s.toUpperCase()).join(', ')}</p>
+              </div>
+            </div>
+          )}
 
           {/* Category accordions with inline controls */}
           <div className="space-y-1.5">

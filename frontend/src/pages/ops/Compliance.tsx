@@ -7,7 +7,7 @@ import { FrameworkDetailDrawer } from '@/components/compliance/FrameworkDetailDr
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ShieldCheck, ShieldAlert, Shield, ChevronDown, ChevronRight, Library, LayoutList } from 'lucide-react'
+import { ShieldCheck, ShieldAlert, Shield, ChevronDown, ChevronRight, Library, LayoutList, ChevronUp } from 'lucide-react'
 
 const FRAMEWORK_METADATA: Record<string, { doc_link: string; last_assessed: string }> = {
   'nist-csf':  { doc_link: 'https://www.nist.gov/cyberframework', last_assessed: '2026-03-01' },
@@ -126,9 +126,12 @@ function PostureTab() {
   )
 }
 
+const RINGS_COLLAPSED_LIMIT = 5
+
 export default function Compliance() {
   const { data: frameworks = [], isLoading } = useCompliance()
   const [selectedFramework, setSelectedFramework] = useState<typeof frameworks[number] | null>(null)
+  const [showAllRings, setShowAllRings] = useState(false)
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground p-4">Loading compliance data…</div>
@@ -206,7 +209,7 @@ export default function Compliance() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {frameworks.slice(0, 5).map(fw => {
+                {(showAllRings ? frameworks : frameworks.slice(0, RINGS_COLLAPSED_LIMIT)).map(fw => {
                   const color = fw.score >= 85 ? '#16a34a' : fw.score >= 75 ? '#ca8a04' : fw.score >= 60 ? '#ea580c' : '#dc2626'
                   const trackColor = fw.score >= 85 ? '#16a34a20' : fw.score >= 75 ? '#ca8a0420' : fw.score >= 60 ? '#ea580c20' : '#dc262620'
                   const pct = fw.score / 100
@@ -237,6 +240,25 @@ export default function Compliance() {
                   )
                 })}
               </div>
+              {frameworks.length > RINGS_COLLAPSED_LIMIT && (
+                <button
+                  type="button"
+                  className="flex items-center gap-1 mx-auto mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setShowAllRings(!showAllRings)}
+                >
+                  {showAllRings ? (
+                    <>
+                      <ChevronUp className="h-3.5 w-3.5" />
+                      Show less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3.5 w-3.5" />
+                      Show all {frameworks.length} frameworks
+                    </>
+                  )}
+                </button>
+              )}
             </CardContent>
           </Card>
 
@@ -251,7 +273,7 @@ export default function Compliance() {
                   <button
                     key={fw.id}
                     type="button"
-                    className="w-full grid grid-cols-4 gap-4 px-4 py-3 text-sm items-center cursor-pointer hover:bg-muted/50 transition-colors text-left"
+                    className="w-full grid grid-cols-5 gap-4 px-4 py-3 text-sm items-center cursor-pointer hover:bg-muted/50 transition-colors text-left"
                     onClick={() => setSelectedFramework(fw)}
                   >
                     <div>
@@ -265,6 +287,16 @@ export default function Compliance() {
                     <div className="text-center">
                       <p className="font-mono text-xs text-muted-foreground">Compliance</p>
                       <p className={`font-semibold ${scoreClass(fw.score)}`}>{fw.score.toFixed(1)}%</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-mono text-xs text-muted-foreground">Scope</p>
+                      {fw.scope ? (
+                        <p className="text-xs text-foreground">
+                          {fw.scope.environments} env · {fw.scope.prod_environments} prod · {fw.scope.lines_of_business} LoB · {fw.scope.csp_sources.map(s => s.toUpperCase()).join('/')}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">—</p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="font-mono text-xs text-muted-foreground">Last Assessed</p>

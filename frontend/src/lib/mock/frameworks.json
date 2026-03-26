@@ -14,6 +14,12 @@
       "azure",
       "gcp"
     ],
+    "scope": {
+      "environments": 42,
+      "prod_environments": 14,
+      "lines_of_business": 5,
+      "csp_sources": ["aws", "azure", "gcp"]
+    },
     "categories": [
       {
         "id": "GOVERN",
@@ -309,6 +315,12 @@
       "aws",
       "azure"
     ],
+    "scope": {
+      "environments": 18,
+      "prod_environments": 6,
+      "lines_of_business": 2,
+      "csp_sources": ["aws", "azure"]
+    },
     "categories": [
       {
         "id": "REQ-1-2",
@@ -531,6 +543,12 @@
     "relevant_for": [
       "aws"
     ],
+    "scope": {
+      "environments": 12,
+      "prod_environments": 4,
+      "lines_of_business": 1,
+      "csp_sources": ["aws"]
+    },
     "categories": [
       {
         "id": "ADMIN",
@@ -577,6 +595,12 @@
       "azure",
       "gcp"
     ],
+    "scope": {
+      "environments": 38,
+      "prod_environments": 12,
+      "lines_of_business": 5,
+      "csp_sources": ["aws", "azure", "gcp"]
+    },
     "categories": [
       {
         "id": "A.5",
@@ -623,6 +647,12 @@
       "azure",
       "gcp"
     ],
+    "scope": {
+      "environments": 28,
+      "prod_environments": 8,
+      "lines_of_business": 4,
+      "csp_sources": ["aws", "azure", "gcp"]
+    },
     "categories": [
       {
         "id": "CONTEXT",
@@ -674,6 +704,12 @@
     "relevant_for": [
       "azure"
     ],
+    "scope": {
+      "environments": 15,
+      "prod_environments": 5,
+      "lines_of_business": 3,
+      "csp_sources": ["azure"]
+    },
     "categories": [
       {
         "id": "INFORMATION",

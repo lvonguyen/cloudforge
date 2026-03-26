@@ -2,6 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchWithMockFallback } from '@/lib/api'
 import frameworksData from '@/lib/mock/frameworks.json'
 
+export interface FrameworkScope {
+  environments: number
+  prod_environments: number
+  lines_of_business: number
+  csp_sources: string[]
+}
+
 interface Framework {
   id: string
   name: string
@@ -11,6 +18,7 @@ interface Framework {
   controls_failing: number
   score: number
   category: string
+  scope?: FrameworkScope
 }
 
 export function useCompliance() {
