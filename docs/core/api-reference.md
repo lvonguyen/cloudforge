@@ -62,7 +62,7 @@ Error codes: `BAD_REQUEST`, `FORBIDDEN`, `NOT_FOUND`, `{RESOURCE}_NOT_FOUND`, `C
 |--------|------|-------|-----------|-------------|
 | GET | `/api/v1/findings` | viewer, operator, admin | Yes | List findings (filters: severity, provider, status) |
 | GET | `/api/v1/findings/query` | viewer, operator, admin | Yes | RQL-based finding query |
-| POST | `/api/v1/findings/ingest` | operator, admin | No | Ingest new finding (dedup cache) |
+| POST | `/api/v1/findings/ingest` | admin | No | Ingest new finding (dedup cache) |
 | GET | `/api/v1/findings/{id}` | viewer, operator, admin | No | Get finding by ID (scope-enforced) |
 | POST | `/api/v1/findings/{id}/enrich` | operator, admin | No | AI + threat intel enrichment |
 | GET | `/api/v1/findings/{id}/comments` | viewer, requester, operator, admin | No | List finding comments |
@@ -320,10 +320,11 @@ Create an exception request.
 
 | Method | Path | Roles | Paginated | Description |
 |--------|------|-------|-----------|-------------|
-| GET | `/api/v1/secrets` | operator, admin | No | List secrets |
+| GET | `/api/v1/secrets` | viewer, operator, admin | No | List secrets (scope-guarded) |
 | POST | `/api/v1/secrets/scan` | operator, admin | No | Scan content for secrets |
-| GET | `/api/v1/secrets/{path}` | operator, admin | No | Get secret by path |
-| POST | `/api/v1/secrets/org-scan` | operator, admin | No | Org-wide secrets scan |
+| POST | `/api/v1/secrets/upload` | operator, admin | No | Upload suspected secret (TLS-only, ephemeral) |
+| GET | `/api/v1/secrets/{path}` | viewer, operator, admin | No | Get secret by path (scope-guarded) |
+| POST | `/api/v1/secrets/org-scan` | admin | No | Org-wide secrets scan |
 
 ### WAF
 
@@ -381,6 +382,15 @@ Create an exception request.
 |--------|------|-------|-----------|-------------|
 | POST | `/api/v1/graph/query` | operator, admin | No | PuppyGraph Gremlin query proxy |
 
+### Terminal (Operator+)
+
+| Method | Path | Roles | Description |
+|--------|------|-------|-------------|
+| POST | `/api/v1/terminal/ticket` | operator, admin | Issue short-lived nonce for WebSocket auth (SA-002) |
+| GET | `/api/v1/terminal/ws` | operator, admin | WebSocket upgrade for interactive terminal (auth via `?ticket=` nonce or legacy `?token=` JWT) |
+
+The ticket endpoint returns `{"ticket": "<uuid>"}` valid for 60 seconds, one-time use. The WebSocket handler validates and consumes the ticket on upgrade. Legacy `?token=` JWT-in-URL is retained for backward compatibility but deprecated (leaks to logs/referrer headers).
+
 ### Integration Webhooks (Unauthenticated, HMAC-verified)
 
 | Method | Path | Description |
@@ -414,4 +424,7 @@ All endpoints require at minimum `viewer` role. The `Require()` middleware enfor
 | GET /api/v1/identity/users | 401 | 403 | 200 | 200 |
 | GET /api/v1/workflows | 401 | 403 | 200 | 200 |
 | GET /api/v1/secrets | 401 | 403 | 200 | 200 |
+| POST /api/v1/secrets/org-scan | 401 | 403 | 403 | 200 |
+| POST /api/v1/terminal/ticket | 401 | 403 | 200 | 200 |
+| GET /api/v1/terminal/ws | 401 | 403 | 200 | 200 |
 | DELETE /findings/{id}/comments/{cid} | 401 | 403 | 403 | 204 |

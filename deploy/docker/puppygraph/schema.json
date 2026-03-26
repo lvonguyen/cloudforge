@@ -4,7 +4,7 @@
       "name": "aegis_pg",
       "type": "postgresql",
       "jdbc": {
-        "url": "jdbc:postgresql://${PG_HOST}:${PG_PORT}/${PG_DATABASE}",
+        "jdbcUri": "jdbc:postgresql://${PG_HOST}:${PG_PORT}/${PG_DATABASE}",
         "username": "${PG_USER}",
         "password": "${PG_PASSWORD}"
       }
