@@ -10,7 +10,10 @@ const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toStrin
 const payload = Buffer.from(
   JSON.stringify({
     sub: "demo",
-    role: "viewer",
+    name: "Demo Admin",
+    email: "demo@aegis.io",
+    role: "admin",
+    groups: ["aegis-admin"],
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + 2592000,
   })
