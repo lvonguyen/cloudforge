@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -78,7 +79,7 @@ var DefaultWhitelist = []AllowedCommand{
 		"output", "workspace list", "version",
 	}},
 	{Binary: "trivy", Prefixes: []string{
-		"image", "fs", "config", "repo",
+		"image", "fs", "config",
 	}},
 	{Binary: "aegis", Prefixes: []string{
 		"status", "findings", "compliance", "version", "config",
@@ -120,7 +121,11 @@ func (e *Executor) Validate(input string) (binary string, args []string, err err
 			continue
 		}
 		for _, prefix := range allowed.Prefixes {
-			if prefix == "" || strings.HasPrefix(subcommand, prefix) {
+			if prefix == "" || subcommand == prefix || strings.HasPrefix(subcommand, prefix+" ") {
+				// Check for dangerous flags that could redirect requests or leak creds.
+				if err := rejectDangerousFlags(args); err != nil {
+					return "", nil, err
+				}
 				return binary, args, nil
 			}
 		}
@@ -128,6 +133,34 @@ func (e *Executor) Validate(input string) (binary string, args []string, err err
 	}
 
 	return "", nil, fmt.Errorf("command not allowed: %s", binary)
+}
+
+// dangerousFlags can redirect CLI requests to attacker-controlled endpoints.
+var dangerousFlags = []string{
+	"--endpoint-url", "--endpoint", "--custom-endpoint",
+	"--profile", "--impersonate-service-account",
+}
+
+func rejectDangerousFlags(args []string) error {
+	for _, arg := range args {
+		for _, flag := range dangerousFlags {
+			if arg == flag || strings.HasPrefix(arg, flag+"=") {
+				return fmt.Errorf("flag not allowed: %s", flag)
+			}
+		}
+	}
+	return nil
+}
+
+// safeEnv returns a sanitized environment for child processes.
+// Strips cloud credentials and internal secrets — child processes
+// should NOT inherit the server's service account permissions.
+func safeEnv() []string {
+	return []string{
+		"PATH=" + os.Getenv("PATH"),
+		"HOME=/tmp",
+		"TERM=xterm-256color",
+	}
 }
 
 // Execute runs a validated command and returns the result.
@@ -144,6 +177,7 @@ func (e *Executor) Execute(ctx context.Context, binary string, args []string) (*
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, binary, args...)
+	cmd.Env = safeEnv()
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &limitWriter{buf: &stdout, limit: e.maxOutput}

@@ -9,6 +9,7 @@ interface XTermViewProps {
   panelHeight: number
   isConnected: boolean
   isExecuting: boolean
+  onTermInstance?: (term: Terminal | null) => void
 }
 
 const THEME = {
@@ -37,11 +38,21 @@ const THEME = {
 
 const PROMPT = '\x1b[38;5;39m❯\x1b[0m '
 
-export function XTermView({ onCommand, panelHeight, isConnected: _isConnected, isExecuting }: XTermViewProps) {
+export function XTermView({ onCommand, panelHeight, isConnected: _isConnected, isExecuting, onTermInstance }: XTermViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
   const lineRef = useRef('')
+
+  // Refs to bridge props into the mount-only effect closure.
+  const isExecutingRef = useRef(isExecuting)
+  const onCommandRef = useRef(onCommand)
+  const onTermInstanceRef = useRef(onTermInstance)
+
+  // Sync refs on each render so the onData handler reads current values.
+  useEffect(() => { isExecutingRef.current = isExecuting }, [isExecuting])
+  useEffect(() => { onCommandRef.current = onCommand }, [onCommand])
+  useEffect(() => { onTermInstanceRef.current = onTermInstance }, [onTermInstance])
 
   const writePrompt = useCallback(() => {
     termRef.current?.write(PROMPT)
@@ -73,6 +84,9 @@ export function XTermView({ onCommand, panelHeight, isConnected: _isConnected, i
     termRef.current = term
     fitRef.current = fit
 
+    // Expose terminal instance to parent for server message writing.
+    onTermInstanceRef.current?.(term)
+
     // Welcome banner.
     term.writeln('\x1b[1;36m  Cloud Aegis Terminal\x1b[0m')
     term.writeln('\x1b[90m  Type a command (e.g., aws s3 ls, kubectl get pods)\x1b[0m')
@@ -80,10 +94,9 @@ export function XTermView({ onCommand, panelHeight, isConnected: _isConnected, i
     term.writeln('')
     writePrompt()
 
-    // Handle key input.
+    // Handle key input — reads refs to avoid stale closures.
     term.onData((data) => {
-      // Ignore input while executing.
-      if (isExecuting) return
+      if (isExecutingRef.current) return
 
       const code = data.charCodeAt(0)
 
@@ -93,7 +106,7 @@ export function XTermView({ onCommand, panelHeight, isConnected: _isConnected, i
         const cmd = lineRef.current.trim()
         lineRef.current = ''
         if (cmd) {
-          onCommand(cmd)
+          onCommandRef.current(cmd)
         } else {
           writePrompt()
         }
@@ -120,6 +133,7 @@ export function XTermView({ onCommand, panelHeight, isConnected: _isConnected, i
     })
 
     return () => {
+      onTermInstanceRef.current?.(null)
       term.dispose()
       termRef.current = null
       fitRef.current = null
@@ -147,28 +161,4 @@ export function XTermView({ onCommand, panelHeight, isConnected: _isConnected, i
       style={{ backgroundColor: THEME.background }}
     />
   )
-}
-
-/** Write output to the terminal from outside. */
-export function useXTermWriter() {
-  const termRef = useRef<Terminal | null>(null)
-
-  const setTerminal = useCallback((term: Terminal | null) => {
-    termRef.current = term
-  }, [])
-
-  const writeOutput = useCallback((text: string, stream: 'stdout' | 'stderr' = 'stdout') => {
-    if (!termRef.current) return
-    const colored = stream === 'stderr'
-      ? `\x1b[31m${text}\x1b[0m`
-      : text
-    // Replace newlines with \r\n for terminal.
-    termRef.current.write(colored.replace(/\n/g, '\r\n'))
-  }, [])
-
-  const writePrompt = useCallback(() => {
-    termRef.current?.write('\r\n' + PROMPT)
-  }, [])
-
-  return { setTerminal, writeOutput, writePrompt }
 }

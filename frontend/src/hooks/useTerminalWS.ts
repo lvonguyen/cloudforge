@@ -55,7 +55,11 @@ export function useTerminalWS(opts: UseTerminalWSOptions = {}): UseTerminalWSRet
   const onDisconnectedRef = useRef(onDisconnected)
   onDisconnectedRef.current = onDisconnected
 
+  // Track whether the hook is still mounted to prevent reconnect after cleanup.
+  const mountedRef = useRef(true)
+
   const connect = useCallback(() => {
+    if (!mountedRef.current) return
     const token = sessionStorage.getItem(TOKEN_KEY)
     if (!token) return
 
@@ -85,11 +89,11 @@ export function useTerminalWS(opts: UseTerminalWSOptions = {}): UseTerminalWSRet
 
     ws.onclose = () => {
       setIsConnected(false)
-      wsRef.current = null
       onDisconnectedRef.current?.()
 
-      // Reconnect with exponential backoff.
-      if (enabled) {
+      // Only reconnect if still mounted and enabled.
+      if (mountedRef.current && wsRef.current === ws) {
+        wsRef.current = null
         reconnectTimer.current = setTimeout(() => {
           backoffRef.current = Math.min(backoffRef.current * 2, 30000)
           connect()
@@ -100,17 +104,21 @@ export function useTerminalWS(opts: UseTerminalWSOptions = {}): UseTerminalWSRet
     ws.onerror = () => {
       ws.close()
     }
-  }, [enabled])
+  }, [])
 
   useEffect(() => {
+    mountedRef.current = true
     if (!enabled) {
       wsRef.current?.close()
+      wsRef.current = null
       return
     }
     connect()
     return () => {
+      mountedRef.current = false
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
       wsRef.current?.close()
+      wsRef.current = null
     }
   }, [enabled, connect])
 

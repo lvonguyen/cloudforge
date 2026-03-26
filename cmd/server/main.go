@@ -638,7 +638,11 @@ func main() {
 	)
 
 	// Integrated terminal (WebSocket — operator+ only)
-	srv.terminalHandler = terminal.NewHandler(authMiddleware, newAuditLogger("terminal"), logger.Named("terminal"))
+	var termOrigins []string
+	if cfg.CORSOrigins != "" {
+		termOrigins = strings.Split(cfg.CORSOrigins, ",")
+	}
+	srv.terminalHandler = terminal.NewHandler(authMiddleware, newAuditLogger("terminal"), logger.Named("terminal"), termOrigins...)
 
 	// Compute attack paths from findings
 	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings)

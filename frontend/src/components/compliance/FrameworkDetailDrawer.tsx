@@ -235,7 +235,7 @@ export function FrameworkDetailDrawer({
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground">CSP Sources</p>
-                <p className="text-sm font-semibold">{framework.scope.csp_sources.map(s => s.toUpperCase()).join(', ')}</p>
+                <p className="text-sm font-semibold">{(framework.scope.csp_sources ?? []).map(s => s.toUpperCase()).join(', ') || '\u2014'}</p>
               </div>
             </div>
           )}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -45,11 +46,12 @@ type ServerMessage struct {
 
 // Handler upgrades HTTP to WebSocket for interactive terminal sessions.
 type Handler struct {
-	upgrader    websocket.Upgrader
-	executor    *Executor
-	authMW      *api.AuthMiddleware
-	auditLogger audit.AuditLogger
-	logger      *zap.Logger
+	upgrader       websocket.Upgrader
+	executor       *Executor
+	authMW         *api.AuthMiddleware
+	auditLogger    audit.AuditLogger
+	logger         *zap.Logger
+	allowedOrigins []string
 
 	// Per-user session tracking.
 	mu       sync.Mutex
@@ -57,19 +59,40 @@ type Handler struct {
 }
 
 // NewHandler creates a terminal WebSocket handler.
-func NewHandler(authMW *api.AuthMiddleware, auditLogger audit.AuditLogger, logger *zap.Logger) *Handler {
-	return &Handler{
-		upgrader: websocket.Upgrader{
-			ReadBufferSize:  1024,
-			WriteBufferSize: 4096,
-			CheckOrigin:     func(r *http.Request) bool { return true }, // CORS handled upstream.
-		},
-		executor:    NewExecutor(logger),
-		authMW:      authMW,
-		auditLogger: auditLogger,
-		logger:      logger,
-		sessions:    make(map[string]int),
+func NewHandler(authMW *api.AuthMiddleware, auditLogger audit.AuditLogger, logger *zap.Logger, allowedOrigins ...string) *Handler {
+	h := &Handler{
+		executor:       NewExecutor(logger),
+		authMW:         authMW,
+		auditLogger:    auditLogger,
+		logger:         logger,
+		allowedOrigins: allowedOrigins,
+		sessions:       make(map[string]int),
 	}
+	h.upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 4096,
+		CheckOrigin:     h.checkOrigin,
+	}
+	return h
+}
+
+// checkOrigin validates the WebSocket origin against the allowlist.
+func (h *Handler) checkOrigin(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		return false
+	}
+	// Allow localhost for development.
+	if strings.HasPrefix(origin, "http://localhost") || strings.HasPrefix(origin, "http://127.0.0.1") {
+		return true
+	}
+	for _, allowed := range h.allowedOrigins {
+		if origin == allowed {
+			return true
+		}
+	}
+	h.logger.Warn("terminal: origin rejected", zap.String("origin", origin))
+	return false
 }
 
 // ServeHTTP handles the WebSocket upgrade with manual JWT auth.
@@ -139,26 +162,46 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Configure connection limits.
 	conn.SetReadLimit(maxMessageSize)
 
+	// Wrap connection with write mutex to prevent concurrent writes.
+	wc := &wsConn{Conn: conn}
+
+	// Connection-scoped context for cancelling child processes on disconnect.
+	connCtx, connCancel := context.WithCancel(r.Context())
+	defer connCancel()
+
 	// Start ping/pong keepalive.
 	done := make(chan struct{})
-	go h.pingLoop(conn, done)
+	go h.pingLoop(wc, done)
 
-	h.readLoop(conn, r, claims, role, done)
+	h.readLoop(wc, connCtx, r, claims, role, done)
 }
 
-func (h *Handler) readLoop(conn *websocket.Conn, r *http.Request, claims *api.Claims, role api.Role, done chan struct{}) {
-	defer close(done)
+// wsConn wraps a websocket.Conn with a write mutex for gorilla/websocket safety.
+// gorilla/websocket supports one concurrent reader and one concurrent writer.
+type wsConn struct {
+	*websocket.Conn
+	mu sync.Mutex
+}
 
-	idleTimer := time.NewTimer(idleTimeout)
-	defer idleTimer.Stop()
+func (wc *wsConn) writeJSON(v interface{}) error {
+	wc.mu.Lock()
+	defer wc.mu.Unlock()
+	if err := wc.Conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+		return err
+	}
+	return wc.Conn.WriteJSON(v)
+}
+
+func (h *Handler) readLoop(wc *wsConn, connCtx context.Context, r *http.Request, claims *api.Claims, role api.Role, done chan struct{}) {
+	defer close(done)
 
 	for {
 		// Set read deadline for idle timeout.
-		if err := conn.SetReadDeadline(time.Now().Add(idleTimeout)); err != nil {
+		if err := wc.SetReadDeadline(time.Now().Add(idleTimeout)); err != nil {
 			return
 		}
 
-		_, msgBytes, err := conn.ReadMessage()
+		_, msgBytes, err := wc.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
 				h.logger.Warn("terminal: read error", zap.Error(err))
@@ -166,44 +209,43 @@ func (h *Handler) readLoop(conn *websocket.Conn, r *http.Request, claims *api.Cl
 			return
 		}
 
-		idleTimer.Reset(idleTimeout)
-
 		var msg ClientMessage
 		if err := json.Unmarshal(msgBytes, &msg); err != nil {
-			h.sendError(conn, "", "invalid message format")
+			h.sendError(wc, "", "invalid message format")
 			continue
 		}
 
 		switch msg.Type {
 		case "execute":
-			h.handleExecute(conn, r, claims, role, msg)
+			h.handleExecute(wc, connCtx, r, claims, role, msg)
 		case "pong":
 			// Client responded to ping — connection is alive.
 		default:
-			h.sendError(conn, msg.ID, fmt.Sprintf("unknown message type: %s", msg.Type))
+			h.sendError(wc, msg.ID, fmt.Sprintf("unknown message type: %s", msg.Type))
 		}
 	}
 }
 
-func (h *Handler) handleExecute(conn *websocket.Conn, r *http.Request, claims *api.Claims, role api.Role, msg ClientMessage) {
+func (h *Handler) handleExecute(wc *wsConn, connCtx context.Context, r *http.Request, claims *api.Claims, role api.Role, msg ClientMessage) {
 	binary, args, err := h.executor.Validate(msg.Command)
 	if err != nil {
 		h.logAudit(r, claims, role, audit.ActionTerminalDenied, msg.Command, audit.ResultDenied)
-		h.sendError(conn, msg.ID, err.Error())
+		h.sendError(wc, msg.ID, err.Error())
 		return
 	}
 
-	// Execute the command.
-	result, execErr := h.executor.Execute(context.Background(), binary, args)
+	// Execute with connection-scoped context so disconnect cancels child processes.
+	result, execErr := h.executor.Execute(connCtx, binary, args)
 	if execErr != nil {
 		h.logAudit(r, claims, role, audit.ActionTerminalExecute, msg.Command, audit.ResultError)
-		h.sendError(conn, msg.ID, fmt.Sprintf("execution failed: %v", execErr))
+		h.sendError(wc, msg.ID, "command execution failed")
+		h.logger.Warn("terminal: execution failed", zap.Error(execErr), zap.String("command", binary))
 		return
 	}
 
 	// Stream stdout.
 	if result.Stdout != "" {
-		h.sendMessage(conn, ServerMessage{
+		h.sendMessage(wc, ServerMessage{
 			Type:   "output",
 			ID:     msg.ID,
 			Stream: "stdout",
@@ -213,7 +255,7 @@ func (h *Handler) handleExecute(conn *websocket.Conn, r *http.Request, claims *a
 
 	// Stream stderr.
 	if result.Stderr != "" {
-		h.sendMessage(conn, ServerMessage{
+		h.sendMessage(wc, ServerMessage{
 			Type:   "output",
 			ID:     msg.ID,
 			Stream: "stderr",
@@ -224,7 +266,7 @@ func (h *Handler) handleExecute(conn *websocket.Conn, r *http.Request, claims *a
 	// Send exit message.
 	code := result.ExitCode
 	elapsed := result.ElapsedMs
-	h.sendMessage(conn, ServerMessage{
+	h.sendMessage(wc, ServerMessage{
 		Type:      "exit",
 		ID:        msg.ID,
 		Code:      &code,
@@ -239,7 +281,7 @@ func (h *Handler) handleExecute(conn *websocket.Conn, r *http.Request, claims *a
 	h.logAudit(r, claims, role, audit.ActionTerminalExecute, msg.Command, auditResult)
 }
 
-func (h *Handler) pingLoop(conn *websocket.Conn, done <-chan struct{}) {
+func (h *Handler) pingLoop(wc *wsConn, done <-chan struct{}) {
 	ticker := time.NewTicker(pingInterval)
 	defer ticker.Stop()
 
@@ -248,25 +290,19 @@ func (h *Handler) pingLoop(conn *websocket.Conn, done <-chan struct{}) {
 		case <-done:
 			return
 		case <-ticker.C:
-			if err := conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
-				return
-			}
-			h.sendMessage(conn, ServerMessage{Type: "ping"})
+			h.sendMessage(wc, ServerMessage{Type: "ping"})
 		}
 	}
 }
 
-func (h *Handler) sendMessage(conn *websocket.Conn, msg ServerMessage) {
-	if err := conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
-		return
-	}
-	if err := conn.WriteJSON(msg); err != nil {
+func (h *Handler) sendMessage(wc *wsConn, msg ServerMessage) {
+	if err := wc.writeJSON(msg); err != nil {
 		h.logger.Warn("terminal: write error", zap.Error(err))
 	}
 }
 
-func (h *Handler) sendError(conn *websocket.Conn, id, message string) {
-	h.sendMessage(conn, ServerMessage{
+func (h *Handler) sendError(wc *wsConn, id, message string) {
+	h.sendMessage(wc, ServerMessage{
 		Type:    "error",
 		ID:      id,
 		Message: message,

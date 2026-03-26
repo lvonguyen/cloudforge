@@ -4,7 +4,7 @@ import { useTerminalPanel } from '@/lib/terminal-context'
 import { useTerminalWS, type ServerMessage } from '@/hooks/useTerminalWS'
 import { XTermView } from '@/components/layout/XTermView'
 import { X, TerminalSquare, GripHorizontal, Wifi, WifiOff } from 'lucide-react'
-import { Terminal as XTerminal } from '@xterm/xterm'
+import type { Terminal as XTerminal } from '@xterm/xterm'
 
 const PROMPT = '\x1b[38;5;39m❯\x1b[0m '
 
@@ -15,8 +15,8 @@ export function TerminalPanel() {
   const termRef = useRef<XTerminal | null>(null)
   const cmdIdRef = useRef(0)
 
-  // RBAC: only operator and admin can see the terminal.
-  if (role !== 'operator' && role !== 'admin') return null
+  // Compute RBAC once — hooks MUST always run (React Rules of Hooks).
+  const isAllowed = role === 'operator' || role === 'admin'
 
   const onMessage = useCallback((msg: ServerMessage) => {
     const term = termRef.current
@@ -47,7 +47,7 @@ export function TerminalPanel() {
   }, [setExecuting])
 
   const { send, isConnected } = useTerminalWS({
-    enabled: state.isOpen,
+    enabled: state.isOpen && isAllowed,
     onMessage,
     onConnected: () => setConnected(true),
     onDisconnected: () => setConnected(false),
@@ -67,6 +67,7 @@ export function TerminalPanel() {
 
   // Keyboard shortcut: Ctrl+` to toggle.
   useEffect(() => {
+    if (!isAllowed) return
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === '`') {
         e.preventDefault()
@@ -75,7 +76,12 @@ export function TerminalPanel() {
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [toggle])
+  }, [toggle, isAllowed])
+
+  // Callback from XTermView to wire up the terminal instance.
+  const onTermInstance = useCallback((term: XTerminal | null) => {
+    termRef.current = term
+  }, [])
 
   // Drag-to-resize handler.
   const onDragStart = useCallback((e: React.MouseEvent) => {
@@ -101,8 +107,8 @@ export function TerminalPanel() {
     document.addEventListener('mouseup', onMouseUp)
   }, [state.panelHeight, setHeight])
 
-
-  if (!state.isOpen) return null
+  // RBAC guard AFTER all hooks — safe for React.
+  if (!isAllowed || !state.isOpen) return null
 
   return (
     <div
@@ -163,6 +169,7 @@ export function TerminalPanel() {
           panelHeight={state.panelHeight}
           isConnected={isConnected}
           isExecuting={state.isExecuting}
+          onTermInstance={onTermInstance}
         />
       </div>
     </div>
