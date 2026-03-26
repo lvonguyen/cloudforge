@@ -5,14 +5,34 @@ import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { KeyRound, Search, ChevronDown, ChevronRight, AlertTriangle, FileCode, CheckCircle2, LayoutGrid, List } from 'lucide-react'
-import { useStartOrgScan } from '@/hooks/useOrgScan'
-import type { OrgScanResult, RepoResult } from '@/hooks/useOrgScan'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
+import { KeyRound, Search, ChevronDown, ChevronRight, AlertTriangle, FileCode, CheckCircle2, LayoutGrid, List, Upload, Shield, Lock } from 'lucide-react'
+import { useStartOrgScan, useUploadSuspectedSecret } from '@/hooks/useOrgScan'
+import type { OrgScanResult, RepoResult, SecretUploadResult } from '@/hooks/useOrgScan'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
+
+// ─── Secret type taxonomy ───────────────────────────────────────────────────
+
+const SECRET_TYPES = [
+  { value: 'api_token',        label: 'API Token' },
+  { value: 'ssh_keypair',      label: 'SSH Keypair' },
+  { value: 'oauth_secret',     label: 'OAuth Client Secret' },
+  { value: 'aws_access_key',   label: 'AWS Access Key' },
+  { value: 'azure_spn',        label: 'Azure SPN' },
+  { value: 'gcp_sa_key',       label: 'GCP Service Account Key' },
+  { value: 'generic_password', label: 'Generic Password' },
+  { value: 'certificate_pem',  label: 'Certificate / PEM' },
+] as const
+
+type SecretTypeValue = (typeof SECRET_TYPES)[number]['value']
+
+// ─── Recent scan history (mock) ─────────────────────────────────────────────
 
 const RECENT_SCANS = [
   { id: 'scan-001', org: 'contoso', repos: 12, secrets: 3, critical: 1, high: 2, date: '2026-03-18T14:30:00Z' },
@@ -26,12 +46,44 @@ function formatScanDate(iso: string): string {
   catch { return iso }
 }
 
+// ─── Severity + visibility color maps ───────────────────────────────────────
+
 const SEVERITY_COLORS: Record<string, string> = {
   critical: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
   high: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
   medium: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
   low: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
 }
+
+const VISIBILITY_COLORS: Record<string, string> = {
+  public:   'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  private:  'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  internal: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+}
+
+const ROTATION_COLORS: Record<string, string> = {
+  'needs-rotation': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+  expired:          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  active:           'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+}
+
+const EXPOSURE_COLORS: Record<string, string> = {
+  public:   'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  internal: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+  unknown:  'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300',
+}
+
+// ─── Repo metadata (mock) ───────────────────────────────────────────────────
+
+const REPO_META: Record<string, { visibility: string; platform: string; rotation: string }> = {
+  'acme-corp/frontend':         { visibility: 'public',   platform: 'GitHub',  rotation: 'needs-rotation' },
+  'acme-corp/backend-api':      { visibility: 'private',  platform: 'GitHub',  rotation: 'expired' },
+  'acme-corp/infra-terraform':  { visibility: 'private',  platform: 'GitLab',  rotation: 'active' },
+  'contoso/web-app':            { visibility: 'internal', platform: 'GitHub',  rotation: 'active' },
+  'contoso/data-pipeline':      { visibility: 'private',  platform: 'GitHub',  rotation: 'needs-rotation' },
+}
+
+// ─── RepoSection (list view) ────────────────────────────────────────────────
 
 function RepoSection({ result, defaultOpen }: { result: RepoResult; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen ?? false)
@@ -77,25 +129,7 @@ function RepoSection({ result, defaultOpen }: { result: RepoResult; defaultOpen?
   )
 }
 
-const REPO_META: Record<string, { visibility: string; platform: string; rotation: string }> = {
-  'acme-corp/frontend':         { visibility: 'public',   platform: 'GitHub',  rotation: 'needs-rotation' },
-  'acme-corp/backend-api':      { visibility: 'private',  platform: 'GitHub',  rotation: 'expired' },
-  'acme-corp/infra-terraform':  { visibility: 'private',  platform: 'GitLab',  rotation: 'active' },
-  'contoso/web-app':            { visibility: 'internal', platform: 'GitHub',  rotation: 'active' },
-  'contoso/data-pipeline':      { visibility: 'private',  platform: 'GitHub',  rotation: 'needs-rotation' },
-}
-
-const VISIBILITY_COLORS: Record<string, string> = {
-  public:   'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-  private:  'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-  internal: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-}
-
-const ROTATION_COLORS: Record<string, string> = {
-  'needs-rotation': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
-  expired:          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-  active:           'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-}
+// ─── MatrixView (table view) ────────────────────────────────────────────────
 
 function MatrixView({ results }: { results: RepoResult[] }) {
   return (
@@ -158,24 +192,195 @@ function MatrixView({ results }: { results: RepoResult[] }) {
   )
 }
 
+// ─── Exposure Analysis Table ────────────────────────────────────────────────
+// Aggregates findings by secret type across all repos, showing:
+// - instances found in wild
+// - secret type
+// - exposure level (public/internal/unknown)
+// - last documented use date
+
+interface ExposureRow {
+  secretType: string
+  instances: number
+  exposure: 'public' | 'internal' | 'unknown'
+  lastSeen: string
+}
+
+function deriveExposureRows(results: RepoResult[]): ExposureRow[] {
+  const byType = new Map<string, { instances: number; exposure: 'public' | 'internal' | 'unknown'; lastSeen: string }>()
+
+  for (const r of results) {
+    const meta = REPO_META[r.repo]
+    const vis = meta?.visibility ?? 'unknown'
+
+    for (const f of r.findings) {
+      const key = f.type
+      const existing = byType.get(key)
+      // Promote exposure: public > internal > unknown
+      const exposure = vis === 'public' ? 'public' : vis === 'internal' ? 'internal' : 'unknown'
+      if (existing) {
+        existing.instances++
+        if (exposure === 'public') existing.exposure = 'public'
+        else if (exposure === 'internal' && existing.exposure === 'unknown') existing.exposure = 'internal'
+      } else {
+        byType.set(key, { instances: 1, exposure, lastSeen: new Date().toISOString() })
+      }
+    }
+  }
+
+  return Array.from(byType.entries()).map(([secretType, data]) => ({
+    secretType,
+    ...data,
+  }))
+}
+
+function ExposureTable({ results }: { results: RepoResult[] }) {
+  const rows = deriveExposureRows(results)
+  if (rows.length === 0) return null
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+          <Shield className="h-3.5 w-3.5" />
+          Exposure Analysis
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0 overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs pl-4">Secret Type</TableHead>
+              <TableHead className="text-xs text-right">Instances Found</TableHead>
+              <TableHead className="text-xs">Exposure Level</TableHead>
+              <TableHead className="text-xs">Last Documented Use</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map(row => (
+              <TableRow key={row.secretType}>
+                <TableCell className="text-xs pl-4 font-medium">{row.secretType}</TableCell>
+                <TableCell className="text-xs text-right font-semibold">{row.instances}</TableCell>
+                <TableCell>
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 ${EXPOSURE_COLORS[row.exposure] ?? ''}`}>
+                    {row.exposure}
+                  </span>
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">{formatScanDate(row.lastSeen)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─── Upload Results ─────────────────────────────────────────────────────────
+
+function UploadResults({ data }: { data: SecretUploadResult }) {
+  const typeLabel = SECRET_TYPES.find(t => t.value === data.secret_type)?.label ?? data.secret_type
+
+  return (
+    <Card className="border-green-200 dark:border-green-800">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+          <Lock className="h-3.5 w-3.5" />
+          Upload Analysis — {typeLabel}
+          <Badge variant="outline" className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 ml-auto">
+            ephemeral
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0 overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs pl-4">Instances Found</TableHead>
+              <TableHead className="text-xs">Secret Type</TableHead>
+              <TableHead className="text-xs">Exposure Level</TableHead>
+              <TableHead className="text-xs">Last Documented Use</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.findings.length > 0 ? (
+              data.findings.map((f, i) => (
+                <TableRow key={i}>
+                  <TableCell className="text-xs pl-4 font-semibold">1</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant="outline" className="text-[10px]">{f.type}</Badge>
+                      <span className="text-xs">{f.pattern_name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 ${EXPOSURE_COLORS.unknown}`}>
+                      unknown
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{formatScanDate(new Date().toISOString())}</TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} className="text-xs text-center py-4 text-muted-foreground">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 inline-block mr-1.5 -mt-0.5" />
+                  No known secret patterns detected
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────────
+
 export default function OrgSecretsScan() {
   useAuth()
   const [orgName, setOrgName] = useState('')
   const [repos, setRepos] = useState('')
+  const [secretTypeFilter, setSecretTypeFilter] = useState<SecretTypeValue | 'all'>('all')
   const scanMutation = useStartOrgScan()
   const scanCooldown = useActionCooldown({ key: 'org-scan', cooldownMs: 10_000 })
   const { toasts, dismiss } = useToast()
 
+  // Upload form state
+  const [uploadType, setUploadType] = useState<SecretTypeValue>('api_token')
+  const [uploadContent, setUploadContent] = useState('')
+  const uploadMutation = useUploadSuspectedSecret()
+  const uploadCooldown = useActionCooldown({ key: 'secret-upload', cooldownMs: 5_000 })
+
   const result: OrgScanResult | undefined = scanMutation.data
+  const uploadResult: SecretUploadResult | undefined = uploadMutation.data
 
   const [viewMode, setViewMode] = useState<'list' | 'matrix'>('list')
-  // Role gate removed — demo viewers have full access (writes are ephemeral)
 
   function handleScan() {
     if (!orgName.trim() || !scanCooldown.canFire) return
     scanCooldown.fire()
     const repoList = repos.trim() ? repos.split(',').map(r => r.trim()).filter(Boolean) : undefined
-    scanMutation.mutate({ org_name: orgName.trim(), repos: repoList })
+    scanMutation.mutate({
+      org_name: orgName.trim(),
+      repos: repoList,
+      secret_type: secretTypeFilter !== 'all' ? secretTypeFilter : undefined,
+    })
+  }
+
+  function handleUpload() {
+    if (!uploadContent.trim() || !uploadCooldown.canFire) return
+    uploadCooldown.fire()
+    uploadMutation.mutate(
+      { secret_type: uploadType, content: uploadContent.trim() },
+      {
+        onSuccess: () => {
+          // [SECURITY] Clear the textarea content from state after successful upload.
+          setUploadContent('')
+        },
+      },
+    )
   }
 
   return (
@@ -185,7 +390,7 @@ export default function OrgSecretsScan() {
         <p className="text-sm text-muted-foreground mt-0.5">Scan organization repositories for leaked credentials and API keys</p>
       </div>
 
-      {/* Scan form */}
+      {/* ── Org Scan form ──────────────────────────────────────────────────── */}
       <Card>
         <CardContent className="p-4 space-y-3">
           <div>
@@ -208,6 +413,22 @@ export default function OrgSecretsScan() {
               className="w-full mt-1 px-3 py-2 text-sm bg-muted/50 border border-border outline-none"
             />
           </div>
+          <div>
+            <label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Secret Type Filter</label>
+            <div className="mt-1">
+              <Select value={secretTypeFilter} onValueChange={v => setSecretTypeFilter(v as SecretTypeValue | 'all')}>
+                <SelectTrigger size="sm" className="w-full text-xs">
+                  <SelectValue placeholder="All secret types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">All secret types</SelectItem>
+                  {SECRET_TYPES.map(t => (
+                    <SelectItem key={t.value} value={t.value} className="text-xs">{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <Button
             size="sm" className="gap-1.5 text-xs"
             disabled={!orgName.trim() || !scanCooldown.canFire || scanMutation.isPending}
@@ -219,7 +440,80 @@ export default function OrgSecretsScan() {
         </CardContent>
       </Card>
 
-      {/* Recent Scans */}
+      {/* ── Upload Suspected Secret ────────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+            <Upload className="h-3.5 w-3.5" />
+            Upload Suspected Secret
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/50 px-3 py-2 border border-border">
+            <Lock className="h-3 w-3 shrink-0" />
+            <span>TLS-only upload path. Content is analyzed ephemerally — never persisted to disk or database.</span>
+          </div>
+          <div>
+            <label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Secret Type</label>
+            <div className="mt-1">
+              <Select value={uploadType} onValueChange={v => setUploadType(v as SecretTypeValue)}>
+                <SelectTrigger size="sm" className="w-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SECRET_TYPES.map(t => (
+                    <SelectItem key={t.value} value={t.value} className="text-xs">{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Suspected Secret Content</label>
+            <textarea
+              value={uploadContent}
+              onChange={e => setUploadContent(e.target.value)}
+              placeholder="Paste the suspected secret here for analysis..."
+              rows={4}
+              autoComplete="off"
+              spellCheck={false}
+              data-lpignore="true"
+              data-1p-ignore="true"
+              className="w-full mt-1 px-3 py-2 text-sm font-mono bg-muted/50 border border-border outline-none resize-y"
+            />
+            <p className="text-[10px] text-muted-foreground mt-0.5">Max 64KB. Content is cleared from memory after analysis.</p>
+          </div>
+          <Button
+            size="sm" className="gap-1.5 text-xs"
+            disabled={!uploadContent.trim() || !uploadCooldown.canFire || uploadMutation.isPending}
+            onClick={handleUpload}
+          >
+            <Shield className="h-3.5 w-3.5" />
+            {uploadMutation.isPending ? 'Analyzing...' : !uploadCooldown.canFire ? 'Cooldown...' : 'Analyze'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Upload results */}
+      {uploadResult && <UploadResults data={uploadResult} />}
+
+      {/* Upload error */}
+      {uploadMutation.isError && (
+        <Card className="border-red-200 dark:border-red-800">
+          <CardContent className="p-4 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {uploadMutation.error instanceof ApiError && uploadMutation.error.status === 403
+                ? 'Upload requires operator or admin role.'
+                : uploadMutation.error instanceof ApiError && uploadMutation.error.status === 413
+                ? 'Content exceeds 64KB limit.'
+                : 'Analysis failed — please try again later.'}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Recent Scans ───────────────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Recent Scans</CardTitle>
@@ -267,7 +561,7 @@ export default function OrgSecretsScan() {
         </CardContent>
       </Card>
 
-      {/* Error state — fixed messages to avoid leaking backend details */}
+      {/* ── Scan Error ─────────────────────────────────────────────────────── */}
       {scanMutation.isError && (
         <Card className="border-red-200 dark:border-red-800">
           <CardContent className="p-4 flex items-center gap-2">
@@ -283,7 +577,7 @@ export default function OrgSecretsScan() {
         </Card>
       )}
 
-      {/* Results */}
+      {/* ── Scan Results ───────────────────────────────────────────────────── */}
       {result && (
         <>
           {/* View toggle */}
@@ -332,6 +626,9 @@ export default function OrgSecretsScan() {
               </div>
             </div>
           </div>
+
+          {/* Exposure Analysis — aggregated by secret type */}
+          <ExposureTable results={result.results} />
 
           {/* Repo results tree / matrix */}
           {viewMode === 'list' ? (

@@ -27,6 +27,13 @@ export interface OrgScanResult {
   errors?: { repo: string; message: string }[]
 }
 
+export interface SecretUploadResult {
+  secret_type: string
+  findings: SecretFinding[]
+  count: number
+  ephemeral: boolean
+}
+
 const MOCK_RESULT: OrgScanResult = {
   org_name: 'acme-corp',
   repos_scanned: 3,
@@ -62,7 +69,7 @@ export function useStartOrgScan() {
   const isDemo = import.meta.env.VITE_DEMO_MODE === 'true'
 
   return useMutation({
-    mutationFn: async (req: { org_name: string; repos?: string[] }) => {
+    mutationFn: async (req: { org_name: string; repos?: string[]; secret_type?: string }) => {
       try {
         return await apiClient.post<OrgScanResult>('/secrets/org-scan', req)
       } catch (err) {
@@ -88,6 +95,55 @@ export function useStartOrgScan() {
         toast('Org scan requires admin role', 'error')
       } else {
         toast('Scan failed', 'error')
+      }
+    },
+  })
+}
+
+const MOCK_UPLOAD_RESULT: SecretUploadResult = {
+  secret_type: 'aws_access_key',
+  findings: [
+    {
+      pattern_id: 'aws-access-key',
+      pattern_name: 'AWS Access Key',
+      type: 'credential',
+      severity: 'critical',
+      line: 1,
+      column: 1,
+      match: '****REDACTED',
+      context: 'Matched known secret pattern',
+    },
+  ],
+  count: 1,
+  ephemeral: true,
+}
+
+export function useUploadSuspectedSecret() {
+  const { toast } = useToast()
+  const isDev = import.meta.env.DEV
+  const isDemo = import.meta.env.VITE_DEMO_MODE === 'true'
+
+  return useMutation({
+    mutationFn: async (req: { secret_type: string; content: string }) => {
+      try {
+        return await apiClient.post<SecretUploadResult>('/secrets/upload', req)
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 403) throw err
+        if (isDev || isDemo) {
+          console.warn('[useUploadSuspectedSecret] API unavailable, using mock')
+          return { ...MOCK_UPLOAD_RESULT, secret_type: req.secret_type }
+        }
+        throw err
+      }
+    },
+    onSuccess: (data) => {
+      toast(`Analysis complete: ${data.count} pattern match${data.count !== 1 ? 'es' : ''} found (ephemeral — nothing persisted)`)
+    },
+    onError: (err: Error) => {
+      if (err instanceof ApiError && err.status === 403) {
+        toast('Upload requires operator or admin role', 'error')
+      } else {
+        toast('Analysis failed', 'error')
       }
     },
   })

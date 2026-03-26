@@ -60,6 +60,85 @@ func (s *Server) getSecret(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// validSecretTypes enumerates the secret categories the upload endpoint accepts.
+var validSecretTypes = map[string]bool{
+	"api_token":        true,
+	"ssh_keypair":      true,
+	"oauth_secret":     true,
+	"aws_access_key":   true,
+	"azure_spn":        true,
+	"gcp_sa_key":       true,
+	"generic_password": true,
+	"certificate_pem":  true,
+}
+
+// uploadSuspectedSecret accepts a suspected secret for ephemeral analysis.
+// Security invariants:
+//   - TLS required (direct or via X-Forwarded-Proto)
+//   - Raw content is NEVER logged or persisted to disk/DB
+//   - Content reference is cleared immediately after scanning
+//   - 64KB size limit to prevent abuse
+func (s *Server) uploadSuspectedSecret(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.uploadSuspectedSecret")
+	defer span.End()
+	r = r.WithContext(ctx)
+
+	// Enforce TLS — reject plaintext uploads of suspected secrets.
+	if r.TLS == nil && r.Header.Get("X-Forwarded-Proto") != "https" {
+		span.SetAttributes(attribute.Bool("security.tls_rejected", true))
+		writeErrorResponse(w, "TLS required for secret upload", http.StatusForbidden)
+		return
+	}
+
+	var body struct {
+		SecretType string `json:"secret_type"`
+		Content    string `json:"content"`
+	}
+	if !s.decodeJSONBody(w, r, &body) {
+		return
+	}
+
+	if body.Content == "" {
+		writeErrorResponse(w, "content field is required", http.StatusBadRequest)
+		return
+	}
+	if body.SecretType == "" {
+		writeErrorResponse(w, "secret_type field is required", http.StatusBadRequest)
+		return
+	}
+	if !validSecretTypes[body.SecretType] {
+		writeErrorResponse(w, "invalid secret_type", http.StatusBadRequest)
+		return
+	}
+	// 64KB ceiling — suspected secrets shouldn't be larger than this.
+	if len(body.Content) > 65536 {
+		writeErrorResponse(w, "content exceeds 64KB limit", http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	// Scan content — ephemeral, never persisted to disk or database.
+	findings := s.secretsManager.ScanForSecrets(body.Content)
+
+	// [SECURITY] Clear the content reference immediately.
+	// Go strings are immutable so we can't zero the backing array, but
+	// nilling the reference allows GC to reclaim the memory promptly.
+	body.Content = ""
+
+	span.SetAttributes(
+		attribute.Int("scan.findings_count", len(findings)),
+		attribute.String("scan.secret_type", body.SecretType),
+	)
+	// [SECURITY] Never log body.Content — only metadata attributes above.
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"secret_type": body.SecretType,
+		"findings":    findings,
+		"count":       len(findings),
+		"ephemeral":   true,
+	})
+}
+
 func (s *Server) scanSecrets(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.scanSecrets")
 	defer span.End()

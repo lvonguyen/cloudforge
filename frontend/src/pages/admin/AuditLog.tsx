@@ -17,12 +17,46 @@ const RESULT_CONFIG: Record<string, string> = {
 
 const ACTION_COLORS: Record<string, string> = {
   approve: 'text-green-600 dark:text-green-400',
-  remediate: 'text-blue-600 dark:text-blue-400',
-  evaluate: 'text-indigo-600 dark:text-indigo-400',
-  create: 'text-purple-600 dark:text-purple-400',
-  start: 'text-cyan-600 dark:text-cyan-400',
   complete: 'text-green-600 dark:text-green-400',
+  create: 'text-purple-600 dark:text-purple-400',
+  evaluate: 'text-indigo-600 dark:text-indigo-400',
+  execute: 'text-rose-600 dark:text-rose-400',
+  generate: 'text-slate-600 dark:text-slate-400',
+  invite: 'text-violet-600 dark:text-violet-400',
+  invoke: 'text-fuchsia-600 dark:text-fuchsia-400',
+  login: 'text-emerald-600 dark:text-emerald-400',
+  reject: 'text-red-600 dark:text-red-400',
+  remediate: 'text-blue-600 dark:text-blue-400',
+  reopen: 'text-lime-600 dark:text-lime-400',
+  role_changed: 'text-orange-600 dark:text-orange-400',
+  rollback: 'text-amber-600 dark:text-amber-400',
+  rotate: 'text-teal-600 dark:text-teal-400',
+  start: 'text-cyan-600 dark:text-cyan-400',
+  stop: 'text-red-600 dark:text-red-400',
   suppress: 'text-yellow-600 dark:text-yellow-400',
+  update: 'text-sky-600 dark:text-sky-400',
+}
+
+const ACTION_DESCRIPTIONS: Record<string, string> = {
+  approve: 'Approved an exception request or policy change',
+  complete: 'Scan or automated workflow finished successfully',
+  create: 'Created a new resource (exception, policy, ticket)',
+  evaluate: 'Evaluated a policy against current resources',
+  execute: 'Executed a remediation action on infrastructure',
+  generate: 'Generated a report or compliance export',
+  invite: 'Invited a user to the platform',
+  invoke: 'Invoked an AI agent or automation',
+  login: 'User authenticated to the platform',
+  reject: 'Rejected an exception request or proposed change',
+  remediate: 'Applied a fix to a security finding',
+  reopen: 'Reopened a previously resolved finding or exception',
+  role_changed: 'Changed a user\'s RBAC role assignment',
+  rollback: 'Rolled back a remediation to its previous state',
+  rotate: 'Rotated a secret, key, or credential',
+  start: 'Started a scan, agent, or background process',
+  stop: 'Stopped a running agent or background process',
+  suppress: 'Suppressed a finding from active dashboards',
+  update: 'Updated configuration or resource properties',
 }
 
 function actionColor(action: string): string {
@@ -33,13 +67,16 @@ function actionColor(action: string): string {
 export default function AuditLog() {
   const [resultFilter, setResultFilter] = useState('all')
   const [actorFilter, setActorFilter] = useState('all')
+  const [namespaceFilter, setNamespaceFilter] = useState('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const { data: EVENTS = [], isLoading, isError } = useAuditLog()
   const actors = ['all', ...Array.from(new Set(EVENTS.map(e => e.actor)))]
+  const namespaces = ['all', ...Array.from(new Set(EVENTS.map(e => e.action.split('.')[0]))).sort()]
   const filtered = EVENTS
     .filter(e => resultFilter === 'all' || e.result === resultFilter)
     .filter(e => actorFilter === 'all' || e.actor === actorFilter)
+    .filter(e => namespaceFilter === 'all' || e.action.startsWith(namespaceFilter + '.'))
 
   if (isLoading) return <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">Loading audit events...</div>
   if (isError) return <div className="flex items-center justify-center h-64 text-sm text-destructive">Failed to load audit log. Check backend connection.</div>
@@ -74,6 +111,16 @@ export default function AuditLog() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={namespaceFilter} onValueChange={setNamespaceFilter}>
+          <SelectTrigger className="h-8 w-40 text-xs">
+            <SelectValue placeholder="Namespace" />
+          </SelectTrigger>
+          <SelectContent>
+            {namespaces.map(ns => (
+              <SelectItem key={ns} value={ns} className="text-xs">{ns === 'all' ? 'All Namespaces' : ns}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="ml-auto flex items-center gap-2">
           {(['success', 'denied', 'error'] as const).map(r => (
             <button
@@ -89,14 +136,19 @@ export default function AuditLog() {
         </div>
       </div>
 
-      <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-        <span>Action colors:</span>
+      <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground flex-wrap">
+        <span>Verbs:</span>
         <span className="text-green-600 dark:text-green-400">approve/complete</span>
         <span className="text-blue-600 dark:text-blue-400">remediate</span>
-        <span className="text-indigo-600 dark:text-indigo-400">evaluate</span>
         <span className="text-purple-600 dark:text-purple-400">create</span>
+        <span className="text-sky-600 dark:text-sky-400">update</span>
+        <span className="text-rose-600 dark:text-rose-400">execute</span>
+        <span className="text-amber-600 dark:text-amber-400">rollback</span>
+        <span className="text-red-600 dark:text-red-400">reject/stop</span>
         <span className="text-cyan-600 dark:text-cyan-400">start</span>
         <span className="text-yellow-600 dark:text-yellow-400">suppress</span>
+        <span className="text-orange-600 dark:text-orange-400">role_changed</span>
+        <span className="text-emerald-600 dark:text-emerald-400">login</span>
       </div>
 
       <Card>
@@ -174,6 +226,12 @@ export default function AuditLog() {
                               <span className="text-muted-foreground uppercase tracking-wide">Event ID</span>
                               <p className="font-mono font-medium mt-0.5">{evt.id}</p>
                             </div>
+                            {actionVerb && ACTION_DESCRIPTIONS[actionVerb] && (
+                              <div className="col-span-2 pt-1 border-t border-border/40">
+                                <span className="text-muted-foreground uppercase tracking-wide">Description</span>
+                                <p className="font-medium mt-0.5">{ACTION_DESCRIPTIONS[actionVerb]}</p>
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>

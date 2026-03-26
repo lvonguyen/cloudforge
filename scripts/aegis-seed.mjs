@@ -67,7 +67,7 @@ const CBUS = {
 
 // [id, displayName, cbu, deployType, resourceTypes[]]
 const SERVICES_RAW = [
-  // Northstar (Consumer Digital)
+  // Northstar (Consumer Digital) — 15 services
   ['ns-product-search', 'Product Search Platform', 'ns', 'cloud', ['compute', 'storage', 'database', 'serverless']],
   ['ns-ecommerce-web', 'E-Commerce Storefront', 'ns', 'cloud', ['compute', 'network', 'storage', 'container']],
   ['ns-iac-platform', 'Infrastructure Automation', 'ns', 'cloud', ['compute', 'storage', 'identity', 'serverless']],
@@ -75,7 +75,15 @@ const SERVICES_RAW = [
   ['ns-secure-messaging', 'E2E Encrypted Messaging', 'ns', 'cloud', ['compute', 'encryption', 'serverless']],
   ['ns-iot-telemetry', 'IoT Device Telemetry', 'ns', 'cloud', ['compute', 'storage', 'database', 'serverless']],
   ['ns-ciam-forgerock', 'ForgeRock Identity Cloud', 'ns', 'hybrid', ['identity', 'compute', 'database']],
-  // Meridian (Operations/Finance)
+  ['ns-loyalty-engine', 'Customer Loyalty Engine', 'ns', 'cloud', ['compute', 'database', 'serverless']],
+  ['ns-recommendation-ml', 'Product Recommendation ML', 'ns', 'cloud', ['compute', 'storage', 'database', 'container']],
+  ['ns-content-cdn', 'Content Delivery Network', 'ns', 'cloud', ['network', 'storage', 'compute']],
+  ['ns-mobile-bff', 'Mobile Backend-for-Frontend', 'ns', 'cloud', ['compute', 'serverless', 'database']],
+  ['ns-ab-testing', 'A/B Testing Platform', 'ns', 'cloud', ['compute', 'database', 'serverless']],
+  ['ns-media-transcoding', 'Media Transcoding Pipeline', 'ns', 'cloud', ['compute', 'storage', 'container']],
+  ['ns-push-notifications', 'Push Notification Service', 'ns', 'cloud', ['compute', 'serverless', 'database']],
+  ['ns-fraud-detection', 'Real-Time Fraud Detection', 'ns', 'cloud', ['compute', 'database', 'serverless', 'container']],
+  // Meridian (Operations/Finance) — 15 services
   ['mr-claims-mgmt', 'Claims Management System', 'mr', 'cloud', ['compute', 'database', 'storage']],
   ['mr-learning-platform', 'Learning Management', 'mr', 'cloud', ['compute', 'storage', 'serverless']],
   ['mr-mobile-payments', 'Mobile Payments Gateway', 'mr', 'cloud', ['compute', 'network', 'encryption', 'database']],
@@ -83,11 +91,29 @@ const SERVICES_RAW = [
   ['mr-erp-sap', 'SAP S/4HANA ERP', 'mr', 'hybrid', ['compute', 'database', 'network']],
   ['mr-erp-oracle', 'Oracle EBS Financials', 'mr', 'hybrid', ['compute', 'database', 'network']],
   ['mr-crm-salesforce', 'Salesforce CRM', 'mr', 'saas', ['identity', 'storage']],
-  // Polaris (Regional)
+  ['mr-hcm-workday', 'Workday HCM', 'mr', 'saas', ['identity', 'database']],
+  ['mr-treasury-mgmt', 'Treasury Management System', 'mr', 'cloud', ['compute', 'database', 'encryption']],
+  ['mr-invoice-ocr', 'Invoice Processing OCR', 'mr', 'cloud', ['compute', 'storage', 'serverless']],
+  ['mr-supply-chain', 'Supply Chain Visibility', 'mr', 'cloud', ['compute', 'database', 'network', 'container']],
+  ['mr-fleet-tracking', 'Fleet GPS Tracking', 'mr', 'cloud', ['compute', 'database', 'storage']],
+  ['mr-expense-mgmt', 'Expense Management Portal', 'mr', 'cloud', ['compute', 'database', 'serverless']],
+  ['mr-payroll-engine', 'Payroll Processing Engine', 'mr', 'hybrid', ['compute', 'database', 'encryption']],
+  ['mr-vendor-risk', 'Vendor Risk Assessment', 'mr', 'cloud', ['compute', 'database', 'storage']],
+  // Polaris (Regional) — 13 services
   ['pl-identity-svc', 'Identity Provider', 'pl', 'cloud', ['identity', 'compute', 'encryption']],
   ['pl-partner-portal', 'Partner Portal', 'pl', 'cloud', ['compute', 'database', 'storage', 'network']],
   ['pl-web-gateway', 'Web Application Gateway', 'pl', 'cloud', ['network', 'compute', 'serverless']],
-  // Nexus (Shared Infra / ITSP)
+  ['pl-regional-cms', 'Regional Content Management', 'pl', 'cloud', ['compute', 'storage', 'database']],
+  ['pl-dealer-mgmt', 'Dealer Management System', 'pl', 'cloud', ['compute', 'database', 'network']],
+  ['pl-local-payments', 'Local Payment Processing', 'pl', 'cloud', ['compute', 'encryption', 'database']],
+  ['pl-customer-360', 'Customer 360 Data Hub', 'pl', 'cloud', ['compute', 'database', 'storage', 'serverless']],
+  ['pl-regional-crm', 'Regional CRM Instance', 'pl', 'hybrid', ['compute', 'database', 'identity']],
+  ['pl-geo-compliance', 'Geo-Regulatory Compliance', 'pl', 'cloud', ['compute', 'database', 'storage']],
+  ['pl-market-analytics', 'Regional Market Analytics', 'pl', 'cloud', ['compute', 'database', 'serverless']],
+  ['pl-parts-catalog', 'Parts Catalog Service', 'pl', 'cloud', ['compute', 'database', 'storage', 'container']],
+  ['pl-service-booking', 'Service Appointment Booking', 'pl', 'cloud', ['compute', 'database', 'serverless']],
+  ['pl-warranty-claims', 'Warranty Claims Portal', 'pl', 'cloud', ['compute', 'database', 'storage']],
+  // Nexus (Shared Infra / ITSP) — 48 services
   ['nx-security-hub', 'Security Operations Center', 'nx', 'cloud', ['compute', 'database', 'storage', 'serverless']],
   ['nx-ai-platform', 'AI/ML Platform', 'nx', 'cloud', ['compute', 'storage', 'database', 'container']],
   ['nx-network-core', 'Core Network Services', 'nx', 'cloud', ['network', 'compute']],
@@ -119,6 +145,20 @@ const SERVICES_RAW = [
   ['nx-dr-warm-standby', 'DR Warm Standby eu-west-1', 'nx', 'cloud', ['compute', 'storage', 'database']],
   ['nx-bc-azure-asr', 'Azure Site Recovery', 'nx', 'cloud', ['compute', 'storage']],
   ['nx-bc-backup-vault', 'Cross-Region Backup Vault', 'nx', 'cloud', ['storage', 'encryption']],
+  ['nx-container-registry', 'Container Image Registry', 'nx', 'cloud', ['container', 'storage']],
+  ['nx-k8s-platform', 'Kubernetes Platform Service', 'nx', 'cloud', ['container', 'compute', 'network']],
+  ['nx-service-mesh', 'Service Mesh (Istio)', 'nx', 'cloud', ['network', 'container', 'compute']],
+  ['nx-secrets-manager', 'Centralized Secrets Manager', 'nx', 'cloud', ['encryption', 'identity']],
+  ['nx-terraform-cloud', 'Terraform Cloud Workspaces', 'nx', 'saas', ['compute', 'identity']],
+  ['nx-artifact-repo', 'Artifact Repository (Nexus)', 'nx', 'hybrid', ['storage', 'container']],
+  ['nx-ci-cd-pipeline', 'CI/CD Pipeline Platform', 'nx', 'cloud', ['compute', 'container', 'storage']],
+  ['nx-observability-stack', 'Observability Stack (Grafana/Prom)', 'nx', 'cloud', ['compute', 'storage', 'database']],
+  ['nx-data-lake', 'Enterprise Data Lake', 'nx', 'cloud', ['storage', 'database', 'compute']],
+  ['nx-api-gateway-shared', 'Shared API Gateway', 'nx', 'cloud', ['network', 'compute', 'serverless']],
+  ['nx-waf-cloudfront', 'CloudFront WAF Shield', 'nx', 'cloud', ['network', 'compute']],
+  ['nx-certificate-mgmt', 'TLS Certificate Manager', 'nx', 'cloud', ['encryption', 'network']],
+  ['nx-cost-mgmt', 'Cloud Cost Management', 'nx', 'cloud', ['compute', 'database']],
+  ['nx-patch-mgmt', 'Patch Management Platform', 'nx', 'hybrid', ['compute', 'database']],
   // Nexus — Aegis platform (self)
   ['nx-aegis-api', 'Aegis API Gateway', 'nx', 'cloud', ['compute', 'network', 'serverless']],
   ['nx-aegis-opa', 'Aegis OPA Policy Engine', 'nx', 'cloud', ['compute', 'serverless']],
@@ -127,8 +167,17 @@ const SERVICES_RAW = [
   ['nx-aegis-db', 'Aegis PostgreSQL Findings DB', 'nx', 'cloud', ['database']],
   ['nx-aegis-redis', 'Aegis Cache Session/Query', 'nx', 'cloud', ['database']],
   ['nx-aegis-otel', 'Aegis OTel Collector', 'nx', 'cloud', ['compute', 'storage']],
-  // Summit (Group-Level)
+  // Summit (Group-Level) — 10 services
   ['sm-workflow-engine', 'Business Process Automation', 'sm', 'cloud', ['compute', 'serverless', 'database', 'storage']],
+  ['sm-board-reporting', 'Board Reporting Dashboard', 'sm', 'cloud', ['compute', 'database', 'storage']],
+  ['sm-m-and-a-diligence', 'M&A Due Diligence Platform', 'sm', 'cloud', ['compute', 'database', 'encryption', 'storage']],
+  ['sm-legal-ediscovery', 'Legal eDiscovery Archive', 'sm', 'cloud', ['storage', 'database', 'encryption']],
+  ['sm-group-data-warehouse', 'Group Data Warehouse', 'sm', 'cloud', ['database', 'storage', 'compute']],
+  ['sm-risk-aggregation', 'Enterprise Risk Aggregation', 'sm', 'cloud', ['compute', 'database', 'serverless']],
+  ['sm-sustainability-esg', 'ESG Sustainability Reporting', 'sm', 'cloud', ['compute', 'database', 'storage']],
+  ['sm-inter-company', 'Inter-Company Settlement', 'sm', 'cloud', ['compute', 'database', 'encryption']],
+  ['sm-brand-management', 'Brand Asset Management', 'sm', 'cloud', ['storage', 'compute', 'network']],
+  ['sm-exec-comms', 'Executive Communications Hub', 'sm', 'cloud', ['compute', 'encryption', 'serverless']],
 ];
 
 const SERVICES = SERVICES_RAW.map(([id, name, cbu, deployType, resourceTypes]) => ({

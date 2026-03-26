@@ -160,7 +160,7 @@ func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Req
 
 	// Audit log
 	_ = h.auditLogger.Log(r.Context(), audit.AuditEntry{
-		Action:   "remediation.created",
+		Action:   audit.ActionRemediationCreate,
 		Resource: "finding/" + findingID,
 	})
 

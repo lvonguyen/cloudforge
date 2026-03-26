@@ -233,6 +233,9 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/secrets/scan", // operator, admin
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.scanSecrets))),
 	).Methods("POST")
+	apiRouter.Handle("/secrets/upload", // operator, admin — TLS-only, ephemeral
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.uploadSuspectedSecret))),
+	).Methods("POST")
 	apiRouter.Handle("/secrets/{path:.*}",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.getSecret))),
 	).Methods("GET")
