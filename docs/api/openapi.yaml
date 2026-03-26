@@ -216,6 +216,8 @@ paths:
                 $ref: "#/components/schemas/PaginatedFindings"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/findings/stats:
     get:
@@ -231,6 +233,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FindingsStats"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/findings/query:
     get:
@@ -258,6 +264,10 @@ paths:
                 $ref: "#/components/schemas/PaginatedFindings"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/findings/search:
     post:
@@ -281,6 +291,10 @@ paths:
                 $ref: "#/components/schemas/SearchResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "503":
           description: Search service not available
 
@@ -306,6 +320,10 @@ paths:
                 $ref: "#/components/schemas/IngestResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "409":
           description: Duplicate finding
           content:
@@ -329,6 +347,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Finding"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -350,6 +370,8 @@ paths:
             application/json:
               schema:
                 type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -375,6 +397,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/FindingComment"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
     post:
       operationId: addFindingComment
       summary: Add a comment to a finding
@@ -401,6 +429,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FindingComment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -421,6 +455,10 @@ paths:
       responses:
         "204":
           description: Comment deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -445,6 +483,10 @@ paths:
               schema:
                 allOf:
                   - $ref: "#/components/schemas/PaginatedEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/compliance/posture:
     get:
@@ -462,6 +504,10 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CompliancePostureSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/compliance/controls/{fw}:
     get:
@@ -486,6 +532,10 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ComplianceControl"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -510,6 +560,10 @@ paths:
               schema:
                 allOf:
                   - $ref: "#/components/schemas/PaginatedEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/agents/{id}:
     get:
@@ -531,6 +585,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Agent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -556,6 +614,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AgentTrace"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ---------------------------------------------------------------------------
   # Costs
@@ -574,6 +638,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CostSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalError"
 
@@ -603,6 +671,10 @@ paths:
               schema:
                 allOf:
                   - $ref: "#/components/schemas/PaginatedEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/remediations/{id}:
     get:
@@ -624,6 +696,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RemediationRecord"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
     patch:
@@ -658,6 +734,10 @@ paths:
                 $ref: "#/components/schemas/RemediationRecord"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -687,6 +767,10 @@ paths:
                     example: executing
                   remediation_id:
                     type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -715,6 +799,10 @@ paths:
                 $ref: "#/components/schemas/Exception"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/exceptions/pending:
     get:
@@ -732,6 +820,10 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Exception"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/exceptions/expiring:
     get:
@@ -749,6 +841,10 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Exception"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/exceptions/mine:
     get:
@@ -766,6 +862,10 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Exception"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/exceptions/{id}:
     get:
@@ -787,6 +887,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Exception"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -810,6 +914,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Exception"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -833,6 +941,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Exception"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -858,6 +970,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Exception"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /api/v1/validate/exception:
     post:
@@ -885,6 +1003,12 @@ paths:
             application/json:
               schema:
                 type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   # ---------------------------------------------------------------------------
   # Policies
@@ -912,6 +1036,10 @@ paths:
               schema:
                 allOf:
                   - $ref: "#/components/schemas/PaginatedEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/policies/{id}:
     get:
@@ -933,6 +1061,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Policy"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -957,6 +1089,10 @@ paths:
               schema:
                 allOf:
                   - $ref: "#/components/schemas/PaginatedEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/attack-paths/stats:
     get:
@@ -972,6 +1108,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttackPathStats"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/attack-paths/{id}:
     get:
@@ -993,6 +1133,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttackPath"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -1016,6 +1160,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttackPathAnalysis"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -1044,6 +1192,8 @@ paths:
                 $ref: "#/components/schemas/GraphQueryResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "403":
           description: Mutation query rejected
         "501":
@@ -1073,6 +1223,10 @@ paths:
                     type: array
                     items:
                       type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   # ---------------------------------------------------------------------------
   # Containers
@@ -1091,6 +1245,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ContainerTopology"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/containers/{id}:
     get:
@@ -1112,6 +1270,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Container"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -1142,6 +1304,10 @@ paths:
                 type: object
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/container/admission:
     get:
@@ -1173,6 +1339,10 @@ paths:
             application/json:
               schema:
                 type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   # ---------------------------------------------------------------------------
   # Secrets
@@ -1205,6 +1375,10 @@ paths:
                       type: string
                   count:
                     type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/secrets/scan:
     post:
@@ -1237,6 +1411,12 @@ paths:
                       type: object
                   count:
                     type: integer
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/secrets/upload:
     post:
@@ -1285,6 +1465,10 @@ paths:
                     type: integer
                   ephemeral:
                     type: boolean
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "403":
           description: TLS required
         "413":
@@ -1316,6 +1500,10 @@ paths:
                 type: object
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/secrets/{path}:
     get:
@@ -1348,6 +1536,10 @@ paths:
                     type: string
                   updated:
                     type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -1375,6 +1567,10 @@ paths:
                       type: object
                   count:
                     type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/waf/compliance/{templateId}:
     get:
@@ -1400,6 +1596,10 @@ paths:
             application/json:
               schema:
                 type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -1436,6 +1636,10 @@ paths:
                       type: object
                   count:
                     type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/identity/users/{id}/risk:
     get:
@@ -1462,6 +1666,10 @@ paths:
             application/json:
               schema:
                 type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -1493,6 +1701,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NLQResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "429":
           description: Rate limit exceeded
         "503":
@@ -1525,6 +1739,10 @@ paths:
                     type: array
                     items:
                       type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   # ---------------------------------------------------------------------------
   # Deploy
@@ -1552,6 +1770,12 @@ paths:
                 properties:
                   execution_id:
                     type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/deploy/preview/{id}/abort:
     post:
@@ -1577,6 +1801,10 @@ paths:
                   status:
                     type: string
                     example: aborted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -1604,6 +1832,10 @@ paths:
                       type: object
                   count:
                     type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/workflows/{id}:
     get:
@@ -1625,6 +1857,10 @@ paths:
             application/json:
               schema:
                 type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -1660,6 +1896,12 @@ paths:
                 type: object
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ---------------------------------------------------------------------------
   # Webhooks
@@ -1680,6 +1922,10 @@ paths:
                 type: array
                 items:
                   type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       operationId: registerWebhook
       summary: Register a webhook endpoint
@@ -1701,6 +1947,10 @@ paths:
                 type: object
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/webhooks/{id}:
     delete:
@@ -1718,6 +1968,10 @@ paths:
       responses:
         "204":
           description: Webhook deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -1743,6 +1997,12 @@ paths:
                 type: array
                 items:
                   type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ---------------------------------------------------------------------------
   # ASM
@@ -1773,6 +2033,10 @@ paths:
                 type: object
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/asm/assets:
     get:
@@ -1790,6 +2054,10 @@ paths:
                 type: array
                 items:
                   type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   # ---------------------------------------------------------------------------
   # Terminal
@@ -1880,6 +2148,12 @@ paths:
                 $ref: "#/components/schemas/RemediateResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalError"
 
@@ -1899,6 +2173,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Ticket"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -1920,6 +2198,10 @@ paths:
                 type: array
                 items:
                   type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "501":
@@ -1949,6 +2231,12 @@ paths:
             application/json:
               schema:
                 type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -1968,6 +2256,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Ticket"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -2017,6 +2309,10 @@ paths:
               schema:
                 allOf:
                   - $ref: "#/components/schemas/PaginatedEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/users:
     get:
@@ -2040,6 +2336,10 @@ paths:
               schema:
                 allOf:
                   - $ref: "#/components/schemas/PaginatedEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/catalog/modules:
     get:
@@ -2069,6 +2369,10 @@ paths:
               schema:
                 allOf:
                   - $ref: "#/components/schemas/PaginatedEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
 components:
   securitySchemes:

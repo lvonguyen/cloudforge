@@ -2,7 +2,7 @@
 
 | Property | Value |
 | --- | --- |
-| Version | 3.0 |
+| Version | 4.0 |
 | Author | Liem Vo-Nguyen |
 | Date | March 2026 |
 | Status | Active |
@@ -493,6 +493,324 @@ See [Technical Runbooks](../runbooks/README.md) for detailed operational procedu
 
 ---
 
+## 13. Data Ingestion Pipeline
+
+### 13.1 Architecture
+
+The ingestion subsystem normalizes findings from multiple cloud security scanners into a canonical format and deduplicates them before persistence.
+
+```mermaid
+flowchart LR
+    Prowler["Prowler"] --> Adapter1["ProwlerAdapter"]
+    Trivy["Trivy"] --> Adapter2["TrivyAdapter"]
+    AWSConfig["AWS Config"] --> Adapter3["AWSConfigAdapter"]
+    Adapter1 --> Dedup["DedupCache"]
+    Adapter2 --> Dedup
+    Adapter3 --> Dedup
+    Dedup --> Store[("PostgreSQL")]
+```
+
+### 13.2 Scanner Adapters
+
+Each scanner implements the `ScannerAdapter` interface (`Parse(ctx, data) → []NormalizedFinding`):
+
+| Adapter | Source | Severity Resolution |
+|---------|--------|-------------------|
+| ProwlerAdapter | Prowler JSON | Vendor severity via `normalizeSeverity()` |
+| TrivyAdapter | Trivy JSON | Vendor severity via `normalizeSeverity()` |
+| AWSConfigAdapter | AWS Config rules | Heuristic (rule name keywords: "root-account"/"mfa" → CRITICAL) |
+
+Severity is canonicalized to CRITICAL/HIGH/MEDIUM/LOW. INFORMATIONAL findings are intentionally dropped.
+
+### 13.3 Deduplication
+
+In-memory SHA-256 keyed cache with TTL-based eviction:
+
+- **Key**: SHA-256 of `source \x00 sourceFindingID \x00 resourceID \x00 accountID` (null-byte delimiters prevent field-split collisions)
+- **Atomic check-and-insert**: `CheckOrInsert()` acquires a write lock and returns both duplicate status and existing entry
+- **Background eviction**: goroutine on configurable interval, cancelled via context
+
+---
+
+## 14. Ticket Integration System
+
+### 14.1 Provider Architecture
+
+Remediation workflows route findings to external ticket/project management systems via the `TicketProvider` interface:
+
+| Provider | Auth | Description Format | ID Validation |
+|----------|------|--------------------|---------------|
+| Jira | Basic (API token) | Atlassian Document Format (ADF) | `^[A-Z][A-Z0-9_]+-\d+$` |
+| Asana | Bearer (PAT) | Plain text | `^\d+$` |
+| Azure DevOps | PAT | HTML (escaped) | `^\d+$` |
+| Mock | None | In-memory | Any |
+
+All REST clients implement exponential backoff with max 3 retries on 429/5xx responses. Configuration loaded from environment variables via `ConfigFromEnv()`.
+
+### 14.2 Risk-Aware Routing
+
+The `RoutingEngine` maps finding severity and attack graph signals to ticket priority and SLA:
+
+| Input Condition | Priority | Team | SLA |
+|----------------|----------|------|-----|
+| CRITICAL + choke-point | Urgent | incident-response | 4 hours |
+| CRITICAL | Urgent | security-ops | 24 hours |
+| HIGH | High | security-ops | 72 hours |
+| MEDIUM | Normal | platform-eng | 7 days |
+| LOW (fallback) | Low | backlog | 30 days |
+
+Routing rules are first-match-wins with a configurable rule set (`RoutingRule` with match function + decision).
+
+---
+
+## 15. Webhook Delivery System
+
+### 15.1 Architecture
+
+Outbound webhook engine delivers Cloud Aegis events to registered HTTP endpoints with HMAC-SHA256 signing.
+
+### 15.2 Event Types
+
+| Event Type | Trigger |
+|-----------|---------|
+| `finding.created` | New finding ingested |
+| `finding.resolved` | Finding marked resolved |
+| `compliance.drift` | Compliance posture change |
+| `attack_path.new` | New attack path discovered |
+| `exception.approved` | Exception request approved |
+| `deploy.preview` | Deploy preview ready |
+
+Endpoints subscribe to specific event types or receive all events (empty filter = all).
+
+### 15.3 Security
+
+- **HMAC signing**: `X-Aegis-Signature` header with SHA-256 HMAC when endpoint has a secret
+- **SSRF protection (2-layer)**: (1) URL validation at registration rejects non-HTTPS, private IPs, localhost, metadata endpoints; (2) `safeDialContext()` rejects private/link-local IPs after DNS resolution (DNS rebinding defense)
+- **SA-106**: HTTPS-only enforcement for webhook URLs
+
+### 15.4 Delivery
+
+Asynchronous fan-out: `DeliverAsync()` spawns goroutines per matching endpoint. Each delivery attempt is tracked with HTTP status code and duration. HTTP client timeout: 10 seconds.
+
+---
+
+## 16. Integrated Operations Terminal
+
+### 16.1 Architecture
+
+WebSocket-based interactive terminal for running read-only cloud CLI commands from the browser UI.
+
+```mermaid
+sequenceDiagram
+    participant UI as Browser
+    participant API as REST API
+    participant WS as WebSocket Handler
+    participant Exec as Executor
+
+    UI->>API: POST /terminal/ticket (JWT)
+    API-->>UI: 60s one-time nonce
+    UI->>WS: WS upgrade (?ticket=nonce)
+    WS->>WS: Validate + consume nonce
+    UI->>WS: {"command": "aws ec2 describe-instances"}
+    WS->>Exec: Validate whitelist + execute
+    Exec-->>WS: stdout/stderr/exit_code
+    WS-->>UI: {"output": "...", "exitCode": 0}
+```
+
+### 16.2 Security Controls
+
+| Control | Implementation |
+|---------|---------------|
+| Authentication | Two-phase ticket system (SA-002): JWT → 60s nonce → WS upgrade |
+| Authorization | RBAC: operator or admin only |
+| Command whitelist | Read-only cloud CLI subcommands only (aws, gcloud, az, kubectl, terraform, trivy) |
+| Shell injection | Metacharacter rejection (`\|;&$\`><(){}!#\n\r`) before parsing |
+| Dangerous flags | Blocks `--endpoint-url`, `--profile`, `--impersonate-service-account` |
+| Environment | `safeEnv()` strips all env vars except PATH, HOME=/tmp, TERM |
+| Limits | 30s timeout, 512KB output, 4KB message, 2 sessions/user, 5min idle |
+| Audit | All connect/execute/denied events logged via `audit.AuditLogger` |
+| Mock fallback | Returns realistic demo output when binary not on PATH |
+
+---
+
+## 17. Resource Query Language (RQL)
+
+### 17.1 Grammar
+
+Hand-written lexer and recursive-descent parser for filtering findings and resources:
+
+```
+query      = condition { ("AND" | "OR") condition }
+condition  = field operator value
+field      = identifier { "." identifier }
+operator   = "=" | "!=" | ">" | ">=" | "<" | "<="
+value      = quoted_string | unquoted_word
+```
+
+### 17.2 Evaluation
+
+- **Field access**: Decoupled via `FieldAccessor` function (dependency injection)
+- **Precedence**: Left-to-right, AND binds tighter than OR. No parenthesized grouping.
+- **String comparison**: Case-insensitive for `=` and `!=`
+- **Numeric comparison**: Via `strconv.ParseFloat` for `>`, `>=`, `<`, `<=`
+- **Ordered fields**: Inverted comparison for severity-like fields (CRITICAL=1 < HIGH=2), so `severity >= HIGH` matches CRITICAL and HIGH
+
+---
+
+## 18. Attack Surface Management
+
+### 18.1 Architecture
+
+External-facing asset discovery that scans domains for hosts, services, ports, and TLS certificates via the `ASMScanner` interface.
+
+### 18.2 Asset Model
+
+| Component | Fields |
+|-----------|--------|
+| Asset | Hostname, IP, Services, Certificates, FirstSeen, LastSeen |
+| ExposedService | Port, Protocol (HTTP/HTTPS/SSH/DNS/SMTP/FTP), Banner, TLS flag |
+| Certificate | Subject, Issuer, NotBefore, NotAfter, SANs |
+
+Current implementation provides a deterministic mock scanner (SHA-256 domain seed for reproducible demo data). Real scanner implementations plug in behind the same `ASMScanner` interface.
+
+---
+
+## 19. Multi-Tenancy
+
+### 19.1 Tenant Resolution
+
+Request-scoped tenant resolution via middleware with a 3-level cascade:
+
+| Priority | Source | Restriction |
+|----------|--------|-------------|
+| 1 (highest) | JWT `tenant_id` claim | Any authenticated user |
+| 2 | `X-Tenant-ID` header | Admin role only |
+| 3 | Subdomain extraction from Host header | Any request |
+
+When no tenant is resolved, defaults to `("default", "")` for single-tenant backward compatibility. `nil` store disables multi-tenancy (middleware becomes a no-op).
+
+### 19.2 Tenant Configuration
+
+Per-tenant configuration includes:
+
+| Area | Config |
+|------|--------|
+| Branding | CompanyName, ProductName, LogoPath, PrimaryColor, AccentColor |
+| Auth | OIDC provider (okta/entra_id/auth0/mock), Issuer, ClientID, Audience |
+| Modules | Enabled feature modules |
+| Rate Limits | RequestsPerMinute, BurstSize |
+
+In-memory store (Phase 3 prototype). Postgres-backed store planned for Phase 4.
+
+---
+
+## 20. AI Governance
+
+### 20.1 Architecture
+
+Agent governance framework with in-process embedded OPA policy engine (microsecond-level evaluation, not HTTP sidecar). Provides agent registry, observability tracing, threat modeling (STRIDE + MITRE ATLAS), and maturity assessment.
+
+### 20.2 Policy Engine
+
+Two base policies embedded as Go constants:
+
+| Policy | Controls |
+|--------|----------|
+| BaseToolAccessPolicy | Tool allowlist/blocklist, rate limiting, forbidden parameter patterns |
+| BaseDataFlowPolicy | Classification-based destination control, source restrictions, PII redaction |
+
+Policies are compiled at load time via `rego.PreparedEvalQuery` for sub-millisecond evaluation. Returns structured `Decision` with Allow, Reasons, Violations, and EvalTimeUs.
+
+### 20.3 Observability Model
+
+| Component | Purpose |
+|-----------|---------|
+| AgentTrace | Full execution trace per agent invocation |
+| Span | Individual operation (types: llm, retrieval, tool, chain, agent, policy) |
+| SecuritySignal | Injection attempts, data exfiltration, tool abuse, privilege escalation |
+| TraceMetrics | Aggregated performance and cost metrics |
+
+LLM spans track token counts and cost. Retrieval spans track vector similarity scores. Tool spans include inline policy decisions.
+
+---
+
+## 21. Audit System
+
+### 21.1 Architecture
+
+Tamper-evident, append-only audit logging with SHA-256 integrity hashes and multiple backend support.
+
+```mermaid
+flowchart LR
+    API["API Middleware"] --> Zap["ZapAuditLogger"]
+    Zap --> Composite["CompositeAuditLogger"]
+    Composite --> Memory["MemoryAuditLogger<br/>(fast reads / SSE)"]
+    Composite --> PG[("PostgresAuditLogger<br/>(durability)")]
+```
+
+### 21.2 Event Taxonomy
+
+Domain.Verb format across 12 domains:
+
+| Domain | Example Actions |
+|--------|----------------|
+| exception | create, approve, reject, expire, revoke |
+| finding | create, update, remediate, suppress |
+| remediation | execute, rollback |
+| terminal | connect, execute, denied |
+| agent | invoke, complete, fail |
+| deploy_preview | create, promote |
+| user | login, logout, role_change |
+| secret | rotate, access, scan |
+
+### 21.3 Integrity
+
+`computeHash()` produces SHA-256 of all content fields with null-byte delimiters. Stored as `IntegrityHash` on every `AuditEntry`. Postgres backend includes automatic `tenant_id` scoping via `tenant.IDFromContext()`.
+
+---
+
+## 22. GRC Integration
+
+### 22.1 Provider Architecture
+
+Policy exception lifecycle management via the `GRCProvider` interface (8 methods). Factory pattern (`NewProvider(Config)`) creates the appropriate backend:
+
+| Provider | Backend | Status |
+|----------|---------|--------|
+| Memory | In-memory map | Demo/test |
+| Postgres | PostgreSQL | Self-hosted production |
+| ServiceNow | ServiceNow GRC REST API | Enterprise |
+| Archer | RSA Archer REST API | Stub (documented) |
+
+### 22.2 Exception Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: CreateException
+    PENDING --> APPROVED: All approvers approve
+    PENDING --> REJECTED: Any approver rejects
+    APPROVED --> EXPIRED: Past ExpirationDate
+    APPROVED --> REVOKED: Manual revocation
+    REJECTED --> [*]
+    EXPIRED --> [*]
+    REVOKED --> [*]
+```
+
+Approval chain: multi-level (SECURITY_LEAD → GRC_ANALYST → CISO). Empty approval chain does NOT auto-approve. `ValidateException()` is the integration point with the policy engine — called before provisioning.
+
+### 22.3 Security
+
+- Credentials loaded from environment variables at init (never stored in config structs)
+- ServiceNow query injection prevention: `snowSafeInput` regex `^[a-zA-Z0-9._@\-]+$` + URL encoding
+- ServiceNow OAuth token caching with double-check locking pattern
+- All HTTP response bodies limited to 1MB via `io.LimitReader`
+- Postgres queries use parameterized placeholders (`$N`) and `pq.Array()` for batch operations
+- All Postgres queries include `tenant_id` scoping
+
+See [ADR-007](./adr/ADR-007-grc-exception-management.md) for the architecture decision.
+
+---
+
 ## Appendix A: Technology Stack
 
 | Category | Technology |
@@ -529,6 +847,7 @@ Architecture diagrams in this document use Mermaid for GitHub rendering and can 
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
+| 4.0 | March 2026 | L. Vo-Nguyen | Expanded from 12 to 22 sections: added Data Ingestion (13), Ticket Integration (14), Webhooks (15), Terminal (16), RQL (17), ASM (18), Multi-Tenancy (19), AI Governance (20), Audit (21), GRC (22) |
 | 3.1 | March 2026 | L. Vo-Nguyen | Added Viewer role to RBAC table, updated ADR count (009-014), added POST /api/v1/ai/nlq + GET /api/v1/containers + GET /api/v1/ai/usage to API reference, changed /secrets/scan from GET to POST |
 | 3.0 | March 2026 | L. Vo-Nguyen | Updated tech stack (Go 1.25, gorilla/mux, React 19), added remediation/attack path/FinOps/CSPM sections, full API reference from routes.go, corrected RBAC model, added ADR cross-references |
 | 2.0 | January 2026 | L. Vo-Nguyen | Architecture overview, compliance engine, CI/CD, identity, deployment |
