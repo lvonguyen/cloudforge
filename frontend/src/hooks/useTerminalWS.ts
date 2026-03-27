@@ -62,25 +62,27 @@ async function acquireTicket(): Promise<{ ticket: string } | { token: string } |
 
 const isDemoMode = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true'
 
-const MOCK_RESPONSES: Record<string, string> = {
+const MOCK_RESPONSES: Record<string, string | (() => string)> = {
   'help': 'Available commands: aws, kubectl, gcloud, terraform, whoami, date, help\nNote: This is a demo terminal — commands return sample output.',
   'whoami': 'demo-operator@aegis.contoso.dev',
-  'date': new Date().toISOString(),
+  'date': () => new Date().toISOString(),
   'aws s3 ls': '2026-01-15 aegis-findings-prod\n2026-02-01 aegis-config-backup\n2026-03-10 aegis-audit-logs',
-  'aws sts get-caller-identity': '{\n  "UserId": "AROA3XFRBF23YPEXAMPLE",\n  "Account": "431330216246",\n  "Arn": "arn:aws:sts::431330216246:assumed-role/aegis-operator/session"\n}',
+  'aws sts get-caller-identity': '{\n  "UserId": "AROA3XFRBF23YPEXAMPLE",\n  "Account": "123456789012",\n  "Arn": "arn:aws:sts::123456789012:assumed-role/aegis-operator/session"\n}',
   'kubectl get pods': 'NAME                          READY   STATUS    RESTARTS   AGE\naegis-api-7d4f8b6c9-x2k4p    1/1     Running   0          2d\naegis-worker-5c8d9f7-m3n1q    1/1     Running   0          2d\nredis-master-0                1/1     Running   0          5d',
   'kubectl get nodes': 'NAME                          STATUS   ROLES    AGE   VERSION\nip-10-0-1-42.ec2.internal     Ready    <none>   14d   v1.31.2\nip-10-0-2-87.ec2.internal     Ready    <none>   14d   v1.31.2',
-  'gcloud projects list': 'PROJECT_ID        NAME              PROJECT_NUMBER\nlvn-dev-483106    lvn-dev           483106\naegis-prod        aegis-prod        219847',
+  'gcloud projects list': 'PROJECT_ID        NAME              PROJECT_NUMBER\naegis-dev-000001  aegis-dev         100001\naegis-prod-000002 aegis-prod        100002',
   'terraform plan': 'No changes. Your infrastructure matches the configuration.\n\nNo changes. Infrastructure is up-to-date.',
 }
 
 function mockExecute(cmd: string): string {
   const trimmed = cmd.trim().toLowerCase()
-  if (MOCK_RESPONSES[trimmed]) return MOCK_RESPONSES[trimmed]
-  if (trimmed.startsWith('aws ')) return `aws: command output simulated for: ${cmd.trim()}`
-  if (trimmed.startsWith('kubectl ')) return `kubectl: command output simulated for: ${cmd.trim()}`
+  const entry = MOCK_RESPONSES[trimmed]
+  if (entry) return typeof entry === 'function' ? entry() : entry
+  const safe = cmd.trim().replace(/[\x00-\x1F\x7F]/g, '')
+  if (trimmed.startsWith('aws ')) return `aws: command output simulated for: ${safe}`
+  if (trimmed.startsWith('kubectl ')) return `kubectl: command output simulated for: ${safe}`
   if (trimmed === '') return ''
-  return `command not found: ${cmd.trim()}\nType "help" for available commands.`
+  return `command not found: ${safe}\nType "help" for available commands.`
 }
 
 export function useTerminalWS(opts: UseTerminalWSOptions = {}): UseTerminalWSReturn {
@@ -178,7 +180,8 @@ export function useTerminalWS(opts: UseTerminalWSOptions = {}): UseTerminalWSRet
 
   const send = useCallback((msg: unknown) => {
     if (isDemoMode) {
-      const parsed = typeof msg === 'string' ? JSON.parse(msg) : msg
+      let parsed: unknown = msg
+      try { if (typeof msg === 'string') parsed = JSON.parse(msg) } catch { /* use raw */ }
       const cmd = (parsed as { command?: string }).command ?? ''
       const output = mockExecute(cmd)
       setTimeout(() => {

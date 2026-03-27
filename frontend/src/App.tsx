@@ -93,7 +93,7 @@ export default function App() {
               <Route element={<AppShell />}>
                 {/* Platform landing page */}
                 <Route index element={<Suspense fallback={<PageFallback />}><Landing /></Suspense>} />
-                <Route path="/profile" element={<Suspense fallback={<PageFallback />}><Profile /></Suspense>} />
+                <Route path="/profile" element={<ProtectedRoute roles={['admin', 'operator', 'requester', 'viewer']}><Suspense fallback={<PageFallback />}><Profile /></Suspense></ProtectedRoute>} />
 
                 {/* Admin routes */}
                 <Route element={<ProtectedRoute roles={['admin', 'viewer']}><Outlet /></ProtectedRoute>}>
