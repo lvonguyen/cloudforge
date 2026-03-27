@@ -13,6 +13,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"golang.org/x/text/unicode/norm"
 )
 
 // nlqRateLimiter tracks per-user NLQ call timestamps to prevent AI budget drain.
@@ -209,7 +210,10 @@ func (s *Server) getAIUsage(w http.ResponseWriter, r *http.Request) {
 }
 
 // sanitizeNLQQuery strips HTML tags and control characters from NLQ input.
+// NFKC normalization collapses Unicode confusables (e.g., fullwidth U+FF1C '<')
+// before the HTML tag regex runs — consistent with handlers_graph.go:88.
 func sanitizeNLQQuery(s string) string {
+	s = norm.NFKC.String(s)
 	s = htmlTagPattern.ReplaceAllString(s, "")
 	var b strings.Builder
 	for _, r := range s {

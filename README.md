@@ -11,7 +11,7 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 
 > **[Live Demo](https://cloudaegis-demo.lvonguyen.com)** | **[API](https://api.cloudforge-demo.lvonguyen.com/health)**
 
-> **About this project** — Cloud Aegis demonstrates enterprise security patterns I've designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains throughout my career. My background has always been project-based: assess the current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — I don't stop at design docs, I ship working systems backed by threat models and ADRs (the [19 ADRs](docs/core/architecture/adr/) capture the same decision-making process I'd use to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. I use security-focused systems design as my core discipline and agentic coding workflows (Claude Code) as a force multiplier for delivery.
+> **About this project** — Cloud Aegis demonstrates enterprise security patterns designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains. The approach is project-based: assess current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — working systems backed by threat models and ADRs (the [19 ADRs](docs/core/architecture/adr/) capture the decision-making process used to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. The core discipline is security-focused systems design, with agentic coding workflows (Claude Code) as a force multiplier for delivery.
 >
 > **Development rigor** — Code quality is enforced through a layered toolchain: `golangci-lint` with `gosec`/`gocritic`/`revive` in CI, shared coding standards governing Go patterns, error handling, and security rules across all repos, pre-commit hooks blocking credential leaks, and systematic multi-pass QA reviews (quality, security, bug discovery) before merge. The emphasis is on elegant, maintainable code paired with comprehensive documentation and detailed architecture diagrams — minimizing tech debt throughout the SDLC rather than accruing it for later.
 
@@ -95,7 +95,7 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 | CISA KEV catalog | Done | In-memory catalog with auto-refresh from CISA feed |
 | GreyNoise integration | Done | HTTP client with 12h cache, classification enrichment |
 | **Testing** | | |
-| Unit tests | 1894+ passing | 34 Go packages (1,474 tests), 420+ frontend tests (51 test files), 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
+| Unit tests | 1920+ passing | 34 Go packages (1,474 tests), 447+ frontend tests (52 test files), 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
 | Integration tests | Done | 12-step server lifecycle + 34-subtest RBAC authorization matrix (`go test -tags=integration`) |
 
 ### Package Maturity
@@ -110,7 +110,7 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 | `internal/policy` | Production | OPA integration, Rego evaluation |
 | `internal/observability` | Production | Structured logging (zap), Prometheus metrics |
 | `internal/findings` | Production | Finding types, bridge to CSPM aggregator |
-| `pkg/remediation` | Production | Executor engine, 10 handlers, rollback |
+| `pkg/remediation` | Production | Executor engine, 17 handlers, rollback |
 | `internal/cicd` | Interface only | SAST/VCS interfaces defined, not imported by server |
 | `internal/finops` | Production | Cost aggregation (AWS Cost Explorer wirable via FINOPS_PROVIDER=aws), anomaly detection, chargeback |
 | `internal/container` | Production | K8s topology (Trivy parser wirable via TRIVY_OUTPUT_PATH), image scan interface |
@@ -329,7 +329,7 @@ Pluggable providers for enterprise GRC platforms:
 ### Automated Remediation
 
 - **Tiered Execution**: Tier 1 (auto-safe), Tier 2 (requires verification), Tier 3 (change window)
-- **10 Handlers**: GuardDuty, SSH/RDP blocking, S3 public access, IMDSv2, IAM key rotation, Azure Defender, secrets guidance, OS patching
+- **17 Handlers**: GuardDuty, SSH/RDP blocking, S3 public access, IMDSv2, IAM key rotation, Azure Defender, secrets guidance, OS patching, container CVE, database encryption, config drift, monitoring enablement, encryption enforcement
 - **Dry-Run Default**: All remediations preview actions before execution
 - **48-Hour Rollback**: State snapshots for every remediation with automated rollback scripts
 - **Concurrent Batch Execution**: Semaphore-controlled parallel processing
@@ -538,7 +538,7 @@ Built-in support for 20+ frameworks:
 
 - [x] Wire rate limiting to API routes
 - [x] CI/CD pipeline with security scanning
-- [x] Remediation dispatcher with 10 handlers across 8 domains
+- [x] Remediation dispatcher with 17 handlers across 13 domains
 - [x] Tiered execution model (auto-safe / verify / change window)
 - [x] 48-hour rollback state engine
 - [x] Unit tests — 30 packages, 590+ functions (cspm, grc, remediation, ai, compliance, finops, server benchmarks)
