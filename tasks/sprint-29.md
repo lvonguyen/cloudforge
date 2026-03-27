@@ -76,10 +76,9 @@
 - **Deliverable:** README PR or direct commit
 
 ### WS-7: Figma MCP Value Exploration
-- [ ] **UNCLAIMED**
-- Handoff prompt written in session 28 handoff file
-- Score 4 use cases: design token extraction, Code Connect mapping, screenshot round-trip, diagram generation
-- **Deliverable:** 1-5 value/effort matrix, recommendation
+- [DONE: session-28-parallel] **CLOSED — NOT WORTH IT**
+- Evaluated by parallel session. Verdict: Figma MCP integration does not add meaningful value for Cloud Aegis's use case (ops console, not component design system). SVG diagrams rendered via mmdc are sufficient. All 4 "missing" diagrams already exist as .mmd+.svg pairs (rendered session 27).
+- **Deliverable:** Decision recorded. No further action.
 
 ---
 
@@ -116,3 +115,4 @@
 | 28-parallel-B | GIF capture (WS-C) | In progress | — |
 | 29 | Memory cleanup, teardown audit, E2E analysis | DONE: 7 stale refs fixed, TF audit (source clean, DNS orphan critical), E2E root cause identified | — |
 | 29 | WS-2: Fix E2E tests | In progress | — |
+| 29-parallel | WS-3 (300K verify), WS-C (GIFs), WS-D (teardown) | DONE: 300K pipeline complete (streaming fix), local postgres setup, 2 GIFs captured, remediation E2E added | `1897d17`, `ef1f837` |
