@@ -28,7 +28,7 @@ var htmlTagPattern = regexp.MustCompile(`<[^>]*>`)
 
 // allowedNLQValues whitelists structured filter values, preventing the AI
 // from injecting arbitrary strings into the response.
-var allowedNLQValues = map[string]map[string]bool{ //nolint:goconst // literal strings preferred for readability in validation whitelists
+var allowedNLQValues = map[string]map[string]bool{
 	"severity":    {"CRITICAL": true, "HIGH": true, "MEDIUM": true, "LOW": true},
 	"provider":    {"aws": true, "azure": true, "gcp": true},
 	"category":    {"VULNERABILITY": true, "MISCONFIGURATION": true, "DATA_PROTECTION": true, "IDENTITY": true, "NETWORK": true},
