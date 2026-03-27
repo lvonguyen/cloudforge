@@ -243,12 +243,18 @@ cloudforge/
 │   └── public/                    # Static assets and logos
 ├── docs/
 │   ├── core/
-│   │   └── architecture/          # HLD, DDD, DR-BC, data models
-│   │       └── adr/               # Architecture Decision Records (19 ADRs)
-│   ├── diagrams/                  # Architecture diagrams (SVG + Mermaid)
-│   ├── runbooks/                  # Operational procedures (9 runbooks)
+│   │   ├── architecture/          # HLD, DDD, DR-BC, data models
+│   │   │   └── adr/               # Architecture Decision Records (19 ADRs)
+│   │   ├── diagrams/              # Architecture diagrams (SVG + Mermaid + Figma)
+│   │   └── runbooks/              # Operational procedures (9 runbooks)
+│   ├── api/                       # OpenAPI 3.1 specification (82 operations)
+│   ├── cspm/                      # CSPM aggregator HLD, DDD, schema reference
 │   ├── research/                  # Technical research and POC notes
 │   └── archive/                   # Historical planning docs
+├── scripts/                       # Seed pipeline + build scripts
+├── docs-site/                     # Docusaurus documentation site
+├── k6/                            # Load testing (smoke, stress)
+├── rust/                          # Rust FFI bridge (libaegispath)
 └── Makefile                       # Build targets
 ```
 

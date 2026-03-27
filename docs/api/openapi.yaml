@@ -11,7 +11,8 @@ info:
     name: Liem Vo-Nguyen
     email: liem@vonguyen.io
   license:
-    name: Proprietary
+    name: MIT
+    identifier: MIT
 
 servers:
   - url: https://api-personal.lvonguyen.com

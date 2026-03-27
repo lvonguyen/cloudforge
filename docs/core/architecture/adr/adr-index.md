@@ -24,7 +24,7 @@ Cloud Aegis maintains 19 ADRs documenting key technical decisions. Each record c
 | [ADR-012](adr-012-whitelabel-architecture) | Whitelabel/Multi-Tenant Architecture | Accepted |
 | [ADR-013](adr-013-resource-scoped-rbac) | Resource-Scoped RBAC | Accepted |
 | [ADR-014](adr-014-event-driven-ingestion) | Event-Driven Finding Ingestion | Accepted |
-| [ADR-015](adr-015-graph-query-engine) | Graph Query Engine (PuppyGraph) | Proposed |
+| [ADR-015](adr-015-graph-query-engine) | Graph Query Engine (PuppyGraph) | Accepted |
 | [ADR-016](adr-016-container-scanning) | Container Security Scanning | Accepted |
 | [ADR-017](adr-017-secrets-management) | Secrets Management Architecture | Accepted |
 | [ADR-018](adr-018-threat-intelligence-feeds) | Threat Intelligence Feed Integration | Accepted |

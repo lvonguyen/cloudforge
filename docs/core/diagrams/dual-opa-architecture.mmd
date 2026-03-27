@@ -1,15 +1,11 @@
-%% dual-opa-architecture.mmd
-%% Cloud Aegis operates two OPA integration paths:
-%%   LEFT  — HTTP REST path: policy.Evaluator sends JSON to an external OPA server
-%%            over HTTP POST /v1/data/aegis/provisioning|exception (30 s timeout).
-%%            Governs cloud resource provisioning and policy exceptions.
-%%   RIGHT — Embedded path: ai-governance/opa.Engine runs OPA in-process via the
-%%            OPA Go SDK (no network hop). Evaluates Rego namespace aegis.ai.*
-%%            for AI agent tool-access and data-flow controls.
-%%   BOTTOM — Both paths load policies from the shared Rego bundle.
-%%
-%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia'}}}%%
 flowchart LR
+    %% dual-opa-architecture.mmd
+    %% Cloud Aegis operates two OPA integration paths:
+    %%   LEFT  — HTTP REST path: policy.Evaluator sends JSON to an external OPA server
+    %%            over HTTP POST /v1/data/aegis/provisioning|exception (30 s timeout).
+    %%   RIGHT — Embedded path: ai-governance/opa.Engine runs OPA in-process via the
+    %%            OPA Go SDK (no network hop). Evaluates Rego namespace aegis.ai.*
+    %%   BOTTOM — Both paths load policies from the shared Rego bundle.
 
     %% ── Cloud Provisioning Path (Blue) ────────────────────────────────────────
     subgraph PROV["Cloud Provisioning Path"]

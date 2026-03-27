@@ -34,6 +34,6 @@ Each runbook follows this structure:
 | Role | Contact | Hours |
 |------|---------|-------|
 | On-Call Engineer | PagerDuty | 24/7 |
-| Security Team | `<team-email-here>` | 24/7 |
-| Platform Team | `<team-email-here>` | Business hours |
+| Security Team | security@vonguyen.io | 24/7 |
+| Platform Team | platform@vonguyen.io | Business hours |
 

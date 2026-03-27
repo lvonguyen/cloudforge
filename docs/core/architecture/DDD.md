@@ -7,11 +7,11 @@
 | Property | Value |
 |----------|-------|
 | Document ID | AE-DDD-001 |
-| Version | 2.0 |
+| Version | 2.1 |
 | Status | Approved |
 | Classification | Internal |
 | Created | January 5, 2026 |
-| Last Updated | February 27, 2026 |
+| Last Updated | March 20, 2026 |
 
 ### Author
 
@@ -37,8 +37,8 @@
 | 1.1 | Feb 14, 2026 | L. Vo-Nguyen | Added Section 3.4 Remediation Dispatcher |
 | 1.2 | Feb 20, 2026 | L. Vo-Nguyen | Added Section 3.5 AI Governance Module (merged from AgentGuard) |
 | 1.3 | Feb 25, 2026 | L. Vo-Nguyen | Added Section 3.6 IaC Deploy Layer |
-| 2.1 | Mar 20, 2026 | L. Vo-Nguyen | Rename sweep: CloudForge to Cloud Aegis; OPA namespace cloudforge.ai to aegis.ai |
 | 2.0 | Feb 27, 2026 | L. Vo-Nguyen | Added Section 3.7 Risk Intelligence (Planned); SLA updates; version bump |
+| 2.1 | Mar 20, 2026 | L. Vo-Nguyen | Rename sweep: CloudForge to Cloud Aegis; OPA namespace cloudforge.ai to aegis.ai |
 
 ### Related Documents
 
@@ -47,7 +47,7 @@
 | High-Level Design | [HLD.md](./HLD.md) |
 | Component Rationale | [component-rationale.md](./adr/component-rationale.md) |
 | DR/BC Plan | [DR-BC.md](./DR-BC.md) |
-| API Specification | *Planned — not yet created* |
+| API Specification | [openapi.yaml](../../api/openapi.yaml) (OpenAPI 3.1, 82 operations) |
 
 ---
 

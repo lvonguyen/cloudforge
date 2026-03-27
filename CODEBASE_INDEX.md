@@ -7,7 +7,7 @@ Compressed context for AI agents. Updated: 2026-03-26.
 ```
 cloudforge/
   cmd/
-    server/           # Main HTTP server — composition root, routes, 65 endpoints
+    server/           # Main HTTP server — composition root, routes, 65 routes (82 operations)
     cspm-aggregator/  # CSPM finding aggregation CLI
     cspm-testgen/     # Test data generator
     remediation-dispatcher/  # Remediation execution runner
@@ -105,6 +105,25 @@ cloudforge/
 | `merge-findings.py` | Merges multi-export NDJSON files |
 | `export-securityhub.py` | AWS SecurityHub finding exporter |
 
+## Diagrams (`docs/core/diagrams/`)
+
+| Source (.mmd) | SVG | Figma Export | README |
+|---------------|-----|-------------|--------|
+| `architecture.mmd` | `architecture.svg` | `architecture-figma.svg/.png` | PNG |
+| `compliance-deployment-models.mmd` | `compliance-deployment-models.svg` | — | SVG |
+| `dual-opa-architecture.mmd` | `dual-opa-architecture.svg` | `dual-opa-architecture-figma.svg/.png` | PNG |
+| `failover-sequence.mmd` | `failover-sequence.svg` | — | SVG |
+| `global-deployment-architecture.mmd` | `global-deployment-architecture.svg` | `global-deployment-figma.svg/.png` | PNG |
+| `iac-deploy-pipeline.mmd` | `iac-deploy-pipeline.svg` | — | SVG |
+| `remediation-dispatcher-flow.mmd` | `remediation-dispatcher-flow.svg` | — | SVG |
+| `risk-intelligence-pipeline.mmd` | `risk-intelligence-pipeline.svg` | `risk-pipeline-figma.svg/.png` | PNG |
+
+CSPM diagrams (`docs/cspm/diagrams/`): `hld_architecture.svg`, `dfd_scoring_pipeline.svg`, `dfd_priority_matrix.svg` (SVG-only, no .mmd sources).
+
+Render: `mmdc -i <file>.mmd -o <file>.svg -w 2400`. Figma Design file: key `2l5XrS7QRy5MYFI9PwcPmK` (pages CF.1-CF.9).
+
+Docs-site gallery: `docs/core/diagrams/gallery.md` — served at `/diagrams`.
+
 ## Command Center (`frontend/src/components/ops/`)
 
 | Component | Purpose |
@@ -144,11 +163,11 @@ Layer key format: `"group:value"` — parsed via `parseLayerKey()`, built via `l
 - **TerminalHandler**: xterm.js WebSocket with ticket nonce auth (SA-002), command whitelist
 - **GraphHandler**: PuppyGraph Gremlin/Cypher query proxy
 - **Handler files**: `handlers_api.go`, `handlers_grc.go`, `handlers_attackpath.go`, `handlers_nlq.go`, `handlers_containers.go`, `handlers_integration.go`, `handlers_terminal.go` (via internal/terminal), `handlers_graph.go`, `handlers_finops.go`, `handlers_secrets.go`, `handlers_secrets_orgscan.go`, `handlers_waf.go`, `handlers_identity.go`, `handlers_webhooks.go`, `handlers_rql.go`, `handlers_asm.go`, `handlers_deploy.go`, `handlers_search.go`, `handlers_ingest.go`, `handlers_compliance.go`, `handlers_config.go`, `handlers_comments.go`, `handlers_workflow.go`, `service_enrichment.go`, `service_identity.go`, `mockdata.go`
-- **Routes**: gorilla/mux with auth → tenant → rate-limit → RBAC middleware chain (65 endpoints)
+- **Routes**: gorilla/mux with auth → tenant → rate-limit → RBAC middleware chain (65 routes, 82 operations per OpenAPI spec)
 - **Tenant middleware**: resolves from JWT `tenant_id` → X-Tenant-ID header → subdomain
 - **Config endpoint**: `GET /api/v1/config` + `/config.json` (unauthenticated, tenant-aware branding)
 
-## API Surface (65 endpoints)
+## API Surface (65 routes / 82 operations)
 
 | Domain | Endpoints | Auth | Notes |
 |--------|-----------|------|-------|
