@@ -111,13 +111,13 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 | `internal/observability` | Production | Structured logging (zap), Prometheus metrics |
 | `internal/findings` | Production | Finding types, bridge to CSPM aggregator |
 | `pkg/remediation` | Production | Executor engine, 10 handlers, rollback |
-| `internal/cicd` | Partial | SAST/VCS interfaces, basic integrations |
+| `internal/cicd` | Interface only | SAST/VCS interfaces defined, not imported by server |
 | `internal/finops` | Production | Cost aggregation (AWS Cost Explorer wirable via FINOPS_PROVIDER=aws), anomaly detection, chargeback |
 | `internal/container` | Production | K8s topology (Trivy parser wirable via TRIVY_OUTPUT_PATH), image scan interface |
 | `internal/secrets` | Interface + Mock | Vault integration interface, mock provider |
 | `internal/waf` | Interface + Mock | Golden template validation, compliance scanner |
 | `internal/identity` | Interface + Mock | Okta/Entra ID provider stubs with mock returns |
-| `internal/workflow` | Stub | Temporal workflow definitions, not wired |
+| `internal/workflow` | In-memory | In-memory engine wired (list/get/submit handlers), Temporal orchestration planned |
 
 ---
 
@@ -137,7 +137,7 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 
 This is a **platform reference implementation**, not production software:
 
-1. **Temporal Workflows** — Workflow definitions exist, orchestration layer not wired into request flow
+1. **Temporal Workflows** — In-memory workflow engine is wired (list, get, submit handlers); Temporal orchestration layer planned but not connected
 2. **Stub Packages** — secrets, waf modules have interfaces and mock implementations but no production wiring
 3. **RoleViewer** — `RoleViewer` (rank 0) is implemented with read-only surface (`/findings`, `/compliance/frameworks`, `/agents` + traces); fine-grained per-resource viewer scoping is not yet enforced
 4. **Chrome QA Findings** — 35/36 routes passing with error states, focus rings, footer landmark, OG meta tags; React 19 lazy() context edge case under Playwright (pre-existing, not prod)
@@ -336,10 +336,10 @@ Pluggable providers for enterprise GRC platforms:
 
 ### FinOps Cost Management
 
-- **Cost Aggregation**: Multi-cloud cost data from AWS Cost Explorer, Azure Cost Management, GCP Billing
-- **Anomaly Detection**: ML-based spend anomaly alerting with configurable thresholds
-- **Chargeback/Showback**: Tag-based cost allocation with automated reports
-- **Budget Tracking**: Proactive budget alerts via Slack/PagerDuty
+- **Cost Aggregation**: AWS Cost Explorer wired (`FINOPS_PROVIDER=aws`); Azure Cost Management and GCP Billing interfaces defined (not yet wired)
+- **Anomaly Detection**: Statistical z-score anomaly alerting with configurable sensitivity thresholds
+- **Chargeback/Showback**: Tag-based cost allocation with automated CSV reports
+- **Budget Tracking**: PagerDuty Events API v2 wired; Slack Block Kit alerting implemented but not connected to server
 - **Optimization**: Resource rightsizing and savings recommendations
 
 ## [+] Tech Stack

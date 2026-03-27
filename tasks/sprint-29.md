@@ -101,13 +101,14 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 - **Deliverable:** Design doc or prototype in `internal/pipeline/`
 
 ### WS-6: README Accuracy Refresh
-- [ ] **UNCLAIMED**
-- Update all partial/planned markers to match actual wiring state:
-  - `internal/cicd`: "Interfaces only, not wired" (currently says "Partial")
-  - `internal/workflow`: "In-memory engine wired, Temporal planned" (says "Stub")
-  - Anomaly detection: "Statistical z-score" (says "ML-based")
-  - Slack alerting: "Planned" (not implemented)
-- **Deliverable:** README PR or direct commit
+- [DONE: session-30] **COMPLETE**
+- 4 corrections verified against source code:
+  - `internal/cicd`: "Partial" → "Interface only — not imported by server" (grep confirmed 0 imports)
+  - `internal/workflow`: "Stub" → "In-memory — engine wired (list/get/submit handlers), Temporal planned" (handlers_workflow.go + server struct verified)
+  - Anomaly detection: "ML-based" → "Statistical z-score" (detector.go:169-186 confirmed)
+  - Budget tracking: "via Slack/PagerDuty" → "PagerDuty wired; Slack implemented but not connected" (alerting/slack.go exists, 0 server imports)
+  - Known Limitations section updated to match workflow correction
+- **Deliverable:** Direct commit
 
 ### WS-7: Figma MCP Value Exploration
 - [DONE: session-28-parallel] **CLOSED — NOT WORTH IT**
