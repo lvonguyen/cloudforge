@@ -1,0 +1,78 @@
+name: Docs Site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'docs-site/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'docs-site/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: docs-site/package-lock.json
+
+      - name: Install dependencies
+        working-directory: docs-site
+        run: npm ci
+
+      - name: Build site
+        working-directory: docs-site
+        run: npm run build
+
+      - name: Upload build artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v7
+        with:
+          name: docs-build
+          path: docs-site/build
+          retention-days: 1
+
+  deploy:
+    name: Deploy to Cloudflare Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: docs-build
+          path: docs-build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@da0e0235f535f4ec5cc5e13d3611eef97ab5330c # v3.18.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy docs-build --project-name=cloudforge-docs
