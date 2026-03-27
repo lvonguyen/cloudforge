@@ -14,9 +14,9 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 
 | ID | Finding | Severity | Files | Status |
 |----|---------|----------|-------|--------|
-| C2 | NLQ prompt injection + AI output validation — unsanitized query → LLM, unvalidated JSON, XSS chain | HIGH | `handlers_nlq.go:113`, `attackpath_enrich.go:37` | [ ] UNCLAIMED |
-| S2 | CORS missing PATCH — breaks remediation status updates cross-origin | HIGH | `internal/api/cors.go:27` | [ ] UNCLAIMED |
-| S3 | Gremlin closure bypass — `coalesce`, `aggregate`, `store`, RTL Unicode, `${}` not blocked | HIGH | `handlers_graph.go:35` | [ ] UNCLAIMED |
+| C2 | NLQ prompt injection + AI output validation — unsanitized query → LLM, unvalidated JSON, XSS chain | HIGH | `handlers_nlq.go:113`, `attackpath_enrich.go:37` | [FIXED: session-30] Input sanitized (HTML strip + control chars), output whitelisted (5 field sets), Text field sanitized. 6 tests added. |
+| S2 | CORS missing PATCH — breaks remediation status updates cross-origin | HIGH | `internal/api/cors.go:27` | [FIXED: session-30] Added PATCH to Allow-Methods. |
+| S3 | Gremlin closure bypass — `coalesce`, `aggregate`, `store`, RTL Unicode, `${}` not blocked | HIGH | `handlers_graph.go:35` | [FIXED: session-30] Added aggregate/store/cap/coalesce to blocklist (parenthesis-guarded). Groovy `${}` template injection check added. 6 test cases added. |
 | C4 | In-memory linear scan O(n) per list/filter/pagination request | HIGH | multiple | [ ] UNCLAIMED |
 
 ### Post-Demo (MED)
@@ -62,13 +62,11 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
   - Verify terminal config is visible (even if WS is down post-teardown)
 - **Deliverable:** QA report with PASS/FAIL per page, edge case findings, GIF captures
 
-### WS-2: Fix 5 Failing Playwright E2E Tests
-- [CLAIMED: session-29] **IN PROGRESS**
-- 10/15 pass, 5 fail on selector mismatches
-- Run `npm run e2e` in `frontend/`, read failure screenshots in `test-results/`
-- Fix selectors to match actual DOM (text content, roles, data-testid)
-- Target: 15/15 pass
-- **Deliverable:** All E2E green, commit
+### WS-2: Fix Failing Playwright E2E Tests
+- [DONE: session-29] **COMPLETE — 17 pass, 0 fail, 1 skip**
+- **Root causes:** (1) Go backend on :8080 returns empty data — mock fallback never triggered (API 200 OK, not error). (2) Strict mode violations (`getByText('Modules')` matched 2 elements). (3) Remediation selectors expected `<table>` but page uses card layout with Tier 1/2/3 labels. (4) Demo access behind env flag.
+- **Fixes:** VITE_DEMO_MODE early-return in `fetchFindings()` + `useFinding()`. `.env.e2e` + `--mode e2e` on port 5175. Selector fixes for heading roles, `.first()`, card layout. Demo access test conditionally skips.
+- **Deliverable:** 17/18 green (1 conditional skip), ready to commit
 
 ### WS-3: Performance Baseline Under 300K Findings
 - [ ] **UNCLAIMED**
@@ -150,5 +148,6 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 | 28-parallel-A | WS-A (300K load), WS-B (E2E), WS-D (teardown) | All complete | `ea8870c` |
 | 28-parallel-B | GIF capture (WS-C) | In progress | — |
 | 29 | Memory cleanup, teardown audit, E2E analysis | DONE: 7 stale refs fixed, TF audit (source clean, DNS orphan critical), E2E root cause identified | — |
-| 29 | WS-2: Fix E2E tests | In progress | — |
+| 29 | WS-2: Fix E2E tests | DONE: 17/18 pass (0 fail, 1 skip). Root cause: Go backend returns empty 200 OK, mock fallback never triggered. | pending |
 | 29-parallel | WS-3 (300K verify), WS-C (GIFs), WS-D (teardown) | DONE: 300K pipeline complete (streaming fix), local postgres setup, 2 GIFs captured, remediation E2E added | `1897d17`, `ef1f837` |
+| 30 | C2 + S2 + S3 (security hardening) | DONE: NLQ prompt injection fix (input sanitize + output whitelist), CORS PATCH, Gremlin blocklist extension (4 steps + Groovy template). 12 new test cases, all green with -race. | pending |
