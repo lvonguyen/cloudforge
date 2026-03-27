@@ -71,7 +71,7 @@ jobs:
           path: docs-build
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@da0e0235f535f4ec5cc5e13d3611eef97ab5330c # v3.18.0
+        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
