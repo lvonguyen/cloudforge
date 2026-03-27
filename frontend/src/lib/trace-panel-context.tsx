@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, type ReactNode } from 'react'
+import { createContext, useContext, useReducer, useCallback, useMemo, type ReactNode } from 'react'
 import type { DeployEvent } from '@/types/deploy'
 import type { Span } from '@/types/ai-governance'
 import type { DryRunResult } from '@/types/remediation'
@@ -110,17 +110,22 @@ const TracePanelContext = createContext<TracePanelContextValue | null>(null)
 export function TracePanelProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
 
-  const openStreaming = (label: string) => dispatch({ type: 'OPEN_STREAMING', label })
-  const openTimeline = (label: string, spans: Span[]) => dispatch({ type: 'OPEN_TIMELINE', label, spans })
-  const openDryRun = (label: string, result: DryRunResult) => dispatch({ type: 'OPEN_DRY_RUN', label, result })
-  const appendEvent = (event: DeployEvent) => dispatch({ type: 'APPEND_EVENT', event })
-  const setRunning = (isRunning: boolean) => dispatch({ type: 'SET_RUNNING', isRunning })
-  const setHeight = (height: number) => dispatch({ type: 'SET_HEIGHT', height })
-  const toggle = () => dispatch({ type: 'TOGGLE' })
-  const close = () => dispatch({ type: 'CLOSE' })
+  const openStreaming = useCallback((label: string) => dispatch({ type: 'OPEN_STREAMING', label }), [])
+  const openTimeline = useCallback((label: string, spans: Span[]) => dispatch({ type: 'OPEN_TIMELINE', label, spans }), [])
+  const openDryRun = useCallback((label: string, result: DryRunResult) => dispatch({ type: 'OPEN_DRY_RUN', label, result }), [])
+  const appendEvent = useCallback((event: DeployEvent) => dispatch({ type: 'APPEND_EVENT', event }), [])
+  const setRunning = useCallback((isRunning: boolean) => dispatch({ type: 'SET_RUNNING', isRunning }), [])
+  const setHeight = useCallback((height: number) => dispatch({ type: 'SET_HEIGHT', height }), [])
+  const toggle = useCallback(() => dispatch({ type: 'TOGGLE' }), [])
+  const close = useCallback(() => dispatch({ type: 'CLOSE' }), [])
+
+  const value = useMemo(
+    () => ({ state, openStreaming, openTimeline, openDryRun, appendEvent, setRunning, setHeight, toggle, close }),
+    [state, openStreaming, openTimeline, openDryRun, appendEvent, setRunning, setHeight, toggle, close],
+  )
 
   return (
-    <TracePanelContext.Provider value={{ state, openStreaming, openTimeline, openDryRun, appendEvent, setRunning, setHeight, toggle, close }}>
+    <TracePanelContext.Provider value={value}>
       {children}
     </TracePanelContext.Provider>
   )
