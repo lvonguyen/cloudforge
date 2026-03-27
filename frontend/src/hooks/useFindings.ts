@@ -44,6 +44,10 @@ interface FetchFindingsResult {
 }
 
 async function fetchFindings(filters?: { severity?: string; provider?: string; status?: string }): Promise<FetchFindingsResult> {
+  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+    const data = await fetchMockFindings()
+    return { data, usingMockData: true }
+  }
   const params = new URLSearchParams()
   if (filters?.severity) params.set('severity', filters.severity)
   if (filters?.provider) params.set('provider', filters.provider)
@@ -152,6 +156,10 @@ export function useFinding(id: string) {
   return useQuery({
     queryKey: ['findings', id],
     queryFn: async () => {
+      if (import.meta.env.VITE_DEMO_MODE === 'true') {
+        const findings = await fetchMockFindings()
+        return findings.find((f) => f.id === id) ?? null
+      }
       try {
         return await apiClient.get<Finding>(`/findings/${id}`)
       } catch (err) {

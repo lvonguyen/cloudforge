@@ -10,7 +10,7 @@ export default defineConfig({
   timeout: 30_000,
 
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5175',
     screenshot: 'only-on-failure',
     trace: 'on-first-retry',
   },
@@ -23,9 +23,9 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npx vite --port 5173',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    command: 'npx vite --port 5175 --mode e2e',
+    url: 'http://localhost:5175',
+    reuseExistingServer: false,
     timeout: 60_000,
   },
 })

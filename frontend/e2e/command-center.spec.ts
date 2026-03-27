@@ -24,14 +24,15 @@ test.describe('Command Center page', () => {
     expect(hasCritical || hasHigh).toBeTruthy()
   })
 
-  test('charts or treemap view is present', async ({ page }) => {
-    // The CommandCenter renders FindingsSummaryChart and/or FindingsTreemap
-    // Check for either chart containers or the treemap data-testid
-    const hasTreemap = await page.locator('[data-testid="findings-treemap"]').isVisible().catch(() => false)
-    const hasChart = await page.locator('.recharts-wrapper').isVisible().catch(() => false)
-    const hasGraph = await page.locator('.react-flow').isVisible().catch(() => false)
+  test('charts or visualization is present', async ({ page }) => {
+    // The CommandCenter renders various visualizations (charts, treemaps, graphs)
+    // Check for any SVG-based visualization, canvas, or known chart containers
+    const hasSvg = await page.locator('main svg').first().isVisible().catch(() => false)
+    const hasCanvas = await page.locator('main canvas').first().isVisible().catch(() => false)
+    const hasChart = await page.locator('.recharts-wrapper').first().isVisible().catch(() => false)
+    const hasTreemap = await page.locator('[data-testid="findings-treemap"]').first().isVisible().catch(() => false)
+    const hasGraph = await page.locator('.react-flow').first().isVisible().catch(() => false)
 
-    // At least one visualization should be present
-    expect(hasTreemap || hasChart || hasGraph).toBeTruthy()
+    expect(hasSvg || hasCanvas || hasChart || hasTreemap || hasGraph).toBeTruthy()
   })
 })

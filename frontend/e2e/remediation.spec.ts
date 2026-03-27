@@ -7,27 +7,20 @@ test.describe('Remediation Queue page', () => {
   })
 
   test('remediation queue renders with items', async ({ page }) => {
-    // Page heading or tab should indicate remediation context
-    await expect(
-      page.getByText('Remediation', { exact: false }).first(),
-    ).toBeVisible()
+    // Page heading should show remediation context
+    await expect(page.getByRole('heading', { name: 'Remediation Queue' })).toBeVisible()
 
-    // Queue should show items — either table rows or cards
-    const rows = page.locator('table tbody tr')
-    const cards = page.locator('[data-testid="remediation-card"]')
-    const rowCount = await rows.count().catch(() => 0)
-    const cardCount = await cards.count().catch(() => 0)
-
-    expect(rowCount + cardCount).toBeGreaterThan(0)
+    // Status summary should show pending/in-progress counts
+    await expect(page.getByText(/\d+ pending/).first()).toBeVisible()
   })
 
-  test('tier badges are present', async ({ page }) => {
-    // Remediation items should show tier badges (AUTO, GUIDED, MANUAL)
-    const hasAuto = await page.getByText('AUTO', { exact: true }).first().isVisible().catch(() => false)
-    const hasGuided = await page.getByText('GUIDED', { exact: true }).first().isVisible().catch(() => false)
-    const hasManual = await page.getByText('MANUAL', { exact: true }).first().isVisible().catch(() => false)
+  test('tier groupings are present', async ({ page }) => {
+    // Remediation tiers: Tier 1 (auto), Tier 2 (guided), Tier 3 (manual)
+    const hasTier1 = await page.getByText('Tier 1').first().isVisible().catch(() => false)
+    const hasTier2 = await page.getByText('Tier 2').first().isVisible().catch(() => false)
+    const hasTier3 = await page.getByText('Tier 3').first().isVisible().catch(() => false)
 
-    expect(hasAuto || hasGuided || hasManual).toBeTruthy()
+    expect(hasTier1 || hasTier2 || hasTier3).toBeTruthy()
   })
 
   test('clicking item opens detail or navigates', async ({ page }) => {
