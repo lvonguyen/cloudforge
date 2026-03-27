@@ -517,10 +517,38 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
               disabled={!remediateCooldown.canFire}
               onClick={() => {
                 if (!remediateCooldown.canFire) return
+                const handlerMap: Record<string, { name: string; tier: number; desc: string }> = {
+                  iam: { name: 'EnforceIMDSv2', tier: 1, desc: 'Enforce IMDSv2 on EC2 instances' },
+                  s3: { name: 'EnforceS3Encryption', tier: 1, desc: 'Enable AES-256 server-side encryption' },
+                  rds: { name: 'DisablePublicAccess', tier: 2, desc: 'Disable public accessibility on RDS instance' },
+                  ec2: { name: 'EnforceIMDSv2', tier: 1, desc: 'Require IMDSv2 session tokens' },
+                  logging: { name: 'EnableCloudTrail', tier: 1, desc: 'Enable CloudTrail logging in region' },
+                  guardduty: { name: 'EnableGuardDuty', tier: 1, desc: 'Enable GuardDuty detector' },
+                  encryption: { name: 'EnableEncryption', tier: 2, desc: 'Enable encryption at rest' },
+                  secrets: { name: 'RotateExposedSecret', tier: 2, desc: 'Rotate and revoke exposed credential' },
+                  patch: { name: 'OSPatch', tier: 3, desc: 'Apply security patches (requires change window)' },
+                  network: { name: 'RestrictSecurityGroup', tier: 2, desc: 'Remove overly permissive ingress rules' },
+                }
+                const category = `${finding.category} ${finding.service_name}`.toLowerCase()
+                const handler = Object.entries(handlerMap).find(([k]) => category.includes(k))?.[1]
+                  ?? { name: 'GenericRemediate', tier: 2, desc: 'Apply recommended remediation steps' }
                 openTimeline('Remediating: ' + finding.title, [{
                   span_id: 'span-rem-1', name: 'remediate:' + finding.resource_name, type: 'tool',
                   start_time: new Date().toISOString(), end_time: new Date(Date.now() + 3200).toISOString(),
-                  duration_ms: 3200, status: 'ok', attributes: { 'finding.id': finding.id }, events: [], data: {},
+                  duration_ms: 3200, status: 'ok',
+                  attributes: {
+                    'finding.id': finding.id,
+                    'action': 'remediate',
+                    'handler': handler.name,
+                    'handler.tier': handler.tier,
+                    'handler.description': handler.desc,
+                    'remediation.type': finding.auto_remediatable ? 'auto' : 'guided',
+                    'resource': finding.resource_name,
+                    'provider': finding.cloud_provider,
+                    'severity': finding.severity,
+                    'account': finding.account_id ?? 'unknown',
+                  },
+                  events: [], data: {},
                 }])
                 remediateCooldown.fire()
                 toast(finding.auto_remediatable
@@ -540,7 +568,21 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
                 openTimeline('Suppressing: ' + finding.title, [{
                   span_id: 'span-sup-1', name: 'suppress:' + finding.resource_name, type: 'tool',
                   start_time: new Date().toISOString(), end_time: new Date(Date.now() + 1800).toISOString(),
-                  duration_ms: 1800, status: 'ok', attributes: { 'finding.id': finding.id, action: 'suppress' }, events: [], data: {},
+                  duration_ms: 1800, status: 'ok',
+                  attributes: {
+                    'finding.id': finding.id,
+                    'action': 'suppress',
+                    'requestor': user?.email ?? 'unknown',
+                    'reason': `Suppression: ${finding.title}`,
+                    'exception.type': 'OTHER',
+                    'exception.status': 'PENDING',
+                    'resource': finding.resource_name,
+                    'severity': finding.severity,
+                    'account': finding.account_id ?? 'unknown',
+                    'policy_violated': finding.id,
+                    'expiry': new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0],
+                  },
+                  events: [], data: {},
                 }])
                 suppressCooldown.fire()
                 createException.mutate(
