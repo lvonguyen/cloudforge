@@ -1,0 +1,1 @@
+/Users/lvonguyen/repos/gh/lvn-library/shared/standards/.claude/skills/grill-me-architect/SKILL.md
