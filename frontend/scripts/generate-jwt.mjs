@@ -2,8 +2,7 @@ import { createHmac } from "node:crypto";
 
 const secret = process.env.JWT_SECRET;
 if (!secret) {
-  // No secret available — skip token generation silently.
-  // The frontend will fall back to mock data or sessionStorage auth.
+  process.stderr.write("warn: JWT_SECRET not set — skipping token generation\n");
   process.exit(0);
 }
 

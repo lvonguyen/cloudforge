@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'Cloud Aegis Docs',
   tagline: 'Enterprise Cloud Governance Platform',
-  favicon: 'img/favicon.ico',
+  favicon: undefined,
 
   url: 'https://docs.cloudguard.lvonguyen.com',
   baseUrl: '/',
@@ -51,6 +51,8 @@ const config: Config = {
             '**/README.md',
             'cspm/STANDARDS.md',
             'STANDARDS.md',
+            'research/whitelabel-exploration.md',
+            'research/puppygraph-poc.md',
           ],
         },
         blog: false,
@@ -101,9 +103,9 @@ const config: Config = {
         {
           title: 'Documentation',
           items: [
-            {label: 'Architecture', to: '/docs/architecture'},
+            {label: 'Architecture', to: '/docs/core/architecture/HLD'},
             {label: 'API Reference', to: '/docs/api'},
-            {label: 'Runbooks', to: '/docs/runbooks'},
+            {label: 'Runbooks', to: '/docs/core/runbooks/01-deployment'},
           ],
         },
         {

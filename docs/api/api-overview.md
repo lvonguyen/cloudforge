@@ -1,6 +1,7 @@
 ---
 title: API Reference
 sidebar_position: 1
+slug: /api
 ---
 
 # API Reference
