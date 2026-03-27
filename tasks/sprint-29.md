@@ -27,7 +27,7 @@
 - **Deliverable:** QA report with PASS/FAIL per page, edge case findings, GIF captures
 
 ### WS-2: Fix 5 Failing Playwright E2E Tests
-- [ ] **UNCLAIMED**
+- [CLAIMED: session-29] **IN PROGRESS**
 - 10/15 pass, 5 fail on selector mismatches
 - Run `npm run e2e` in `frontend/`, read failure screenshots in `test-results/`
 - Fix selectors to match actual DOM (text content, roles, data-testid)
@@ -114,4 +114,5 @@
 | 28-lead | WS-1 (partial), research | 8 pages QA'd, 3 GIFs, FinOps+Airflow audits | `737a934`, `1897d17` |
 | 28-parallel-A | WS-A (300K load), WS-B (E2E), WS-D (teardown) | All complete | `ea8870c` |
 | 28-parallel-B | GIF capture (WS-C) | In progress | — |
-| 28-parallel-C | Monitoring + teardown audit | In progress | — |
+| 29 | Memory cleanup, teardown audit, E2E analysis | DONE: 7 stale refs fixed, TF audit (source clean, DNS orphan critical), E2E root cause identified | — |
+| 29 | WS-2: Fix E2E tests | In progress | — |
