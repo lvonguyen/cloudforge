@@ -172,7 +172,7 @@ Cloud Aegis bridges these needs with a unified platform that provides:
 
 ## [/] Architecture
 
-<img src="docs/core/diagrams/architecture-figma.svg" alt="Cloud Aegis Architecture" width="720">
+<img src="docs/core/diagrams/architecture-figma.png" alt="Cloud Aegis Architecture" width="720">
 
 ---
 
@@ -303,7 +303,7 @@ Pluggable providers for enterprise GRC platforms:
 - **Deploy scripts** — dry-run-by-default deployment with policy violation gate and human-readable remediation guidance
 - **Container images** — multi-stage Dockerfiles for frontend (nginx + SPA routing) and backend (Go + healthcheck)
 
-<img src="docs/core/diagrams/dual-opa-architecture.svg" alt="Dual-OPA Architecture" width="720">
+<img src="docs/core/diagrams/dual-opa-architecture-figma.png" alt="Dual-OPA Architecture" width="720">
 
 ### Risk Intelligence
 
@@ -426,14 +426,14 @@ workflow:
 | [Detailed Design](docs/core/architecture/DDD.md) | API specs, data models |
 | [DR/BC Plan](docs/core/architecture/DR-BC.md) | Disaster recovery procedures (v2.1) |
 | [Component Rationale](docs/core/architecture/adr/component-rationale.md) | Build vs buy decisions |
-| [Dual-OPA Architecture](docs/core/diagrams/dual-opa-architecture.svg) | Cloud provisioning OPA (HTTP) vs AI governance OPA (embedded) |
+| [Dual-OPA Architecture](docs/core/diagrams/dual-opa-architecture-figma.png) | Cloud provisioning OPA (HTTP) vs AI governance OPA (embedded) |
 | [Attack Path Enhancements](docs/research/attack-path-enhancements.md) | Graph-based attack path analysis roadmap |
 | [Compliance Deployment Models](docs/core/diagrams/compliance-deployment-models.svg) | Multi-cloud compliance topology |
 | [Failover Sequence](docs/core/diagrams/failover-sequence.svg) | DR failover steps and timing |
-| [Global Deployment](docs/core/diagrams/global-deployment-architecture.svg) | Multi-region deployment layout |
+| [Global Deployment](docs/core/diagrams/global-deployment-figma.png) | Multi-region deployment layout |
 | [IaC Deploy Pipeline](docs/core/diagrams/iac-deploy-pipeline.svg) | Terraform/conftest CI/CD flow |
 | [Remediation Dispatcher](docs/core/diagrams/remediation-dispatcher-flow.svg) | Automated remediation routing |
-| [Risk Intelligence Pipeline](docs/core/diagrams/risk-intelligence-pipeline.svg) | Risk scoring data pipeline |
+| [Risk Intelligence Pipeline](docs/core/diagrams/risk-pipeline-figma.png) | Risk scoring data pipeline |
 
 ### Architecture Decision Records (19 ADRs)
 

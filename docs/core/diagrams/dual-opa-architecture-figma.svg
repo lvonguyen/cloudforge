@@ -1,0 +1,212 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" width="1200" height="750">
+  <defs>
+    <marker id="ah-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#3b82f6"/>
+    </marker>
+    <marker id="ah-dblue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#1e40af"/>
+    </marker>
+    <marker id="ah-purple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#7c3aed"/>
+    </marker>
+    <marker id="ah-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#22c55e"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="750" fill="#ffffff" rx="0"/>
+
+  <!-- Title -->
+  <text x="600" y="32" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" font-weight="700" fill="#0f172a">Dual-OPA Architecture</text>
+  <text x="600" y="52" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#94a3b8">Cloud provisioning (HTTP) vs AI governance (embedded) — complementary policy paths</text>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- LEFT COLUMN: Cloud Provisioning Path (Blue)                -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <rect x="30" y="68" width="530" height="500" rx="12" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+  <rect x="30" y="68" width="530" height="32" rx="12" fill="#3b82f6"/>
+  <rect x="30" y="88" width="530" height="12" fill="#3b82f6"/>
+  <text x="295" y="91" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff">CLOUD PROVISIONING PATH</text>
+
+  <!-- Box 1: Cloud Provisioning Request -->
+  <rect x="60" y="115" width="470" height="68" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="1"/>
+  <rect x="60" y="115" width="5" height="68" rx="2" fill="#3b82f6"/>
+  <circle cx="88" cy="141" r="14" fill="#dbeafe"/>
+  <text x="88" y="146" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" fill="#3b82f6">&#9729;</text>
+  <text x="112" y="141" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#1e293b">Cloud Provisioning Request</text>
+  <text x="112" y="160" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#64748b">PolicyInput — application, resource, region, tags, requested_by</text>
+
+  <!-- Arrow 1→2 -->
+  <line x1="295" y1="183" x2="295" y2="198" stroke="#3b82f6" stroke-width="2" marker-end="url(#ah-blue)"/>
+  <text x="310" y="195" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" fill="#94a3b8">POST JSON</text>
+
+  <!-- Box 2: policy.Evaluator -->
+  <rect x="60" y="203" width="470" height="68" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="1"/>
+  <rect x="60" y="203" width="5" height="68" rx="2" fill="#3b82f6"/>
+  <circle cx="88" cy="229" r="14" fill="#dbeafe"/>
+  <text x="88" y="234" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" fill="#3b82f6">&#9881;</text>
+  <text x="112" y="229" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#1e293b">policy.Evaluator</text>
+  <text x="112" y="248" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#64748b">internal/policy/evaluator.go — HTTP client, 30s timeout</text>
+
+  <!-- Arrow 2→3 -->
+  <line x1="295" y1="271" x2="295" y2="286" stroke="#1e40af" stroke-width="2" marker-end="url(#ah-dblue)"/>
+  <text x="310" y="283" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" fill="#94a3b8">HTTP POST /v1/data/aegis/</text>
+
+  <!-- Box 3: OPA Server (emphasized) -->
+  <rect x="60" y="291" width="470" height="68" rx="8" fill="#1e40af" stroke="#1e3a8a" stroke-width="2"/>
+  <circle cx="88" cy="317" r="14" fill="#2563eb"/>
+  <text x="88" y="322" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff">&#9906;</text>
+  <text x="112" y="317" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff">OPA Server (External)</text>
+  <text x="112" y="336" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#93c5fd">POST /v1/data/aegis/provisioning | exception</text>
+
+  <!-- Arrow 3→4 -->
+  <line x1="295" y1="359" x2="295" y2="374" stroke="#3b82f6" stroke-width="2" marker-end="url(#ah-blue)"/>
+  <text x="310" y="371" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" fill="#94a3b8">OPAResponse</text>
+
+  <!-- Box 4: Policy Decision -->
+  <rect x="60" y="379" width="470" height="68" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="1"/>
+  <rect x="60" y="379" width="5" height="68" rx="2" fill="#3b82f6"/>
+  <circle cx="88" cy="405" r="14" fill="#dbeafe"/>
+  <text x="88" y="410" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" fill="#3b82f6">&#10003;</text>
+  <text x="112" y="405" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#1e293b">Policy Decision</text>
+  <text x="112" y="424" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#64748b">PolicyResult — allow | deny | warn</text>
+
+  <!-- Arrow 4→5 -->
+  <line x1="295" y1="447" x2="295" y2="462" stroke="#3b82f6" stroke-width="2" marker-end="url(#ah-blue)"/>
+  <text x="310" y="459" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" fill="#94a3b8">allowed=true</text>
+
+  <!-- Box 5: Terraform / Cloud APIs -->
+  <rect x="60" y="467" width="470" height="68" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="1"/>
+  <rect x="60" y="467" width="5" height="68" rx="2" fill="#3b82f6"/>
+  <!-- Terraform icon (inline paths, no style block) -->
+  <g transform="translate(74, 487) scale(0.55)">
+    <path d="M22.58 41.75V-3.09l38.83 22.42v44.83z" fill="#7b42bc" fill-rule="evenodd"/>
+    <path d="M104.5-3.09L65.67 19.33v44.83l38.83-22.41z" fill="#7b42bc" fill-rule="evenodd"/>
+    <path d="M18.33-5.7L-20.5-28.12v44.84l38.83 22.42z" fill="#7b42bc" fill-rule="evenodd"/>
+    <path d="M61.41 113.91V69.08L22.58 46.66v44.83z" fill="#7b42bc" fill-rule="evenodd"/>
+  </g>
+  <text x="112" y="493" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#1e293b">Terraform / Cloud APIs</text>
+  <text x="112" y="512" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#64748b">AWS | Azure | GCP — resource provisioned or blocked</text>
+  <!-- Small provider dots -->
+  <rect x="440" y="482" width="32" height="16" rx="3" fill="#f59e0b"/>
+  <text x="456" y="494" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" font-weight="700" fill="#ffffff">AWS</text>
+  <rect x="476" y="482" width="38" height="16" rx="3" fill="#3b82f6"/>
+  <text x="495" y="494" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" font-weight="700" fill="#ffffff">Azure</text>
+  <rect x="440" y="502" width="32" height="16" rx="3" fill="#22c55e"/>
+  <text x="456" y="514" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" font-weight="700" fill="#ffffff">GCP</text>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- RIGHT COLUMN: AI Governance Path (Purple)                  -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <rect x="640" y="68" width="530" height="500" rx="12" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="1"/>
+  <rect x="640" y="68" width="530" height="32" rx="12" fill="#7c3aed"/>
+  <rect x="640" y="88" width="530" height="12" fill="#7c3aed"/>
+  <text x="905" y="91" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff">AI GOVERNANCE PATH</text>
+
+  <!-- Box 1: AI Agent Request -->
+  <rect x="670" y="115" width="470" height="68" rx="8" fill="#ffffff" stroke="#ddd6fe" stroke-width="1"/>
+  <rect x="670" y="115" width="5" height="68" rx="2" fill="#7c3aed"/>
+  <circle cx="698" cy="141" r="14" fill="#ede9fe"/>
+  <text x="698" y="146" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" fill="#7c3aed">&#9879;</text>
+  <text x="722" y="141" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#1e293b">AI Agent Request</text>
+  <text x="722" y="160" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#64748b">EvaluationInput — agent, tool, data, request context</text>
+
+  <!-- Arrow 1→2 -->
+  <line x1="905" y1="183" x2="905" y2="198" stroke="#7c3aed" stroke-width="2" marker-end="url(#ah-purple)"/>
+  <text x="920" y="195" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" fill="#94a3b8">AgentContext</text>
+
+  <!-- Box 2: opa.Engine -->
+  <rect x="670" y="203" width="470" height="68" rx="8" fill="#ffffff" stroke="#ddd6fe" stroke-width="1"/>
+  <rect x="670" y="203" width="5" height="68" rx="2" fill="#7c3aed"/>
+  <circle cx="698" cy="229" r="14" fill="#ede9fe"/>
+  <text x="698" y="234" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#7c3aed">&#9881;</text>
+  <text x="722" y="229" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#1e293b">opa.Engine (Go SDK)</text>
+  <text x="722" y="248" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#64748b">internal/ai-governance/opa/engine.go — PreparedEvalQuery, sync.RWMutex</text>
+
+  <!-- Arrow 2→3 -->
+  <line x1="905" y1="271" x2="905" y2="286" stroke="#6d28d9" stroke-width="2" marker-end="url(#ah-purple)"/>
+  <text x="920" y="283" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" fill="#94a3b8">pq.Eval(ctx, input)</text>
+
+  <!-- Box 3: In-Process Evaluation (emphasized) -->
+  <rect x="670" y="291" width="470" height="68" rx="8" fill="#6d28d9" stroke="#5b21b6" stroke-width="2"/>
+  <circle cx="698" cy="317" r="14" fill="#7c3aed"/>
+  <text x="698" y="322" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#ffffff">&#9889;</text>
+  <text x="722" y="317" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff">In-Process Evaluation</text>
+  <text x="722" y="336" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c4b5fd">data.aegis.ai.* — tool_access | data_flow — no network hop</text>
+
+  <!-- Arrow 3→4 -->
+  <line x1="905" y1="359" x2="905" y2="374" stroke="#7c3aed" stroke-width="2" marker-end="url(#ah-purple)"/>
+  <text x="920" y="371" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" fill="#94a3b8">Decision struct</text>
+
+  <!-- Box 4: Agent Decision -->
+  <rect x="670" y="379" width="470" height="68" rx="8" fill="#ffffff" stroke="#ddd6fe" stroke-width="1"/>
+  <rect x="670" y="379" width="5" height="68" rx="2" fill="#7c3aed"/>
+  <circle cx="698" cy="405" r="14" fill="#ede9fe"/>
+  <text x="698" y="410" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" fill="#7c3aed">&#9888;</text>
+  <text x="722" y="405" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#1e293b">Agent Decision</text>
+  <text x="722" y="424" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#64748b">Decision — allow | reasons | violations | eval_time_us</text>
+
+  <!-- Arrow 4→5 -->
+  <line x1="905" y1="447" x2="905" y2="462" stroke="#7c3aed" stroke-width="2" marker-end="url(#ah-purple)"/>
+  <text x="920" y="459" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" fill="#94a3b8">allow=true</text>
+
+  <!-- Box 5: Agent Registry -->
+  <rect x="670" y="467" width="470" height="68" rx="8" fill="#ffffff" stroke="#ddd6fe" stroke-width="1"/>
+  <rect x="670" y="467" width="5" height="68" rx="2" fill="#7c3aed"/>
+  <circle cx="698" cy="493" r="14" fill="#ede9fe"/>
+  <text x="698" y="498" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#7c3aed">&#9776;</text>
+  <text x="722" y="493" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#1e293b">Agent Registry</text>
+  <text x="722" y="512" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#64748b">allow tool | block tool | redact PII | rate-limit | enforce data-flow</text>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- BOTTOM: Shared Rego Policy Bundle (Green)                  -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <rect x="200" y="590" width="800" height="130" rx="12" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+  <rect x="200" y="590" width="800" height="32" rx="12" fill="#22c55e"/>
+  <rect x="200" y="610" width="800" height="12" fill="#22c55e"/>
+  <text x="600" y="613" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff">SHARED REGO POLICY BUNDLE</text>
+
+  <!-- Left sub-box: Cloud policies -->
+  <rect x="230" y="635" width="350" height="55" rx="6" fill="#ffffff" stroke="#bbf7d0" stroke-width="1"/>
+  <rect x="230" y="635" width="4" height="55" rx="2" fill="#22c55e"/>
+  <text x="250" y="656" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1e293b">aegis.provisioning | aegis.exception</text>
+  <text x="250" y="674" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#64748b">Cloud resource rules — loaded by OPA server</text>
+
+  <!-- Right sub-box: AI policies -->
+  <rect x="620" y="635" width="350" height="55" rx="6" fill="#ffffff" stroke="#bbf7d0" stroke-width="1"/>
+  <rect x="620" y="635" width="4" height="55" rx="2" fill="#22c55e"/>
+  <text x="640" y="656" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1e293b">aegis.ai.tool_access | aegis.ai.data_flow</text>
+  <text x="640" y="674" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#64748b">Agent security rules — LoadPolicies() / LoadPolicyBundle()</text>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- CONNECTING ARROWS: Policy bundle → paths                   -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+
+  <!-- Green arrow: left policy → OPA Server (left column box 3) -->
+  <path d="M405 635 L405 600 L295 600 L295 359" stroke="#22c55e" stroke-width="2" fill="none" stroke-dasharray="6,3" marker-end="url(#ah-green)"/>
+
+  <!-- Green arrow: right policy → opa.Engine (right column box 2) -->
+  <path d="M795 635 L795 600 L905 600 L905 271" stroke="#22c55e" stroke-width="2" fill="none" stroke-dasharray="6,3" marker-end="url(#ah-green)"/>
+
+  <!-- Label on left arrow -->
+  <text x="330" y="595" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" fill="#16a34a">loaded by OPA server</text>
+
+  <!-- Label on right arrow -->
+  <text x="918" y="595" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" fill="#16a34a">LoadPolicies()</text>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- KEY DIFFERENTIATOR CALLOUTS                                -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+
+  <!-- HTTP badge on left -->
+  <rect x="560" y="310" width="42" height="18" rx="4" fill="#dbeafe" stroke="#3b82f6" stroke-width="1"/>
+  <text x="581" y="323" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" font-weight="700" fill="#1e40af">HTTP</text>
+
+  <!-- In-proc badge on right -->
+  <rect x="600" y="310" width="60" height="18" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="1"/>
+  <text x="630" y="323" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="9" font-weight="700" fill="#6d28d9">IN-PROC</text>
+
+  <!-- Footer -->
+  <text x="600" y="742" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="10" fill="#cbd5e1">Cloud Aegis — github.com/lvonguyen/cloudforge</text>
+</svg>

@@ -99,12 +99,14 @@ __pycache__/
 
 # Playwright MCP screenshots
 *.png
+!docs/core/diagrams/*.png
 .playwright-mcp/
 
 .claude/codegraph/
 .claude/repo-capabilities.json
 .claude/agents
 .claude/graph
+.claude/projects/
 
 # Rust build artifacts
 rust/libaegispath/target/
