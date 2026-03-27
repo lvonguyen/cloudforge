@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
+	"golang.org/x/text/unicode/norm"
 )
 
 // graphQueryRequest is the HTTP request body for POST /api/v1/graph/query.
@@ -31,7 +32,7 @@ const maxGraphQueryLen = 4096
 // gremlinMutationPattern rejects Gremlin-specific mutation steps.
 // Uses [\s\x{00a0}\x{2000}-\x{200b}]* instead of \s* to match Unicode
 // whitespace (non-breaking space, em space, etc.) that Go's \s excludes.
-var gremlinMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|mergeV|mergeE|drop|sideEffect|inject|io|call|choose|property[\s\x{00a0}\x{2000}-\x{200b}]*\(|map[\s\x{00a0}\x{2000}-\x{200b}]*\{|flatMap[\s\x{00a0}\x{2000}-\x{200b}]*\{|sack[\s\x{00a0}\x{2000}-\x{200b}]*\{|withComputer|Runtime|Thread|System|ProcessBuilder|Class\.forName)`)
+var gremlinMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|mergeV|mergeE|drop|sideEffect|withSideEffect|inject|io|call|choose|program|submit|evaluate|GroovyShell|Eval|property[\s\x{00a0}\x{2000}-\x{200b}]*\(|map[\s\x{00a0}\x{2000}-\x{200b}]*\{|flatMap[\s\x{00a0}\x{2000}-\x{200b}]*\{|sack[\s\x{00a0}\x{2000}-\x{200b}]*\{|withComputer|Runtime|Thread|System|ProcessBuilder|Class\.forName)`)
 
 // cypherMutationPattern rejects Cypher-specific mutation keywords.
 var cypherMutationPattern = regexp.MustCompile(`(?i)\b(CREATE|MERGE|DELETE|DETACH|SET|REMOVE|CALL)\b`)
@@ -84,7 +85,7 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 	// Block mutation keywords. For Cypher, strip comments first to prevent
 	// bypass via comment injection (e.g., CR/**/EATE). Gremlin has no
 	// standard comment syntax — stripping would corrupt property values.
-	normalizedQuery := strings.TrimSpace(req.Query)
+	normalizedQuery := norm.NFKC.String(strings.TrimSpace(req.Query))
 	var mutationPattern *regexp.Regexp
 	if req.Language == "cypher" {
 		normalizedQuery = cypherCommentPattern.ReplaceAllString(normalizedQuery, "")

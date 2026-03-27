@@ -453,7 +453,10 @@ func (s *Server) listAuditLog(w http.ResponseWriter, r *http.Request) {
 			Actor: actorFilter,
 			Limit: perPage,
 		})
-		if err == nil {
+		if err != nil {
+			s.logger.Error("audit logger list failed, returning mock data only", zap.Error(err))
+			w.Header().Set("X-Aegis-Audit-Degraded", "true")
+		} else {
 			for _, re := range realEvents {
 				if resultFilter != "" && !strings.EqualFold(re.Result, resultFilter) {
 					continue

@@ -51,14 +51,17 @@ type AuditLogger interface {
 	List(ctx context.Context, opts ListOpts) ([]AuditEntry, error)
 }
 
-// MemoryAuditLogger is an append-only in-memory audit logger.
+// maxAuditEntries caps the in-memory ring buffer to prevent OOM under sustained load.
+const maxAuditEntries = 10000
+
+// MemoryAuditLogger is a ring-buffer in-memory audit logger.
 type MemoryAuditLogger struct {
 	mu      sync.RWMutex
 	entries []AuditEntry
 	nextID  int
 }
 
-// NewMemoryAuditLogger creates an in-memory audit logger.
+// NewMemoryAuditLogger creates an in-memory audit logger with a bounded ring buffer.
 func NewMemoryAuditLogger() *MemoryAuditLogger {
 	return &MemoryAuditLogger{
 		entries: make([]AuditEntry, 0, 256),
@@ -76,6 +79,9 @@ func (m *MemoryAuditLogger) Log(_ context.Context, entry AuditEntry) error {
 		entry.Timestamp = time.Now().UTC().Format(time.RFC3339)
 	}
 	entry.IntegrityHash = entry.computeHash()
+	if len(m.entries) >= maxAuditEntries {
+		m.entries = m.entries[1:]
+	}
 	m.entries = append(m.entries, entry)
 	return nil
 }
