@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import {
   ReactFlow,
   Background,
@@ -18,8 +18,11 @@ interface BaseGraphViewProps {
 }
 
 export function BaseGraphView({ nodes: initialNodes, edges: initialEdges, onNodeClick, height = 'h-[600px]' }: BaseGraphViewProps) {
-  const [nodes, , onNodesChange] = useNodesState(initialNodes)
-  const [edges, , onEdgesChange] = useEdgesState(initialEdges)
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
+
+  useEffect(() => { setNodes(initialNodes) }, [initialNodes, setNodes])
+  useEffect(() => { setEdges(initialEdges) }, [initialEdges, setEdges])
 
   const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     onNodeClick?.(node.id)

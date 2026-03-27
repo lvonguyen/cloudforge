@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode, createElement } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode, createElement } from 'react'
 import { branding } from '@/lib/branding'
 
 export type Role = 'admin' | 'operator' | 'requester' | 'viewer'
@@ -345,16 +345,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Auto-login is handled by ProtectedRoute — no global redirect needed.
   // The landing page (/) is public; protected routes trigger login on access.
 
-  const value: AuthContextValue = {
-    user,
-    role: user.role,
-    setRole,
-    login,
-    loginAsDemo,
-    logout,
-    isAuthenticated,
-    exchangeCode,
-  }
+  const value = useMemo<AuthContextValue>(
+    () => ({ user, role: user.role, setRole, login, loginAsDemo, logout, isAuthenticated, exchangeCode }),
+    [user, setRole, login, loginAsDemo, logout, isAuthenticated, exchangeCode],
+  )
 
   return createElement(AuthContext.Provider, { value }, children)
 }

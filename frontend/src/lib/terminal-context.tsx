@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, type ReactNode } from 'react'
+import { createContext, useContext, useReducer, useCallback, useMemo, type ReactNode } from 'react'
 
 interface TerminalPanelState {
   isOpen: boolean
@@ -56,15 +56,20 @@ const TerminalPanelContext = createContext<TerminalPanelContextValue | null>(nul
 export function TerminalPanelProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
 
-  const open = () => dispatch({ type: 'OPEN' })
-  const close = () => dispatch({ type: 'CLOSE' })
-  const toggle = () => dispatch({ type: 'TOGGLE' })
-  const setHeight = (height: number) => dispatch({ type: 'SET_HEIGHT', height })
-  const setConnected = (connected: boolean) => dispatch({ type: 'SET_CONNECTED', connected })
-  const setExecuting = (executing: boolean) => dispatch({ type: 'SET_EXECUTING', executing })
+  const open = useCallback(() => dispatch({ type: 'OPEN' }), [])
+  const close = useCallback(() => dispatch({ type: 'CLOSE' }), [])
+  const toggle = useCallback(() => dispatch({ type: 'TOGGLE' }), [])
+  const setHeight = useCallback((height: number) => dispatch({ type: 'SET_HEIGHT', height }), [])
+  const setConnected = useCallback((connected: boolean) => dispatch({ type: 'SET_CONNECTED', connected }), [])
+  const setExecuting = useCallback((executing: boolean) => dispatch({ type: 'SET_EXECUTING', executing }), [])
+
+  const value = useMemo(
+    () => ({ state, open, close, toggle, setHeight, setConnected, setExecuting }),
+    [state, open, close, toggle, setHeight, setConnected, setExecuting],
+  )
 
   return (
-    <TerminalPanelContext.Provider value={{ state, open, close, toggle, setHeight, setConnected, setExecuting }}>
+    <TerminalPanelContext.Provider value={value}>
       {children}
     </TerminalPanelContext.Provider>
   )

@@ -37,7 +37,7 @@ export function RoleSwitcher() {
         <span className="font-medium">{current.label}</span>
         <ChevronDown className="h-3 w-3 opacity-60" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" sideOffset={6} collisionPadding={8} className="w-56">
+      <DropdownMenuContent align="end" sideOffset={6} collisionPadding={8} className="w-72">
         <DropdownMenuLabel className="text-xs text-muted-foreground">Switch Role</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {ROLES.map(r => (

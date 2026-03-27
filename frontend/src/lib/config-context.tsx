@@ -17,7 +17,7 @@
  *   const config = useConfig()
  *   console.log(config?.productName) // "Cloud Aegis" or tenant override
  */
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from 'react'
 import { loadRuntimeConfig, type RuntimeConfig } from '@/lib/runtime-config'
 import { initTheme } from '@/lib/apply-theme'
 
@@ -52,6 +52,11 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  const value = useMemo<ConfigContextValue>(
+    () => ({ config, loading }),
+    [config, loading],
+  )
+
   if (loading) {
     // Minimal loading state — background matches theme to prevent FOUC
     return (
@@ -65,7 +70,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ConfigContext.Provider value={{ config, loading }}>
+    <ConfigContext.Provider value={value}>
       {children}
     </ConfigContext.Provider>
   )
