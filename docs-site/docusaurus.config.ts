@@ -1,0 +1,132 @@
+import {themes as prismThemes} from 'prism-react-renderer';
+import type {Config} from '@docusaurus/types';
+import type * as Preset from '@docusaurus/preset-classic';
+
+const config: Config = {
+  title: 'Cloud Aegis Docs',
+  tagline: 'Enterprise Cloud Governance Platform',
+  favicon: 'img/favicon.ico',
+
+  url: 'https://docs.cloudguard.lvonguyen.com',
+  baseUrl: '/',
+
+  organizationName: 'lvonguyen',
+  projectName: 'cloudforge',
+
+  onBrokenLinks: 'warn',
+  onBrokenMarkdownLinks: 'warn',
+
+  i18n: {
+    defaultLocale: 'en',
+    locales: ['en'],
+  },
+
+  markdown: {
+    mermaid: true,
+    format: 'detect',
+    mdx1Compat: {
+      comments: true,
+      admonitions: true,
+      headingIds: true,
+    },
+  },
+
+  themes: ['@docusaurus/theme-mermaid'],
+
+  staticDirectories: ['static', '../docs/core/diagrams'],
+
+  presets: [
+    [
+      'classic',
+      {
+        docs: {
+          path: '../docs',
+          sidebarPath: './sidebars.ts',
+          editUrl: 'https://github.com/lvonguyen/cloudforge/tree/main/',
+          exclude: [
+            'archive/**',
+            'qa/**',
+            'research/INDUSTRY_LANDSCAPE.md',
+            'cspm/archive/**',
+            '**/README.md',
+            'cspm/STANDARDS.md',
+            'STANDARDS.md',
+          ],
+        },
+        blog: false,
+        theme: {
+          customCss: './src/css/custom.css',
+        },
+      } satisfies Preset.Options,
+    ],
+  ],
+
+  themeConfig: {
+    colorMode: {
+      defaultMode: 'dark',
+      disableSwitch: false,
+      respectPrefersColorScheme: true,
+    },
+
+    navbar: {
+      title: 'Cloud Aegis',
+      items: [
+        {
+          type: 'docSidebar',
+          sidebarId: 'docsSidebar',
+          position: 'left',
+          label: 'Docs',
+        },
+        {
+          to: '/docs/api',
+          label: 'API',
+          position: 'left',
+        },
+        {
+          to: '/docs/diagrams',
+          label: 'Diagrams',
+          position: 'left',
+        },
+        {
+          href: 'https://github.com/lvonguyen/cloudforge',
+          label: 'GitHub',
+          position: 'right',
+        },
+      ],
+    },
+
+    footer: {
+      style: 'dark',
+      links: [
+        {
+          title: 'Documentation',
+          items: [
+            {label: 'Architecture', to: '/docs/architecture'},
+            {label: 'API Reference', to: '/docs/api'},
+            {label: 'Runbooks', to: '/docs/runbooks'},
+          ],
+        },
+        {
+          title: 'Project',
+          items: [
+            {label: 'GitHub', href: 'https://github.com/lvonguyen/cloudforge'},
+            {label: 'Live Demo', href: 'https://cloudguard.lvonguyen.com'},
+          ],
+        },
+      ],
+      copyright: `Copyright ${new Date().getFullYear()} Liem Vo-Nguyen`,
+    },
+
+    prism: {
+      theme: prismThemes.github,
+      darkTheme: prismThemes.dracula,
+      additionalLanguages: ['bash', 'go', 'hcl', 'json', 'yaml', 'sql', 'rego'],
+    },
+
+    mermaid: {
+      theme: {light: 'neutral', dark: 'dark'},
+    },
+  } satisfies Preset.ThemeConfig,
+};
+
+export default config;
