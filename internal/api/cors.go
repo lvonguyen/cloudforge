@@ -24,7 +24,7 @@ func CORSMiddleware(allowedOrigins []string, devMode bool) func(http.Handler) ht
 
 			if r.Method == http.MethodOptions {
 				if origin != "" && allowed[origin] {
-					w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+					w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 					allowHeaders := "Authorization, Content-Type, traceparent"
 					if devMode {
 						allowHeaders += ", X-Aegis-Role"

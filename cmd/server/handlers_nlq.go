@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +22,19 @@ var nlqRateLimiter = struct {
 }{last: make(map[string]time.Time)}
 
 const nlqMinInterval = 3 * time.Second // max ~20 req/min per user
+
+// htmlTagPattern strips HTML tags to prevent XSS via AI-reflected content.
+var htmlTagPattern = regexp.MustCompile(`<[^>]*>`)
+
+// allowedNLQValues whitelists structured filter values, preventing the AI
+// from injecting arbitrary strings into the response.
+var allowedNLQValues = map[string]map[string]bool{
+	"severity":    {"CRITICAL": true, "HIGH": true, "MEDIUM": true, "LOW": true},
+	"provider":    {"aws": true, "azure": true, "gcp": true},
+	"category":    {"VULNERABILITY": true, "MISCONFIGURATION": true, "DATA_PROTECTION": true, "IDENTITY": true, "NETWORK": true},
+	"status":      {"open": true, "in_progress": true, "resolved": true},
+	"environment": {"production": true, "staging": true, "development": true, "sandbox": true},
+}
 
 // NLQRequest is the request body for the NLQ endpoint.
 type NLQRequest struct {
@@ -102,6 +116,14 @@ func (s *Server) queryNLQ(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Sanitize: strip HTML tags and control characters to prevent prompt
+	// injection and reflected XSS through AI-mediated content.
+	query = sanitizeNLQQuery(query)
+	if query == "" {
+		writeErrorResponse(w, "query is required", http.StatusBadRequest)
+		return
+	}
+
 	span.SetAttributes(attribute.Int("nlq.query_length", len(query)))
 
 	// Use TierFast for NLQ parsing — cost-optimized
@@ -127,6 +149,10 @@ func (s *Server) queryNLQ(w http.ResponseWriter, r *http.Request) {
 		// AI returned unparseable output — fall back to text search
 		resp = NLQResponse{Text: query}
 	}
+
+	// Validate: filter structured fields to allowed values only, sanitize text.
+	// Prevents the AI from reflecting injected content or hallucinating categories.
+	validateNLQResponse(&resp)
 
 	// When NLQ returns a text field but no structured filters, use full-text
 	// search to return actual matching findings alongside the NLQ response.
@@ -180,4 +206,45 @@ func (s *Server) getAIUsage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(rp.GetBudgetStatus())
+}
+
+// sanitizeNLQQuery strips HTML tags and control characters from NLQ input.
+func sanitizeNLQQuery(s string) string {
+	s = htmlTagPattern.ReplaceAllString(s, "")
+	var b strings.Builder
+	for _, r := range s {
+		if r >= 32 && r != 127 {
+			b.WriteRune(r)
+		}
+	}
+	return strings.TrimSpace(b.String())
+}
+
+// validateNLQResponse filters AI output to only whitelisted values.
+func validateNLQResponse(resp *NLQResponse) {
+	resp.Severity = filterAllowed(resp.Severity, allowedNLQValues["severity"])
+	resp.Provider = filterAllowed(resp.Provider, allowedNLQValues["provider"])
+	resp.Category = filterAllowed(resp.Category, allowedNLQValues["category"])
+	resp.Status = filterAllowed(resp.Status, allowedNLQValues["status"])
+	resp.Environment = filterAllowed(resp.Environment, allowedNLQValues["environment"])
+	if resp.Text != "" {
+		resp.Text = sanitizeNLQQuery(resp.Text)
+	}
+}
+
+// filterAllowed keeps only values present in the allowed set.
+func filterAllowed(values []string, allowed map[string]bool) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	var result []string
+	for _, v := range values {
+		if allowed[v] {
+			result = append(result, v)
+		}
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
 }

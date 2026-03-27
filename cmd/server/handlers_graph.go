@@ -32,7 +32,7 @@ const maxGraphQueryLen = 4096
 // gremlinMutationPattern rejects Gremlin-specific mutation steps.
 // Uses [\s\x{00a0}\x{2000}-\x{200b}]* instead of \s* to match Unicode
 // whitespace (non-breaking space, em space, etc.) that Go's \s excludes.
-var gremlinMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|mergeV|mergeE|drop|sideEffect|withSideEffect|inject|io|call|choose|program|submit|evaluate|GroovyShell|Eval|property[\s\x{00a0}\x{2000}-\x{200b}]*\(|map[\s\x{00a0}\x{2000}-\x{200b}]*\{|flatMap[\s\x{00a0}\x{2000}-\x{200b}]*\{|sack[\s\x{00a0}\x{2000}-\x{200b}]*\{|withComputer|Runtime|Thread|System|ProcessBuilder|Class\.forName)`)
+var gremlinMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|mergeV|mergeE|drop|sideEffect|withSideEffect|inject|io|call|choose|program|submit|evaluate|GroovyShell|Eval|property[\s\x{00a0}\x{2000}-\x{200b}]*\(|map[\s\x{00a0}\x{2000}-\x{200b}]*\{|flatMap[\s\x{00a0}\x{2000}-\x{200b}]*\{|sack[\s\x{00a0}\x{2000}-\x{200b}]*\{|aggregate[\s\x{00a0}\x{2000}-\x{200b}]*\(|store[\s\x{00a0}\x{2000}-\x{200b}]*\(|cap[\s\x{00a0}\x{2000}-\x{200b}]*\(|coalesce[\s\x{00a0}\x{2000}-\x{200b}]*\(|withComputer|Runtime|Thread|System|ProcessBuilder|Class\.forName)`)
 
 // cypherMutationPattern rejects Cypher-specific mutation keywords.
 var cypherMutationPattern = regexp.MustCompile(`(?i)\b(CREATE|MERGE|DELETE|DETACH|SET|REMOVE|CALL)\b`)
@@ -95,6 +95,13 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 	}
 	if mutationPattern.MatchString(normalizedQuery) {
 		writeErrorResponse(w, "mutation queries are not permitted (read-only)", http.StatusForbidden)
+		return
+	}
+
+	// Block Groovy template injection (${}), which can execute arbitrary code
+	// if the Gremlin engine uses Groovy string evaluation.
+	if strings.Contains(normalizedQuery, "${") {
+		writeErrorResponse(w, "template expressions are not permitted (read-only)", http.StatusForbidden)
 		return
 	}
 

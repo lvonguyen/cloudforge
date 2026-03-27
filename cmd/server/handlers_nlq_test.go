@@ -91,3 +91,63 @@ func TestGetAIUsage_OperatorForbidden(t *testing.T) {
 	rr := doRequest(t, router, "GET", "/api/v1/ai/usage", "", jwt)
 	assertStatus(t, rr, http.StatusForbidden)
 }
+
+func TestSanitizeNLQQuery(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"normal query", "normal query"},
+		{"<script>alert(1)</script>critical AWS", "alert(1)critical AWS"},
+		{"hello\x00world", "helloworld"},
+		{"  spaced  ", "spaced"},
+		{"<img src=x onerror=alert(1)>", ""},
+		{"severity > HIGH", "severity > HIGH"}, // bare > not stripped
+	}
+	for _, tt := range tests {
+		got := sanitizeNLQQuery(tt.input)
+		if got != tt.want {
+			t.Errorf("sanitizeNLQQuery(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestValidateNLQResponse(t *testing.T) {
+	resp := &NLQResponse{
+		Severity:    []string{"CRITICAL", "INVALID", "HIGH"},
+		Provider:    []string{"aws", "evil"},
+		Category:    []string{"NETWORK"},
+		Status:      []string{"open", "<script>xss</script>"},
+		Environment: []string{"production"},
+		Text:        "<b>bold</b> text",
+	}
+	validateNLQResponse(resp)
+
+	if len(resp.Severity) != 2 || resp.Severity[0] != "CRITICAL" || resp.Severity[1] != "HIGH" {
+		t.Errorf("severity = %v, want [CRITICAL HIGH]", resp.Severity)
+	}
+	if len(resp.Provider) != 1 || resp.Provider[0] != "aws" {
+		t.Errorf("provider = %v, want [aws]", resp.Provider)
+	}
+	if len(resp.Status) != 1 || resp.Status[0] != "open" {
+		t.Errorf("status = %v, want [open]", resp.Status)
+	}
+	if resp.Text != "bold text" {
+		t.Errorf("text = %q, want %q", resp.Text, "bold text")
+	}
+}
+
+func TestValidateNLQResponse_AllInvalid(t *testing.T) {
+	resp := &NLQResponse{
+		Severity: []string{"SUPER_CRITICAL"},
+		Provider: []string{"oracle"},
+	}
+	validateNLQResponse(resp)
+
+	if resp.Severity != nil {
+		t.Errorf("severity = %v, want nil", resp.Severity)
+	}
+	if resp.Provider != nil {
+		t.Errorf("provider = %v, want nil", resp.Provider)
+	}
+}

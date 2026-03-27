@@ -23,6 +23,11 @@ func TestGraphQuery_GremlinMutationBlocked(t *testing.T) {
 		`g.io('/etc/hostname').read()`,
 		`g.call('custom-op')`,
 		`g.V().choose(hasLabel('person'), out('knows'), out('created'))`,
+		// S3 closure bypass vectors
+		`g.V().aggregate('all')`,
+		`g.V().store('data')`,
+		`g.V().coalesce(values('name'), constant('none'))`,
+		`g.V().cap('x')`,
 	}
 
 	for _, q := range mutations {
@@ -82,6 +87,24 @@ func TestGraphQuery_ViewerForbidden(t *testing.T) {
 	body := `{"language":"gremlin","query":"g.V().count()"}`
 	rr := doRequest(t, router, "POST", "/api/v1/graph/query", body, jwt)
 	assertStatus(t, rr, http.StatusForbidden)
+}
+
+func TestGraphQuery_GroovyTemplateBlocked(t *testing.T) {
+	_, router := testServer(t)
+	jwt := operatorJWT(t)
+
+	templates := []string{
+		`g.V().has('name', '${Runtime.exec("cmd")}')`,
+		`g.V().has('id', '${System.getenv("SECRET")}')`,
+	}
+
+	for _, q := range templates {
+		body := fmt.Sprintf(`{"language":"gremlin","query":"%s"}`, q)
+		rr := doRequest(t, router, "POST", "/api/v1/graph/query", body, jwt)
+		if rr.Code != http.StatusForbidden && rr.Code != http.StatusNotImplemented {
+			t.Errorf("Groovy template %q: want 403 or 501, got %d", q, rr.Code)
+		}
+	}
 }
 
 func TestGraphQuery_InvalidLanguage(t *testing.T) {
