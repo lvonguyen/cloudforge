@@ -102,6 +102,10 @@ __pycache__/
 !docs/core/diagrams/*.png
 .playwright-mcp/
 
+# Playwright test outputs
+frontend/playwright-report/
+frontend/test-results/
+
 .claude/codegraph/
 .claude/repo-capabilities.json
 .claude/agents
