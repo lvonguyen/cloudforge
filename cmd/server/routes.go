@@ -144,6 +144,15 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/costs/summary",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.getCostSummaryComputed))),
 	).Methods("GET")
+	apiRouter.Handle("/costs/budgets",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.getBudgetStatus))),
+	).Methods("GET")
+	apiRouter.Handle("/costs/estimate",
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getCostEstimate)),
+	).Methods("GET")
+	apiRouter.Handle("/costs/resources",
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.listSupportedResources)),
+	).Methods("GET")
 
 	// Remediations — scope-guarded (tied to account-scoped findings)
 	apiRouter.Handle("/remediations",

@@ -14,6 +14,7 @@ const (
 	ProviderTypeAWS    ProviderType = "aws"
 	ProviderTypeGCP    ProviderType = "gcp"
 	ProviderTypeAzure  ProviderType = "azure"
+	ProviderTypeMulti  ProviderType = "multi"
 )
 
 // AggregatorConfig contains configuration for creating a cost aggregator.
@@ -65,6 +66,8 @@ func ProviderFromString(s string) (ProviderType, error) {
 		return ProviderTypeGCP, nil
 	case "azure":
 		return ProviderTypeAzure, nil
+	case "multi":
+		return ProviderTypeMulti, nil
 	default:
 		return "", fmt.Errorf("unknown finops provider type: %s", s)
 	}

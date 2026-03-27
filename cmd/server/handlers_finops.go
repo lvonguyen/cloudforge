@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"aegis/internal/finops"
+	"aegis/internal/finops/alerting"
 	"aegis/internal/finops/anomaly"
 	"aegis/internal/finops/chargeback"
 
@@ -19,14 +20,23 @@ import (
 // Aggregator is factory-created (see internal/finops/factory.go);
 // detector and allocator are provider-agnostic composites.
 type finopsService struct {
-	aggregator finops.Aggregator
-	detector   *anomaly.Detector
-	allocator  *chargeback.Allocator
+	aggregator    finops.Aggregator
+	detector      *anomaly.Detector
+	allocator     *chargeback.Allocator
+	estimator     *finops.CostEstimator
+	budgetMonitor *alerting.BudgetMonitor
 }
 
 // newFinopsServiceFromAggregator composes a finopsService from a factory-created
 // aggregator and default detector/allocator configs.
 func newFinopsServiceFromAggregator(agg finops.Aggregator) *finopsService {
+	// Demo budget rules for the three cloud providers.
+	budgetRules := []alerting.BudgetRule{
+		{Name: "AWS Monthly", Provider: "aws", CostCenter: "", MonthlyUSD: 5000, Thresholds: []float64{80, 100, 120}},
+		{Name: "Azure Monthly", Provider: "azure", CostCenter: "", MonthlyUSD: 3000, Thresholds: []float64{80, 100, 120}},
+		{Name: "GCP Monthly", Provider: "gcp", CostCenter: "", MonthlyUSD: 2000, Thresholds: []float64{80, 100, 120}},
+	}
+
 	return &finopsService{
 		aggregator: agg,
 		detector: anomaly.NewDetector(anomaly.DetectorConfig{
@@ -39,7 +49,32 @@ func newFinopsServiceFromAggregator(agg finops.Aggregator) *finopsService {
 			FallbackTag:  "department",
 			UntaggedPool: "unallocated",
 		}),
+		estimator:     finops.NewCostEstimator(),
+		budgetMonitor: alerting.NewBudgetMonitor(budgetRules, &aggregatorSpendAdapter{agg: agg}, nil),
 	}
+}
+
+// aggregatorSpendAdapter adapts a finops.Aggregator to the alerting.SpendProvider
+// interface by summing current-month costs for the given provider.
+type aggregatorSpendAdapter struct {
+	agg finops.Aggregator
+}
+
+func (a *aggregatorSpendAdapter) CurrentSpend(ctx context.Context, provider, _ string) (float64, error) {
+	now := time.Now().UTC()
+	start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	records, err := a.agg.FetchCosts(ctx, start, now)
+	if err != nil {
+		return 0, err
+	}
+	var total float64
+	for _, r := range records {
+		if provider != "" && r.Provider != provider {
+			continue
+		}
+		total += r.Cost
+	}
+	return total, nil
 }
 
 // ComputeSummary fetches costs for the given period and returns a fully-assembled CostSummary.
@@ -145,4 +180,66 @@ func (s *Server) getCostSummaryComputed(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(summary)
+}
+
+// getBudgetStatus runs the budget monitor check and returns current budget status.
+func (s *Server) getBudgetStatus(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getBudgetStatus")
+	defer span.End()
+	r = r.WithContext(ctx)
+
+	if s.finopsSvc.budgetMonitor == nil {
+		writeErrorResponse(w, "budget monitor not configured", http.StatusNotImplemented)
+		return
+	}
+
+	alerts, err := s.finopsSvc.budgetMonitor.Check(r.Context())
+	if err != nil {
+		s.writeInternalError(w, err, "budget check")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"alerts":     alerts,
+		"checked_at": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// getCostEstimate returns a cost estimate for a specific resource type.
+func (s *Server) getCostEstimate(w http.ResponseWriter, r *http.Request) {
+	_, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getCostEstimate")
+	defer span.End()
+
+	resourceType := r.URL.Query().Get("resource_type")
+	provider := r.URL.Query().Get("provider")
+	size := r.URL.Query().Get("size")
+
+	if resourceType == "" || provider == "" || size == "" {
+		writeErrorResponse(w, "resource_type, provider, and size query parameters are required", http.StatusBadRequest)
+		return
+	}
+
+	estimate, err := s.finopsSvc.estimator.EstimateMonthlyCost(resourceType, provider, size)
+	if err != nil {
+		writeErrorResponse(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(estimate)
+}
+
+// listSupportedResources returns all available resource types in the pricing table.
+func (s *Server) listSupportedResources(w http.ResponseWriter, r *http.Request) {
+	_, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listSupportedResources")
+	defer span.End()
+
+	resources := s.finopsSvc.estimator.SupportedResources()
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"resources": resources,
+		"count":     len(resources),
+	})
 }

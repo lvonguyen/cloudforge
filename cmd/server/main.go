@@ -28,6 +28,7 @@ import (
 	"aegis/internal/container"
 	"aegis/internal/cspm/threatintel"
 	"aegis/internal/finops"
+	"aegis/internal/finops/aggregator"
 	"aegis/internal/graph"
 	"aegis/internal/grc"
 	"aegis/internal/identity"
@@ -472,13 +473,31 @@ func main() {
 	if err != nil {
 		logger.Fatal("Invalid FinOps provider", zap.Error(err))
 	}
-	finopsAgg, err := finops.NewAggregator(finops.AggregatorConfig{
-		Type:      finopsType,
-		AWSRegion: getEnv("FINOPS_AWS_REGION", "us-east-1"),
-		Logger:    logger.Named("finops"),
-	})
-	if err != nil {
-		logger.Fatal("Failed to initialize FinOps aggregator", zap.Error(err))
+	var finopsAgg finops.Aggregator
+	if finopsType == finops.ProviderTypeMulti {
+		// Multi-cloud: compose per-provider aggregators into a fan-out aggregator.
+		// AWS uses real SDK when region is set; Azure/GCP use memory until SDKs are wired.
+		providers := map[string]finops.Aggregator{
+			"azure": finops.NewMemoryAggregator(),
+			"gcp":   finops.NewMemoryAggregator(),
+		}
+		awsRegion := getEnv("FINOPS_AWS_REGION", "us-east-1")
+		if awsAgg, awsErr := finops.NewAWSAggregator(awsRegion, logger.Named("finops.aws")); awsErr == nil {
+			providers["aws"] = awsAgg
+		} else {
+			logger.Warn("AWS aggregator unavailable, using memory", zap.Error(awsErr))
+			providers["aws"] = finops.NewMemoryAggregator()
+		}
+		finopsAgg = aggregator.NewMultiCloudAggregator(providers)
+	} else {
+		finopsAgg, err = finops.NewAggregator(finops.AggregatorConfig{
+			Type:      finopsType,
+			AWSRegion: getEnv("FINOPS_AWS_REGION", "us-east-1"),
+			Logger:    logger.Named("finops"),
+		})
+		if err != nil {
+			logger.Fatal("Failed to initialize FinOps aggregator", zap.Error(err))
+		}
 	}
 
 	// Initialize secrets provider via factory — provider selection via SECRETS_PROVIDER env var.

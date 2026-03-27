@@ -81,14 +81,14 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 ## P1 — Should Do
 
 ### WS-4: FinOps Module Gap Fixes
-- [ ] **UNCLAIMED**
+- [DONE: session-30] **COMPLETE**
 - From FinOps audit (session 28):
-  - [ ] Wire `aggregator/multi.go` into factory (replace single-provider path)
-  - [ ] Expose budget alerting via `/costs/budgets` endpoint
-  - [ ] Fix README: "ML-based" → "statistical z-score", Slack as "planned"
-  - [ ] Cost estimation endpoint (21-resource pricing table exists, needs HTTP route)
-- Azure/GCP billing SDK wiring is P2 (requires real credentials)
-- **Deliverable:** Updated factory, new endpoint, README corrections, commit
+  - [x] Wire `aggregator/multi.go` into factory — `FINOPS_PROVIDER=multi` composes AWS+Azure+GCP via `MultiCloudAggregator` (import cycle avoided by composing in main.go)
+  - [x] Expose budget alerting via `GET /costs/budgets` — `BudgetMonitor` wired with demo rules ($5K AWS/$3K Azure/$2K GCP), `aggregatorSpendAdapter` bridges Aggregator→SpendProvider
+  - [x] Fix README: "ML-based" → "statistical z-score", Slack as "planned" (done in WS-6)
+  - [x] Cost estimation endpoint — `GET /costs/estimate?resource_type=ec2&provider=aws&size=medium` + `GET /costs/resources` (21-entry pricing table)
+- All 6 finops packages pass with -race
+- **Deliverable:** 4 files changed, 3 new endpoints, commit
 
 ### WS-5: Airflow Pipeline Prototype
 - [ ] **UNCLAIMED**
