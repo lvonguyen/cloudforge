@@ -4,6 +4,42 @@
 
 **Prod state:** `cloudguard.lvonguyen.com` (CF Pages, VITE_DEMO_MODE=true, mock data). Personal API DECOMMISSIONED. PuppyGraph TERMINATED. Fly.io API still up at `api.cloudforge-demo.lvonguyen.com`.
 
+---
+
+## URGENT — Ensemble QA Findings (3.9/5 weighted)
+
+Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
+
+### Pre-Demo Fixes (HIGH — consensus 2+ agents)
+
+| ID | Finding | Severity | Files | Status |
+|----|---------|----------|-------|--------|
+| C2 | NLQ prompt injection + AI output validation — unsanitized query → LLM, unvalidated JSON, XSS chain | HIGH | `handlers_nlq.go:113`, `attackpath_enrich.go:37` | [ ] UNCLAIMED |
+| S2 | CORS missing PATCH — breaks remediation status updates cross-origin | HIGH | `internal/api/cors.go:27` | [ ] UNCLAIMED |
+| S3 | Gremlin closure bypass — `coalesce`, `aggregate`, `store`, RTL Unicode, `${}` not blocked | HIGH | `handlers_graph.go:35` | [ ] UNCLAIMED |
+| C4 | In-memory linear scan O(n) per list/filter/pagination request | HIGH | multiple | [ ] UNCLAIMED |
+
+### Post-Demo (MED)
+
+| ID | Finding | Files | Status |
+|----|---------|-------|--------|
+| C1 | Server God Object decomposition | `main.go`, `service_*.go` | [ ] |
+| C3 | Enrichment cache unbounded map (grows between 5-min eviction) | `main.go:571`, `service_enrichment.go` | [ ] |
+| S4 | Audit ring buffer reslice memory leak | `internal/audit/...` | [ ] |
+| S6 | Findings.tsx 1055 lines, 15+ state vars | `pages/ops/Findings.tsx` | [ ] |
+| S7 | GCP firewall all-ports internal (lateral movement) | `modules/network/main.tf:70-84` | [ ] |
+
+### Scaling Limits
+
+| Dimension | Current | Breaks At | Fix |
+|-----------|---------|-----------|-----|
+| Findings | 20K in-memory | ~50K (GC) | PostgreSQL indexed queries |
+| Concurrent users | ~10 | ~25 (goroutine exhaustion) | Circuit breakers on AI providers |
+| Tenants | 2 hardcoded | Any multi-tenant | Wire `tenant.Store` to Postgres (migration 005) |
+| Enrichment cache | Unbounded map | ~100K (~400MB) | Bounded LRU + Redis |
+
+---
+
 **Latest commit:** `1897d17` on main.
 
 ---
