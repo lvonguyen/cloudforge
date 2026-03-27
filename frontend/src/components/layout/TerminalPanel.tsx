@@ -136,7 +136,7 @@ export function TerminalPanel() {
           {isConnected ? (
             <>
               <Wifi className="h-3 w-3 text-green-400" />
-              <span className="text-green-400 text-[10px]">Connected</span>
+              <span className="text-green-400 text-[10px]">{(import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true') ? 'Demo Mode' : 'Connected'}</span>
             </>
           ) : (
             <>

@@ -26,6 +26,7 @@ export const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
       retry: (failureCount, error) => {
+        if (import.meta.env.VITE_DEMO_MODE === 'true') return false
         if (failureCount >= 3) return false
         if (error instanceof ApiError) {
           return [408, 429, 500, 502, 503, 504].includes(error.status)

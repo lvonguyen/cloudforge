@@ -60,6 +60,29 @@ async function acquireTicket(): Promise<{ ticket: string } | { token: string } |
   return { token }
 }
 
+const isDemoMode = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true'
+
+const MOCK_RESPONSES: Record<string, string> = {
+  'help': 'Available commands: aws, kubectl, gcloud, terraform, whoami, date, help\nNote: This is a demo terminal — commands return sample output.',
+  'whoami': 'demo-operator@aegis.contoso.dev',
+  'date': new Date().toISOString(),
+  'aws s3 ls': '2026-01-15 aegis-findings-prod\n2026-02-01 aegis-config-backup\n2026-03-10 aegis-audit-logs',
+  'aws sts get-caller-identity': '{\n  "UserId": "AROA3XFRBF23YPEXAMPLE",\n  "Account": "431330216246",\n  "Arn": "arn:aws:sts::431330216246:assumed-role/aegis-operator/session"\n}',
+  'kubectl get pods': 'NAME                          READY   STATUS    RESTARTS   AGE\naegis-api-7d4f8b6c9-x2k4p    1/1     Running   0          2d\naegis-worker-5c8d9f7-m3n1q    1/1     Running   0          2d\nredis-master-0                1/1     Running   0          5d',
+  'kubectl get nodes': 'NAME                          STATUS   ROLES    AGE   VERSION\nip-10-0-1-42.ec2.internal     Ready    <none>   14d   v1.31.2\nip-10-0-2-87.ec2.internal     Ready    <none>   14d   v1.31.2',
+  'gcloud projects list': 'PROJECT_ID        NAME              PROJECT_NUMBER\nlvn-dev-483106    lvn-dev           483106\naegis-prod        aegis-prod        219847',
+  'terraform plan': 'No changes. Your infrastructure matches the configuration.\n\nNo changes. Infrastructure is up-to-date.',
+}
+
+function mockExecute(cmd: string): string {
+  const trimmed = cmd.trim().toLowerCase()
+  if (MOCK_RESPONSES[trimmed]) return MOCK_RESPONSES[trimmed]
+  if (trimmed.startsWith('aws ')) return `aws: command output simulated for: ${cmd.trim()}`
+  if (trimmed.startsWith('kubectl ')) return `kubectl: command output simulated for: ${cmd.trim()}`
+  if (trimmed === '') return ''
+  return `command not found: ${cmd.trim()}\nType "help" for available commands.`
+}
+
 export function useTerminalWS(opts: UseTerminalWSOptions = {}): UseTerminalWSReturn {
   const { enabled = true, onMessage, onConnected, onDisconnected } = opts
   const wsRef = useRef<WebSocket | null>(null)
@@ -136,7 +159,13 @@ export function useTerminalWS(opts: UseTerminalWSOptions = {}): UseTerminalWSRet
     if (!enabled) {
       wsRef.current?.close()
       wsRef.current = null
+      setIsConnected(false)
       return
+    }
+    if (isDemoMode) {
+      setIsConnected(true)
+      onConnectedRef.current?.()
+      return () => { mountedRef.current = false }
     }
     connect()
     return () => {
@@ -148,6 +177,16 @@ export function useTerminalWS(opts: UseTerminalWSOptions = {}): UseTerminalWSRet
   }, [enabled, connect])
 
   const send = useCallback((msg: unknown) => {
+    if (isDemoMode) {
+      const parsed = typeof msg === 'string' ? JSON.parse(msg) : msg
+      const cmd = (parsed as { command?: string }).command ?? ''
+      const output = mockExecute(cmd)
+      setTimeout(() => {
+        if (output) onMessageRef.current?.({ type: 'output', data: output + '\n', stream: 'stdout' })
+        onMessageRef.current?.({ type: 'exit', code: 0, elapsed_ms: Math.floor(Math.random() * 200 + 50) })
+      }, 150)
+      return
+    }
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(msg))
     }

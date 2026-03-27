@@ -26,7 +26,7 @@ export const branding = {
    * Controls which project cards appear on the landing page.
    * Default shows both core modules.
    */
-  enabledModules: (import.meta.env.VITE_ENABLED_MODULES || 'aegis,cspm-aggregator')
+  enabledModules: (import.meta.env.VITE_ENABLED_MODULES || 'aegis,cspm-aggregator,threat-intel,remediation-engine,ops-center')
     .split(',')
     .map((s: string) => s.trim()),
 

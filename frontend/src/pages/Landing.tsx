@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  Shield, Cloud, Activity,
+  Shield, Cloud, Activity, Crosshair, Radar, Wrench,
   ArrowRight, GitBranch, Server, Eye, Copy, Check,
 } from 'lucide-react'
 import { useState, useCallback } from 'react'
@@ -50,7 +50,7 @@ const PROJECTS: ProjectCard[] = [
     slug: 'cspm-aggregator',
     tier: 'supporting',
     description:
-      'Cloud Security Posture Management — normalizes findings from AWS SecurityHub, Azure Defender, and GCP SCC into a unified schema with LLM-powered contextual risk scoring.',
+      'Cloud Security Posture Management — normalizes findings from AWS Security Hub, Azure Defender, and GCP SCC into a unified schema with LLM-powered contextual risk scoring.',
     icon: Cloud,
     iconSvg: '/icons/cspm-logo.svg',
     color: 'text-green-600 dark:text-green-400',
@@ -63,6 +63,60 @@ const PROJECTS: ProjectCard[] = [
     ],
     link: '/ops/findings',
     repo: `${branding.repoPrefix}/cspm-aggregator`,
+  },
+  {
+    name: 'Threat Intelligence',
+    slug: 'threat-intel',
+    tier: 'supporting',
+    description:
+      'Aggregates threat feeds from EPSS, CISA KEV, GreyNoise, OTX, and HIBP. Computes blast radius and toxic combination scores to prioritize critical exposures.',
+    icon: Crosshair,
+    color: 'text-red-600 dark:text-red-400',
+    bg: 'bg-red-50 dark:bg-red-900/30',
+    tags: ['EPSS', 'CISA KEV', 'GreyNoise', 'OTX', 'HIBP'],
+    stats: [
+      { label: 'Intel Feeds', value: '5' },
+      { label: 'Enrichment Rules', value: '12' },
+      { label: 'Toxic Combos', value: '8' },
+    ],
+    link: '/ops/threat-intel',
+    repo: `${branding.repoPrefix}/threat-intel`,
+  },
+  {
+    name: 'Remediation Engine',
+    slug: 'remediation-engine',
+    tier: 'supporting',
+    description:
+      'Automated remediation dispatcher with provider-specific handlers, approval workflows, and bidirectional ticket tracking via Asana, Jira, and Azure DevOps.',
+    icon: Wrench,
+    color: 'text-amber-600 dark:text-amber-400',
+    bg: 'bg-amber-50 dark:bg-amber-900/30',
+    tags: ['Go', 'Asana', 'Jira', 'ADO', 'Approval Flows'],
+    stats: [
+      { label: 'Handlers', value: '17' },
+      { label: 'Providers', value: '4' },
+      { label: 'Auto Actions', value: '23' },
+    ],
+    link: '/ops/remediation',
+    repo: `${branding.repoPrefix}/remediation-engine`,
+  },
+  {
+    name: 'Operations Center',
+    slug: 'ops-center',
+    tier: 'supporting',
+    description:
+      'Unified operations dashboard with real-time WebSocket feeds, audit event tracking, and multi-cloud command center for incident response workflows.',
+    icon: Radar,
+    color: 'text-purple-600 dark:text-purple-400',
+    bg: 'bg-purple-50 dark:bg-purple-900/30',
+    tags: ['WebSocket', 'Audit Trail', 'RBAC', 'Real-Time'],
+    stats: [
+      { label: 'Event Types', value: '24' },
+      { label: 'Audit Domains', value: '11' },
+      { label: 'WS Channels', value: '3' },
+    ],
+    link: '/ops',
+    repo: `${branding.repoPrefix}/ops-center`,
   },
 ]
 
@@ -111,7 +165,7 @@ export default function Landing() {
       {visibleProjects.length > 0 && (
         <section>
           <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">Modules</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-center">
             {visibleProjects.map(project => (
               <ProjectTile key={project.slug} project={project} />
             ))}
@@ -201,7 +255,7 @@ function ProjectTile({ project }: { project: ProjectCard }) {
 
   return (
     <Link to={project.link} className="group">
-      <Card className="h-full min-h-[220px] transition-colors hover:border-primary/30 hover:shadow-sm">
+      <Card className="h-full min-h-[232px] transition-colors hover:border-primary/30 hover:shadow-sm">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2.5">

@@ -17,6 +17,13 @@ const DEFAULT_USER: User = {
   groups: [`${branding.storagePrefix}-admin`],
 }
 
+const ROLE_DISPLAY_NAMES: Record<Role, string> = {
+  admin: 'Demo Admin',
+  operator: 'Demo Operator',
+  requester: 'Demo Requester',
+  viewer: 'Demo Viewer',
+}
+
 const DEMO_USER: User = {
   name: 'Demo Viewer',
   email: `demo@${branding.emailDomain}`,
@@ -271,7 +278,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       : (isDev ? DEFAULT_USER.role : isDemo ? 'admin' as Role : 'requester')
     const effective = ROLE_RANK[role] <= ROLE_RANK[maxRole] ? role : maxRole
     sessionStorage.setItem(ROLE_KEY, effective)
-    setUser((prev) => ({ ...prev, role: effective }))
+    setUser((prev) => ({
+      ...prev,
+      role: effective,
+      name: (isDev || isDemo) ? ROLE_DISPLAY_NAMES[effective] : prev.name,
+    }))
   }, [isDev, isDemo])
 
   // Exchange authorization code for tokens (called from Callback page)

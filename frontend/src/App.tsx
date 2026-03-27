@@ -65,6 +65,7 @@ const MyRequests = lazy(() => import('@/pages/portal/MyRequests'))
 const RequestDetail = lazy(() => import('@/pages/portal/RequestDetail'))
 const Catalog = lazy(() => import('@/pages/portal/Catalog'))
 const Callback = lazy(() => import('@/pages/Callback'))
+const Profile = lazy(() => import('@/pages/Profile'))
 
 function PageFallback() {
   return (
@@ -92,6 +93,7 @@ export default function App() {
               <Route element={<AppShell />}>
                 {/* Platform landing page */}
                 <Route index element={<Suspense fallback={<PageFallback />}><Landing /></Suspense>} />
+                <Route path="/profile" element={<Suspense fallback={<PageFallback />}><Profile /></Suspense>} />
 
                 {/* Admin routes */}
                 <Route element={<ProtectedRoute roles={['admin', 'viewer']}><Outlet /></ProtectedRoute>}>

@@ -12,23 +12,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useNavigate } from 'react-router-dom'
 import { Search, LogOut, User, Menu } from 'lucide-react'
 
 const isDemo = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true'
 const ROLE_STYLES: Record<string, string> = {
-  admin: 'bg-primary text-primary-foreground',
+  admin: 'bg-emerald-600 text-white',
   operator: 'bg-orange-500 text-white',
+  requester: 'bg-teal-500 text-white',
 }
 function avatarStyle(role: string): string {
   return isDemo ? (ROLE_STYLES[role] ?? 'bg-muted text-muted-foreground') : 'bg-foreground text-background'
 }
 function avatarLabel(user: { name: string; role: string }): string {
-  if (isDemo) return user.role === 'admin' ? 'A' : user.role === 'operator' ? 'O' : 'V'
+  if (isDemo) return user.role === 'admin' ? 'A' : user.role === 'operator' ? 'O' : user.role === 'requester' ? 'R' : 'V'
   return user.name ? user.name.split(' ').map(n => n[0]).join('') : '?'
 }
 
 export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const [cmdOpen, setCmdOpen] = useState(false)
 
   useEffect(() => {
@@ -97,7 +100,7 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-sm gap-2">
+            <DropdownMenuItem onClick={() => navigate('/profile')} className="text-sm gap-2">
               <User className="h-4 w-4" /> Profile
             </DropdownMenuItem>
             <DropdownMenuSeparator />
