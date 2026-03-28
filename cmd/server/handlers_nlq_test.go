@@ -102,7 +102,9 @@ func TestSanitizeNLQQuery(t *testing.T) {
 		{"hello\x00world", "helloworld"},
 		{"  spaced  ", "spaced"},
 		{"<img src=x onerror=alert(1)>", ""},
-		{"severity > HIGH", "severity > HIGH"}, // bare > not stripped
+		{"severity > HIGH", "severity > HIGH"},      // bare > not stripped
+		{"show <script findings", "show"},           // unclosed tag at end-of-string stripped entirely
+		{"query <b>bold</b> end", "query bold end"}, // closed tags
 	}
 	for _, tt := range tests {
 		got := sanitizeNLQQuery(tt.input)

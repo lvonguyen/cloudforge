@@ -28,7 +28,7 @@ aws rds wait db-snapshot-available \
 
 # Screenshot the live demo (browser or CLI)
 # open https://cloudguard.lvonguyen.com
-# open https://api-personal.lvonguyen.com/health
+# open https://api.cloudforge-demo.lvonguyen.com/health
 
 # Verify TF state exists
 ls -la deploy/terraform/environments/personal/terraform.tfstate
@@ -128,7 +128,7 @@ Cloudflare proxied records to remove after AWS teardown:
 
 ```bash
 # These will 522/502 after ALB is destroyed — clean up in CF dashboard:
-# - api-personal.lvonguyen.com (CNAME -> ALB DNS name)
+# - api.cloudforge-demo.lvonguyen.com (CNAME -> ALB DNS name)
 
 # If keeping CF Pages, these stay:
 # - cloudguard.lvonguyen.com (CF Pages auto-managed)
@@ -176,7 +176,7 @@ aws ec2 describe-nat-gateways --filter "Name=state,Values=available" \
   --query 'NatGateways[*].NatGatewayId'
 
 # Confirm endpoints are down
-curl -s -o /dev/null -w "%{http_code}" https://api-personal.lvonguyen.com/health
+curl -s -o /dev/null -w "%{http_code}" https://api.cloudforge-demo.lvonguyen.com/health
 # Expected: 000 (connection refused) or 522 (CF can't reach origin)
 
 # Check Cost Explorer (next day — billing lags ~24h)
@@ -258,10 +258,10 @@ aws secretsmanager put-secret-value --secret-id aegis-personal-secrets/jwt-secre
   --secret-string "$(op read 'op://Development/aegis-personal-jwt-secret/credential')"
 
 # Restore DNS in CF dashboard
-# api-personal.lvonguyen.com -> new ALB DNS name (from TF output)
+# api.cloudforge-demo.lvonguyen.com -> new ALB DNS name (from TF output)
 
 # Verify
-curl https://api-personal.lvonguyen.com/health
+curl https://api.cloudforge-demo.lvonguyen.com/health
 ```
 
 ---

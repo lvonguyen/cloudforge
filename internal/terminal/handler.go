@@ -52,6 +52,7 @@ type Handler struct {
 	auditLogger    audit.AuditLogger
 	logger         *zap.Logger
 	allowedOrigins []string
+	devMode        bool
 	tickets        *TicketStore
 
 	// Per-user session tracking.
@@ -60,13 +61,14 @@ type Handler struct {
 }
 
 // NewHandler creates a terminal WebSocket handler.
-func NewHandler(authMW *api.AuthMiddleware, auditLogger audit.AuditLogger, logger *zap.Logger, allowedOrigins ...string) *Handler {
+func NewHandler(authMW *api.AuthMiddleware, auditLogger audit.AuditLogger, logger *zap.Logger, devMode bool, allowedOrigins ...string) *Handler {
 	h := &Handler{
 		executor:       NewExecutor(logger),
 		authMW:         authMW,
 		auditLogger:    auditLogger,
 		logger:         logger,
 		allowedOrigins: allowedOrigins,
+		devMode:        devMode,
 		tickets:        NewTicketStore(logger),
 		sessions:       make(map[string]int),
 	}
@@ -84,8 +86,8 @@ func (h *Handler) checkOrigin(r *http.Request) bool {
 	if origin == "" {
 		return false
 	}
-	// Allow localhost for development.
-	if strings.HasPrefix(origin, "http://localhost") || strings.HasPrefix(origin, "http://127.0.0.1") {
+	// Allow localhost only in development mode.
+	if h.devMode && (strings.HasPrefix(origin, "http://localhost") || strings.HasPrefix(origin, "http://127.0.0.1")) {
 		return true
 	}
 	for _, allowed := range h.allowedOrigins {

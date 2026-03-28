@@ -73,7 +73,7 @@ func benchServer(b *testing.B) (*Server, *mux.Router) {
 			Logger: logger,
 		},
 		roles:     &api.RoleEnforcer{DevMode: false},
-		finopsSvc: newFinopsServiceFromAggregator(finops.NewMemoryAggregator()),
+		finopsSvc: newFinopsServiceFromAggregator(finops.NewMemoryAggregator(), nil),
 		identitySvc: NewIdentityService(map[string]identity.Provider{
 			"okta":     identity.NewMockOktaProvider(),
 			"entra_id": identity.NewMockEntraIDProvider(),

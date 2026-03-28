@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"sync"
 	"time"
 
 	"aegis/internal/finops"
@@ -28,15 +29,8 @@ type finopsService struct {
 }
 
 // newFinopsServiceFromAggregator composes a finopsService from a factory-created
-// aggregator and default detector/allocator configs.
-func newFinopsServiceFromAggregator(agg finops.Aggregator) *finopsService {
-	// Demo budget rules for the three cloud providers.
-	budgetRules := []alerting.BudgetRule{
-		{Name: "AWS Monthly", Provider: "aws", CostCenter: "", MonthlyUSD: 5000, Thresholds: []float64{80, 100, 120}},
-		{Name: "Azure Monthly", Provider: "azure", CostCenter: "", MonthlyUSD: 3000, Thresholds: []float64{80, 100, 120}},
-		{Name: "GCP Monthly", Provider: "gcp", CostCenter: "", MonthlyUSD: 2000, Thresholds: []float64{80, 100, 120}},
-	}
-
+// aggregator and caller-supplied budget rules.
+func newFinopsServiceFromAggregator(agg finops.Aggregator, budgetRules []alerting.BudgetRule) *finopsService {
 	return &finopsService{
 		aggregator: agg,
 		detector: anomaly.NewDetector(anomaly.DetectorConfig{
@@ -49,18 +43,39 @@ func newFinopsServiceFromAggregator(agg finops.Aggregator) *finopsService {
 			FallbackTag:  "department",
 			UntaggedPool: "unallocated",
 		}),
-		estimator:     finops.NewCostEstimator(),
-		budgetMonitor: alerting.NewBudgetMonitor(budgetRules, &aggregatorSpendAdapter{agg: agg}, nil),
+		estimator: finops.NewCostEstimator(),
+		budgetMonitor: alerting.NewBudgetMonitor(budgetRules, &aggregatorSpendAdapter{
+			agg:   agg,
+			cache: make(map[string]spendCacheEntry),
+			ttl:   5 * time.Minute,
+		}, nil),
 	}
 }
 
 // aggregatorSpendAdapter adapts a finops.Aggregator to the alerting.SpendProvider
 // interface by summing current-month costs for the given provider.
+// Results are cached per-provider with a configurable TTL to avoid redundant
+// FetchCosts calls when BudgetMonitor.Check evaluates multiple rules.
 type aggregatorSpendAdapter struct {
-	agg finops.Aggregator
+	agg   finops.Aggregator
+	mu    sync.Mutex
+	cache map[string]spendCacheEntry
+	ttl   time.Duration
+}
+
+type spendCacheEntry struct {
+	spend     float64
+	fetchedAt time.Time
 }
 
 func (a *aggregatorSpendAdapter) CurrentSpend(ctx context.Context, provider, _ string) (float64, error) {
+	a.mu.Lock()
+	if entry, ok := a.cache[provider]; ok && time.Since(entry.fetchedAt) < a.ttl {
+		a.mu.Unlock()
+		return entry.spend, nil
+	}
+	a.mu.Unlock()
+
 	now := time.Now().UTC()
 	start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	records, err := a.agg.FetchCosts(ctx, start, now)
@@ -74,6 +89,11 @@ func (a *aggregatorSpendAdapter) CurrentSpend(ctx context.Context, provider, _ s
 		}
 		total += r.Cost
 	}
+
+	a.mu.Lock()
+	a.cache[provider] = spendCacheEntry{spend: total, fetchedAt: time.Now()}
+	a.mu.Unlock()
+
 	return total, nil
 }
 
@@ -222,7 +242,7 @@ func (s *Server) getCostEstimate(w http.ResponseWriter, r *http.Request) {
 
 	estimate, err := s.finopsSvc.estimator.EstimateMonthlyCost(resourceType, provider, size)
 	if err != nil {
-		writeErrorResponse(w, err.Error(), http.StatusNotFound)
+		writeErrorResponse(w, "unknown resource type or size", http.StatusNotFound)
 		return
 	}
 

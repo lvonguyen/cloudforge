@@ -98,11 +98,11 @@ kubectl rollout status deployment/aegis-api -n aegis
 
 ```bash
 # Check health endpoint
-curl -sf https://api.aegis.io/health | jq '.components.identity_provider'
+curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '.components.identity_provider'
 # Expected: {"okta": "ok"}
 
 # Test token validation
-curl -sf https://api.aegis.io/api/v1/findings \
+curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/findings \
   -H "Authorization: Bearer $OKTA_TOKEN" | jq '.total'
 ```
 
@@ -159,7 +159,7 @@ kubectl rollout status deployment/aegis-api -n aegis
 
 ```bash
 # Check health endpoint
-curl -sf https://api.aegis.io/health | jq '.components.identity_provider'
+curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '.components.identity_provider'
 # Expected: {"entra_id": "ok"}
 ```
 

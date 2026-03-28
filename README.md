@@ -109,7 +109,15 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 | `internal/ai-governance` | Production | Embedded OPA, agent registry, STRIDE/ATLAS |
 | `internal/policy` | Production | OPA integration, Rego evaluation |
 | `internal/observability` | Production | Structured logging (zap), Prometheus metrics |
-| `internal/findings` | Production | Finding types, bridge to CSPM aggregator |
+| `internal/asm` | Production | Attack surface mapping and asset discovery |
+| `internal/audit` | Production | Audit event logging with ring buffer |
+| `internal/cspm` | Production | CSPM scanner aggregation and dedup |
+| `internal/graph` | Production | Graph query client (Gremlin WS, Cypher HTTP) |
+| `internal/ingestion` | Production | Multi-source finding ingestion pipeline |
+| `internal/integrations` | Production | Ticket provider adapters (Asana, Jira, ADO) |
+| `internal/rql` | Production | Resource Query Language parser and evaluator |
+| `internal/tenant` | Production | Multi-tenant context and isolation |
+| `internal/terminal` | Production | Server-side terminal with RBAC and audit |
 | `pkg/remediation` | Production | Executor engine, 17 handlers, rollback |
 | `internal/cicd` | Interface only | SAST/VCS interfaces defined, not imported by server |
 | `internal/finops` | Production | Cost aggregation (AWS Cost Explorer wirable via FINOPS_PROVIDER=aws), anomaly detection, chargeback |

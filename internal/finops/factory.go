@@ -45,7 +45,7 @@ func NewAggregator(cfg AggregatorConfig) (Aggregator, error) {
 		return NewAWSAggregator(region, logger)
 
 	case ProviderTypeMulti:
-		return nil, fmt.Errorf("multi provider must be composed at the application layer (see cmd/server/main.go)")
+		return nil, fmt.Errorf("multi provider must be composed at the application layer, not via factory")
 
 	case ProviderTypeGCP:
 		return nil, fmt.Errorf("gcp finops provider is not yet implemented")

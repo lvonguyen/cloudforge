@@ -6,7 +6,7 @@ slug: /api
 
 # API Reference
 
-Cloud Aegis exposes 82 REST API operations across 21 domains. The full specification is available as an OpenAPI 3.1.0 document.
+Cloud Aegis exposes 85 REST API operations across 21 domains. The full specification is available as an OpenAPI 3.1.0 document.
 
 ## Quick Access
 
@@ -21,7 +21,7 @@ Cloud Aegis exposes 82 REST API operations across 21 domains. The full specifica
 | Findings | 7 | CRUD, search, stats, enrichment, ingest |
 | Compliance | 3 | Frameworks, posture, mapping |
 | Agents | 5 | Registry, lifecycle, traces, maturity |
-| Costs | 4 | Spend, trends, anomalies, budgets |
+| Costs | 7 | Spend, trends, anomalies, budgets, estimates, resources |
 | Remediations | 5 | Queue, dispatch, approve, status |
 | Exceptions | 3 | Request, review, audit |
 | Policies | 4 | CRUD, evaluation, audit |

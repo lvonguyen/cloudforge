@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"aegis/internal/graph"
 
@@ -29,10 +31,23 @@ type graphQueryResponse struct {
 // maxGraphQueryLen caps the query string length to prevent abuse.
 const maxGraphQueryLen = 4096
 
-// gremlinMutationPattern rejects Gremlin-specific mutation steps.
-// Uses [\s\x{00a0}\x{2000}-\x{200b}]* instead of \s* to match Unicode
-// whitespace (non-breaking space, em space, etc.) that Go's \s excludes.
-var gremlinMutationPattern = regexp.MustCompile(`(?i)\b(addV|addE|mergeV|mergeE|drop|sideEffect|withSideEffect|inject|io|call|choose|program|submit|evaluate|GroovyShell|Eval|property[\s\x{00a0}\x{2000}-\x{200b}]*\(|map[\s\x{00a0}\x{2000}-\x{200b}]*\{|flatMap[\s\x{00a0}\x{2000}-\x{200b}]*\{|sack[\s\x{00a0}\x{2000}-\x{200b}]*\{|aggregate[\s\x{00a0}\x{2000}-\x{200b}]*\(|store[\s\x{00a0}\x{2000}-\x{200b}]*\(|cap[\s\x{00a0}\x{2000}-\x{200b}]*\(|coalesce[\s\x{00a0}\x{2000}-\x{200b}]*\(|withComputer|Runtime|Thread|System|ProcessBuilder|Class\.forName)`)
+// gremlinMutationPattern rejects Gremlin mutation and code-execution steps.
+// Ambiguous short names (io, call, etc.) require a preceding dot and opening
+// paren to avoid false positives on property names (e.g. "callback_url").
+// Read-only steps (choose, coalesce) are intentionally excluded.
+// Unicode whitespace class [\s\x{00a0}\x{2000}-\x{200b}]* covers nbsp/em-space
+// that Go's \s does not match.
+var gremlinMutationPattern = regexp.MustCompile(
+	`(?i)` +
+		`\b(?:addV|addE|mergeV|mergeE|drop|sideEffect|withSideEffect|withComputer|GroovyShell|ProcessBuilder)\b` +
+		`|\bClass\.forName\b` +
+		`|\.(?:inject|io|call|program|submit)[\s\x{00a0}\x{2000}-\x{200b}]*\(` +
+		`|\bevaluate[\s\x{00a0}\x{2000}-\x{200b}]*\(` +
+		`|\b(?:Runtime|Thread|System|Eval)\.` +
+		`|\bproperty[\s\x{00a0}\x{2000}-\x{200b}]*\(` +
+		`|\b(?:map|flatMap|sack)[\s\x{00a0}\x{2000}-\x{200b}]*\{` +
+		`|\b(?:aggregate|store|cap)[\s\x{00a0}\x{2000}-\x{200b}]*\(`,
+)
 
 // cypherMutationPattern rejects Cypher-specific mutation keywords.
 var cypherMutationPattern = regexp.MustCompile(`(?i)\b(CREATE|MERGE|DELETE|DETACH|SET|REMOVE|CALL)\b`)
@@ -76,8 +91,8 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Enforce query length cap.
-	if len(req.Query) > maxGraphQueryLen {
+	// Enforce query length cap (rune count, not byte count, for correct Unicode handling).
+	if utf8.RuneCountInString(req.Query) > maxGraphQueryLen {
 		writeErrorResponse(w, "query exceeds maximum length", http.StatusBadRequest)
 		return
 	}
@@ -86,6 +101,14 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 	// bypass via comment injection (e.g., CR/**/EATE). Gremlin has no
 	// standard comment syntax — stripping would corrupt property values.
 	normalizedQuery := norm.NFKC.String(strings.TrimSpace(req.Query))
+	// Strip Unicode format characters (Cf: zero-width spaces, joiners, BOM)
+	// that could bypass keyword detection after NFKC normalization.
+	normalizedQuery = strings.Map(func(r rune) rune {
+		if unicode.Is(unicode.Cf, r) {
+			return -1
+		}
+		return r
+	}, normalizedQuery)
 	var mutationPattern *regexp.Regexp
 	if req.Language == "cypher" {
 		normalizedQuery = cypherCommentPattern.ReplaceAllString(normalizedQuery, "")

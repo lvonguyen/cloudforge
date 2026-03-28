@@ -197,7 +197,11 @@ func (s *Server) getFinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, _ := api.GetClaimsFromContext(r.Context())
+	claims, ok := api.GetClaimsFromContext(r.Context())
+	if !ok || claims == nil {
+		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
 	scope := api.ScopeFromContext(claims)
 	if err := api.EnforceScope(scope, f); err != nil {
 		api.LogScopeDenial(s.logger, claims.Subject, f.ID, f.AccountID, f.Region, err.Error())
@@ -654,7 +658,11 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Enforce ABAC scope — same check as getFinding
-	claims, _ := api.GetClaimsFromContext(r.Context())
+	claims, ok := api.GetClaimsFromContext(r.Context())
+	if !ok || claims == nil {
+		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
 	scope := api.ScopeFromContext(claims)
 	if err := api.EnforceScope(scope, finding); err != nil {
 		api.LogScopeDenial(s.logger, claims.Subject, finding.ID, finding.AccountID, finding.Region, err.Error())

@@ -39,7 +39,7 @@ Always run dry-run first to preview changes.
 
 ```bash
 # Dry run against a specific finding set
-curl -s -X POST https://api.aegis.io/api/v1/remediations \
+curl -s -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -58,7 +58,7 @@ Review the `actions_preview` list. Confirm each action is expected before procee
 
 ```bash
 # Execute with the batch_id from dry run
-curl -s -X POST https://api.aegis.io/api/v1/remediations \
+curl -s -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -73,7 +73,7 @@ curl -s -X POST https://api.aegis.io/api/v1/remediations \
 
 ```bash
 # Poll batch status
-watch -n 10 'curl -sf https://api.aegis.io/api/v1/remediations/batch-20260226-001 | \
+watch -n 10 'curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations/batch-20260226-001 | \
   jq "{status, completed, failed, pending, elapsed_s}"'
 
 # Stream dispatcher logs
@@ -121,7 +121,7 @@ Blocks inbound SSH (22) and RDP (3389) from 0.0.0.0/0 and ::/0.
 
 ```bash
 # Trigger manually for a specific security group
-curl -s -X POST https://api.aegis.io/api/v1/remediations/handlers/block-public-ssh \
+curl -s -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations/handlers/block-public-ssh \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{"resource_id": "sg-0abc123def456789", "provider": "aws", "dry_run": true}'
 
@@ -142,7 +142,7 @@ aws ec2 describe-security-groups \
 
 ```bash
 # Trigger for a specific S3 bucket
-curl -s -X POST https://api.aegis.io/api/v1/remediations/handlers/s3-block-public-access \
+curl -s -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations/handlers/s3-block-public-access \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{"resource_id": "my-bucket", "provider": "aws", "dry_run": true}'
 
@@ -160,7 +160,7 @@ aws s3api get-public-access-block --bucket my-bucket
 
 ```bash
 # Trigger for a specific EC2 instance
-curl -s -X POST https://api.aegis.io/api/v1/remediations/handlers/enforce-imdsv2 \
+curl -s -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations/handlers/enforce-imdsv2 \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{"resource_id": "i-0abc123def456789", "provider": "aws", "dry_run": true}'
 
@@ -182,7 +182,7 @@ Deactivates keys older than the configured threshold (default: 90 days).
 
 ```bash
 # Trigger key rotation check for a user
-curl -s -X POST https://api.aegis.io/api/v1/remediations/handlers/rotate-iam-keys \
+curl -s -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations/handlers/rotate-iam-keys \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{"resource_id": "arn:aws:iam::123456789012:user/svc-aegis", "provider": "aws", "dry_run": true}'
 
@@ -202,7 +202,7 @@ aws iam list-access-keys \
 
 ```bash
 # Enable GuardDuty in a region
-curl -s -X POST https://api.aegis.io/api/v1/remediations/handlers/enable-guardduty \
+curl -s -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations/handlers/enable-guardduty \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{"resource_id": "123456789012", "region": "us-east-1", "provider": "aws", "dry_run": true}'
 
@@ -244,21 +244,21 @@ The dispatcher snapshots resource state before every change. Rollbacks are avail
 
 ```bash
 # List available snapshots for a batch
-curl -sf https://api.aegis.io/api/v1/remediations/batch-20260226-001/snapshots | \
+curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations/batch-20260226-001/snapshots | \
   jq '.[] | {snapshot_id, resource_id, handler, taken_at}'
 
 # Dry-run rollback
-curl -s -X POST https://api.aegis.io/api/v1/remediations/batch-20260226-001/rollback \
+curl -s -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations/batch-20260226-001/rollback \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{"snapshot_id": "snap-001", "dry_run": true}'
 
 # Execute rollback
-curl -s -X POST https://api.aegis.io/api/v1/remediations/batch-20260226-001/rollback \
+curl -s -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations/batch-20260226-001/rollback \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{"snapshot_id": "snap-001", "dry_run": false}'
 
 # Verify rollback
-curl -sf https://api.aegis.io/api/v1/remediations/batch-20260226-001 | jq .rollback_status
+curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations/batch-20260226-001 | jq .rollback_status
 ```
 
 ### Manual Rollback (if dispatcher unavailable)
@@ -337,7 +337,7 @@ aws ec2 describe-instance-status \
 **Diagnosis**:
 ```bash
 # Get finding details to identify root resource vs dependent resource
-curl -sf https://api.aegis.io/api/v1/findings/f-abc123 | jq .dependencies
+curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/findings/f-abc123 | jq .dependencies
 ```
 
 **Resolution**:
@@ -349,11 +349,11 @@ curl -sf https://api.aegis.io/api/v1/findings/f-abc123 | jq .dependencies
 
 ```bash
 # Success/failure rates for last 7 days
-curl -sf "https://api.aegis.io/api/v1/remediations/report?period=7d" | \
+curl -sf "https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations/report?period=7d" | \
   jq '{total, succeeded, failed, success_rate, sla_compliance_pct}'
 
 # Breakdown by handler
-curl -sf "https://api.aegis.io/api/v1/remediations/report?period=7d&group_by=handler" | \
+curl -sf "https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations/report?period=7d&group_by=handler" | \
   jq '.[] | {handler, total, success_rate, avg_duration_s}'
 
 # SLA compliance (target: 95% of T1 remediations complete within 5 min)

@@ -148,7 +148,7 @@ aws secretsmanager update-secret \
 kubectl rollout restart deployment/aegis-api -n aegis
 
 # 4. Verify AI provider health
-curl -sf https://api.aegis.io/health | jq '.components.ai_provider'
+curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '.components.ai_provider'
 
 # 5. Revoke old key in Anthropic console
 ```
@@ -179,7 +179,7 @@ aws secretsmanager update-secret \
 
 # 3. Restart and verify
 kubectl rollout restart deployment/aegis-api -n aegis
-curl -sf https://api.aegis.io/health | jq '.components.identity_provider'
+curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '.components.identity_provider'
 
 # 4. Revoke old token in Okta Admin Console
 ```
@@ -220,14 +220,14 @@ After any secret rotation:
 
 ```bash
 # 1. Health check
-curl -sf https://api.aegis.io/health | jq .
+curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq .
 
 # 2. Verify no auth errors in logs (wait 5 minutes)
 kubectl logs -n aegis -l app=aegis-api --since=5m | \
   grep -i "auth.*error\|unauthorized\|forbidden" | head -20
 
 # 3. Run smoke test
-curl -sf https://api.aegis.io/api/v1/findings \
+curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/findings \
   -H "Authorization: Bearer $API_TOKEN" | jq '.total'
 ```
 

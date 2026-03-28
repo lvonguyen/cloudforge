@@ -34,7 +34,7 @@ kubectl exec -n aegis deployment/aegis-api -- \
   curl -sf http://localhost:8181/health | jq .
 
 # Check embedded engine status (via API)
-curl -sf https://api.aegis.io/api/v1/policies/health | jq .
+curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/policies/health | jq .
 # Expected: {"opa_external": "ok", "opa_embedded": "ok"}
 ```
 
@@ -379,7 +379,7 @@ curl -s -X POST "http://opa-server:8181/v1/data/aegis/provisioning?explain=notes
 **Diagnosis**:
 ```bash
 # Check embedded engine evaluate endpoint
-curl -s -X POST https://api.aegis.io/api/v1/policies/evaluate \
+curl -s -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/policies/evaluate \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"namespace": "aegis.ai.access_control", "input": {"agent_id": "agent-001", "action": "read_secrets"}}' | jq .

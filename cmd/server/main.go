@@ -29,6 +29,7 @@ import (
 	"aegis/internal/cspm/threatintel"
 	"aegis/internal/finops"
 	"aegis/internal/finops/aggregator"
+	"aegis/internal/finops/alerting"
 	"aegis/internal/graph"
 	"aegis/internal/grc"
 	"aegis/internal/identity"
@@ -590,10 +591,14 @@ func main() {
 			Cache:       make(map[string]*FindingEnrichment),
 			Logger:      logger.Named("enrichment"),
 		},
-		opaEngine:        opaEngine,
-		telemetry:        telemetry,
-		comments:         NewCommentsStore(),
-		finopsSvc:        newFinopsServiceFromAggregator(finopsAgg),
+		opaEngine: opaEngine,
+		telemetry: telemetry,
+		comments:  NewCommentsStore(),
+		finopsSvc: newFinopsServiceFromAggregator(finopsAgg, []alerting.BudgetRule{
+			{Name: "AWS Monthly", Provider: "aws", MonthlyUSD: 5000, Thresholds: []float64{80, 100, 120}},
+			{Name: "Azure Monthly", Provider: "azure", MonthlyUSD: 3000, Thresholds: []float64{80, 100, 120}},
+			{Name: "GCP Monthly", Provider: "gcp", MonthlyUSD: 2000, Thresholds: []float64{80, 100, 120}},
+		}),
 		identitySvc:      NewIdentityService(idProviders),
 		dedupCache:       ingestion.NewDedupCache(24 * time.Hour),
 		workflowEngine:   workflowEngine,
@@ -661,7 +666,7 @@ func main() {
 	if cfg.CORSOrigins != "" {
 		termOrigins = strings.Split(cfg.CORSOrigins, ",")
 	}
-	srv.terminalHandler = terminal.NewHandler(authMiddleware, newAuditLogger("terminal"), logger.Named("terminal"), termOrigins...)
+	srv.terminalHandler = terminal.NewHandler(authMiddleware, newAuditLogger("terminal"), logger.Named("terminal"), srv.roles.DevMode, termOrigins...)
 
 	// Compute attack paths from findings
 	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings)

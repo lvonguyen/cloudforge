@@ -22,11 +22,9 @@ func TestGraphQuery_GremlinMutationBlocked(t *testing.T) {
 		`g.mergeE([:])`,
 		`g.io('/etc/hostname').read()`,
 		`g.call('custom-op')`,
-		`g.V().choose(hasLabel('person'), out('knows'), out('created'))`,
 		// S3 closure bypass vectors
 		`g.V().aggregate('all')`,
 		`g.V().store('data')`,
-		`g.V().coalesce(values('name'), constant('none'))`,
 		`g.V().cap('x')`,
 	}
 
@@ -47,6 +45,17 @@ func TestGraphQuery_GremlinReadAllowed(t *testing.T) {
 		`g.V().hasLabel('account').limit(10)`,
 		`g.V().out('owns').valueMap()`,
 		`g.E().hasLabel('accesses').count()`,
+		// Read-only steps that must NOT be blocked.
+		`g.V().choose(hasLabel('person'), out('knows'), out('created'))`,
+		`g.V().coalesce(values('name'), constant('none'))`,
+		// BD-01: property names containing blocklist substrings must not false-positive.
+		`g.V().has('callback_url', 'https://example.com')`,
+		`g.V().has('io_config', 'default')`,
+		`g.V().has('evaluate_score', '5')`,
+		`g.V().has('program_name', 'demo')`,
+		`g.V().has('runtime_version', '1.8')`,
+		`g.V().has('system_type', 'linux')`,
+		`g.V().has('thread_count', '4')`,
 	}
 
 	for _, q := range reads {

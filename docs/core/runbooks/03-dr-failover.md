@@ -128,7 +128,7 @@ aws route53 change-resource-record-sets \
     "Changes": [{
       "Action": "UPSERT",
       "ResourceRecordSet": {
-        "Name": "api.aegis.io",
+        "Name": "api.cloudforge-demo.lvonguyen.com",
         "Type": "CNAME",
         "TTL": 60,
         "ResourceRecords": [{"Value": "dr-nlb.us-west-2.elb.amazonaws.com"}]
@@ -137,7 +137,7 @@ aws route53 change-resource-record-sets \
   }'
 
 # Verify propagation
-watch -n 10 'dig +short api.aegis.io'
+watch -n 10 'dig +short api.cloudforge-demo.lvonguyen.com'
 ```
 
 ### Step 5: Scale DR Cluster
@@ -157,7 +157,7 @@ kubectl rollout status deployment/aegis-api \
 ### Step 6: Verify Failover Complete
 
 ```bash
-curl -sf https://api.aegis.io/health | jq '{status, region}'
+curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '{status, region}'
 # Expected: {"status": "healthy", "region": "dr"}
 ```
 
@@ -283,7 +283,7 @@ gcloud sql instances describe aegis-db \
 
 ```bash
 # Update DNS record to DR endpoint
-gcloud dns record-sets update api.aegis.io. \
+gcloud dns record-sets update api.cloudforge-demo.lvonguyen.com. \
   --type=CNAME \
   --ttl=60 \
   --rrdatas=dr-lb.aegis.io. \
@@ -293,7 +293,7 @@ gcloud dns record-sets update api.aegis.io. \
 # Verify propagation
 gcloud dns record-sets list \
   --zone=aegis-zone \
-  --filter="name=api.aegis.io." \
+  --filter="name=api.cloudforge-demo.lvonguyen.com." \
   --project=aegis-prod
 ```
 
@@ -317,7 +317,7 @@ Run all checks before closing the incident.
 
 ```bash
 # 1. API health
-curl -sf https://api.aegis.io/health | jq .
+curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq .
 # Expected: status=healthy, region=dr
 
 # 2. Verify all deployments running
@@ -332,11 +332,11 @@ kubectl exec -n aegis deployment/aegis-api \
   ./aegis db check-integrity
 
 # 5. Verify OPA policy engine loaded
-curl -sf https://api.aegis.io/api/v1/policies/health | jq .
+curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/policies/health | jq .
 # Expected: {"opa_external": "ok", "opa_embedded": "ok"}
 
 # 6. Test end-to-end scan
-curl -sf -X POST https://api.aegis.io/api/v1/scans \
+curl -sf -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/scans \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{"scope": "test", "providers": ["aws"]}' | jq '{id, status}'
 ```
@@ -372,7 +372,7 @@ kubectl scale deployment aegis-api \
 # Reverse the DNS change from Step 4 of the failover procedure
 
 # 6. Verify traffic on primary
-watch -n 10 'curl -sf https://api.aegis.io/health | jq .region'
+watch -n 10 'curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq .region'
 
 # 7. Scale down DR cluster to standby capacity
 kubectl scale deployment aegis-api \

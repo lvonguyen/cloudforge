@@ -14,7 +14,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 - [ ] VITE_STATIC_TOKEN must be a generated HS256 JWT, not the raw secret from 1P
 
 ### Frontend Build
-- [ ] `VITE_API_URL` must include `/api/v1` prefix (e.g., `https://api-personal.lvonguyen.com/api/v1`)
+- [ ] `VITE_API_URL` must include `/api/v1` prefix (e.g., `https://api.cloudforge-demo.lvonguyen.com/api/v1`)
 - [ ] Without prefix: frontend calls `/findings` instead of `/api/v1/findings` -> 404
 - [ ] `VITE_DEMO_MODE=true` required for portfolio demo build
 - [ ] JWT generation at build time:
@@ -225,7 +225,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 
 ### Personal Demo (AWS)
 - Frontend: `https://cloudguard.lvonguyen.com` (CF Pages)
-- API: `https://api-personal.lvonguyen.com` (ALB -> ECS Fargate)
+- API: `https://api.cloudforge-demo.lvonguyen.com` (Fly.io)
 - PuppyGraph: `http://100.52.183.146:8081` (temporary, teardown March 28)
 - PuppyGraph instance: `i-096bba925c464985f` (r6i.2xlarge, us-east-1a)
 

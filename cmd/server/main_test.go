@@ -124,7 +124,7 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		},
 		roles:       &api.RoleEnforcer{DevMode: false},
 		comments:    NewCommentsStore(),
-		finopsSvc:   newFinopsServiceFromAggregator(finops.NewMemoryAggregator()),
+		finopsSvc:   newFinopsServiceFromAggregator(finops.NewMemoryAggregator(), nil),
 		dedupCache:  ingestion.NewDedupCache(24 * time.Hour),
 		auditLogger: audit.NewMemoryAuditLogger(),
 		identitySvc: NewIdentityService(map[string]identity.Provider{

@@ -104,7 +104,7 @@ kubectl rollout status deployment/aegis-api -n aegis --timeout=300s
 
 ```bash
 # Check health endpoint
-curl -s https://api.aegis.io/health | jq .
+curl -s https://api.cloudforge-demo.lvonguyen.com/health | jq .
 
 # Expected response:
 # {
@@ -118,7 +118,7 @@ curl -s https://api.aegis.io/health | jq .
 
 ```bash
 # Test finding creation
-curl -X POST https://api.aegis.io/api/v1/findings \
+curl -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/findings \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"title": "Test Finding", "severity": "low"}'

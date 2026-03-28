@@ -182,7 +182,7 @@ module.compute.aws_ecs_task_definition.api
 module.compute.aws_lb.main
 module.secrets.aws_secretsmanager_secret.jwt`,
 
-	"terraform output": `api_url = "https://api-personal.lvonguyen.com"
+	"terraform output": `api_url = "https://api.cloudforge-demo.lvonguyen.com"
 db_endpoint = "aegis-db.c1234567.us-east-1.rds.amazonaws.com:5432"
 redis_endpoint = "aegis-redis.abc123.0001.use1.cache.amazonaws.com:6379"
 ecs_cluster = "aegis-prod"

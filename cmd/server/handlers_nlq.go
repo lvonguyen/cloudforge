@@ -25,7 +25,8 @@ var nlqRateLimiter = struct {
 const nlqMinInterval = 3 * time.Second // max ~20 req/min per user
 
 // htmlTagPattern strips HTML tags to prevent XSS via AI-reflected content.
-var htmlTagPattern = regexp.MustCompile(`<[^>]*>`)
+// The second alternative catches unclosed tags at end-of-string (e.g. "<script").
+var htmlTagPattern = regexp.MustCompile(`<[^>]*>|</?[a-zA-Z][^>]*$`)
 
 // allowedNLQValues whitelists structured filter values, preventing the AI
 // from injecting arbitrary strings into the response.
@@ -137,8 +138,9 @@ func (s *Server) queryNLQ(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		// Fallback: return query as text search
+		// Fallback: return query as text search (still validate for consistency).
 		resp := NLQResponse{Text: query}
+		validateNLQResponse(&resp)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
 		return

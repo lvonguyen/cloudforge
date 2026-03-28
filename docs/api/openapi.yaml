@@ -15,8 +15,8 @@ info:
     identifier: MIT
 
 servers:
-  - url: https://api-personal.lvonguyen.com
-    description: Production (AWS ECS Fargate)
+  - url: https://api.cloudforge-demo.lvonguyen.com
+    description: Production (Fly.io)
   - url: http://localhost:8080
     description: Development
 
@@ -645,6 +645,131 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalError"
+
+  /api/v1/costs/budgets:
+    get:
+      operationId: getCostBudgets
+      summary: Budget status with alerts
+      description: "RBAC: viewer, operator, admin. Returns active budget alerts from configured budget monitor."
+      tags: [Costs]
+      x-rbac: [viewer, operator, admin]
+      responses:
+        "200":
+          description: Budget alerts with spend tracking
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alerts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        provider:
+                          type: string
+                        cost_center:
+                          type: string
+                        monthly_usd:
+                          type: number
+                        current_spend:
+                          type: number
+                        percentage:
+                          type: number
+                        status:
+                          type: string
+                          enum: [ok, warning, critical]
+                        thresholds:
+                          type: array
+                          items:
+                            type: number
+                  checked_at:
+                    type: string
+                    format: date-time
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "501":
+          description: Budget monitor not configured
+
+  /api/v1/costs/estimate:
+    get:
+      operationId: getCostEstimate
+      summary: Cost estimate for a resource
+      description: "RBAC: viewer, operator, admin. Returns estimated monthly cost for a given resource type, provider, and size."
+      tags: [Costs]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - name: resource_type
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: provider
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: size
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cost estimate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resource_type:
+                    type: string
+                  provider:
+                    type: string
+                  size:
+                    type: string
+                  monthly_cost_usd:
+                    type: number
+                  description:
+                    type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Unknown resource type or size
+
+  /api/v1/costs/resources:
+    get:
+      operationId: listCostResources
+      summary: List supported resource types
+      description: "RBAC: viewer, operator, admin. Returns the list of resource types supported by the cost estimator."
+      tags: [Costs]
+      x-rbac: [viewer, operator, admin]
+      responses:
+        "200":
+          description: Supported resource types
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resources:
+                    type: array
+                    items:
+                      type: string
+                  count:
+                    type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   # ---------------------------------------------------------------------------
   # Remediations
