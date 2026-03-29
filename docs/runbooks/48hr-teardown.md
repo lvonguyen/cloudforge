@@ -44,7 +44,7 @@ ls -la deploy/terraform/environments/personal/terraform.tfstate
 
 ## 2. PuppyGraph Shutdown
 
-PuppyGraph EC2: `i-096bba925c464985f` (100.52.183.146:8081), container: `puppy`
+PuppyGraph EC2: `i-096bba925c464985f` — **TERMINATED 2026-03-28**. Now running locally via `docker-compose.puppygraph.yml`.
 
 ```bash
 # If PuppyGraph is currently deployed (check var.deploy_puppygraph):

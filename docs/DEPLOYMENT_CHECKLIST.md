@@ -226,8 +226,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 ### Personal Demo (AWS)
 - Frontend: `https://cloudguard.lvonguyen.com` (CF Pages)
 - API: `https://api.cloudforge-demo.lvonguyen.com` (Fly.io)
-- PuppyGraph: `http://100.52.183.146:8081` (temporary, teardown March 28)
-- PuppyGraph instance: `i-096bba925c464985f` (r6i.2xlarge, us-east-1a)
+- PuppyGraph: `http://localhost:8081` (local Docker via `docker-compose.puppygraph.yml`; EC2 terminated 2026-03-28)
 
 ### Portfolio Demo (Fly.io)
 - Frontend: `https://cloudaegis-demo.lvonguyen.com` (CF Pages)

@@ -1,12 +1,14 @@
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#ef4444', 'tertiaryColor': '#22c55e', 'actorTextColor': '#0f172a', 'actorBkg': '#e2e8f0', 'actorBorder': '#334155', 'signalColor': '#334155', 'noteBkgColor': '#fef3c7', 'noteTextColor': '#0f172a', 'noteBorderColor': '#f59e0b'}}}%%
+
 sequenceDiagram
     autonumber
-    participant HC as Health Check Monitor
-    participant PD as PagerDuty
-    participant OC as On-Call Engineer
-    participant DNS as DNS Layer
-    participant DR as DR Region
-    participant DB as Database Replica
-    participant SM as Smoke Tests
+    participant HC as fa:fa-heartbeat Health Check
+    participant PD as fa:fa-bell PagerDuty
+    participant OC as fa:fa-user-shield On-Call Eng
+    participant DNS as fa:fa-globe DNS Layer
+    participant DR as fa:fa-server DR Region
+    participant DB as fa:fa-database DB Replica
+    participant SM as fa:fa-vial Smoke Tests
 
     HC->>HC: GET /health every 10s
     HC->>HC: 3 consecutive failures detected
@@ -22,7 +24,7 @@ sequenceDiagram
     DR-->>OC: Pods Running + Readiness passed
 
     OC->>DB: Promote replica to primary
-    Note over DB: aws rds promote-read-replica\nor gcloud sql promote-replica
+    Note over DB: aws rds promote-read-replica<br/>or gcloud sql promote-replica
 
     DB-->>OC: Promotion complete
 
@@ -37,5 +39,5 @@ sequenceDiagram
     OC->>SM: Run synthetic smoke tests
     SM-->>OC: All checks pass
 
-    OC->>OC: Post status update to status.cloudforge.io
+    OC->>OC: Post status update to status page
     Note over OC,SM: Total switchover: 23-53 min (within 2h RTO)
