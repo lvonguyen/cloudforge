@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -86,9 +87,11 @@ func (h *Handler) checkOrigin(r *http.Request) bool {
 	if origin == "" {
 		return false
 	}
-	// Allow localhost only in development mode.
-	if h.devMode && (strings.HasPrefix(origin, "http://localhost") || strings.HasPrefix(origin, "http://127.0.0.1")) {
-		return true
+	// Allow localhost only in development mode (exact hostname match, not prefix).
+	if h.devMode {
+		if u, err := url.Parse(origin); err == nil && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1") {
+			return true
+		}
 	}
 	for _, allowed := range h.allowedOrigins {
 		if origin == allowed {

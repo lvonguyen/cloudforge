@@ -26,6 +26,12 @@ func TestGraphQuery_GremlinMutationBlocked(t *testing.T) {
 		`g.V().aggregate('all')`,
 		`g.V().store('data')`,
 		`g.V().cap('x')`,
+		// BD-01: NBSP (U+00A0) between dot and keyword — must be blocked after NFKC normalization.
+		"g.V().\u00a0inject(1,2,3)",
+		"g.V().\u00a0io('/etc/hostname').read()",
+		// Regular space between dot and keyword.
+		`g.V(). inject(1,2,3)`,
+		`g.V(). call('op')`,
 	}
 
 	for _, q := range mutations {

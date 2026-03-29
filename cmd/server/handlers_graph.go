@@ -41,7 +41,7 @@ var gremlinMutationPattern = regexp.MustCompile(
 	`(?i)` +
 		`\b(?:addV|addE|mergeV|mergeE|drop|sideEffect|withSideEffect|withComputer|GroovyShell|ProcessBuilder)\b` +
 		`|\bClass\.forName\b` +
-		`|\.(?:inject|io|call|program|submit)[\s\x{00a0}\x{2000}-\x{200b}]*\(` +
+		`|\.[\s\x{00a0}\x{2000}-\x{200b}]*(?:inject|io|call|program|submit)[\s\x{00a0}\x{2000}-\x{200b}]*\(` +
 		`|\bevaluate[\s\x{00a0}\x{2000}-\x{200b}]*\(` +
 		`|\b(?:Runtime|Thread|System|Eval)\.` +
 		`|\bproperty[\s\x{00a0}\x{2000}-\x{200b}]*\(` +
@@ -91,8 +91,9 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Enforce query length cap (rune count, not byte count, for correct Unicode handling).
-	if utf8.RuneCountInString(req.Query) > maxGraphQueryLen {
+	// Enforce query length cap: rune count for logical length, byte count
+	// for payload size (a 4096-rune CJK query is 16KB in UTF-8).
+	if utf8.RuneCountInString(req.Query) > maxGraphQueryLen || len(req.Query) > maxGraphQueryLen*4 {
 		writeErrorResponse(w, "query exceeds maximum length", http.StatusBadRequest)
 		return
 	}
@@ -102,10 +103,15 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 	// standard comment syntax — stripping would corrupt property values.
 	normalizedQuery := norm.NFKC.String(strings.TrimSpace(req.Query))
 	// Strip Unicode format characters (Cf: zero-width spaces, joiners, BOM)
-	// that could bypass keyword detection after NFKC normalization.
+	// and Unicode whitespace (Zs: NBSP, em-space, etc.) beyond ASCII space,
+	// preventing bypass via NBSP insertion between dot and keyword (e.g.,
+	// ".\\u00a0inject(" normalizing to ". inject(" which evades the regex).
 	normalizedQuery = strings.Map(func(r rune) rune {
 		if unicode.Is(unicode.Cf, r) {
 			return -1
+		}
+		if r != ' ' && unicode.Is(unicode.Zs, r) {
+			return ' '
 		}
 		return r
 	}, normalizedQuery)
