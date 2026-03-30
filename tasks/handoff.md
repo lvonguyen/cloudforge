@@ -29,11 +29,14 @@
   - `internal/api`: `FuzzExtractToken`
 - Added graph handler normalization fuzz coverage:
   - `cmd/server`: `FuzzValidateAndNormalizeGraphQuery`
+- Added webhook URL validation fuzz coverage:
+  - `internal/webhooks`: `FuzzValidateWebhookURL`
 - Fuzzing found and fixed a real NLQ sanitizer bug: control characters could mask an unclosed HTML-looking tag on the first pass, so `sanitizeNLQQuery` was not idempotent for some inputs (for example `"<\\x00A0"`). The helper now removes control characters before running the tag regex.
 - Hardened `internal/rql.Parse` against malformed ASTs by rejecting trailing junctions (`severity = HIGH AND`) before `Match` can index past the end of `results`.
 - Hardened `internal/graph.gremlinWSURL`: base URLs without a hostname now return an error instead of producing `ws://:8182/gremlin`.
 - Extracted graph query validation/normalization into a helper used by the handler so it can be fuzzed directly.
 - Fuzzing found and fixed a real graph validation bug: whitespace-only or fully stripped queries could normalize to empty and still pass validation. The helper now rejects blank normalized queries with HTTP 400.
+- Hardened `internal/webhooks.validateWebhookURL`: now rejects `localhost.` and `*.localhost` hostnames in addition to exact `localhost`.
 - Verification run during continuation:
   - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -count=1`
   - `npx vitest run src/pages/__tests__/OpsPages.test.tsx`
@@ -56,8 +59,10 @@
   - `env GOCACHE=/tmp/go-build-cache go test ./internal/graph -run=^$ -fuzz=FuzzGremlinWSURL -fuzztime=2s`
   - `env GOCACHE=/tmp/go-build-cache go test ./internal/api -run=^$ -fuzz=FuzzExtractToken -fuzztime=2s`
   - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run=^$ -fuzz=FuzzValidateAndNormalizeGraphQuery -fuzztime=2s`
+  - `env GOCACHE=/tmp/go-build-cache go test ./internal/webhooks -count=1`
+  - `env GOCACHE=/tmp/go-build-cache go test ./internal/webhooks -run=^$ -fuzz=FuzzValidateWebhookURL -fuzztime=2s`
   - `env GOCACHE=/tmp/go-build-cache go test ./... -count=1` passes outside the sandbox after the graph URL hardening
-- Worktree is now dirty with local changes in `.dockerignore`, `cmd/server` tests/startup/NLQ+graph handlers, `cmd/server/main.go`, new startup/Postgres helper files, `internal/api`, `internal/graph`, `internal/ingestion/adapters`, `internal/rql`, `internal/terminal`, DSPM fixture extraction, and this handoff file.
+- Worktree is now dirty with local changes in `.dockerignore`, `cmd/server` tests/startup/NLQ+graph handlers, `cmd/server/main.go`, new startup/Postgres helper files, `internal/api`, `internal/graph`, `internal/ingestion/adapters`, `internal/rql`, `internal/terminal`, `internal/webhooks`, DSPM fixture extraction, and this handoff file.
 
 ## What Was Done
 
@@ -115,6 +120,7 @@ Session 32 was a security hardening + QA sprint:
 - [x] Add second fuzz coverage wave — fixed 2026-03-29 (`internal/ingestion/adapters`)
 - [x] Add graph/auth helper fuzz coverage — fixed 2026-03-29 (`internal/graph`, `internal/api`)
 - [x] Add graph handler normalization fuzz coverage — fixed 2026-03-29 (`cmd/server`)
+- [x] Add webhook URL validation fuzz coverage — fixed 2026-03-29 (`internal/webhooks`)
 - [ ] Expand fuzz coverage further (remaining parsers, additional structured inputs, longer fuzz time on highest-value boundaries)
 - [ ] PuppyGraph: run multi-hop benchmarks on local Docker with 300K seed data
 

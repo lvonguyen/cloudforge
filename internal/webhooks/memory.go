@@ -241,8 +241,8 @@ func validateWebhookURL(raw string) error {
 	}
 
 	// Block well-known internal hostnames
-	lower := strings.ToLower(host)
-	if lower == "localhost" || lower == "metadata.google.internal" {
+	lower := strings.TrimSuffix(strings.ToLower(host), ".")
+	if lower == "localhost" || strings.HasSuffix(lower, ".localhost") || lower == "metadata.google.internal" {
 		return fmt.Errorf("internal hostname %q is not allowed", host)
 	}
 
