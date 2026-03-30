@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"aegis/internal/finops"
+	"aegis/internal/finops/alerting"
 )
 
 func TestBudgetStatus_OperatorAllowed(t *testing.T) {
@@ -37,6 +40,43 @@ func TestBudgetStatus_AdminAllowed(t *testing.T) {
 
 	rr := doRequest(t, router, "GET", "/api/v1/costs/budgets", "", jwt)
 	assertStatus(t, rr, http.StatusOK)
+}
+
+func TestBudgetStatus_ReturnsFiredAlerts(t *testing.T) {
+	srv, router := testServer(t)
+	srv.finopsSvc = newFinopsServiceFromAggregator(finops.NewMemoryAggregator(), []alerting.BudgetRule{
+		{
+			Name:       "AWS Test Budget",
+			Provider:   "aws",
+			MonthlyUSD: 1,
+			Thresholds: []float64{80},
+		},
+	})
+	jwt := operatorJWT(t)
+
+	rr := doRequest(t, router, "GET", "/api/v1/costs/budgets", "", jwt)
+	assertStatus(t, rr, http.StatusOK)
+
+	var resp struct {
+		Alerts []alerting.BudgetAlert `json:"alerts"`
+	}
+	assertJSON(t, rr, &resp)
+
+	if len(resp.Alerts) != 1 {
+		t.Fatalf("expected 1 fired alert, got %d", len(resp.Alerts))
+	}
+	if resp.Alerts[0].BudgetName != "AWS Test Budget" {
+		t.Fatalf("expected alert for AWS Test Budget, got %q", resp.Alerts[0].BudgetName)
+	}
+	if resp.Alerts[0].Provider != "aws" {
+		t.Fatalf("expected aws provider alert, got %q", resp.Alerts[0].Provider)
+	}
+	if resp.Alerts[0].ActualUSD <= 0 {
+		t.Fatalf("expected positive spend in fired alert, got %f", resp.Alerts[0].ActualUSD)
+	}
+	if resp.Alerts[0].Severity != alerting.SeverityWarning {
+		t.Fatalf("expected warning severity, got %q", resp.Alerts[0].Severity)
+	}
 }
 
 func TestCostEstimate_HappyPath(t *testing.T) {

@@ -211,19 +211,20 @@ func (s *Server) getAIUsage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(rp.GetBudgetStatus())
 }
 
-// sanitizeNLQQuery strips HTML tags and control characters from NLQ input.
+// sanitizeNLQQuery strips control characters and HTML tags from NLQ input.
 // NFKC normalization collapses Unicode confusables (e.g., fullwidth U+FF1C '<')
-// before the HTML tag regex runs — consistent with handlers_graph.go:88.
+// before filtering; control characters are removed before the tag regex runs so
+// hidden bytes cannot mask unclosed tags until a later pass.
 func sanitizeNLQQuery(s string) string {
 	s = norm.NFKC.String(s)
-	s = htmlTagPattern.ReplaceAllString(s, "")
 	var b strings.Builder
 	for _, r := range s {
 		if r >= 32 && r != 127 {
 			b.WriteRune(r)
 		}
 	}
-	return strings.TrimSpace(b.String())
+	s = htmlTagPattern.ReplaceAllString(b.String(), "")
+	return strings.TrimSpace(s)
 }
 
 // validateNLQResponse filters AI output to only whitelisted values.

@@ -5,20 +5,16 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	_ "net/http/pprof" //nolint:gosec // G108: pprof is dev-only (APP_ENV==development, loopback:6060)
-	"net/url"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
 
-	"aegis/internal/ai"
 	"aegis/internal/ai-governance/opa"
 	"aegis/internal/api"
 	"aegis/internal/api/gateway"
@@ -26,18 +22,10 @@ import (
 	"aegis/internal/audit"
 	"aegis/internal/compliance"
 	"aegis/internal/container"
-	"aegis/internal/cspm/threatintel"
-	"aegis/internal/finops"
-	"aegis/internal/finops/aggregator"
-	"aegis/internal/finops/alerting"
 	"aegis/internal/graph"
 	"aegis/internal/grc"
-	"aegis/internal/identity"
 	"aegis/internal/ingestion"
 	"aegis/internal/integrations"
-	"aegis/internal/integrations/ado"
-	"aegis/internal/integrations/asana"
-	"aegis/internal/integrations/jira"
 	"aegis/internal/observability"
 	"aegis/internal/secrets"
 	"aegis/internal/tenant"
@@ -146,73 +134,27 @@ func main() {
 	defer func() { _ = logger.Sync() }()
 
 	// Load configuration
-	providerType, err := grc.ProviderFromString(getEnv("GRC_PROVIDER", "memory"))
+	cfg, err := loadConfig()
 	if err != nil {
 		logger.Fatal("Invalid GRC provider", zap.Error(err))
 	}
 
-	cfg := Config{
-		Port:             getEnv("PORT", "8080"),
-		GRCProvider:      providerType,
-		JWTSecretEnv:     getEnv("JWT_SECRET_ENV", "AEGIS_JWT_SECRET"),
-		JWTIssuer:        getEnv("JWT_ISSUER", ""),
-		JWTAudience:      getEnv("JWT_AUDIENCE", ""),
-		TLSCertFile:      getEnv("TLS_CERT_FILE", ""),
-		TLSKeyFile:       getEnv("TLS_KEY_FILE", ""),
-		RedisAddr:        getEnv("REDIS_ADDR", "localhost:6379"),
-		RedisPasswordEnv: getEnv("REDIS_PASSWORD_ENV", "AEGIS_REDIS_PASSWORD"),
-		RateLimitEnabled: getEnv("RATE_LIMIT_ENABLED", "true") == "true",
-		AIEnabled:        getEnv("AEGIS_AI_ENABLED", "false") == "true",
-		AIRegion:         getEnv("AEGIS_AI_REGION", "us-east-1"),
-		AIModel:          getEnv("AEGIS_AI_MODEL", ""),
-		CORSOrigins:      getEnv("CORS_ALLOWED_ORIGINS", ""),
-		WSServerURL:      getEnv("WS_SERVER_URL", ""),
-		WSPublishKey:     getEnv("WS_PUBLISH_KEY", ""),
-		TracingEnabled:   os.Getenv("AEGIS_TRACING_ENABLED") == "true",
-		OTLPEndpoint:     getEnv("AEGIS_OTLP_ENDPOINT", "localhost:4317"),
-		SamplingRate:     parseFloatOrDefault(os.Getenv("AEGIS_SAMPLING_RATE"), 1.0),
-		DatabaseURL:      os.Getenv("AEGIS_DATABASE_URL"),
-	}
-
 	// Initialize database connection for postgres GRC provider
-	var grcDB *sql.DB
-	if cfg.GRCProvider == grc.ProviderTypePostgres {
-		if cfg.DatabaseURL == "" {
-			logger.Fatal("AEGIS_DATABASE_URL required when GRC_PROVIDER=postgres")
-		}
-		grcDB, err = sql.Open("postgres", cfg.DatabaseURL)
-		if err != nil {
-			logger.Fatal("Failed to open database connection", zap.Error(err))
-		}
-		if pingErr := grcDB.Ping(); pingErr != nil {
-			logger.Fatal("Database ping failed", zap.Error(pingErr))
-		}
-		defer grcDB.Close()
-		if dbURL, parseErr := url.Parse(cfg.DatabaseURL); parseErr == nil {
-			logger.Info("Database connection established for GRC provider",
-				zap.String("host", dbURL.Hostname()+":"+dbURL.Port()))
-		} else {
-			logger.Info("Database connection established for GRC provider",
-				zap.String("host", "<unparseable>"))
-		}
-	}
-
-	// Initialize GRC provider
-	grcProvider, err := grc.NewProvider(grc.Config{
-		Type:     cfg.GRCProvider,
-		Postgres: grcDB,
-	})
+	grcProvider, grcDB, err := initGRCProvider(cfg, logger)
 	if err != nil {
 		logger.Fatal("Failed to initialize GRC provider", zap.Error(err))
+	}
+	if grcDB != nil {
+		defer func() {
+			if err := grcDB.Close(); err != nil {
+				logger.Warn("Failed to close GRC provider database connection", zap.Error(err))
+			}
+		}()
 	}
 
 	// Auto-derive JWKS URL from Okta domain when not explicitly set.
 	// This removes the need to manually configure AEGIS_JWKS_URL alongside OKTA_DOMAIN.
-	if domain := os.Getenv("OKTA_DOMAIN"); domain != "" && os.Getenv("AEGIS_JWKS_URL") == "" {
-		jwksURL := "https://" + domain + "/oauth2/default/v1/keys"
-		os.Setenv("AEGIS_JWKS_URL", jwksURL)
-		logger.Info("Auto-derived JWKS URL from OKTA_DOMAIN", zap.String("jwks_url", jwksURL))
-	}
+	autoDeriveJWKSURL(logger)
 
 	// Initialize authentication middleware
 	authMiddleware, err := api.NewAuthMiddleware(api.AuthConfig{
@@ -283,233 +225,46 @@ func main() {
 		logger.Info("Rate limiter initialized")
 	}
 
-	// Initialize AI provider (optional — graceful degradation when unavailable)
-	var aiProvider ai.Provider
-	if cfg.AIEnabled {
-		bp, err := ai.NewBedrockProvider(cfg.AIRegion, cfg.AIModel)
-		if err != nil {
-			logger.Warn("AI provider init failed, enrichment disabled", zap.Error(err))
-		} else {
-			// Validate credentials with a lightweight ping
-			pingCtx, pingCancel := context.WithTimeout(context.Background(), 10*time.Second)
-			if _, err := bp.Complete(pingCtx, "ping"); err != nil {
-				logger.Warn("Bedrock credential validation failed, enrichment disabled",
-					zap.Error(err),
-					zap.String("region", cfg.AIRegion),
-				)
-			} else {
-				aiProvider = bp
-				logger.Info("AI provider initialized",
-					zap.String("region", cfg.AIRegion),
-					zap.String("model", bp.ModelID()),
-				)
-			}
-			pingCancel()
-		}
-	}
+	aiProvider := initAIProvider(cfg, logger)
+	tiEnricher, kevCatalog := initThreatIntelEnricher(logger)
 
-	// Initialize threat intel clients (nil-safe — skip if no API key)
-	epssClient := threatintel.NewEPSSClient()
-	kevCatalog := threatintel.NewKEVCatalog()
-	var greynoiseClient *threatintel.GreyNoiseClient
-	if key := os.Getenv("GREYNOISE_API_KEY"); key != "" {
-		greynoiseClient = threatintel.NewGreyNoiseClient(key)
-		logger.Info("GreyNoise threat intel client initialized")
-	}
-	var hibpClient *threatintel.HIBPClient
-	if key := os.Getenv("HIBP_API_KEY"); key != "" {
-		hibpClient = threatintel.NewHIBPClient(key)
-		logger.Info("HIBP threat intel client initialized")
-	}
-	var otxClient *threatintel.OTXClient
-	if key := os.Getenv("OTX_API_KEY"); key != "" {
-		otxClient = threatintel.NewOTXClient(key)
-		logger.Info("OTX threat intel client initialized")
-	}
-	tiEnricher := threatintel.NewEnricher(epssClient, kevCatalog, greynoiseClient, hibpClient, otxClient, logger.Named("threatintel"))
-
-	// Initialize identity providers via factory — real providers when env vars
-	// are set, mock providers otherwise (graceful degradation per provider).
-	idConfigs := buildIdentityConfigs(logger)
-	idProviders, err := identity.NewProviders(idConfigs)
+	idProviders, err := initIdentityProviders(logger)
 	if err != nil {
 		logger.Fatal("Failed to initialize identity providers", zap.Error(err))
 	}
-	for name := range idProviders {
-		logger.Info("Identity provider initialized", zap.String("provider", name))
-	}
 
-	// Build ticket provider map — real providers when env vars are set, mock fallback.
-	ticketProviders := make(map[string]integrations.TicketProvider)
-	var defaultTicketProvider integrations.TicketProvider
-
-	// Asana: wire when ASANA_PAT is set
-	if pat := os.Getenv("ASANA_PAT"); pat != "" {
-		asanaCfg := asana.ConfigFromEnv()
-		asanaClient, err := asana.NewClient(asanaCfg, logger.Named("asana"))
-		if err != nil {
-			logger.Warn("Asana client init failed", zap.Error(err))
-		} else {
-			asanaAdapter := asana.NewAdapter(asanaClient, logger.Named("asana"))
-			ticketProviders["asana"] = asanaAdapter
-			defaultTicketProvider = asanaAdapter
-			logger.Info("Asana ticket provider initialized",
-				zap.String("workspace", asanaCfg.WorkspaceGID),
-				zap.String("project", asanaCfg.DefaultProjectID),
-			)
-		}
-	}
-
-	// Jira: wire when JIRA_URL is set
-	if jiraURL := os.Getenv("JIRA_URL"); jiraURL != "" {
-		jiraCfg := jira.ConfigFromEnv()
-		jiraClient, err := jira.NewClient(jiraCfg, logger.Named("jira"))
-		if err != nil {
-			logger.Warn("Jira client init failed", zap.Error(err))
-		} else {
-			jiraAdapter := jira.NewAdapter(jiraClient, logger.Named("jira"))
-			ticketProviders["jira"] = jiraAdapter
-			if defaultTicketProvider == nil {
-				defaultTicketProvider = jiraAdapter
-			}
-			logger.Info("Jira ticket provider initialized", zap.String("url", jiraURL))
-		}
-	}
-
-	// ADO: wire when ADO_ORG_URL is set
-	if adoURL := os.Getenv("ADO_ORG_URL"); adoURL != "" {
-		adoCfg := ado.ConfigFromEnv()
-		adoClient, err := ado.NewClient(adoCfg, logger.Named("ado"))
-		if err != nil {
-			logger.Warn("ADO client init failed", zap.Error(err))
-		} else {
-			adoAdapter := ado.NewAdapter(adoClient, logger.Named("ado"))
-			ticketProviders["ado"] = adoAdapter
-			if defaultTicketProvider == nil {
-				defaultTicketProvider = adoAdapter
-			}
-			logger.Info("ADO ticket provider initialized", zap.String("url", adoURL), zap.String("project", adoCfg.Project))
-		}
-	}
-
-	// Mock fallback (always available)
-	mockProvider := integrations.NewMockProvider(logger.Named("integrations.mock"))
-	ticketProviders["mock"] = mockProvider
-	if defaultTicketProvider == nil {
-		defaultTicketProvider = mockProvider
-	}
-	logger.Info("Ticket providers initialized",
-		zap.Int("count", len(ticketProviders)),
-		zap.String("default", defaultTicketProvider.Name()),
-	)
+	ticketProviders, defaultTicketProvider := buildTicketProviders(logger)
 
 	// Initialize PuppyGraph client (feature-flagged — nil when PUPPYGRAPH_URL is empty)
-	var graphClient *graph.Client
-	if puppyURL := os.Getenv("PUPPYGRAPH_URL"); puppyURL != "" {
-		graphClient = graph.NewClient(puppyURL, logger.Named("graph"))
-		pingCtx, pingCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		if err := graphClient.Ping(pingCtx); err != nil {
-			logger.Warn("PuppyGraph not reachable, graph queries will fail at runtime", zap.Error(err))
-		} else {
-			logger.Info("PuppyGraph connected", zap.String("url", puppyURL))
-		}
-		pingCancel()
-	}
+	graphClient := initGraphClient(logger)
 
-	// Load mock data and build O(1) lookup maps via DataStore
-	mockData, err := loadMockData(mockDataDir())
+	findingsSource, err := findingsSourceFromEnv()
 	if err != nil {
-		logger.Fatal("Failed to load mock data", zap.Error(err))
+		logger.Fatal("Invalid findings source", zap.Error(err))
 	}
-	dataStore := NewDataStore(mockData)
 
 	// Initialize singleton service instances (created once, shared across requests)
-	workflowProvider, err := workflow.ProviderFromString(getEnv("WORKFLOW_ENGINE", "memory"))
-	if err != nil {
-		logger.Fatal("Invalid workflow engine provider", zap.Error(err))
-	}
-	workflowEngine, err := workflow.NewEngine(workflowProvider)
+	workflowEngine, err := initWorkflowEngine()
 	if err != nil {
 		logger.Fatal("Failed to create workflow engine", zap.Error(err))
 	}
-	wafProvider, err := waf.ProviderFromString(getEnv("WAF_PROVIDER", "memory"))
-	if err != nil {
-		logger.Fatal("Invalid WAF provider", zap.Error(err))
-	}
-	wafMgr, err := waf.NewTemplateManager(wafProvider)
+	wafMgr, err := initWAFManager()
 	if err != nil {
 		logger.Fatal("Failed to create WAF template manager", zap.Error(err))
 	}
-	containerType, err := container.ProviderFromString(getEnv("CONTAINER_SCANNER", "memory"))
-	if err != nil {
-		logger.Fatal("Invalid container scanner provider", zap.Error(err))
-	}
-	containerScnr, err := container.NewScannerFromConfig(container.ScannerConfig{Type: containerType})
+	containerScnr, err := initContainerScanner()
 	if err != nil {
 		logger.Fatal("Failed to create container scanner", zap.Error(err))
 	}
 
-	// Initialize OPA engine for AI governance (graceful degradation if no policies)
-	var opaEngine *opa.Engine
-	if engine, err := opa.NewEngine(); err != nil {
-		logger.Warn("OPA engine init failed, AI governance disabled", zap.Error(err))
-	} else {
-		// Attempt to load AI governance policies from policies/ai/
-		aiPolicyGlob, _ := filepath.Glob("policies/ai/*.rego")
-		if len(aiPolicyGlob) > 0 {
-			if err := engine.LoadPolicies(context.Background(), aiPolicyGlob); err != nil {
-				logger.Warn("OPA AI policy load failed, governance disabled", zap.Error(err))
-			} else {
-				opaEngine = engine
-				logger.Info("OPA AI governance engine loaded", zap.Int("policies", len(aiPolicyGlob)))
-			}
-		} else {
-			logger.Info("No AI governance policies found in policies/ai/, OPA gate disabled")
-		}
+	opaEngine := initOPAEngine(logger)
+
+	finopsAgg, err := initFinopsAggregator(logger)
+	if err != nil {
+		logger.Fatal("Failed to initialize FinOps aggregator", zap.Error(err))
 	}
 
-	// Initialize FinOps aggregator via factory — provider selection via FINOPS_PROVIDER env var.
-	// Detector and allocator are provider-agnostic (always in-memory config).
-	finopsType, err := finops.ProviderFromString(getEnv("FINOPS_PROVIDER", "memory"))
-	if err != nil {
-		logger.Fatal("Invalid FinOps provider", zap.Error(err))
-	}
-	var finopsAgg finops.Aggregator
-	if finopsType == finops.ProviderTypeMulti {
-		// Multi-cloud: compose per-provider aggregators into a fan-out aggregator.
-		// AWS uses real SDK when region is set; Azure/GCP use memory until SDKs are wired.
-		providers := map[string]finops.Aggregator{
-			"azure": finops.NewMemoryAggregator(),
-			"gcp":   finops.NewMemoryAggregator(),
-		}
-		awsRegion := getEnv("FINOPS_AWS_REGION", "us-east-1")
-		if awsAgg, awsErr := finops.NewAWSAggregator(awsRegion, logger.Named("finops.aws")); awsErr == nil {
-			providers["aws"] = awsAgg
-		} else {
-			logger.Warn("AWS aggregator unavailable, using memory", zap.Error(awsErr))
-			providers["aws"] = finops.NewMemoryAggregator()
-		}
-		finopsAgg = aggregator.NewMultiCloudAggregator(providers)
-	} else {
-		finopsAgg, err = finops.NewAggregator(finops.AggregatorConfig{
-			Type:      finopsType,
-			AWSRegion: getEnv("FINOPS_AWS_REGION", "us-east-1"),
-			Logger:    logger.Named("finops"),
-		})
-		if err != nil {
-			logger.Fatal("Failed to initialize FinOps aggregator", zap.Error(err))
-		}
-	}
-
-	// Initialize secrets provider via factory — provider selection via SECRETS_PROVIDER env var.
-	secretsType, err := secrets.ProviderFromString(getEnv("SECRETS_PROVIDER", "memory"))
-	if err != nil {
-		logger.Fatal("Invalid secrets provider", zap.Error(err))
-	}
-	secretsProv, err := secrets.NewProviderFromConfig(secrets.ProviderConfig{
-		Type:   secretsType,
-		Logger: logger.Named("secrets"),
-	})
+	secretsProv, err := initSecretsProvider(logger)
 	if err != nil {
 		logger.Fatal("Failed to initialize secrets provider", zap.Error(err))
 	}
@@ -517,36 +272,7 @@ func main() {
 	// Initialize tenant store with seed data
 	tenantStore := seedTenants(logger)
 
-	// Initialize PostgreSQL for durable audit logging (optional — graceful degradation)
-	var auditDB *sql.DB
-	if cfg.DatabaseURL != "" {
-		var err error
-		auditDB, err = sql.Open("postgres", cfg.DatabaseURL)
-		if err != nil {
-			logger.Warn("PostgreSQL connection failed, audit will use memory-only",
-				zap.Error(err),
-			)
-		} else {
-			auditDB.SetMaxOpenConns(10)
-			auditDB.SetMaxIdleConns(5)
-			auditDB.SetConnMaxLifetime(5 * time.Minute)
-
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			if err := auditDB.PingContext(ctx); err != nil {
-				logger.Warn("PostgreSQL ping failed, audit will use memory-only",
-					zap.Error(err),
-				)
-				_ = auditDB.Close()
-				auditDB = nil
-			} else {
-				healthChecker.RegisterDatabaseCheck("postgres", auditDB)
-				logger.Info("PostgreSQL connected for durable audit logging")
-			}
-			cancel()
-		}
-	} else {
-		logger.Info("AEGIS_DATABASE_URL not set, audit will use memory-only")
-	}
+	auditDB := initAuditDB(cfg, healthChecker, logger)
 	if auditDB != nil {
 		defer func() {
 			if err := auditDB.Close(); err != nil {
@@ -554,6 +280,14 @@ func main() {
 			}
 		}()
 	}
+
+	mockData, err := loadRuntimeData(findingsSource, auditDB, logger)
+	if err != nil {
+		logger.Fatal("Failed to load mock data", zap.Error(err))
+	}
+
+	// Build O(1) lookup maps after the final findings source is selected.
+	dataStore := NewDataStore(mockData)
 
 	// Build audit logger — composite (postgres primary + memory secondary) when DB is
 	// available, memory-only otherwise. Postgres primary ensures List() reads durable,
@@ -591,14 +325,10 @@ func main() {
 			Cache:       make(map[string]*FindingEnrichment),
 			Logger:      logger.Named("enrichment"),
 		},
-		opaEngine: opaEngine,
-		telemetry: telemetry,
-		comments:  NewCommentsStore(),
-		finopsSvc: newFinopsServiceFromAggregator(finopsAgg, []alerting.BudgetRule{
-			{Name: "AWS Monthly", Provider: "aws", MonthlyUSD: 5000, Thresholds: []float64{80, 100, 120}},
-			{Name: "Azure Monthly", Provider: "azure", MonthlyUSD: 3000, Thresholds: []float64{80, 100, 120}},
-			{Name: "GCP Monthly", Provider: "gcp", MonthlyUSD: 2000, Thresholds: []float64{80, 100, 120}},
-		}),
+		opaEngine:        opaEngine,
+		telemetry:        telemetry,
+		comments:         NewCommentsStore(),
+		finopsSvc:        newFinopsServiceFromAggregator(finopsAgg, defaultBudgetRules()),
 		identitySvc:      NewIdentityService(idProviders),
 		dedupCache:       ingestion.NewDedupCache(24 * time.Hour),
 		workflowEngine:   workflowEngine,
@@ -637,7 +367,8 @@ func main() {
 		graphClient:   graphClient,
 	}
 
-	logger.Info("Mock data loaded",
+	logger.Info("Server data loaded",
+		zap.String("findings_source", findingsSource),
 		zap.Int("findings", len(mockData.Findings)),
 		zap.Int("agents", len(mockData.Agents)),
 		zap.Int("frameworks", len(mockData.Frameworks)),
@@ -847,77 +578,4 @@ func main() {
 	}
 
 	logger.Info("Server stopped")
-}
-
-// seedTenants creates a MemoryStore with default tenants for local dev.
-func seedTenants(logger *zap.Logger) tenant.Store {
-	store := tenant.NewMemoryStore()
-
-	ctx := context.Background()
-
-	_ = store.Upsert(ctx, &tenant.Config{
-		ID:   "contoso",
-		Name: "Contoso Inc.",
-		Branding: tenant.Branding{
-			CompanyName:  "Contoso Inc.",
-			ProductName:  "Cloud Aegis",
-			LogoPath:     "/logo.svg",
-			EmailDomain:  "contoso.com",
-			PrimaryColor: "#f59e0b",
-			AccentColor:  "#f97316",
-		},
-		EnabledModules: []string{"cspm", "grc", "finops", "identity", "attack-paths"},
-	})
-
-	_ = store.Upsert(ctx, &tenant.Config{
-		ID:   "haea",
-		Name: "HAEA Security",
-		Branding: tenant.Branding{
-			CompanyName:  "HAEA Security",
-			ProductName:  "SecureCloud",
-			LogoPath:     "/haea-logo.svg",
-			EmailDomain:  "haea.io",
-			PrimaryColor: "#22c55e",
-			AccentColor:  "#16a34a",
-		},
-		EnabledModules: []string{"cspm", "grc", "identity"},
-	})
-
-	logger.Info("Tenant store seeded", zap.Int("tenants", 2))
-	return store
-}
-
-// buildIdentityConfigs determines which identity providers to create based on
-// available environment variables. Real providers are used when credentials are
-// present; mock providers are used otherwise (graceful degradation).
-func buildIdentityConfigs(logger *zap.Logger) []identity.Config {
-	var cfgs []identity.Config
-
-	// Okta: real provider when OKTA_DOMAIN is set, mock otherwise
-	if domain := os.Getenv("OKTA_DOMAIN"); domain != "" {
-		cfgs = append(cfgs, identity.Config{
-			Type:   identity.ProviderTypeOkta,
-			Okta:   &identity.OktaConfig{Domain: domain, APITokenEnv: "OKTA_API_TOKEN"},
-			Logger: logger,
-		})
-	} else {
-		cfgs = append(cfgs, identity.Config{Type: identity.ProviderTypeMockOkta, Logger: logger})
-	}
-
-	// Entra ID: real provider when ENTRA_TENANT_ID is set, mock otherwise
-	if os.Getenv("ENTRA_TENANT_ID") != "" {
-		cfgs = append(cfgs, identity.Config{
-			Type: identity.ProviderTypeEntraID,
-			EntraID: &identity.EntraIDConfig{
-				TenantIDEnv:     "ENTRA_TENANT_ID",
-				ClientIDEnv:     "ENTRA_CLIENT_ID",
-				ClientSecretEnv: "ENTRA_CLIENT_SECRET",
-			},
-			Logger: logger,
-		})
-	} else {
-		cfgs = append(cfgs, identity.Config{Type: identity.ProviderTypeMockEntra, Logger: logger})
-	}
-
-	return cfgs
 }

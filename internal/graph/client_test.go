@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap/zaptest"
@@ -172,6 +173,14 @@ func TestGremlinWSURL(t *testing.T) {
 				t.Errorf("gremlinWSURL(%q) = %q, want %q", tt.baseURL, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestGremlinWSURL_Invalid(t *testing.T) {
+	for _, baseURL := range []string{"", "localhost:8081", "/relative/path"} {
+		if _, err := gremlinWSURL(baseURL); err == nil {
+			t.Fatalf("gremlinWSURL(%q) expected error, got nil", baseURL)
+		}
 	}
 }
 
@@ -437,9 +446,13 @@ func TestQuery_CypherContextCancellation(t *testing.T) {
 }
 
 func TestQuery_GremlinDialFailure(t *testing.T) {
-	// Point at a port that is not listening — dial should fail.
-	c := NewClient("http://localhost:1", zaptest.NewLogger(t))
-	result, err := c.Query(context.Background(), QueryRequest{
+	// Use the reserved .invalid TLD so the dial fails even if a local
+	// Gremlin server is running on the default port.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	c := NewClient("http://localhost.invalid:8081", zaptest.NewLogger(t))
+	result, err := c.Query(ctx, QueryRequest{
 		Language: "gremlin",
 		Query:    "g.V()",
 	})

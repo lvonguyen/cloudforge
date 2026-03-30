@@ -10,20 +10,9 @@ import {
 } from '@/components/ui/sheet'
 import { Lock, Unlock, Eye, AlertTriangle, ExternalLink } from 'lucide-react'
 import { apiClient, ApiError } from '@/lib/api'
+import mockAssets from '@/lib/mock/data-assets.json'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import type { DataAsset, DataSensitivity, ScanStatus } from '@/types/dspm'
-
-// Mock data for development — replaced by real API in production.
-const MOCK_ASSETS: DataAsset[] = [
-  { id: 'da-001', name: 'customer-pii-bucket', resource_id: 'arn:aws:s3:::customer-pii-prod', resource_type: 'object_storage', cloud_provider: 'aws', region: 'us-east-1', account_id: '111222333444', sensitivity: 'PII', scan_status: 'scanned', record_count: 2_340_000, size_bytes: 48_000_000_000, findings_count: 3, last_scanned_at: '2026-03-14T08:00:00Z', encryption_enabled: true, public_access: false },
-  { id: 'da-002', name: 'analytics-warehouse', resource_id: 'projects/analytics/datasets/events', resource_type: 'data_warehouse', cloud_provider: 'gcp', region: 'us-central1', account_id: 'analytics-prod', sensitivity: 'INTERNAL', scan_status: 'scanned', record_count: 890_000_000, size_bytes: 320_000_000_000, findings_count: 0, last_scanned_at: '2026-03-13T22:00:00Z', encryption_enabled: true, public_access: false },
-  { id: 'da-003', name: 'patient-records-db', resource_id: 'arn:aws:rds:us-west-2:555666777888:db/patient-db', resource_type: 'database', cloud_provider: 'aws', region: 'us-west-2', account_id: '555666777888', sensitivity: 'PHI', scan_status: 'scanned', record_count: 450_000, size_bytes: 12_000_000_000, findings_count: 1, last_scanned_at: '2026-03-14T06:30:00Z', encryption_enabled: true, public_access: false },
-  { id: 'da-004', name: 'payment-card-vault', resource_id: 'arn:aws:dynamodb:eu-west-1:999888777666:table/card-tokens', resource_type: 'database', cloud_provider: 'aws', region: 'eu-west-1', account_id: '999888777666', sensitivity: 'PCI', scan_status: 'scanned', record_count: 1_200_000, size_bytes: 3_500_000_000, findings_count: 0, last_scanned_at: '2026-03-14T07:15:00Z', encryption_enabled: true, public_access: false },
-  { id: 'da-005', name: 'marketing-assets', resource_id: 'arn:aws:s3:::marketing-public', resource_type: 'object_storage', cloud_provider: 'aws', region: 'us-east-1', account_id: '111222333444', sensitivity: 'PUBLIC', scan_status: 'scanned', record_count: 15_000, size_bytes: 2_400_000_000, findings_count: 2, last_scanned_at: '2026-03-12T10:00:00Z', encryption_enabled: false, public_access: true },
-  { id: 'da-006', name: 'hr-fileshare', resource_id: '/subscriptions/abc/resourceGroups/hr/providers/Microsoft.Storage/storageAccounts/hrfiles', resource_type: 'file_share', cloud_provider: 'azure', region: 'eastus2', account_id: 'sub-abc-def', sensitivity: 'CONFIDENTIAL', scan_status: 'pending', findings_count: 0, encryption_enabled: true, public_access: false },
-  { id: 'da-007', name: 'event-stream', resource_id: 'arn:aws:sqs:us-east-1:111222333444:events-queue', resource_type: 'message_queue', cloud_provider: 'aws', region: 'us-east-1', account_id: '111222333444', sensitivity: 'INTERNAL', scan_status: 'not_configured', findings_count: 0, encryption_enabled: true, public_access: false },
-  { id: 'da-008', name: 'compliance-docs', resource_id: 'arn:aws:s3:::compliance-restricted', resource_type: 'object_storage', cloud_provider: 'aws', region: 'us-gov-west-1', account_id: '444333222111', sensitivity: 'RESTRICTED', scan_status: 'failed', findings_count: 0, encryption_enabled: true, public_access: false },
-]
 
 async function fetchDataAssets(): Promise<DataAsset[]> {
   try {
@@ -32,7 +21,7 @@ async function fetchDataAssets(): Promise<DataAsset[]> {
   } catch (err) {
     if (import.meta.env.PROD && err instanceof ApiError && err.status < 500) throw err
     console.warn('[DataClassification] API unavailable, using mock data')
-    return MOCK_ASSETS
+    return mockAssets as DataAsset[]
   }
 }
 

@@ -135,6 +135,9 @@ func gremlinWSURL(baseURL string) (string, error) {
 	}
 
 	host := u.Hostname()
+	if host == "" {
+		return "", fmt.Errorf("base URL must include host")
+	}
 	u.Host = host + ":8182"
 	u.Path = "/gremlin"
 	return u.String(), nil

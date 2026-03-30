@@ -148,9 +148,9 @@ func TestCovProviders_NotImplemented(t *testing.T) {
 	logger := covSecLogger()
 
 	providers := []Provider{
-		NewAWSSecretsProvider("us-east-1", logger),
-		NewAzureKeyVaultProvider("https://vault.azure.net", logger),
-		NewGCPSecretManagerProvider("project-id", logger),
+		&AWSSecretsProvider{region: "us-east-1", logger: logger},
+		&AzureKeyVaultProvider{vaultURL: "https://vault.azure.net", logger: logger},
+		&GCPSecretManagerProvider{projectID: "project-id", logger: logger},
 	}
 
 	names := []string{"aws", "azure", "gcp"}

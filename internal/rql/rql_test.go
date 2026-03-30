@@ -122,6 +122,7 @@ func TestParseErrors(t *testing.T) {
 		`= "foo"`,
 		`severity @@ "foo"`,
 		`severity = "unterminated`,
+		`severity = HIGH AND`,
 	}
 	for _, input := range bad {
 		_, err := Parse(input)

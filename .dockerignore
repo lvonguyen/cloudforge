@@ -18,6 +18,7 @@ node_modules
 .github
 .gitlab
 .claude
+shared
 tasks
 
 # Documentation (not needed at runtime)

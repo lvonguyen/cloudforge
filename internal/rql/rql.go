@@ -317,6 +317,9 @@ func parse(tokens []Token) (*Query, error) {
 				q.Junctions = append(q.Junctions, JuncOr)
 			}
 			pos++
+			if pos >= len(tokens) || tokens[pos].Type == TokenEOF {
+				return nil, fmt.Errorf("expected condition after junction")
+			}
 		}
 	}
 
