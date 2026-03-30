@@ -28,6 +28,15 @@ type graphQueryResponse struct {
 	Elapsed string          `json:"elapsed"`
 }
 
+type graphQueryValidationError struct {
+	status  int
+	message string
+}
+
+func (e *graphQueryValidationError) Error() string {
+	return e.message
+}
+
 // maxGraphQueryLen caps the query string length to prevent abuse.
 const maxGraphQueryLen = 4096
 
@@ -58,6 +67,79 @@ var cypherMutationPattern = regexp.MustCompile(`(?i)\b(CREATE|MERGE|DELETE|DETAC
 // would corrupt property values containing those sequences.
 var cypherCommentPattern = regexp.MustCompile(`/\*[\s\S]*?\*/|//[^\n]*|--[^\n]*`)
 
+func validateAndNormalizeGraphQuery(language, query string) (string, error) {
+	if language == "" || query == "" {
+		return "", &graphQueryValidationError{
+			status:  http.StatusBadRequest,
+			message: "language and query fields are required",
+		}
+	}
+
+	if language != "gremlin" && language != "cypher" {
+		return "", &graphQueryValidationError{
+			status:  http.StatusBadRequest,
+			message: "language must be gremlin or cypher",
+		}
+	}
+
+	// Enforce query length cap: rune count for logical length, byte count
+	// for payload size (a 4096-rune CJK query is 16KB in UTF-8).
+	if utf8.RuneCountInString(query) > maxGraphQueryLen || len(query) > maxGraphQueryLen*4 {
+		return "", &graphQueryValidationError{
+			status:  http.StatusBadRequest,
+			message: "query exceeds maximum length",
+		}
+	}
+
+	// Block mutation keywords. For Cypher, strip comments first to prevent
+	// bypass via comment injection (e.g., CR/**/EATE). Gremlin has no
+	// standard comment syntax — stripping would corrupt property values.
+	normalizedQuery := norm.NFKC.String(strings.TrimSpace(query))
+	// Strip Unicode format characters (Cf: zero-width spaces, joiners, BOM)
+	// and Unicode whitespace (Zs: NBSP, em-space, etc.) beyond ASCII space,
+	// preventing bypass via NBSP insertion between dot and keyword (e.g.,
+	// ".\\u00a0inject(" normalizing to ". inject(" which evades the regex).
+	normalizedQuery = strings.Map(func(r rune) rune {
+		if unicode.Is(unicode.Cf, r) {
+			return -1
+		}
+		if r != ' ' && unicode.Is(unicode.Zs, r) {
+			return ' '
+		}
+		return r
+	}, normalizedQuery)
+	var mutationPattern *regexp.Regexp
+	if language == "cypher" {
+		normalizedQuery = cypherCommentPattern.ReplaceAllString(normalizedQuery, "")
+		mutationPattern = cypherMutationPattern
+	} else {
+		mutationPattern = gremlinMutationPattern
+	}
+	if strings.TrimSpace(normalizedQuery) == "" {
+		return "", &graphQueryValidationError{
+			status:  http.StatusBadRequest,
+			message: "query must not be blank",
+		}
+	}
+	if mutationPattern.MatchString(normalizedQuery) {
+		return "", &graphQueryValidationError{
+			status:  http.StatusForbidden,
+			message: "mutation queries are not permitted (read-only)",
+		}
+	}
+
+	// Block Groovy template injection (${}), which can execute arbitrary code
+	// if the Gremlin engine uses Groovy string evaluation.
+	if strings.Contains(normalizedQuery, "${") {
+		return "", &graphQueryValidationError{
+			status:  http.StatusForbidden,
+			message: "template expressions are not permitted (read-only)",
+		}
+	}
+
+	return normalizedQuery, nil
+}
+
 // handleGraphQuery proxies graph queries to PuppyGraph.
 // Feature-flagged: returns 501 when PUPPYGRAPH_URL is not configured.
 // Read-only: mutation keywords are rejected after comment stripping.
@@ -81,56 +163,14 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Language == "" || req.Query == "" {
-		writeErrorResponse(w, "language and query fields are required", http.StatusBadRequest)
-		return
-	}
-
-	if req.Language != "gremlin" && req.Language != "cypher" {
-		writeErrorResponse(w, "language must be gremlin or cypher", http.StatusBadRequest)
-		return
-	}
-
-	// Enforce query length cap: rune count for logical length, byte count
-	// for payload size (a 4096-rune CJK query is 16KB in UTF-8).
-	if utf8.RuneCountInString(req.Query) > maxGraphQueryLen || len(req.Query) > maxGraphQueryLen*4 {
-		writeErrorResponse(w, "query exceeds maximum length", http.StatusBadRequest)
-		return
-	}
-
-	// Block mutation keywords. For Cypher, strip comments first to prevent
-	// bypass via comment injection (e.g., CR/**/EATE). Gremlin has no
-	// standard comment syntax — stripping would corrupt property values.
-	normalizedQuery := norm.NFKC.String(strings.TrimSpace(req.Query))
-	// Strip Unicode format characters (Cf: zero-width spaces, joiners, BOM)
-	// and Unicode whitespace (Zs: NBSP, em-space, etc.) beyond ASCII space,
-	// preventing bypass via NBSP insertion between dot and keyword (e.g.,
-	// ".\\u00a0inject(" normalizing to ". inject(" which evades the regex).
-	normalizedQuery = strings.Map(func(r rune) rune {
-		if unicode.Is(unicode.Cf, r) {
-			return -1
+	normalizedQuery, err := validateAndNormalizeGraphQuery(req.Language, req.Query)
+	if err != nil {
+		if validationErr, ok := err.(*graphQueryValidationError); ok {
+			writeErrorResponse(w, validationErr.message, validationErr.status)
+			return
 		}
-		if r != ' ' && unicode.Is(unicode.Zs, r) {
-			return ' '
-		}
-		return r
-	}, normalizedQuery)
-	var mutationPattern *regexp.Regexp
-	if req.Language == "cypher" {
-		normalizedQuery = cypherCommentPattern.ReplaceAllString(normalizedQuery, "")
-		mutationPattern = cypherMutationPattern
-	} else {
-		mutationPattern = gremlinMutationPattern
-	}
-	if mutationPattern.MatchString(normalizedQuery) {
-		writeErrorResponse(w, "mutation queries are not permitted (read-only)", http.StatusForbidden)
-		return
-	}
-
-	// Block Groovy template injection (${}), which can execute arbitrary code
-	// if the Gremlin engine uses Groovy string evaluation.
-	if strings.Contains(normalizedQuery, "${") {
-		writeErrorResponse(w, "template expressions are not permitted (read-only)", http.StatusForbidden)
+		s.logger.Warn("graph query validation failed", zap.Error(err))
+		writeErrorResponse(w, "graph query validation failed", http.StatusBadRequest)
 		return
 	}
 

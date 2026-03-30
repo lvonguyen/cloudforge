@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -133,5 +134,90 @@ func TestGraphQuery_InvalidLanguage(t *testing.T) {
 	// 501 (not configured) or 400 (invalid language) — both acceptable.
 	if rr.Code != http.StatusNotImplemented && rr.Code != http.StatusBadRequest {
 		t.Errorf("want 501 or 400, got %d", rr.Code)
+	}
+}
+
+func TestValidateAndNormalizeGraphQuery(t *testing.T) {
+	tests := []struct {
+		name       string
+		language   string
+		query      string
+		want       string
+		wantStatus int
+	}{
+		{
+			name:     "gremlin read query trims and normalizes",
+			language: "gremlin",
+			query:    "  g.V().count()  ",
+			want:     "g.V().count()",
+		},
+		{
+			name:       "gremlin nbsp mutation blocked",
+			language:   "gremlin",
+			query:      "g.V().\u00a0inject(1,2,3)",
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "cypher comment bypass blocked",
+			language:   "cypher",
+			query:      `CR/**/EATE (n:Test)`,
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "groovy template blocked",
+			language:   "gremlin",
+			query:      `g.V().has('name', '${Runtime.exec("cmd")}')`,
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "invalid language rejected",
+			language:   "sparql",
+			query:      `SELECT * WHERE {?s ?p ?o}`,
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "whitespace only rejected",
+			language:   "gremlin",
+			query:      " \u00a0\u2003 ",
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "cypher comments only rejected",
+			language:   "cypher",
+			query:      "/* only comment */ -- and more",
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "too long rejected",
+			language:   "gremlin",
+			query:      strings.Repeat("x", maxGraphQueryLen+1),
+			wantStatus: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := validateAndNormalizeGraphQuery(tt.language, tt.query)
+			if tt.wantStatus != 0 {
+				if err == nil {
+					t.Fatalf("expected status %d, got nil error", tt.wantStatus)
+				}
+				validationErr, ok := err.(*graphQueryValidationError)
+				if !ok {
+					t.Fatalf("expected *graphQueryValidationError, got %T", err)
+				}
+				if validationErr.status != tt.wantStatus {
+					t.Fatalf("expected status %d, got %d", tt.wantStatus, validationErr.status)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("got %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
