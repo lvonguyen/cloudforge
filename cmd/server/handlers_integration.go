@@ -33,6 +33,7 @@ type IntegrationHandler struct {
 	auditLogger audit.AuditLogger
 	logger      *zap.Logger
 	ticketRepo  findingTicketStore
+	stateRepo   integrationRuntimeStateStore
 
 	ticketMu    sync.RWMutex
 	ticketStore map[string]*integrations.Ticket // tenant-scoped finding ticket cache
@@ -41,6 +42,11 @@ type IntegrationHandler struct {
 	asanaWebhookSecret string // persisted from handshake for event signature validation
 	asanaWebhookToken  string // pre-shared token from ASANA_WEBHOOK_TOKEN for handshake auth
 }
+
+const (
+	asanaWebhookStateProvider  = "asana"
+	asanaWebhookSecretStateKey = "webhook_secret"
+)
 
 type cachedTicketRef struct {
 	tenantID  string
@@ -159,6 +165,59 @@ func (h *IntegrationHandler) loadTicket(ctx context.Context, tenantID, findingID
 
 func ticketCacheKey(tenantID, findingID string) string {
 	return normalizeTicketTenantID(tenantID) + ":" + strings.TrimSpace(findingID)
+}
+
+func (h *IntegrationHandler) setAsanaWebhookSecret(ctx context.Context, secret string) {
+	if h == nil || secret == "" {
+		return
+	}
+
+	h.mu.Lock()
+	h.asanaWebhookSecret = secret
+	h.mu.Unlock()
+
+	if h.stateRepo != nil {
+		if err := h.stateRepo.PutValue(ctx, asanaWebhookStateProvider, asanaWebhookSecretStateKey, secret); err != nil && h.logger != nil {
+			h.logger.Warn("persisting asana webhook secret failed", zap.Error(err))
+		}
+	}
+}
+
+func (h *IntegrationHandler) getAsanaWebhookSecret(ctx context.Context) string {
+	if h == nil {
+		return ""
+	}
+
+	h.mu.RLock()
+	secret := h.asanaWebhookSecret
+	h.mu.RUnlock()
+	if secret != "" {
+		return secret
+	}
+
+	if h.stateRepo == nil {
+		return ""
+	}
+
+	value, err := h.stateRepo.GetValue(ctx, asanaWebhookStateProvider, asanaWebhookSecretStateKey)
+	if err != nil {
+		if h.logger != nil {
+			h.logger.Warn("loading asana webhook secret failed", zap.Error(err))
+		}
+		return ""
+	}
+	if value == "" {
+		return ""
+	}
+
+	h.mu.Lock()
+	if h.asanaWebhookSecret == "" {
+		h.asanaWebhookSecret = value
+	}
+	secret = h.asanaWebhookSecret
+	h.mu.Unlock()
+
+	return secret
 }
 
 func splitTicketCacheKey(key string) (tenantID, findingID string) {
@@ -605,18 +664,14 @@ func (h *IntegrationHandler) AsanaWebhook(w http.ResponseWriter, r *http.Request
 				return
 			}
 		}
-		h.mu.Lock()
-		h.asanaWebhookSecret = hookSecret
-		h.mu.Unlock()
+		h.setAsanaWebhookSecret(r.Context(), hookSecret)
 		w.Header().Set("X-Hook-Secret", hookSecret)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
 	// Validate X-Hook-Signature on event delivery
-	h.mu.RLock()
-	secret := h.asanaWebhookSecret
-	h.mu.RUnlock()
+	secret := h.getAsanaWebhookSecret(r.Context())
 	if secret == "" {
 		h.logger.Warn("asana webhook event received before handshake")
 		http.Error(w, "webhook not configured", http.StatusServiceUnavailable)

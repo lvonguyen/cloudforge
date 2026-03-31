@@ -395,6 +395,7 @@ func main() {
 			auditLogger:       newAuditLogger("integrations"),
 			logger:            logger.Named("integrations"),
 			ticketRepo:        newFindingTicketStore(auditDB),
+			stateRepo:         newIntegrationRuntimeStateStore(auditDB),
 			ticketStore:       make(map[string]*integrations.Ticket),
 			asanaWebhookToken: os.Getenv("ASANA_WEBHOOK_TOKEN"),
 		},

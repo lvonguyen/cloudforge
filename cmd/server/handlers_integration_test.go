@@ -20,6 +20,11 @@ type stubFindingTicketStore struct {
 	tickets map[string]*integrations.Ticket
 }
 
+type stubIntegrationRuntimeStateStore struct {
+	mu     sync.RWMutex
+	values map[string]string
+}
+
 type stubTicketProvider struct {
 	name     string
 	tickets  map[string]*integrations.Ticket
@@ -108,6 +113,25 @@ func (s *stubFindingTicketStore) PutTicket(_ context.Context, tenantID string, t
 	}
 	copy := *ticket
 	s.tickets[normalizeTicketTenantID(tenantID)+":"+ticket.FindingID] = &copy
+	return nil
+}
+
+func (s *stubIntegrationRuntimeStateStore) GetValue(_ context.Context, provider, key string) (string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.values == nil {
+		return "", nil
+	}
+	return s.values[provider+":"+key], nil
+}
+
+func (s *stubIntegrationRuntimeStateStore) PutValue(_ context.Context, provider, key, value string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.values == nil {
+		s.values = make(map[string]string)
+	}
+	s.values[provider+":"+key] = value
 	return nil
 }
 
@@ -392,6 +416,27 @@ func TestAsanaWebhook_Handshake(t *testing.T) {
 	}
 }
 
+func TestAsanaWebhook_Handshake_PersistsDurableSecret(t *testing.T) {
+	srv, router := testServer(t)
+	stateRepo := &stubIntegrationRuntimeStateStore{}
+	srv.integrationHandler.stateRepo = stateRepo
+
+	req, _ := http.NewRequest("POST", "/api/v1/webhooks/asana", nil)
+	req.Header.Set("X-Hook-Secret", "test-secret-123")
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+	assertStatus(t, rr, http.StatusOK)
+
+	value, err := stateRepo.GetValue(context.Background(), asanaWebhookStateProvider, asanaWebhookSecretStateKey)
+	if err != nil {
+		t.Fatalf("stateRepo.GetValue: %v", err)
+	}
+	if value != "test-secret-123" {
+		t.Fatalf("persisted secret = %q, want test-secret-123", value)
+	}
+}
+
 func TestAsanaWebhook_EventDelivery(t *testing.T) {
 	_, router := testServer(t)
 
@@ -478,6 +523,73 @@ func TestAsanaWebhook_EventDelivery_RefreshesMatchingCachedTicket(t *testing.T) 
 	}
 	if stored.Assignee != "automation-bot" {
 		t.Fatalf("stored assignee = %q, want automation-bot", stored.Assignee)
+	}
+}
+
+func TestAsanaWebhook_EventDelivery_LoadsPersistedSecretAfterRestart(t *testing.T) {
+	srv, router := testServer(t)
+	repo := &stubFindingTicketStore{}
+	stateRepo := &stubIntegrationRuntimeStateStore{
+		values: map[string]string{
+			asanaWebhookStateProvider + ":" + asanaWebhookSecretStateKey: "test-secret-123",
+		},
+	}
+	asanaProvider := &stubTicketProvider{
+		name: "asana",
+		tickets: map[string]*integrations.Ticket{
+			"12001": {
+				ID:         "12001",
+				ExternalID: "12001",
+				Provider:   "asana",
+				Title:      "Cloud Aegis ticket",
+				Status:     integrations.TicketStatusResolved,
+				Priority:   integrations.PriorityHigh,
+				Assignee:   "automation-bot",
+				URL:        "https://app.asana.com/0/1/12001",
+				CreatedAt:  time.Now().Add(-time.Hour).UTC(),
+				UpdatedAt:  time.Now().UTC(),
+			},
+		},
+	}
+	srv.integrationHandler.provider = asanaProvider
+	srv.integrationHandler.providers = map[string]integrations.TicketProvider{"asana": asanaProvider}
+	srv.integrationHandler.ticketRepo = repo
+	srv.integrationHandler.stateRepo = stateRepo
+	srv.integrationHandler.storeTicket(context.Background(), defaultSecgraphTenantID, "f-asana", &integrations.Ticket{
+		ID:         "12001",
+		ExternalID: "12001",
+		Provider:   "asana",
+		FindingID:  "f-asana",
+		Title:      "Cloud Aegis ticket",
+		Status:     integrations.TicketStatusOpen,
+		Priority:   integrations.PriorityHigh,
+		URL:        "https://app.asana.com/0/1/12001",
+		CreatedAt:  time.Now().Add(-time.Hour).UTC(),
+		UpdatedAt:  time.Now().Add(-time.Hour).UTC(),
+	})
+	srv.integrationHandler.mu.Lock()
+	srv.integrationHandler.asanaWebhookSecret = ""
+	srv.integrationHandler.mu.Unlock()
+
+	body := `{"events":[{"action":"changed","resource":{"gid":"story-1","resource_type":"story"},"parent":{"gid":"12001","resource_type":"task"}}]}`
+	sig := computeAsanaHMAC("test-secret-123", body)
+	req, _ := http.NewRequest("POST", "/api/v1/webhooks/asana", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Hook-Signature", sig)
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+	assertStatus(t, rr, http.StatusOK)
+
+	stored, err := repo.GetTicket(context.Background(), defaultSecgraphTenantID, "f-asana")
+	if err != nil {
+		t.Fatalf("repo.GetTicket: %v", err)
+	}
+	if stored == nil {
+		t.Fatal("expected refreshed ticket in durable store")
+	}
+	if stored.Status != integrations.TicketStatusResolved {
+		t.Fatalf("stored status = %q, want %q", stored.Status, integrations.TicketStatusResolved)
 	}
 }
 
