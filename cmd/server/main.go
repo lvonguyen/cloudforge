@@ -113,11 +113,13 @@ type Server struct {
 	integrationHandler *IntegrationHandler
 	webhookEngine      webhooks.Engine
 	complianceMgr      *compliance.Manager
+	secgraphSync       func(context.Context, Finding) error
 	asmSvc             *asmService
 	orgScanner         secrets.OrgScanner
 
 	// Graph query engine (PuppyGraph — feature-flagged via PUPPYGRAPH_URL)
-	graphClient *graph.Client
+	graphClient  *graph.Client
+	graphQuerier secgraph.Querier // structured graph queries (Postgres fallback)
 
 	// Full-text search (BM25 + optional semantic/hybrid)
 	searchSvc *SearchService
@@ -289,6 +291,14 @@ func main() {
 	}
 
 	complianceMgr := compliance.NewManager(logger.Named("compliance"))
+	secgraphStore := secgraph.NewStore(auditDB)
+	secgraphDispatcher := &secgraphTicketDispatcher{
+		provider:     defaultTicketProvider,
+		router:       routingEngine,
+		loader:       sqlSecgraphIssueTicketLoader{db: auditDB},
+		autoDispatch: secgraphAutoTicketsEnabled(),
+		logger:       logger.Named("secgraph.tickets"),
+	}
 
 	// Seed controls and materialize issues/evaluations from loaded findings when
 	// Postgres is available. This keeps the security graph tables warm for graph
@@ -392,9 +402,25 @@ func main() {
 		},
 		webhookEngine: webhooks.NewMemoryEngine(logger.Named("webhooks")),
 		complianceMgr: complianceMgr,
-		asmSvc:        &asmService{scanner: asm.NewMockScanner()},
-		orgScanner:    secrets.NewMockOrgScanner(),
-		graphClient:   graphClient,
+		secgraphSync: func(ctx context.Context, finding Finding) error {
+			if auditDB == nil {
+				return nil
+			}
+			return syncSecurityGraphWithStoreAndDispatcher(
+				ctx,
+				secgraphStore,
+				complianceMgr,
+				[]Finding{finding},
+				defaultSecgraphTenantID,
+				time.Now().UTC(),
+				secgraphDispatcher,
+				logger.Named("secgraph.incremental"),
+			)
+		},
+		asmSvc:       &asmService{scanner: asm.NewMockScanner()},
+		orgScanner:   secrets.NewMockOrgScanner(),
+		graphClient:  graphClient,
+		graphQuerier: initGraphQuerier(auditDB),
 	}
 
 	logger.Info("Server data loaded",

@@ -216,6 +216,14 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.handleGraphQuery))),
 	).Methods("POST")
 
+	// Structured graph query endpoints (ADR-020 — Postgres CTE fallback, always available when DB configured)
+	apiRouter.Handle("/graph/neighborhood/{nodeType}/{nodeId}", // viewer+
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.handleGraphNeighborhood))),
+	).Methods("GET")
+	apiRouter.Handle("/graph/stats", // viewer+
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleGraphStats)),
+	).Methods("GET")
+
 	// Data classification (DSPM) — scope-guarded (account-scoped assets)
 	apiRouter.Handle("/data-classification/assets",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.listDataClassificationAssets))),

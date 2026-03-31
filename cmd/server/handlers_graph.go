@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 
 	"aegis/internal/graph"
+	"aegis/internal/secgraph"
 
+	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
@@ -201,4 +204,86 @@ func (s *Server) handleGraphQuery(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		s.logger.Warn("encoding graph response", zap.Error(err))
 	}
+}
+
+// handleGraphNeighborhood returns the typed subgraph within N hops of a node.
+// Uses the Postgres CTE querier (always available when DB is configured).
+func (s *Server) handleGraphNeighborhood(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.handleGraphNeighborhood")
+	defer span.End()
+
+	if s.graphQuerier == nil {
+		writeErrorResponse(w, "graph querier not configured (requires AEGIS_DATABASE_URL)", http.StatusNotImplemented)
+		return
+	}
+
+	vars := mux.Vars(r)
+	nodeType := vars["nodeType"]
+	nodeID := vars["nodeId"]
+
+	if nodeType == "" || nodeID == "" {
+		writeErrorResponse(w, "nodeType and nodeId path parameters are required", http.StatusBadRequest)
+		return
+	}
+
+	hops := parseIntParam(r, "hops", 1)
+	limit := parseIntParam(r, "limit", 100)
+
+	span.SetAttributes(
+		attribute.String("graph.node_type", nodeType),
+		attribute.String("graph.node_id", nodeID),
+		attribute.Int("graph.hops", hops),
+	)
+
+	result, err := s.graphQuerier.Neighborhood(ctx, secgraph.NodeType(nodeType), nodeID, hops, limit)
+	if err != nil {
+		s.logger.Warn("graph neighborhood query failed",
+			zap.String("node_type", nodeType),
+			zap.String("node_id", nodeID),
+			zap.Error(err),
+		)
+		writeErrorResponse(w, "graph neighborhood query failed", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		s.logger.Warn("encoding neighborhood response", zap.Error(err))
+	}
+}
+
+// handleGraphStats returns vertex and edge counts grouped by type.
+func (s *Server) handleGraphStats(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.handleGraphStats")
+	defer span.End()
+
+	if s.graphQuerier == nil {
+		writeErrorResponse(w, "graph querier not configured (requires AEGIS_DATABASE_URL)", http.StatusNotImplemented)
+		return
+	}
+
+	stats, err := s.graphQuerier.Stats(ctx)
+	if err != nil {
+		s.logger.Warn("graph stats query failed", zap.Error(err))
+		writeErrorResponse(w, "graph stats query failed", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(stats); err != nil {
+		s.logger.Warn("encoding graph stats response", zap.Error(err))
+	}
+}
+
+// parseIntParam reads an integer query param with a default fallback.
+func parseIntParam(r *http.Request, name string, defaultVal int) int {
+	raw := r.URL.Query().Get(name)
+	if raw == "" {
+		return defaultVal
+	}
+	val, err := strconv.Atoi(raw)
+	if err != nil || val <= 0 {
+		return defaultVal
+	}
+	return val
 }

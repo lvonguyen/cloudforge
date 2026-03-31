@@ -173,6 +173,17 @@ Use this file as the shared climbing board for all security-graph work. Before s
     - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestSyncSecurityGraphWithStore|TestSyncSecurityGraphWithStoreAndDispatcher|TestSecgraphTicketDispatcher|TestSecgraphAutoTicketsEnabled|TestToComplianceFinding|TestRemediateFinding|TestGetFindingTicket' -count=1`
     - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph ./internal/compliance ./internal/integrations -count=1`
 
+- `WG-C Follow-up: Incremental secgraph ingest hook` — completed 2026-03-31 (codex)
+  - Scope completed: accepted finding ingests now trigger a best-effort secgraph sync callback so new findings can materialize into controls/issues without waiting for startup; duplicate ingests still short-circuit before sync
+  - Output files:
+    - `cmd/server/handlers_ingest.go`
+    - `cmd/server/handlers_ingest_test.go`
+    - `cmd/server/main.go`
+  - Guardrail: the incremental hook is non-fatal and keeps startup sync as the fallback source of truth for reconciliation
+  - Verification:
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestIngestFinding|TestSyncSecurityGraphWithStore|TestSyncSecurityGraphWithStoreAndDispatcher|TestSecgraphTicketDispatcher|TestSecgraphAutoTicketsEnabled' -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph ./internal/compliance ./internal/integrations -count=1`
+
 ### In Flight
 
 (none currently)
@@ -180,19 +191,24 @@ Use this file as the shared climbing board for all security-graph work. Before s
 ### Pending
 
 - `WG-C Phase 2: Control evaluation + Issue pipeline`
-  - Optional follow-up: promote startup sync into incremental ingestion-time writes instead of startup-only materialization
   - Optional follow-up: broaden auto-dispatch policy beyond startup and add issue-level read/write APIs if secgraph issues become a first-class operator surface
   - Likely touchpoints: `internal/secgraph/`, `internal/compliance/`, `cmd/server/handlers_*.go`
 
-- `WG-D: Live graph query/API path`
-  - Replace findings-derived frontend graph rendering with backend neighborhood queries and graph-native path projections
-  - Likely touchpoints: `cmd/server/handlers_graph.go`, `internal/graph/`, `frontend/src/pages/ops/SecurityGraph.tsx`
-  - Blocked by: WG-B Phase 2 (needs populated edges)
+- `WG-D: Live graph query/API path` — in progress 2026-03-31 (session 33, lead)
+  - Scope claimed: Structured graph query endpoints (neighborhood, paths, stats), Postgres fallback querier, tests
+  - Write scope: `internal/secgraph/queries.go`, `internal/secgraph/queries_test.go`, `cmd/server/handlers_graph.go`, `cmd/server/routes.go`
+  - Coordination: does not touch `store.go`, `materialize.go`, `secgraph_sync.go`, or `handlers_ingest.go`
+  - Unblocked: WG-B Phase 2 (edges populated) is done
 
 - `WG-E: Graph UX modernization`
   - Improve graph layout, expansion model, clustering, inspector rail, and attack-path drill-downs after backend contracts are settled
   - Likely touchpoints: `frontend/src/components/ops/BaseGraphView.tsx`, `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/AttackPathMiniGraph.tsx`
   - Blocked by: WG-D (needs backend graph query API)
+
+- `WG-E Follow-up: Attack-path readability + theme controls`
+  - Goal: lighter/whiter, more readable attack-path analysis view with clearer icons and an explicit dark/light option
+  - Likely touchpoints: `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/AttackPathMiniGraph.tsx`, `frontend/src/components/ops/BaseGraphView.tsx`, shared graph/icon styles
+  - Can run in parallel with: WG-D, as long as it stays presentation-focused and does not change graph API contracts
 
 ### Current Architecture Facts
 

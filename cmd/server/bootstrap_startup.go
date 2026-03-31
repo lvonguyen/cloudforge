@@ -25,6 +25,7 @@ import (
 	"aegis/internal/integrations/asana"
 	"aegis/internal/integrations/jira"
 	"aegis/internal/observability"
+	"aegis/internal/secgraph"
 	"aegis/internal/secrets"
 	"aegis/internal/tenant"
 	"aegis/internal/waf"
@@ -500,4 +501,14 @@ func buildIdentityConfigs(logger *zap.Logger) []identity.Config {
 	}
 
 	return cfgs
+}
+
+// initGraphQuerier creates a structured graph querier. When postgres is
+// available the querier runs CTEs over graph_edges; otherwise returns nil
+// and the handlers return 501.
+func initGraphQuerier(db *sql.DB) secgraph.Querier {
+	if db == nil {
+		return nil
+	}
+	return secgraph.NewPostgresQuerier(db)
 }
