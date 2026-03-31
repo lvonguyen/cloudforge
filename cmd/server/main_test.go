@@ -98,6 +98,7 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 	if err != nil {
 		t.Fatalf("creating container scanner: %v", err)
 	}
+	mockTicketProvider := integrations.NewMockProvider(logger)
 
 	srv := &Server{
 		config: Config{
@@ -140,12 +141,13 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 
 		// Integration layer
 		integrationHandler: &IntegrationHandler{
-			provider:    integrations.NewMockProvider(logger),
-			providers:   map[string]integrations.TicketProvider{"mock": integrations.NewMockProvider(logger)},
+			provider:    mockTicketProvider,
+			providers:   map[string]integrations.TicketProvider{"mock": mockTicketProvider},
 			router:      integrations.NewRoutingEngine(integrations.DefaultRules()),
 			workflow:    wfEngine,
 			auditLogger: audit.NewMemoryAuditLogger(),
 			logger:      logger,
+			ticketRepo:  nil,
 			ticketStore: make(map[string]*integrations.Ticket),
 		},
 		webhookEngine: webhooks.NewMemoryEngine(logger),

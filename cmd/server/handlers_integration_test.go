@@ -1,16 +1,48 @@
 package main
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	"aegis/internal/integrations"
 )
+
+type stubFindingTicketStore struct {
+	mu      sync.RWMutex
+	tickets map[string]*integrations.Ticket
+}
+
+func (s *stubFindingTicketStore) GetTicket(_ context.Context, tenantID, findingID string) (*integrations.Ticket, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.tickets == nil {
+		return nil, nil
+	}
+	ticket, ok := s.tickets[normalizeTicketTenantID(tenantID)+":"+findingID]
+	if !ok {
+		return nil, nil
+	}
+	copy := *ticket
+	return &copy, nil
+}
+
+func (s *stubFindingTicketStore) PutTicket(_ context.Context, tenantID string, ticket *integrations.Ticket) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.tickets == nil {
+		s.tickets = make(map[string]*integrations.Ticket)
+	}
+	copy := *ticket
+	s.tickets[normalizeTicketTenantID(tenantID)+":"+ticket.FindingID] = &copy
+	return nil
+}
 
 func computeAsanaHMAC(secret, body string) string {
 	mac := hmac.New(sha256.New, []byte(secret))
@@ -77,6 +109,75 @@ func TestGetFindingTicket_AfterRemediate(t *testing.T) {
 	assertJSON(t, rr, &ticket)
 	if ticket.FindingID != "f-ticket-test" {
 		t.Errorf("expected finding_id f-ticket-test, got %q", ticket.FindingID)
+	}
+}
+
+func TestGetFindingTicket_FromDurableStore(t *testing.T) {
+	srv, router := testServer(t)
+	jwt := operatorJWT(t)
+	repo := &stubFindingTicketStore{}
+	srv.integrationHandler.ticketRepo = repo
+	repo.tickets = map[string]*integrations.Ticket{
+		"default:f-durable": {
+			ID:         "ticket-1",
+			ExternalID: "JIRA-42",
+			Provider:   "jira",
+			FindingID:  "f-durable",
+			Title:      "Persisted remediation ticket",
+			Status:     integrations.TicketStatusInProgress,
+			Priority:   integrations.PriorityHigh,
+			Assignee:   "alice",
+			URL:        "https://jira.local/browse/JIRA-42",
+		},
+	}
+
+	rr := doRequest(t, router, "GET", "/api/v1/findings/f-durable/ticket", "", jwt)
+	assertStatus(t, rr, http.StatusOK)
+
+	var ticket integrations.Ticket
+	assertJSON(t, rr, &ticket)
+	if ticket.ExternalID != "JIRA-42" {
+		t.Fatalf("external_id = %q, want JIRA-42", ticket.ExternalID)
+	}
+	if ticket.Provider != "jira" {
+		t.Fatalf("provider = %q, want jira", ticket.Provider)
+	}
+}
+
+func TestSyncTicketStatus_PersistsDurableStore(t *testing.T) {
+	srv, router := testServer(t)
+	jwt := adminJWT(t)
+	repo := &stubFindingTicketStore{}
+	srv.integrationHandler.ticketRepo = repo
+
+	doRequest(t, router, "POST", "/api/v1/findings/f-sync/remediate", `{"severity":"HIGH"}`, jwt)
+
+	mockProvider, ok := srv.integrationHandler.provider.(*integrations.MockProvider)
+	if !ok {
+		t.Fatal("expected mock ticket provider")
+	}
+	ticket, found := mockProvider.GetTicketByFindingID("f-sync")
+	if !found {
+		t.Fatal("expected ticket in mock provider")
+	}
+	ticket.Status = integrations.TicketStatusInProgress
+
+	srv.integrationHandler.ticketMu.Lock()
+	srv.integrationHandler.ticketStore = make(map[string]*integrations.Ticket)
+	srv.integrationHandler.ticketMu.Unlock()
+
+	rr := doRequest(t, router, "POST", "/api/v1/findings/f-sync/ticket/sync", `{}`, jwt)
+	assertStatus(t, rr, http.StatusOK)
+
+	stored, err := repo.GetTicket(context.Background(), defaultSecgraphTenantID, "f-sync")
+	if err != nil {
+		t.Fatalf("repo.GetTicket: %v", err)
+	}
+	if stored == nil {
+		t.Fatal("expected synced ticket in durable store")
+	}
+	if stored.Status != integrations.TicketStatusInProgress {
+		t.Fatalf("status = %q, want %q", stored.Status, integrations.TicketStatusInProgress)
 	}
 }
 

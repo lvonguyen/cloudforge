@@ -398,6 +398,7 @@ func main() {
 			workflow:          workflowEngine,
 			auditLogger:       newAuditLogger("integrations"),
 			logger:            logger.Named("integrations"),
+			ticketRepo:        newFindingTicketStore(auditDB),
 			ticketStore:       make(map[string]*integrations.Ticket),
 			asanaWebhookToken: os.Getenv("ASANA_WEBHOOK_TOKEN"),
 		},

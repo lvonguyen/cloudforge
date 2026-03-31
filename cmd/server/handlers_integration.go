@@ -32,9 +32,10 @@ type IntegrationHandler struct {
 	workflow    workflow.Engine
 	auditLogger audit.AuditLogger
 	logger      *zap.Logger
+	ticketRepo  findingTicketStore
 
 	ticketMu    sync.RWMutex
-	ticketStore map[string]*integrations.Ticket // finding ID → ticket (in-memory mapping)
+	ticketStore map[string]*integrations.Ticket // tenant-scoped finding ticket cache
 
 	mu                 sync.RWMutex
 	asanaWebhookSecret string // persisted from handshake for event signature validation
@@ -52,11 +53,8 @@ func (h *IntegrationHandler) selectProvider(name string) integrations.TicketProv
 }
 
 // providerForFinding returns the provider that created the ticket for a finding.
-func (h *IntegrationHandler) providerForFinding(findingID string) integrations.TicketProvider {
-	h.ticketMu.RLock()
-	ticket, ok := h.ticketStore[findingID]
-	h.ticketMu.RUnlock()
-	if ok && h.providers != nil {
+func (h *IntegrationHandler) providerForFinding(ctx context.Context, tenantID, findingID string) integrations.TicketProvider {
+	if ticket, ok := h.loadTicket(ctx, tenantID, findingID); ok && h.providers != nil {
 		if p, exists := h.providers[ticket.Provider]; exists {
 			return p
 		}
@@ -64,11 +62,74 @@ func (h *IntegrationHandler) providerForFinding(findingID string) integrations.T
 	return h.provider
 }
 
-// storeTicket persists the finding→ticket mapping in memory.
-func (h *IntegrationHandler) storeTicket(findingID string, ticket *integrations.Ticket) {
+func (h *IntegrationHandler) cacheTicket(tenantID, findingID string, ticket *integrations.Ticket) {
+	if h == nil || ticket == nil {
+		return
+	}
+	tenantID = normalizeTicketTenantID(tenantID)
 	h.ticketMu.Lock()
-	h.ticketStore[findingID] = ticket
+	if h.ticketStore == nil {
+		h.ticketStore = make(map[string]*integrations.Ticket)
+	}
+	h.ticketStore[ticketCacheKey(tenantID, findingID)] = ticket
 	h.ticketMu.Unlock()
+}
+
+func (h *IntegrationHandler) loadMemoryTicket(tenantID, findingID string) (*integrations.Ticket, bool) {
+	if h == nil {
+		return nil, false
+	}
+	tenantID = normalizeTicketTenantID(tenantID)
+	h.ticketMu.RLock()
+	ticket, ok := h.ticketStore[ticketCacheKey(tenantID, findingID)]
+	h.ticketMu.RUnlock()
+	return ticket, ok
+}
+
+// storeTicket persists the finding→ticket mapping in the in-memory cache and optional durable store.
+func (h *IntegrationHandler) storeTicket(ctx context.Context, tenantID, findingID string, ticket *integrations.Ticket) {
+	if h == nil || ticket == nil {
+		return
+	}
+	if findingID != "" {
+		ticket.FindingID = findingID
+	}
+	h.cacheTicket(tenantID, findingID, ticket)
+	if h.ticketRepo != nil {
+		if err := h.ticketRepo.PutTicket(ctx, tenantID, ticket); err != nil && h.logger != nil {
+			h.logger.Warn("persisting finding ticket failed",
+				zap.String("tenant_id", normalizeTicketTenantID(tenantID)),
+				zap.String("finding_id", findingID),
+				zap.Error(err),
+			)
+		}
+	}
+}
+
+func (h *IntegrationHandler) loadTicket(ctx context.Context, tenantID, findingID string) (*integrations.Ticket, bool) {
+	if ticket, ok := h.loadMemoryTicket(tenantID, findingID); ok {
+		return ticket, true
+	}
+	if h != nil && h.ticketRepo != nil {
+		ticket, err := h.ticketRepo.GetTicket(ctx, tenantID, findingID)
+		if err != nil {
+			if h.logger != nil {
+				h.logger.Warn("loading finding ticket from durable store failed",
+					zap.String("tenant_id", normalizeTicketTenantID(tenantID)),
+					zap.String("finding_id", findingID),
+					zap.Error(err),
+				)
+			}
+		} else if ticket != nil {
+			h.cacheTicket(tenantID, findingID, ticket)
+			return ticket, true
+		}
+	}
+	return nil, false
+}
+
+func ticketCacheKey(tenantID, findingID string) string {
+	return normalizeTicketTenantID(tenantID) + ":" + strings.TrimSpace(findingID)
 }
 
 // RemediateFinding creates a ticket and starts a remediation workflow.
@@ -79,6 +140,7 @@ func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Req
 	r = r.WithContext(ctx)
 
 	findingID := mux.Vars(r)["id"]
+	tenantID := issueTenantID(r)
 	span.SetAttributes(attribute.String("finding.id", findingID))
 	if findingID == "" {
 		writeErrorResponse(w, "finding id required", http.StatusBadRequest)
@@ -139,7 +201,7 @@ func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Req
 	}
 
 	// Persist finding→ticket mapping for later lookups
-	h.storeTicket(findingID, ticket)
+	h.storeTicket(ctx, tenantID, findingID, ticket)
 
 	// Start a remediation workflow
 	wf, err := h.workflow.StartWorkflow(r.Context(), &workflow.Workflow{
@@ -187,17 +249,15 @@ func (h *IntegrationHandler) GetFindingTicket(w http.ResponseWriter, r *http.Req
 	r = r.WithContext(ctx)
 
 	findingID := mux.Vars(r)["id"]
+	tenantID := issueTenantID(r)
 	span.SetAttributes(attribute.String("finding.id", findingID))
 	if findingID == "" {
 		writeErrorResponse(w, "finding id required", http.StatusBadRequest)
 		return
 	}
 
-	// Look up from ticket store (works for all providers: real and mock)
-	h.ticketMu.RLock()
-	ticket, ok := h.ticketStore[findingID]
-	h.ticketMu.RUnlock()
-	if ok {
+	// Look up from the durable store / cache first.
+	if ticket, ok := h.loadTicket(ctx, tenantID, findingID); ok {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(ticket)
 		return
@@ -228,7 +288,7 @@ func (h *IntegrationHandler) GetTicketComments(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	externalID, err := h.resolveExternalID(findingID)
+	externalID, err := h.resolveExternalID(ctx, issueTenantID(r), findingID)
 	if err != nil {
 		writeErrorResponse(w, "no ticket for this finding", http.StatusNotFound)
 		return
@@ -237,7 +297,7 @@ func (h *IntegrationHandler) GetTicketComments(w http.ResponseWriter, r *http.Re
 	type commenter interface {
 		ListComments(ctx context.Context, externalID string) ([]integrations.CommentSync, error)
 	}
-	lc, ok := h.providerForFinding(findingID).(commenter)
+	lc, ok := h.providerForFinding(ctx, issueTenantID(r), findingID).(commenter)
 	if !ok {
 		writeErrorResponse(w, "provider does not support listing comments", http.StatusNotImplemented)
 		return
@@ -276,13 +336,13 @@ func (h *IntegrationHandler) AddTicketComment(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	externalID, err := h.resolveExternalID(findingID)
+	externalID, err := h.resolveExternalID(ctx, issueTenantID(r), findingID)
 	if err != nil {
 		writeErrorResponse(w, "no ticket for this finding", http.StatusNotFound)
 		return
 	}
 
-	comment, err := h.providerForFinding(findingID).AddComment(ctx, externalID, body.Body)
+	comment, err := h.providerForFinding(ctx, issueTenantID(r), findingID).AddComment(ctx, externalID, body.Body)
 	if err != nil {
 		h.logger.Error("adding ticket comment failed", zap.String("finding_id", findingID), zap.Error(err))
 		writeErrorResponse(w, "failed to add comment", http.StatusInternalServerError)
@@ -301,19 +361,20 @@ func (h *IntegrationHandler) SyncTicketStatus(w http.ResponseWriter, r *http.Req
 	defer span.End()
 
 	findingID := mux.Vars(r)["id"]
+	tenantID := issueTenantID(r)
 	span.SetAttributes(attribute.String("finding.id", findingID))
 	if findingID == "" {
 		writeErrorResponse(w, "finding id required", http.StatusBadRequest)
 		return
 	}
 
-	externalID, err := h.resolveExternalID(findingID)
+	externalID, err := h.resolveExternalID(ctx, tenantID, findingID)
 	if err != nil {
 		writeErrorResponse(w, "no ticket for this finding", http.StatusNotFound)
 		return
 	}
 
-	prov := h.providerForFinding(findingID)
+	prov := h.providerForFinding(ctx, tenantID, findingID)
 	status, err := prov.SyncStatus(ctx, externalID)
 	if err != nil {
 		h.logger.Error("syncing ticket status failed", zap.String("finding_id", findingID), zap.Error(err))
@@ -328,17 +389,16 @@ func (h *IntegrationHandler) SyncTicketStatus(w http.ResponseWriter, r *http.Req
 		return
 	}
 	ticket.Status = status
+	h.storeTicket(ctx, tenantID, findingID, ticket)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(ticket)
 }
 
-// resolveExternalID maps a finding ID to its external ticket ID.
-func (h *IntegrationHandler) resolveExternalID(findingID string) (string, error) {
-	// Primary: ticket store (works for all providers)
-	h.ticketMu.RLock()
-	ticket, ok := h.ticketStore[findingID]
-	h.ticketMu.RUnlock()
+// resolveExternalID maps a tenant-scoped finding ID to its external ticket ID.
+func (h *IntegrationHandler) resolveExternalID(ctx context.Context, tenantID, findingID string) (string, error) {
+	// Primary: durable store + cache (works for all providers)
+	ticket, ok := h.loadTicket(ctx, tenantID, findingID)
 	if ok {
 		return ticket.ExternalID, nil
 	}
