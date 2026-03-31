@@ -97,7 +97,11 @@ docker-logs:
 # Run database migrations
 migrate:
 	@echo "Running migrations..."
-	psql $(DATABASE_URL) -f migrations/001_exception_management.sql
+	@test -n "$(DATABASE_URL)" || (echo "DATABASE_URL is required" && exit 1)
+	@for f in $$(ls migrations/*.sql | sort); do \
+		echo "=== Running $$f ==="; \
+		psql $(DATABASE_URL) -f "$$f" || exit 1; \
+	done
 
 # Test OPA policies
 opa-test:
@@ -202,4 +206,3 @@ smoke: build  ## Start backend, verify health, stop
 	@curl -sf http://localhost:8080/healthz && echo "Liveness: OK" || echo "Liveness: FAIL"
 	@curl -sf http://localhost:8080/ready && echo "Readiness: OK" || echo "Readiness: FAIL"
 	@kill %1 2>/dev/null || true
-

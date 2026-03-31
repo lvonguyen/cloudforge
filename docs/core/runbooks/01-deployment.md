@@ -98,6 +98,78 @@ docker build -f deploy/docker/Dockerfile.migrate -t cloudforge-migrate .
 docker run --rm -e AEGIS_DATABASE_URL="$AEGIS_DATABASE_URL" cloudforge-migrate
 ```
 
+### Option C: Full Findings Seed into Fly Postgres (D19)
+
+Use this only during an explicit operator window. This is a destructive load sequence against the target database and should be done against a fresh database or a snapshot-backed restore point.
+
+```bash
+export DATABASE_URL='<postgres-dsn>'
+export AEGIS_DATABASE_URL="$DATABASE_URL"
+export FINDINGS_SOURCE=postgres
+export SECGRAPH_AUTO_TICKETS=false
+
+# Required because the schema uses gen_random_uuid().
+psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS pgcrypto;'
+
+# Apply the ordered schema set. Do not rely on older `make migrate` helpers for D19.
+for f in \
+  migrations/001_exception_management.sql \
+  migrations/002_findings_and_compliance.sql \
+  migrations/003_operations_and_agents.sql \
+  migrations/005_tenant_isolation.sql \
+  migrations/006_graph_support.sql \
+  migrations/007_security_graph.sql \
+  migrations/008_findings_assignment_context.sql \
+  migrations/009_finding_tickets.sql
+do
+  psql "$DATABASE_URL" -f "$f" || exit 1
+done
+
+# Full seed requires both --full and the explicit 300K count.
+node --max-old-space-size=6144 scripts/aegis-seed.mjs \
+  --count 300000 \
+  --out testdata/seed \
+  --full \
+  --seed 42
+
+# Generate SQL, then load it with psql.
+node scripts/seed-postgres.mjs --in testdata/seed --out /tmp/seed-findings.sql
+psql "$DATABASE_URL" -f /tmp/seed-findings.sql
+
+node scripts/seed-resources.mjs --in testdata/seed --out /tmp/seed-resources.sql
+psql "$DATABASE_URL" -f /tmp/seed-resources.sql
+
+# Re-run graph-support/security-graph migrations after findings/resources are loaded.
+psql "$DATABASE_URL" -f migrations/006_graph_support.sql
+psql "$DATABASE_URL" -f migrations/007_security_graph.sql
+```
+
+Verify before cutover:
+
+```bash
+psql "$DATABASE_URL" -c 'select count(*) from findings;'
+psql "$DATABASE_URL" -c 'select count(*) from resources;'
+psql "$DATABASE_URL" -c 'select count(*) from accounts;'
+psql "$DATABASE_URL" -c 'select count(*) from graph_edges;'
+```
+
+Cut over the app only after those counts look correct and startup headroom is acceptable:
+
+```bash
+fly secrets set \
+  AEGIS_DATABASE_URL="$DATABASE_URL" \
+  FINDINGS_SOURCE=postgres \
+  SECGRAPH_AUTO_TICKETS=false \
+  -a cloudforge-api
+
+fly deploy -a cloudforge-api
+```
+
+Notes:
+- `scripts/seed-postgres.mjs` and `scripts/seed-resources.mjs` generate SQL; they do not load Postgres by themselves.
+- The current startup path still eagerly loads findings, search state, and secgraph materialization. Treat the first live cutover as high risk on the current Fly machine size/grace period.
+- If cutover fails, revert `FINDINGS_SOURCE=mock` and restart before doing any deeper DB surgery.
+
 ## Verification
 
 ### API Health Check

@@ -33,6 +33,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 
 ### Database
 - [ ] If `GRC_PROVIDER=postgres` or `FINDINGS_SOURCE=postgres`, verify `AEGIS_DATABASE_URL` is set and reachable
+- [ ] For a full D19 findings seed, also set `SECGRAPH_AUTO_TICKETS=false` for the first cutover so startup does not auto-dispatch tickets against a freshly materialized corpus
 - [ ] Run migrations before deploying a backend version that depends on new schema:
   ```bash
   for f in migrations/*.sql; do
@@ -156,11 +157,17 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 - [ ] SQL loader needs batched multi-row INSERTs with `ON CONFLICT` upserts
 - [ ] JSONB casting required for cves/compliance_mappings fields, TEXT[] for MITRE/factors
 - [ ] Frontend mock: 500-finding stratified sample only (not full 20K) -- keep under 1MB
+- [ ] Full seed requires `node --max-old-space-size=6144 scripts/aegis-seed.mjs --count 300000 --out testdata/seed --full --seed 42`
 
 ### Database Loading
 - [ ] db.t3.micro handles ~20K findings; db.t3.medium+ needed for 300K
-- [ ] Run migrations (002 schema) before loading seed data
-- [ ] Seed loader: `scripts/load-findings-to-postgres.mjs` (requires Node.js + pg driver)
+- [ ] Create `pgcrypto` before applying schema: `psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS pgcrypto;'`
+- [ ] Apply the ordered migrations through `009_finding_tickets.sql`; do not rely on older `make migrate` helpers for D19
+- [ ] Findings loader is a two-step flow: `node scripts/seed-postgres.mjs --in testdata/seed --out /tmp/seed-findings.sql` then `psql "$DATABASE_URL" -f /tmp/seed-findings.sql`
+- [ ] Resources loader is separate: `node scripts/seed-resources.mjs --in testdata/seed --out /tmp/seed-resources.sql` then `psql "$DATABASE_URL" -f /tmp/seed-resources.sql`
+- [ ] Re-run `migrations/006_graph_support.sql` and `migrations/007_security_graph.sql` after findings/resources load so accounts and graph edges backfill from the seeded corpus
+- [ ] Verify counts before cutover: `findings`, `resources`, `accounts`, `graph_edges`
+- [ ] Current startup still eagerly loads findings/search/secgraph state; treat the first live `FINDINGS_SOURCE=postgres` cutover as high risk on the current Fly CPU/RAM/grace-period budget
 
 ---
 
