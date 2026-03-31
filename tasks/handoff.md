@@ -272,6 +272,19 @@ Use this file as the shared climbing board for all security-graph work. Before s
     - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestPostgresFindingRow|TestSyncSecurityGraphWithStore_PicksBestIssueAssigneeFromFindingMetadata|TestSecgraphTicketDispatcher_PreservesExistingTicketState|TestSecgraphTicketDispatcher_CreatesTicketForUnticketedIssue|TestToComplianceFinding_ParsesOptionalFields' -count=1`
     - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -run 'TestMaterializeFinding|TestMergeMaterializationResultsAggregatesSharedIssue' -count=1`
 
+- `WG-C Follow-up: Graph-derived blast radius scoring` — completed 2026-03-30 (codex)
+  - Scope completed: issue materialization now folds graph adjacency blast radius into secgraph scoring when graph edges are available, while preserving heuristic `impacted_resources` fallback when they are not; startup order now runs edge backfill before secgraph sync so startup scoring sees warmed graph context
+  - Output files:
+    - `internal/secgraph/materialize.go`
+    - `internal/secgraph/materialize_test.go`
+    - `cmd/server/secgraph_sync.go`
+    - `cmd/server/secgraph_sync_test.go`
+    - `cmd/server/main.go`
+  - Guardrail: exposure-path scoring is still heuristic and attack-path traversal is still not graph-native; this slice only upgrades blast radius
+  - Verification:
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -run 'TestMaterializeFinding|TestMergeMaterializationResultsAggregatesSharedIssue' -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestSyncSecurityGraphWithStore_|TestSyncSecurityGraphWithStoreAndDispatcher|TestSecgraphTicketDispatcher|TestToComplianceFinding' -count=1`
+
 - `WG-E Follow-up: Attack-path readability + theme controls` — completed 2026-03-31 (codex)
   - Scope completed: lighter/whiter analyst-friendly attack-path detail canvas, clearer node/icon presentation, and an explicit local canvas tone control layered on top of the existing app theme without changing backend graph contracts
   - Output files:
@@ -305,9 +318,9 @@ Use this file as the shared climbing board for all security-graph work. Before s
 
 ### Pending
 
-- `WG-C Phase 2: Control evaluation + Issue pipeline`
-  - Optional follow-up: broaden auto-dispatch policy beyond startup and add issue-level write actions once the read API lands
-  - Likely touchpoints: `internal/secgraph/`, `internal/compliance/`, `cmd/server/handlers_*.go`
+- `WG-D Phase 3: Graph-native attack path traversal`
+  - Replace the remaining finding-level heuristic BFS with graph-native path computation over explicit edges / graph neighborhood data
+  - Likely touchpoints: `cmd/server/attackpath.go`, `cmd/server/handlers_attackpath.go`, `internal/secgraph/adjacency.go`, `docs/core/architecture/graph-native-attack-paths.md`
 
 ### Current Architecture Facts (refreshed 2026-03-31, session 33)
 
@@ -320,13 +333,13 @@ Use this file as the shared climbing board for all security-graph work. Before s
 - Issues are materialized from findings + control violations. Dedup key: (control_id, resource_id, tenant_id). First-class operator surface with CRUD API.
   - Evidence: `cmd/server/handlers_issues.go`, `internal/secgraph/issue_queries.go`, routes at `/issues`, `/issues/{id}`, `/issues/stats`
 
-- Graph edges are backfilled on startup (affects, belongs_to, maps_to, same_region) and incrementally on finding ingest.
-  - Evidence: `internal/secgraph/backfill.go`, `cmd/server/secgraph_sync.go`
+- Graph edges are backfilled on startup before secgraph sync, and secgraph issue scoring now uses adjacency-derived blast radius when graph edges are available.
+  - Evidence: `internal/secgraph/backfill.go`, `internal/secgraph/materialize.go`, `cmd/server/main.go`, `cmd/server/secgraph_sync.go`
 
 - Structured graph query API: neighborhood expansion + stats via Postgres CTEs, independent of PuppyGraph.
   - Evidence: `internal/secgraph/queries.go`, `cmd/server/handlers_graph.go` (handleGraphNeighborhood, handleGraphStats)
 
-- SecurityGraph frontend page uses backend neighborhood API in focus mode, falls back to client-side derivation in demo mode.
+- SecurityGraph frontend page is backend-first via the neighborhood API and falls back to client-side derivation only when backend graph data is unavailable.
   - Evidence: `frontend/src/pages/ops/SecurityGraph.tsx`, `frontend/src/hooks/useGraphQuery.ts`
 
 - Attack paths are still heuristic-computed (computeAttackPaths in attackpath.go). Graph-native path queries are documented but not wired into the BFS engine yet.
@@ -335,8 +348,6 @@ Use this file as the shared climbing board for all security-graph work. Before s
 ### Working Target (remaining)
 
 - Replace heuristic BFS with graph-native Gremlin traversals using explicit edges
-- Promote SecurityGraph frontend to use neighborhood API as primary (not just focus mode)
-- Wire blast radius computation from graph edge traversal into Issue scoring
 
 ### Provisional Recommendation
 

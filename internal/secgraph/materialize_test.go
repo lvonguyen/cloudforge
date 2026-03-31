@@ -126,6 +126,45 @@ func TestMaterializeFindingDeduplicatesDuplicateMappings(t *testing.T) {
 	}
 }
 
+func TestMaterializeFindingWithOptions_UsesGraphBlastRadiusInScoring(t *testing.T) {
+	now := time.Date(2026, time.March, 31, 4, 30, 0, 0, time.UTC)
+	adj := NewAdjacencySet()
+	adj.Add("db-graph", "svc-a", EdgeSameRegion)
+	adj.Add("svc-a", "svc-b", EdgeSameAccount)
+	adj.Add("svc-b", "svc-c", EdgeSameRegion)
+
+	finding := &compliance.Finding{
+		ID:            "F-002A",
+		Title:         "Database reachable from adjacent services",
+		ResourceID:    "db-graph",
+		ResourceName:  "db-graph",
+		ResourceType:  compliance.ResourceTypeDatabase,
+		CloudProvider: compliance.CloudProviderAWS,
+		AccountID:     "123456789012",
+		Severity:      "HIGH",
+		Category:      compliance.CategoryDatabase,
+		ComplianceMappings: []compliance.ComplianceMapping{
+			{FrameworkID: "nist-csf", FrameworkName: "NIST CSF", ControlID: "PR.DS", ControlTitle: "Protect data stores", Severity: "HIGH"},
+		},
+	}
+
+	result := MaterializeFindingWithOptions(finding, "tenant-a", now, MaterializeOptions{
+		Adjacency:       adj,
+		BlastRadiusHops: 2,
+	})
+	if len(result.Issues) != 1 {
+		t.Fatalf("issues = %d, want 1", len(result.Issues))
+	}
+
+	issue := result.Issues[0]
+	if issue.BlastRadius != 2 {
+		t.Fatalf("blast_radius = %d, want 2", issue.BlastRadius)
+	}
+	if issue.RiskScore != 82.5 {
+		t.Fatalf("risk_score = %.2f, want 82.50", issue.RiskScore)
+	}
+}
+
 func TestMaterializeFindingDerivesResolvedLifecycle(t *testing.T) {
 	now := time.Date(2026, time.March, 31, 5, 0, 0, 0, time.UTC)
 	resolvedAt := now.Add(-2 * time.Hour)

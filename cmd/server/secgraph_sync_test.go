@@ -306,6 +306,46 @@ func TestSyncSecurityGraphWithStore_MergesSharedIssueAcrossFindings(t *testing.T
 	}
 }
 
+func TestSyncSecurityGraphWithStore_UsesAdjacencyBlastRadiusWhenProvided(t *testing.T) {
+	manager := compliance.NewManager(zap.NewNop())
+	store := &recordingSecgraphStore{}
+	now := time.Date(2026, 3, 31, 13, 55, 0, 0, time.UTC)
+	adjacency := secgraph.NewAdjacencySet()
+	adjacency.Add("db-graph-sync", "svc-a", secgraph.EdgeSameRegion)
+	adjacency.Add("svc-a", "svc-b", secgraph.EdgeSameAccount)
+
+	finding := Finding{
+		ID:           "finding-graph-radius",
+		Title:        "Shared service blast radius",
+		Description:  "Should use graph adjacency instead of empty impacted_resources",
+		ResourceType: "database",
+		ResourceID:   "db-graph-sync",
+		ResourceName: "db-graph-sync",
+		Type:         "misconfiguration",
+		Severity:     "high",
+		AccountID:    "acct-1",
+		Category:     "COMPLIANCE",
+		ComplianceMappings: []ComplianceMapping{
+			{FrameworkID: "custom-fw", FrameworkName: "Custom Framework", ControlID: "CTRL-GRAPH", ControlTitle: "Graph blast radius control", Severity: "HIGH"},
+		},
+	}
+
+	if err := syncSecurityGraphWithStoreAndDispatcherMode(context.Background(), store, manager, []Finding{finding}, "tenant-a", now, nil, zap.NewNop(), true, adjacency); err != nil {
+		t.Fatalf("syncSecurityGraphWithStoreAndDispatcherMode() error = %v", err)
+	}
+
+	if len(store.materializationCalls) != 1 || len(store.materializationCalls[0].Issues) != 1 {
+		t.Fatal("expected one materialized issue")
+	}
+	issue := store.materializationCalls[0].Issues[0]
+	if issue.BlastRadius != 2 {
+		t.Fatalf("blast_radius = %d, want 2", issue.BlastRadius)
+	}
+	if issue.RiskScore != 82.5 {
+		t.Fatalf("risk_score = %.2f, want 82.50", issue.RiskScore)
+	}
+}
+
 func TestSyncSecurityGraphWithStore_PicksBestIssueAssigneeFromFindingMetadata(t *testing.T) {
 	manager := compliance.NewManager(zap.NewNop())
 	store := &recordingSecgraphStore{}

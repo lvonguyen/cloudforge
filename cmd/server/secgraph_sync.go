@@ -176,6 +176,10 @@ func syncSecurityGraph(ctx context.Context, db *sql.DB, mgr *compliance.Manager,
 	if db == nil {
 		return nil
 	}
+	adjacency, err := loadSecgraphAdjacency(ctx, db, logger)
+	if err != nil {
+		return err
+	}
 	dispatcher := &secgraphTicketDispatcher{
 		provider:     provider,
 		router:       router,
@@ -183,18 +187,18 @@ func syncSecurityGraph(ctx context.Context, db *sql.DB, mgr *compliance.Manager,
 		autoDispatch: secgraphAutoTicketsEnabled(),
 		logger:       logger,
 	}
-	return syncSecurityGraphWithStoreAndDispatcherMode(ctx, secgraph.NewStore(db), mgr, findings, defaultSecgraphTenantID, time.Now().UTC(), dispatcher, logger, true)
+	return syncSecurityGraphWithStoreAndDispatcherMode(ctx, secgraph.NewStore(db), mgr, findings, defaultSecgraphTenantID, time.Now().UTC(), dispatcher, logger, true, adjacency)
 }
 
 func syncSecurityGraphWithStore(ctx context.Context, store secgraphPersister, mgr *compliance.Manager, findings []Finding, tenantID string, now time.Time, logger *zap.Logger) error {
-	return syncSecurityGraphWithStoreAndDispatcherMode(ctx, store, mgr, findings, tenantID, now, nil, logger, true)
+	return syncSecurityGraphWithStoreAndDispatcherMode(ctx, store, mgr, findings, tenantID, now, nil, logger, true, nil)
 }
 
 func syncSecurityGraphWithStoreAndDispatcher(ctx context.Context, store secgraphPersister, mgr *compliance.Manager, findings []Finding, tenantID string, now time.Time, dispatcher secgraphIssueDispatcher, logger *zap.Logger) error {
-	return syncSecurityGraphWithStoreAndDispatcherMode(ctx, store, mgr, findings, tenantID, now, dispatcher, logger, false)
+	return syncSecurityGraphWithStoreAndDispatcherMode(ctx, store, mgr, findings, tenantID, now, dispatcher, logger, false, nil)
 }
 
-func syncSecurityGraphWithStoreAndDispatcherMode(ctx context.Context, store secgraphPersister, mgr *compliance.Manager, findings []Finding, tenantID string, now time.Time, dispatcher secgraphIssueDispatcher, logger *zap.Logger, reconcile bool) error {
+func syncSecurityGraphWithStoreAndDispatcherMode(ctx context.Context, store secgraphPersister, mgr *compliance.Manager, findings []Finding, tenantID string, now time.Time, dispatcher secgraphIssueDispatcher, logger *zap.Logger, reconcile bool, adjacency *secgraph.AdjacencySet) error {
 	if store == nil || mgr == nil {
 		return nil
 	}
@@ -222,7 +226,10 @@ func syncSecurityGraphWithStoreAndDispatcherMode(ctx context.Context, store secg
 			complianceFinding = *mapped
 		}
 
-		result := secgraph.MaterializeFinding(&complianceFinding, tenantID, now)
+		result := secgraph.MaterializeFindingWithOptions(&complianceFinding, tenantID, now, secgraph.MaterializeOptions{
+			Adjacency:       adjacency,
+			BlastRadiusHops: 2,
+		})
 		if len(result.Issues) == 0 && len(result.Evaluations) == 0 && len(result.Edges) == 0 {
 			continue
 		}
@@ -282,6 +289,20 @@ func syncSecurityGraphWithStoreAndDispatcherMode(ctx context.Context, store secg
 	}
 
 	return nil
+}
+
+func loadSecgraphAdjacency(ctx context.Context, db *sql.DB, logger *zap.Logger) (*secgraph.AdjacencySet, error) {
+	if db == nil {
+		return nil, nil
+	}
+	adjacency, err := secgraph.LoadAdjacencyFromDB(ctx, db)
+	if err != nil {
+		if logger != nil {
+			logger.Warn("Failed to load secgraph adjacency for issue scoring (using heuristic blast radius)", zap.Error(err))
+		}
+		return nil, nil
+	}
+	return adjacency, nil
 }
 
 func activeFindingIDs(findings []Finding) []string {

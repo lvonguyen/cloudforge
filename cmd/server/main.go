@@ -301,19 +301,6 @@ func main() {
 		logger:       logger.Named("secgraph.tickets"),
 	}
 
-	// Seed controls and materialize issues/evaluations from loaded findings when
-	// Postgres is available. This keeps the security graph tables warm for graph
-	// queries while the full graph-native pipeline is being phased in.
-	if auditDB != nil {
-		secgraphCtx, secgraphCancel := context.WithTimeout(context.Background(), 60*time.Second)
-		if sgErr := syncSecurityGraph(secgraphCtx, auditDB, complianceMgr, mockData.Findings, defaultTicketProvider, routingEngine, logger.Named("secgraph")); sgErr != nil {
-			logger.Warn("Security graph sync failed (non-fatal, issue graph may be incomplete)",
-				zap.Error(sgErr),
-			)
-		}
-		secgraphCancel()
-	}
-
 	// Backfill security graph edges when postgres is available.
 	// Populates graph_edges (affects, belongs_to, maps_to, same_region)
 	// used by PuppyGraph and future graph-native attack paths (ADR-020).
@@ -325,6 +312,19 @@ func main() {
 			)
 		}
 		edgeCancel()
+	}
+
+	// Seed controls and materialize issues/evaluations from loaded findings when
+	// Postgres is available. This keeps the security graph tables warm for graph
+	// queries while the full graph-native pipeline is being phased in.
+	if auditDB != nil {
+		secgraphCtx, secgraphCancel := context.WithTimeout(context.Background(), 60*time.Second)
+		if sgErr := syncSecurityGraph(secgraphCtx, auditDB, complianceMgr, mockData.Findings, defaultTicketProvider, routingEngine, logger.Named("secgraph")); sgErr != nil {
+			logger.Warn("Security graph sync failed (non-fatal, issue graph may be incomplete)",
+				zap.Error(sgErr),
+			)
+		}
+		secgraphCancel()
 	}
 
 	// Build O(1) lookup maps after the final findings source is selected.
@@ -407,7 +407,8 @@ func main() {
 			if auditDB == nil {
 				return nil
 			}
-			return syncSecurityGraphWithStoreAndDispatcher(
+			adjacency, _ := loadSecgraphAdjacency(ctx, auditDB, logger.Named("secgraph.incremental"))
+			return syncSecurityGraphWithStoreAndDispatcherMode(
 				ctx,
 				secgraphStore,
 				complianceMgr,
@@ -416,6 +417,8 @@ func main() {
 				time.Now().UTC(),
 				secgraphDispatcher,
 				logger.Named("secgraph.incremental"),
+				false,
+				adjacency,
 			)
 		},
 		asmSvc:         &asmService{scanner: asm.NewMockScanner()},

@@ -25,6 +25,13 @@ var severityBaseScore = map[string]float64{
 	"LOW":      25,
 }
 
+// MaterializeOptions controls optional graph-aware enrichment when deriving
+// secgraph artifacts from findings.
+type MaterializeOptions struct {
+	Adjacency       *AdjacencySet
+	BlastRadiusHops int
+}
+
 // BuildControlsFromManager flattens compliance frameworks into control rows
 // suitable for seeding the security graph control catalog.
 func BuildControlsFromManager(mgr *compliance.Manager, tenantID string, now time.Time) []Control {
@@ -78,6 +85,13 @@ func BuildControlsFromFrameworks(frameworks []*compliance.Framework, tenantID st
 // issues, issue-finding links, and graph edges. Duplicate mappings collapse to
 // a single issue/evaluation per (control, resource, tenant).
 func MaterializeFinding(finding *compliance.Finding, tenantID string, evaluatedAt time.Time) MaterializationResult {
+	return MaterializeFindingWithOptions(finding, tenantID, evaluatedAt, MaterializeOptions{})
+}
+
+// MaterializeFindingWithOptions converts a finding into secgraph artifacts and
+// optionally folds graph-derived context such as adjacency blast radius into
+// issue scoring.
+func MaterializeFindingWithOptions(finding *compliance.Finding, tenantID string, evaluatedAt time.Time, opts MaterializeOptions) MaterializationResult {
 	if finding == nil {
 		return MaterializationResult{}
 	}
@@ -97,7 +111,8 @@ func MaterializeFinding(finding *compliance.Finding, tenantID string, evaluatedA
 		evaluationID := prefixedHash("EVAL", dedupKey)
 		issueID := prefixedHash("ISS", dedupKey)
 		severity := maxSeverity(mapping.Severity, finding.Severity)
-		score := computeRiskScore(finding, severity)
+		blastRadius := deriveBlastRadius(finding, opts)
+		score := computeRiskScore(finding, severity, blastRadius)
 		control := Control{
 			ID:             controlID,
 			FrameworkID:    mapping.FrameworkID,
@@ -135,7 +150,7 @@ func MaterializeFinding(finding *compliance.Finding, tenantID string, evaluatedA
 			Description:   finding.Title,
 			Severity:      severity,
 			RiskScore:     score,
-			BlastRadius:   len(finding.ImpactedResources),
+			BlastRadius:   blastRadius,
 			Status:        issueStatus,
 			ControlID:     controlID,
 			ResourceID:    finding.ResourceID,
@@ -325,7 +340,7 @@ func maxSeverity(values ...string) string {
 	return best
 }
 
-func computeRiskScore(finding *compliance.Finding, severity string) float64 {
+func computeRiskScore(finding *compliance.Finding, severity string, blastRadius int) float64 {
 	normalizedSeverity := normalizeSeverity(severity)
 	score := severityBaseScore[normalizedSeverity]
 	if score == 0 {
@@ -335,8 +350,7 @@ func computeRiskScore(finding *compliance.Finding, severity string) float64 {
 		return score
 	}
 
-	blastRadius := minInt(len(finding.ImpactedResources), 5)
-	score *= 1 + float64(blastRadius)*0.05
+	score *= 1 + float64(minInt(blastRadius, 5))*0.05
 
 	exposureFactor := maxInt(1, exposurePathCount(finding))
 	score *= 1 + float64(exposureFactor-1)*0.10
@@ -351,6 +365,23 @@ func computeRiskScore(finding *compliance.Finding, severity string) float64 {
 		return 0
 	}
 	return score
+}
+
+func deriveBlastRadius(finding *compliance.Finding, opts MaterializeOptions) int {
+	if finding == nil {
+		return 0
+	}
+
+	baseline := len(finding.ImpactedResources)
+	if opts.Adjacency == nil || strings.TrimSpace(finding.ResourceID) == "" {
+		return baseline
+	}
+
+	graphRadius := opts.Adjacency.BlastRadius(finding.ResourceID, opts.BlastRadiusHops)
+	if graphRadius > baseline {
+		return graphRadius
+	}
+	return baseline
 }
 
 func mergeControlEvaluations(existing, incoming ControlEvaluation) ControlEvaluation {
