@@ -166,6 +166,105 @@ func MaterializeFinding(finding *compliance.Finding, tenantID string, evaluatedA
 	return result
 }
 
+// MergeMaterializationResults combines per-finding materialization output into a
+// single deterministic batch keyed by the issue/control/evaluation identifiers.
+func MergeMaterializationResults(base, next MaterializationResult) MaterializationResult {
+	if len(base.Controls) == 0 && len(base.Evaluations) == 0 && len(base.Issues) == 0 &&
+		len(base.IssueFindings) == 0 && len(base.Edges) == 0 {
+		return next
+	}
+	if len(next.Controls) == 0 && len(next.Evaluations) == 0 && len(next.Issues) == 0 &&
+		len(next.IssueFindings) == 0 && len(next.Edges) == 0 {
+		return base
+	}
+
+	merged := MaterializationResult{}
+
+	controlsByID := make(map[string]Control, len(base.Controls)+len(next.Controls))
+	for _, control := range base.Controls {
+		controlsByID[control.ID] = control
+	}
+	for _, control := range next.Controls {
+		controlsByID[control.ID] = control
+	}
+
+	evaluationsByID := make(map[string]ControlEvaluation, len(base.Evaluations)+len(next.Evaluations))
+	for _, evaluation := range base.Evaluations {
+		evaluationsByID[evaluation.ID] = evaluation
+	}
+	for _, evaluation := range next.Evaluations {
+		if existing, ok := evaluationsByID[evaluation.ID]; ok {
+			evaluationsByID[evaluation.ID] = mergeControlEvaluations(existing, evaluation)
+			continue
+		}
+		evaluationsByID[evaluation.ID] = evaluation
+	}
+
+	issuesByID := make(map[string]Issue, len(base.Issues)+len(next.Issues))
+	for _, issue := range base.Issues {
+		issuesByID[issue.ID] = issue
+	}
+	for _, issue := range next.Issues {
+		if existing, ok := issuesByID[issue.ID]; ok {
+			issuesByID[issue.ID] = mergeIssues(existing, issue)
+			continue
+		}
+		issuesByID[issue.ID] = issue
+	}
+
+	linksByKey := make(map[string]IssueFindingLink, len(base.IssueFindings)+len(next.IssueFindings))
+	for _, link := range base.IssueFindings {
+		linksByKey[link.IssueID+"|"+link.FindingID] = link
+	}
+	for _, link := range next.IssueFindings {
+		key := link.IssueID + "|" + link.FindingID
+		if existing, ok := linksByKey[key]; ok {
+			if link.CreatedAt.Before(existing.CreatedAt) {
+				linksByKey[key] = link
+			}
+			continue
+		}
+		linksByKey[key] = link
+	}
+
+	edgesByID := make(map[string]GraphEdge, len(base.Edges)+len(next.Edges))
+	for _, edge := range base.Edges {
+		edgesByID[edge.ID] = edge
+	}
+	for _, edge := range next.Edges {
+		edgesByID[edge.ID] = edge
+	}
+
+	for _, control := range controlsByID {
+		merged.Controls = append(merged.Controls, control)
+	}
+	for _, evaluation := range evaluationsByID {
+		merged.Evaluations = append(merged.Evaluations, evaluation)
+	}
+	for _, issue := range issuesByID {
+		merged.Issues = append(merged.Issues, issue)
+	}
+	for _, link := range linksByKey {
+		merged.IssueFindings = append(merged.IssueFindings, link)
+	}
+	for _, edge := range edgesByID {
+		merged.Edges = append(merged.Edges, edge)
+	}
+
+	sort.Slice(merged.Controls, func(i, j int) bool { return merged.Controls[i].ID < merged.Controls[j].ID })
+	sort.Slice(merged.Evaluations, func(i, j int) bool { return merged.Evaluations[i].ID < merged.Evaluations[j].ID })
+	sort.Slice(merged.Issues, func(i, j int) bool { return merged.Issues[i].ID < merged.Issues[j].ID })
+	sort.Slice(merged.IssueFindings, func(i, j int) bool {
+		if merged.IssueFindings[i].IssueID == merged.IssueFindings[j].IssueID {
+			return merged.IssueFindings[i].FindingID < merged.IssueFindings[j].FindingID
+		}
+		return merged.IssueFindings[i].IssueID < merged.IssueFindings[j].IssueID
+	})
+	sort.Slice(merged.Edges, func(i, j int) bool { return merged.Edges[i].ID < merged.Edges[j].ID })
+
+	return merged
+}
+
 // CanonicalControlID returns a stable control identifier suitable for graph and
 // relational storage.
 func CanonicalControlID(frameworkID, controlID string) string {
@@ -252,6 +351,105 @@ func computeRiskScore(finding *compliance.Finding, severity string) float64 {
 		return 0
 	}
 	return score
+}
+
+func mergeControlEvaluations(existing, incoming ControlEvaluation) ControlEvaluation {
+	merged := existing
+	merged.Status = mergeEvalStatus(existing.Status, incoming.Status)
+	merged.Evidence = mergeStringSets(existing.Evidence, incoming.Evidence)
+	if incoming.EvaluatedAt.After(merged.EvaluatedAt) {
+		merged.EvaluatedAt = incoming.EvaluatedAt
+	}
+	return merged
+}
+
+func mergeIssues(existing, incoming Issue) Issue {
+	merged := existing
+	replaceNarrative := severityWeight[normalizeSeverity(incoming.Severity)] > severityWeight[normalizeSeverity(existing.Severity)] ||
+		incoming.RiskScore > existing.RiskScore
+	if replaceNarrative {
+		merged.Title = incoming.Title
+		merged.Description = incoming.Description
+	}
+	merged.Severity = maxSeverity(existing.Severity, incoming.Severity)
+	merged.RiskScore = maxFloat(existing.RiskScore, incoming.RiskScore)
+	merged.BlastRadius = maxInt(existing.BlastRadius, incoming.BlastRadius)
+	merged.ExposurePaths = maxInt(existing.ExposurePaths, incoming.ExposurePaths)
+	merged.Status = mergeIssueStatus(existing.Status, incoming.Status)
+	merged.SLABreachAt = minTimePtr(existing.SLABreachAt, incoming.SLABreachAt)
+	merged.ResolvedAt = mergeResolvedAt(merged.Status, existing.ResolvedAt, incoming.ResolvedAt)
+	if incoming.CreatedAt.Before(merged.CreatedAt) || merged.CreatedAt.IsZero() {
+		merged.CreatedAt = incoming.CreatedAt
+	}
+	if incoming.UpdatedAt.After(merged.UpdatedAt) {
+		merged.UpdatedAt = incoming.UpdatedAt
+	}
+	if merged.ControlID == "" {
+		merged.ControlID = incoming.ControlID
+	}
+	if merged.ResourceID == "" {
+		merged.ResourceID = incoming.ResourceID
+	}
+	if merged.AccountID == "" {
+		merged.AccountID = incoming.AccountID
+	}
+	if merged.Provider == "" {
+		merged.Provider = incoming.Provider
+	}
+	if merged.AssigneeID == "" {
+		merged.AssigneeID = incoming.AssigneeID
+	}
+	if merged.TicketID == "" {
+		merged.TicketID = incoming.TicketID
+	}
+	if merged.TicketURL == "" {
+		merged.TicketURL = incoming.TicketURL
+	}
+	return merged
+}
+
+func mergeIssueStatus(existing, incoming IssueStatus) IssueStatus {
+	if issueStatusPriority(incoming) > issueStatusPriority(existing) {
+		return incoming
+	}
+	return existing
+}
+
+func issueStatusPriority(status IssueStatus) int {
+	switch status {
+	case IssueInProgress:
+		return 5
+	case IssueAcknowledged:
+		return 4
+	case IssueOpen:
+		return 3
+	case IssueSuppressed:
+		return 2
+	case IssueResolved:
+		return 1
+	default:
+		return 0
+	}
+}
+
+func mergeEvalStatus(existing, incoming EvalStatus) EvalStatus {
+	if evalStatusPriority(incoming) > evalStatusPriority(existing) {
+		return incoming
+	}
+	return existing
+}
+
+func evalStatusPriority(status EvalStatus) int {
+	switch status {
+	case EvalFail:
+		return 3
+	case EvalNotApplicable:
+		return 2
+	case EvalPass:
+		return 1
+	default:
+		return 0
+	}
 }
 
 func inferProvider(frameworkID string) string {
@@ -396,6 +594,59 @@ func cloneTimePtr(value *time.Time) *time.Time {
 	}
 	copied := value.UTC()
 	return &copied
+}
+
+func minTimePtr(a, b *time.Time) *time.Time {
+	if a == nil {
+		return cloneTimePtr(b)
+	}
+	if b == nil {
+		return cloneTimePtr(a)
+	}
+	if b.Before(*a) {
+		return cloneTimePtr(b)
+	}
+	return cloneTimePtr(a)
+}
+
+func mergeResolvedAt(status IssueStatus, a, b *time.Time) *time.Time {
+	if status != IssueResolved && status != IssueSuppressed {
+		return nil
+	}
+	if a == nil {
+		return cloneTimePtr(b)
+	}
+	if b == nil {
+		return cloneTimePtr(a)
+	}
+	if b.After(*a) {
+		return cloneTimePtr(b)
+	}
+	return cloneTimePtr(a)
+}
+
+func mergeStringSets(existing, incoming []string) []string {
+	if len(existing) == 0 {
+		return append([]string(nil), incoming...)
+	}
+	set := make(map[string]struct{}, len(existing)+len(incoming))
+	merged := make([]string, 0, len(existing)+len(incoming))
+	for _, value := range existing {
+		if _, ok := set[value]; ok {
+			continue
+		}
+		set[value] = struct{}{}
+		merged = append(merged, value)
+	}
+	for _, value := range incoming {
+		if _, ok := set[value]; ok {
+			continue
+		}
+		set[value] = struct{}{}
+		merged = append(merged, value)
+	}
+	sort.Strings(merged)
+	return merged
 }
 
 func minInt(a, b int) int {

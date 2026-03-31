@@ -197,7 +197,7 @@ func syncSecurityGraphWithStoreAndDispatcher(ctx context.Context, store secgraph
 	}
 
 	materializedFindings := 0
-	materializedIssues := 0
+	materialized := secgraph.MaterializationResult{}
 	for _, finding := range findings {
 		complianceFinding := toComplianceFinding(finding)
 		if len(complianceFinding.ComplianceMappings) == 0 {
@@ -226,26 +226,29 @@ func syncSecurityGraphWithStoreAndDispatcher(ctx context.Context, store secgraph
 				return fmt.Errorf("seed materialized controls for finding %s: %w", finding.ID, err)
 			}
 		}
-		for idx := range result.Issues {
-			if dispatcher == nil {
-				continue
-			}
-			if err := dispatcher.Dispatch(ctx, &result.Issues[idx]); err != nil {
-				return fmt.Errorf("dispatch issue ticket for finding %s: %w", finding.ID, err)
-			}
-		}
-		if err := store.UpsertMaterialization(ctx, result); err != nil {
-			return fmt.Errorf("persist secgraph artifacts for finding %s: %w", finding.ID, err)
-		}
+		materialized = secgraph.MergeMaterializationResults(materialized, result)
 		materializedFindings++
-		materializedIssues += len(result.Issues)
+	}
+
+	for idx := range materialized.Issues {
+		if dispatcher == nil {
+			continue
+		}
+		if err := dispatcher.Dispatch(ctx, &materialized.Issues[idx]); err != nil {
+			return fmt.Errorf("dispatch issue ticket for issue %s: %w", materialized.Issues[idx].ID, err)
+		}
+	}
+	if len(materialized.Issues) > 0 || len(materialized.Evaluations) > 0 || len(materialized.Edges) > 0 || len(materialized.IssueFindings) > 0 {
+		if err := store.UpsertMaterialization(ctx, materialized); err != nil {
+			return fmt.Errorf("persist secgraph artifacts: %w", err)
+		}
 	}
 
 	if logger != nil {
 		logger.Info("Security graph sync complete",
 			zap.Int("controls_seeded", len(controls)),
 			zap.Int("findings_materialized", materializedFindings),
-			zap.Int("issues_materialized", materializedIssues),
+			zap.Int("issues_materialized", len(materialized.Issues)),
 		)
 	}
 

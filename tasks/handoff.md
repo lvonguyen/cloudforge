@@ -231,6 +231,23 @@ Use this file as the shared climbing board for all security-graph work. Before s
     - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -count=1`
     - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestSyncSecurityGraphWithStore_|TestSyncSecurityGraphWithStoreAndDispatcher|TestSecgraphTicketDispatcher|TestSecgraphAutoTicketsEnabled|TestToComplianceFinding' -count=1`
 
+- `WG-C Follow-up: Shared-issue aggregation` — completed 2026-03-30 (codex)
+  - Scope completed: aggregate materialized issues/evaluations across findings sharing the same `(control, resource, tenant)` key before dispatch/persist so secgraph stops using last-writer-wins semantics for shared issues
+  - Output files:
+    - `internal/secgraph/materialize.go`
+    - `internal/secgraph/materialize_test.go`
+    - `internal/secgraph/adjacency.go`
+    - `cmd/server/secgraph_sync.go`
+    - `cmd/server/secgraph_sync_test.go`
+    - `cmd/server/attackpath.go`
+    - `cmd/server/main.go`
+    - `cmd/server/main_test.go`
+    - `cmd/server/benchmark_test.go`
+  - Guardrail: attack-path callsites were only updated to pass `nil` for the new adjacency parameter so existing heuristic behavior stays unchanged while the secgraph test gate compiles
+  - Verification:
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -run 'TestMaterializeFinding|TestMergeMaterializationResultsAggregatesSharedIssue' -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestSyncSecurityGraphWithStore_|TestSyncSecurityGraphWithStoreAndDispatcher|TestSecgraphTicketDispatcher|TestSecgraphAutoTicketsEnabled|TestToComplianceFinding' -count=1`
+
 - `WG-E Follow-up: Attack-path readability + theme controls` — completed 2026-03-31 (codex)
   - Scope completed: lighter/whiter analyst-friendly attack-path detail canvas, clearer node/icon presentation, and an explicit local canvas tone control layered on top of the existing app theme without changing backend graph contracts
   - Output files:

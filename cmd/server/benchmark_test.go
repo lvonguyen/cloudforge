@@ -49,7 +49,7 @@ func benchServer(b *testing.B) (*Server, *mux.Router) {
 		b.Fatalf("loading mock data: %v", err)
 	}
 
-	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings)
+	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings, nil)
 
 	srv := &Server{
 		config: Config{Port: "0"},
@@ -274,7 +274,7 @@ func BenchmarkAttackPathComputation(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		paths, stats := computeAttackPaths(mockData.Findings)
+		paths, stats := computeAttackPaths(mockData.Findings, nil)
 		if len(paths) == 0 || stats == nil {
 			b.Fatal("computeAttackPaths returned empty results")
 		}

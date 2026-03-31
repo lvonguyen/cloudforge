@@ -210,6 +210,77 @@ func TestSyncSecurityGraphWithStore_DerivesIssueLifecycleFromFindingWorkflow(t *
 	}
 }
 
+func TestSyncSecurityGraphWithStore_MergesSharedIssueAcrossFindings(t *testing.T) {
+	manager := compliance.NewManager(zap.NewNop())
+	store := &recordingSecgraphStore{}
+	now := time.Date(2026, 3, 31, 13, 45, 0, 0, time.UTC)
+
+	findings := []Finding{
+		{
+			ID:               "finding-merge-open",
+			Title:            "Active shared issue source",
+			Description:      "Still failing",
+			ResourceType:     "database",
+			ResourceID:       "db-shared",
+			ResourceName:     "db-shared",
+			Type:             "misconfiguration",
+			Severity:         "high",
+			AccountID:        "acct-1",
+			Category:         "NETWORK",
+			ExploitAvailable: true,
+			ComplianceMappings: []ComplianceMapping{
+				{FrameworkID: "custom-fw", FrameworkName: "Custom Framework", ControlID: "CTRL-MERGE", ControlTitle: "Shared merge control", Severity: "HIGH"},
+			},
+		},
+		{
+			ID:             "finding-merge-resolved",
+			Title:          "Resolved shared issue source",
+			Description:    "No longer failing",
+			ResourceType:   "database",
+			ResourceID:     "db-shared",
+			ResourceName:   "db-shared",
+			Type:           "misconfiguration",
+			Severity:       "medium",
+			AccountID:      "acct-1",
+			Category:       "COMPLIANCE",
+			Status:         "resolved",
+			WorkflowStatus: "remediated",
+			LastSeenAt:     now.Add(-20 * time.Minute).Format(time.RFC3339),
+			ComplianceMappings: []ComplianceMapping{
+				{FrameworkID: "custom-fw", FrameworkName: "Custom Framework", ControlID: "CTRL-MERGE", ControlTitle: "Shared merge control", Severity: "MEDIUM"},
+			},
+		},
+	}
+
+	if err := syncSecurityGraphWithStore(context.Background(), store, manager, findings, "tenant-a", now, zap.NewNop()); err != nil {
+		t.Fatalf("syncSecurityGraphWithStore() error = %v", err)
+	}
+
+	if len(store.materializationCalls) != 1 {
+		t.Fatalf("materialization upserts = %d, want 1 aggregated batch", len(store.materializationCalls))
+	}
+
+	result := store.materializationCalls[0]
+	if len(result.Issues) != 1 {
+		t.Fatalf("issues = %d, want 1", len(result.Issues))
+	}
+	if len(result.Evaluations) != 1 {
+		t.Fatalf("evaluations = %d, want 1", len(result.Evaluations))
+	}
+	if len(result.IssueFindings) != 2 {
+		t.Fatalf("issue_findings = %d, want 2", len(result.IssueFindings))
+	}
+	if result.Issues[0].Status != secgraph.IssueOpen {
+		t.Fatalf("issue status = %q, want %q", result.Issues[0].Status, secgraph.IssueOpen)
+	}
+	if result.Evaluations[0].Status != secgraph.EvalFail {
+		t.Fatalf("evaluation status = %q, want %q", result.Evaluations[0].Status, secgraph.EvalFail)
+	}
+	if len(result.Evaluations[0].Evidence) != 2 {
+		t.Fatalf("evaluation evidence = %+v, want 2 finding ids", result.Evaluations[0].Evidence)
+	}
+}
+
 func TestSyncSecurityGraphWithStore_PropagatesStoreErrors(t *testing.T) {
 	manager := compliance.NewManager(zap.NewNop())
 	now := time.Date(2026, 3, 31, 14, 0, 0, 0, time.UTC)

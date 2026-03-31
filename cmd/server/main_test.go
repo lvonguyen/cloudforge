@@ -61,7 +61,7 @@ func testServer(t *testing.T) (*Server, *mux.Router) {
 		if sharedTestErr != nil {
 			return
 		}
-		sharedTestPaths, sharedTestPathStats = computeAttackPaths(sharedTestMockData.Findings)
+		sharedTestPaths, sharedTestPathStats = computeAttackPaths(sharedTestMockData.Findings, nil)
 	})
 	if sharedTestErr != nil {
 		t.Fatalf("loading mock data: %v", sharedTestErr)

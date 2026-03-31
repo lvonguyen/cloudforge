@@ -206,6 +206,80 @@ func TestMaterializeFindingDerivesSuppressedLifecycle(t *testing.T) {
 	}
 }
 
+func TestMergeMaterializationResultsAggregatesSharedIssue(t *testing.T) {
+	now := time.Date(2026, time.March, 31, 7, 0, 0, 0, time.UTC)
+	sharedMapping := []compliance.ComplianceMapping{
+		{FrameworkID: "nist-csf", FrameworkName: "NIST CSF", ControlID: "PR.2", ControlTitle: "Shared issue control", Severity: "HIGH"},
+	}
+
+	openFinding := &compliance.Finding{
+		ID:                 "F-005",
+		Title:              "Active shared finding",
+		ResourceID:         "db-999",
+		ResourceName:       "db-999",
+		ResourceType:       compliance.ResourceTypeDatabase,
+		CloudProvider:      compliance.CloudProviderAWS,
+		AccountID:          "123456789012",
+		Severity:           "HIGH",
+		Status:             "open",
+		Category:           compliance.CategoryNetwork,
+		ExploitAvailable:   true,
+		ImpactedResources:  []compliance.ImpactedResource{{ResourceID: "app-1"}},
+		ComplianceMappings: sharedMapping,
+	}
+	resolvedAt := now.Add(-30 * time.Minute)
+	resolvedFinding := &compliance.Finding{
+		ID:                 "F-006",
+		Title:              "Resolved shared finding",
+		ResourceID:         "db-999",
+		ResourceName:       "db-999",
+		ResourceType:       compliance.ResourceTypeDatabase,
+		CloudProvider:      compliance.CloudProviderAWS,
+		AccountID:          "123456789012",
+		Severity:           "MEDIUM",
+		Status:             "resolved",
+		WorkflowStatus:     compliance.StatusRemediated,
+		ResolvedAt:         &resolvedAt,
+		ComplianceMappings: sharedMapping,
+	}
+
+	openResult := MaterializeFinding(openFinding, "tenant-a", now)
+	resolvedResult := MaterializeFinding(resolvedFinding, "tenant-a", now)
+	merged := MergeMaterializationResults(openResult, resolvedResult)
+
+	if len(merged.Issues) != 1 {
+		t.Fatalf("issues = %d, want 1", len(merged.Issues))
+	}
+	if len(merged.Evaluations) != 1 {
+		t.Fatalf("evaluations = %d, want 1", len(merged.Evaluations))
+	}
+	if len(merged.IssueFindings) != 2 {
+		t.Fatalf("issue_findings = %d, want 2", len(merged.IssueFindings))
+	}
+
+	issue := merged.Issues[0]
+	if issue.Status != IssueOpen {
+		t.Fatalf("issue status = %q, want %q", issue.Status, IssueOpen)
+	}
+	if issue.Severity != "HIGH" {
+		t.Fatalf("issue severity = %q, want HIGH", issue.Severity)
+	}
+	if issue.RiskScore != openResult.Issues[0].RiskScore {
+		t.Fatalf("issue risk_score = %v, want %v", issue.RiskScore, openResult.Issues[0].RiskScore)
+	}
+	if issue.ResolvedAt != nil {
+		t.Fatalf("resolved_at = %v, want nil for active merged issue", issue.ResolvedAt)
+	}
+
+	evaluation := merged.Evaluations[0]
+	if evaluation.Status != EvalFail {
+		t.Fatalf("evaluation status = %q, want %q", evaluation.Status, EvalFail)
+	}
+	if len(evaluation.Evidence) != 2 {
+		t.Fatalf("evaluation evidence = %+v, want 2 findings", evaluation.Evidence)
+	}
+}
+
 func TestMaterializeFindingUsesAIRiskScoreFloor(t *testing.T) {
 	now := time.Date(2026, time.March, 31, 7, 0, 0, 0, time.UTC)
 	finding := &compliance.Finding{
