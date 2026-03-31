@@ -17,6 +17,13 @@ import (
 
 const defaultSecgraphTenantID = "default"
 
+const (
+	secgraphStartupAdvisoryLockKey int64 = 0x5345434752415048
+	secgraphProgressInterval             = 5000
+)
+
+var secgraphIssueSurfacePersistInterval = 25000
+
 type secgraphPersister interface {
 	UpsertFrameworks(ctx context.Context, frameworks []secgraph.FrameworkDefinition) error
 	UpsertControls(ctx context.Context, controls []secgraph.Control) error
@@ -100,13 +107,16 @@ func (d *secgraphTicketDispatcher) Dispatch(ctx context.Context, issue *secgraph
 	if issue == nil {
 		return nil
 	}
+	if !d.autoDispatch {
+		return nil
+	}
 
 	state, err := d.loadExisting(ctx, issue.ID)
 	if err != nil {
 		return fmt.Errorf("load existing issue ticket state for %s: %w", issue.ID, err)
 	}
 	mergeIssueTicketState(issue, state)
-	if issue.TicketID != "" || !d.autoDispatch || d.provider == nil || d.router == nil {
+	if issue.TicketID != "" || d.provider == nil || d.router == nil {
 		return nil
 	}
 
@@ -177,6 +187,18 @@ func syncSecurityGraph(ctx context.Context, db *sql.DB, mgr *compliance.Manager,
 	if db == nil {
 		return nil
 	}
+	unlock, acquired, err := acquireSecgraphStartupLock(ctx, db, logger)
+	if err != nil {
+		return err
+	}
+	if !acquired {
+		if logger != nil {
+			logger.Info("Security graph sync already running on another instance, skipping duplicate startup sync")
+		}
+		return nil
+	}
+	defer unlock()
+
 	adjacency, err := loadSecgraphAdjacency(ctx, db, logger)
 	if err != nil {
 		return err
@@ -188,7 +210,75 @@ func syncSecurityGraph(ctx context.Context, db *sql.DB, mgr *compliance.Manager,
 		autoDispatch: secgraphAutoTicketsEnabled(),
 		logger:       logger,
 	}
+	if !semanticSearchEnabledForCorpus(len(findings)) {
+		seedCatalog, err := secgraphStartupNeedsCatalogSeed(ctx, db, mgr)
+		if err != nil {
+			return err
+		}
+		if logger != nil {
+			logger.Warn("Large corpus security graph startup using issue-surface mode",
+				zap.Int("findings", len(findings)),
+				zap.String("deferred_artifacts", "issue graph edges"),
+				zap.Bool("seed_catalog", seedCatalog),
+			)
+		}
+		return syncSecurityIssueSurfaceWithStoreAndDispatcherMode(ctx, secgraph.NewStore(db), mgr, findings, defaultSecgraphTenantID, time.Now().UTC(), dispatcher, logger, true, seedCatalog, adjacency)
+	}
 	return syncSecurityGraphWithStoreAndDispatcherMode(ctx, secgraph.NewStore(db), mgr, findings, defaultSecgraphTenantID, time.Now().UTC(), dispatcher, logger, true, adjacency)
+}
+
+func acquireSecgraphStartupLock(ctx context.Context, db *sql.DB, logger *zap.Logger) (func(), bool, error) {
+	if db == nil {
+		return func() {}, false, nil
+	}
+
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return nil, false, fmt.Errorf("acquire secgraph lock connection: %w", err)
+	}
+
+	var acquired bool
+	if err := conn.QueryRowContext(ctx, `SELECT pg_try_advisory_lock($1)`, secgraphStartupAdvisoryLockKey).Scan(&acquired); err != nil {
+		_ = conn.Close()
+		return nil, false, fmt.Errorf("acquire secgraph advisory lock: %w", err)
+	}
+	if !acquired {
+		_ = conn.Close()
+		return func() {}, false, nil
+	}
+
+	unlock := func() {
+		unlockCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if _, err := conn.ExecContext(unlockCtx, `SELECT pg_advisory_unlock($1)`, secgraphStartupAdvisoryLockKey); err != nil && logger != nil {
+			logger.Warn("Failed to release secgraph advisory lock", zap.Error(err))
+		}
+		if err := conn.Close(); err != nil && logger != nil {
+			logger.Warn("Failed to close secgraph advisory lock connection", zap.Error(err))
+		}
+	}
+
+	return unlock, true, nil
+}
+
+func secgraphStartupNeedsCatalogSeed(ctx context.Context, db *sql.DB, mgr *compliance.Manager) (bool, error) {
+	if db == nil || mgr == nil {
+		return true, nil
+	}
+
+	expectedFrameworks := len(secgraph.BuildFrameworkDefinitionsFromManager(mgr, time.Now().UTC()))
+	expectedControls := len(secgraph.BuildControlsFromManager(mgr, defaultSecgraphTenantID, time.Now().UTC()))
+
+	var existingFrameworks, existingControls int
+	if err := db.QueryRowContext(ctx, `
+		SELECT
+			(SELECT COUNT(*) FROM compliance_frameworks),
+			(SELECT COUNT(*) FROM controls)
+	`).Scan(&existingFrameworks, &existingControls); err != nil {
+		return false, fmt.Errorf("query secgraph catalog counts: %w", err)
+	}
+
+	return existingFrameworks < expectedFrameworks || existingControls < expectedControls, nil
 }
 
 func syncSecurityGraphWithStore(ctx context.Context, store secgraphPersister, mgr *compliance.Manager, findings []Finding, tenantID string, now time.Time, logger *zap.Logger) error {
@@ -305,6 +395,179 @@ func syncSecurityGraphWithStoreAndDispatcherMode(ctx context.Context, store secg
 			zap.Int("controls_seeded", len(controls)),
 			zap.Int("findings_materialized", materializedFindings),
 			zap.Int("issues_materialized", len(materialized.Issues)),
+		)
+	}
+
+	return nil
+}
+
+func syncSecurityIssueSurfaceWithStoreAndDispatcherMode(ctx context.Context, store secgraphPersister, mgr *compliance.Manager, findings []Finding, tenantID string, now time.Time, dispatcher secgraphIssueDispatcher, logger *zap.Logger, reconcile bool, seedCatalog bool, adjacency *secgraph.AdjacencySet) error {
+	if store == nil || mgr == nil {
+		return nil
+	}
+
+	frameworks := secgraph.BuildFrameworkDefinitionsFromManager(mgr, now)
+	controls := secgraph.BuildControlsFromManager(mgr, tenantID, now)
+	if seedCatalog {
+		if err := store.UpsertFrameworks(ctx, frameworks); err != nil {
+			return fmt.Errorf("seed secgraph frameworks: %w", err)
+		}
+		if err := store.UpsertControls(ctx, controls); err != nil {
+			return fmt.Errorf("seed secgraph controls: %w", err)
+		}
+	}
+
+	seenFrameworks := make(map[string]struct{}, len(frameworks))
+	for _, framework := range frameworks {
+		seenFrameworks[framework.ID] = struct{}{}
+	}
+	seenControls := make(map[string]struct{}, len(controls))
+	for _, control := range controls {
+		seenControls[control.ID] = struct{}{}
+	}
+
+	materializedFindings := 0
+	deferredEdges := 0
+	issueSurface := secgraph.NewIssueSurfaceAccumulator(len(findings))
+	assignmentCandidates := make(map[string]secgraphIssueAssignmentCandidate)
+	persistedIssues := 0
+	persistedEvaluations := 0
+	persistedIssueFindings := 0
+	flushIssueSurface := func(reason string) error {
+		issueSurfaceResult := issueSurface.Snapshot()
+		if len(issueSurfaceResult.Issues) == 0 && len(issueSurfaceResult.Evaluations) == 0 && len(issueSurfaceResult.IssueFindings) == 0 {
+			return nil
+		}
+		for idx := range issueSurfaceResult.Issues {
+			if candidate := assignmentCandidates[issueSurfaceResult.Issues[idx].ID]; candidate.assigneeID != "" && strings.TrimSpace(issueSurfaceResult.Issues[idx].AssigneeID) == "" {
+				issueSurfaceResult.Issues[idx].AssigneeID = candidate.assigneeID
+			}
+			if dispatcher == nil {
+				continue
+			}
+			if err := dispatcher.Dispatch(ctx, &issueSurfaceResult.Issues[idx]); err != nil {
+				return fmt.Errorf("dispatch issue ticket for issue %s: %w", issueSurfaceResult.Issues[idx].ID, err)
+			}
+		}
+		if err := store.UpsertMaterialization(ctx, issueSurfaceResult); err != nil {
+			return fmt.Errorf("persist secgraph issue surface batch: %w", err)
+		}
+		persistedIssues += len(issueSurfaceResult.Issues)
+		persistedEvaluations += len(issueSurfaceResult.Evaluations)
+		persistedIssueFindings += len(issueSurfaceResult.IssueFindings)
+		if logger != nil {
+			logger.Info("Security graph issue-surface batch persisted",
+				zap.String("reason", reason),
+				zap.Int("batch_issues", len(issueSurfaceResult.Issues)),
+				zap.Int("batch_evaluations", len(issueSurfaceResult.Evaluations)),
+				zap.Int("batch_issue_findings", len(issueSurfaceResult.IssueFindings)),
+				zap.Int("persisted_issues", persistedIssues),
+				zap.Int("persisted_evaluations", persistedEvaluations),
+				zap.Int("persisted_issue_findings", persistedIssueFindings),
+			)
+		}
+		issueSurface = secgraph.NewIssueSurfaceAccumulator(secgraphIssueSurfacePersistInterval)
+		clear(assignmentCandidates)
+		return nil
+	}
+	for idx, finding := range findings {
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("security issue surface context canceled after %d findings: %w", idx, err)
+		}
+
+		complianceFinding := toComplianceFinding(finding)
+		if len(complianceFinding.ComplianceMappings) == 0 {
+			mapped, err := mgr.MapFinding(ctx, &complianceFinding, compliance.SectorGeneral)
+			if err != nil {
+				return fmt.Errorf("map finding %s: %w", finding.ID, err)
+			}
+			complianceFinding = *mapped
+		}
+
+		result := secgraph.MaterializeFindingWithOptions(&complianceFinding, tenantID, now, secgraph.MaterializeOptions{
+			Adjacency:       adjacency,
+			BlastRadiusHops: 2,
+		})
+		if len(result.Issues) == 0 && len(result.Evaluations) == 0 && len(result.IssueFindings) == 0 {
+			continue
+		}
+
+		extraFrameworks := missingFrameworkDefinitions(seenFrameworks, frameworkDefinitionsFromMappings(complianceFinding.ComplianceMappings, now))
+		if len(extraFrameworks) > 0 {
+			if err := store.UpsertFrameworks(ctx, extraFrameworks); err != nil {
+				return fmt.Errorf("seed materialized frameworks for finding %s: %w", finding.ID, err)
+			}
+			for _, framework := range extraFrameworks {
+				seenFrameworks[framework.ID] = struct{}{}
+			}
+		}
+
+		var extraControls []secgraph.Control
+		for _, control := range result.Controls {
+			if _, ok := seenControls[control.ID]; ok {
+				continue
+			}
+			seenControls[control.ID] = struct{}{}
+			extraControls = append(extraControls, control)
+		}
+		if len(extraControls) > 0 {
+			if err := store.UpsertControls(ctx, extraControls); err != nil {
+				return fmt.Errorf("seed materialized controls for finding %s: %w", finding.ID, err)
+			}
+		}
+		if candidate := deriveIssueAssignmentCandidate(&complianceFinding); candidate.assigneeID != "" {
+			for _, issue := range result.Issues {
+				assignmentCandidates[issue.ID] = betterIssueAssignmentCandidate(assignmentCandidates[issue.ID], candidate)
+			}
+		}
+
+		deferredEdges += len(result.Edges)
+		result.Controls = nil
+		result.Edges = nil
+		issueSurface.Add(result)
+		materializedFindings++
+
+		if logger != nil && materializedFindings%secgraphProgressInterval == 0 {
+			evaluationsBuffered, issuesBuffered, issueFindingsBuffered := issueSurface.Counts()
+			logger.Info("Security graph issue-surface sync progress",
+				zap.Int("processed_findings", idx+1),
+				zap.Int("findings_materialized", materializedFindings),
+				zap.Int("issues_buffered", issuesBuffered),
+				zap.Int("evaluations_buffered", evaluationsBuffered),
+				zap.Int("issue_findings_buffered", issueFindingsBuffered),
+				zap.Int("persisted_issues", persistedIssues),
+				zap.Int("persisted_evaluations", persistedEvaluations),
+				zap.Int("persisted_issue_findings", persistedIssueFindings),
+				zap.Int("edges_deferred", deferredEdges),
+			)
+		}
+		if materializedFindings%secgraphIssueSurfacePersistInterval == 0 {
+			if err := flushIssueSurface("interval"); err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := flushIssueSurface("final"); err != nil {
+		return err
+	}
+	if reconcile {
+		if reconciler, ok := store.(secgraphReconciler); ok {
+			if err := reconciler.ReconcileStaleMaterialization(ctx, tenantID, activeFindingIDs(findings), now); err != nil {
+				return fmt.Errorf("reconcile stale secgraph materialization: %w", err)
+			}
+		}
+	}
+
+	if logger != nil {
+		logger.Info("Security graph issue-surface sync complete",
+			zap.Int("frameworks_seeded", len(frameworks)),
+			zap.Int("controls_seeded", len(controls)),
+			zap.Int("findings_materialized", materializedFindings),
+			zap.Int("issues_materialized", persistedIssues),
+			zap.Int("evaluations_materialized", persistedEvaluations),
+			zap.Int("issue_findings_materialized", persistedIssueFindings),
+			zap.Int("edges_deferred", deferredEdges),
 		)
 	}
 

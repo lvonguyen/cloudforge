@@ -74,7 +74,8 @@ Apply to both personal (lvn-personal) and HAEA production environments.
   ```
 - [ ] Verified March 31, 2026: Neon Launch now fits the full 300K D19 corpus. The seeded `cloudforge` database footprint is `1,078,362,112` bytes (`1028 MB`, about `1.03 GB`).
 - [ ] Verified March 31, 2026: leave `LARGE_CORPUS_WARMUP_ENABLED` unset on the current `2 GB` Fly VM. Enabling startup warmup for large-corpus search/attack paths causes health flaps and eventual OOM on the current machine size.
-- [ ] Verified March 31, 2026: leave `LARGE_CORPUS_SECGRAPH_SYNC_ENABLED` unset on the current `2 GB` Fly VM. Enabling full large-corpus secgraph materialization on startup causes repeated OOM restarts after backfill on the current machine size.
+- [ ] Verified March 31, 2026: leave `LARGE_CORPUS_SECGRAPH_SYNC_ENABLED` unset on the current `2 GB` Fly VM. That flag controls the full large-corpus secgraph graph-artifact path, which still causes repeated OOM restarts after backfill on the current machine size.
+- [ ] Verified March 31, 2026: even with `LARGE_CORPUS_SECGRAPH_SYNC_ENABLED` unset, the operator-facing secgraph issue surface now incrementally materializes on startup in bounded batches on the current Fly VM size.
 - [ ] Verified March 31, 2026: authenticated findings search now falls back to in-memory keyword mode when `LARGE_CORPUS_WARMUP_ENABLED` remains unset, so operators are no longer blocked on a full Bleve warmup for the 300K corpus.
 - [ ] Verified March 31, 2026: attack paths now lazily materialize a bounded sampled cache on first request when `LARGE_CORPUS_WARMUP_ENABLED` remains unset; expect a slower first cold request instead of an empty result set.
 - [ ] Feature flags: 14 backend features gated by env vars -- all OFF by default
@@ -104,9 +105,13 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 - [ ] Auth: verify JWT accepted (static token flow)
 - [ ] Findings: `curl -H "Authorization: Bearer $JWT" https://<api-url>/api/v1/findings?limit=5`
 - [ ] Providers: `curl -H "Authorization: Bearer $JWT" https://<api-url>/api/v1/providers`
+- [ ] Issues stats: `curl -H "Authorization: Bearer $JWT" https://<api-url>/api/v1/issues/stats`
+- [ ] Issues list: `curl -H "Authorization: Bearer $JWT" "https://<api-url>/api/v1/issues?per_page=5&page=1"`
+- [ ] Issue detail: `curl -H "Authorization: Bearer $JWT" https://<api-url>/api/v1/issues/<id>`
 - [ ] Frontend loads without "Redirecting to login..." loop
 - [ ] During an operator window, create one remediation ticket through `/api/v1/findings/{id}/remediate`, add one `/ticket/comments` entry, and run `/ticket/sync`
 - [ ] Verified March 31, 2026: live `cloudforge-api` passed Asana create/comment/resolve/sync and Jira create/comment/sync against the public demo API
+- [ ] Verified March 31, 2026: live `cloudforge-api` passed `issues/stats`, paginated `issues`, and `issues/{id}` against the public demo API once the first issue-surface batch committed
 - [ ] `integrations.asana_webhook=configured` means the handshake token is present; it does not by itself prove an active external Asana webhook registration
 
 ### Cost Monitoring
@@ -196,7 +201,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 - [ ] Resources loader is separate: `node scripts/seed-resources.mjs --in testdata/seed --out /tmp/seed-resources.sql` then `psql "$DATABASE_URL" -f /tmp/seed-resources.sql`
 - [ ] Re-run `migrations/006_graph_support.sql` and `migrations/007_security_graph.sql` after findings/resources load so accounts and graph edges backfill from the seeded corpus
 - [ ] Verify counts before cutover: `findings`, `resources`, `accounts`, `graph_edges`
-- [ ] Current stable live posture: findings load from Postgres, the full large-corpus startup warmup and secgraph sync stay disabled by default on the current Fly VM, findings search degrades to keyword mode when the search service is intentionally absent, and attack paths are built lazily from a bounded sampled cache
+- [ ] Current stable live posture: findings load from Postgres, full large-corpus startup warmup stays disabled by default on the current Fly VM, findings search degrades to keyword mode when the search service is intentionally absent, attack paths are built lazily from a bounded sampled cache, and the operator-facing secgraph issue surface incrementally syncs in startup batches while full graph-edge secgraph artifacts remain deferred
 
 ---
 

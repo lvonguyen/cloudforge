@@ -21,20 +21,22 @@
 
 1. Large-corpus search and attack-path warmup are intentionally skipped by default on the current Fly VM size
 2. Leave `LARGE_CORPUS_WARMUP_ENABLED` unset on the current `2 GB` shared VM unless machine size increases or warmup is redesigned
-3. Large-corpus secgraph materialization is also intentionally skipped by default on the current Fly VM size
-4. Leave `LARGE_CORPUS_SECGRAPH_SYNC_ENABLED` unset on the current `2 GB` shared VM unless machine size increases or secgraph materialization is redesigned
+3. Full large-corpus secgraph graph-artifact materialization is still intentionally deferred on the current Fly VM size
+4. Leave `LARGE_CORPUS_SECGRAPH_SYNC_ENABLED` unset on the current `2 GB` shared VM unless machine size increases or the full secgraph graph-artifact path is redesigned
 5. Current consequence:
    - findings/search endpoints now fall back to in-memory keyword search when the large-corpus Bleve index is intentionally skipped
    - hybrid and semantic requests degrade to keyword mode when the search service is intentionally absent
    - attack-path endpoints now lazily materialize a bounded sampled cache on first request instead of returning the empty bootstrap state
    - the first attack-path request on a cold process is slower because it computes a sampled heuristic cache over the 300K corpus
-   - secgraph issue materialization stays incomplete on the live demo unless secgraph sync is explicitly re-enabled on a larger footprint
+   - the operator-facing issue surface now incrementally materializes on startup in bounded batches even on the current Fly VM size
+   - verified March 31, 2026: the first live issue-surface batch committed `77116` evaluations/issues/issue_findings at `2026-03-31T22:23:46Z`, and `issues/stats`, `issues`, and `issues/{id}` all responded successfully on the public demo API
+   - the heavier secgraph graph-edge artifacts still stay deferred until the larger-footprint path is redesigned
 
 ### Next Infra / Feature Work
 
-1. Reintroduce large-corpus attack-path and secgraph materialization in a bounded way:
+1. Reintroduce full large-corpus attack-path and secgraph graph-artifact materialization in a bounded way:
    - improve the current lazy/on-demand attack-path cache so the first cold request is faster and the sampled heuristic slice is higher fidelity
-   - batched background indexing
+   - batched background indexing / graph-edge builds
    - or a larger Fly VM profile
 2. Decide whether the large-corpus keyword fallback should remain the steady-state operator experience or whether it should be replaced with a true on-demand Bleve build path
 3. Only enable `LARGE_CORPUS_WARMUP_ENABLED=true` and/or `LARGE_CORPUS_SECGRAPH_SYNC_ENABLED=true` after that capacity work is verified on Fly

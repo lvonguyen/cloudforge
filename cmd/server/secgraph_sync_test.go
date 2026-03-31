@@ -627,6 +627,159 @@ func TestSecgraphAutoTicketsEnabled(t *testing.T) {
 	}
 }
 
+func TestSecgraphTicketDispatcher_SkipsLoaderWhenAutoDispatchDisabled(t *testing.T) {
+	dispatcher := &secgraphTicketDispatcher{
+		loader:       staticIssueTicketLoader{err: errors.New("loader should not be called")},
+		autoDispatch: false,
+		logger:       zap.NewNop(),
+	}
+	issue := &secgraph.Issue{
+		ID:       "ISS-SKIP",
+		Severity: "HIGH",
+		TenantID: "tenant-a",
+	}
+
+	if err := dispatcher.Dispatch(context.Background(), issue); err != nil {
+		t.Fatalf("Dispatch() error = %v, want nil when auto dispatch is disabled", err)
+	}
+}
+
+func TestSyncSecurityIssueSurfaceWithStoreAndDispatcherMode_DefersEdges(t *testing.T) {
+	manager := compliance.NewManager(zap.NewNop())
+	store := &recordingSecgraphStore{}
+	now := time.Date(2026, 3, 31, 14, 30, 0, 0, time.UTC)
+
+	finding := Finding{
+		ID:            "finding-large",
+		Title:         "Shared database exposed to the internet",
+		Description:   "Issue surface sync should materialize operator issues without buffering graph edges",
+		ResourceType:  "database",
+		ResourceID:    "db-shared",
+		ResourceName:  "db-shared",
+		Type:          "misconfiguration",
+		Severity:      "high",
+		CloudProvider: "aws",
+		AccountID:     "123456789012",
+		Category:      "NETWORK",
+		ComplianceMappings: []ComplianceMapping{
+			{
+				FrameworkID:   "pci-dss",
+				FrameworkName: "PCI-DSS",
+				ControlID:     "REQ.1",
+				ControlTitle:  "Restrict public exposure",
+				Severity:      "HIGH",
+			},
+		},
+	}
+
+	if err := syncSecurityIssueSurfaceWithStoreAndDispatcherMode(context.Background(), store, manager, []Finding{finding}, "tenant-a", now, nil, zap.NewNop(), true, true, nil); err != nil {
+		t.Fatalf("syncSecurityIssueSurfaceWithStoreAndDispatcherMode() error = %v", err)
+	}
+
+	if len(store.materializationCalls) != 1 {
+		t.Fatalf("materialization upserts = %d, want 1", len(store.materializationCalls))
+	}
+	result := store.materializationCalls[0]
+	if len(result.Edges) != 0 {
+		t.Fatalf("edges = %d, want 0", len(result.Edges))
+	}
+	if len(result.Issues) != 1 {
+		t.Fatalf("issues = %d, want 1", len(result.Issues))
+	}
+	if len(result.Evaluations) != 1 {
+		t.Fatalf("evaluations = %d, want 1", len(result.Evaluations))
+	}
+	if len(result.IssueFindings) != 1 {
+		t.Fatalf("issue_findings = %d, want 1", len(result.IssueFindings))
+	}
+	if len(result.Controls) != 0 {
+		t.Fatalf("controls = %d, want 0 in deferred-edge issue-surface write", len(result.Controls))
+	}
+	if store.reconcileCalls != 1 {
+		t.Fatalf("reconcile calls = %d, want 1", store.reconcileCalls)
+	}
+}
+
+func TestSyncSecurityIssueSurfaceWithStoreAndDispatcherMode_FlushesIncrementalBatches(t *testing.T) {
+	manager := compliance.NewManager(zap.NewNop())
+	store := &recordingSecgraphStore{}
+	now := time.Date(2026, 3, 31, 14, 45, 0, 0, time.UTC)
+	originalInterval := secgraphIssueSurfacePersistInterval
+	secgraphIssueSurfacePersistInterval = 2
+	defer func() { secgraphIssueSurfacePersistInterval = originalInterval }()
+
+	findings := []Finding{
+		{
+			ID:            "finding-batch-1",
+			Title:         "Batch issue 1",
+			ResourceType:  "database",
+			ResourceID:    "db-batch-1",
+			ResourceName:  "db-batch-1",
+			Type:          "misconfiguration",
+			Severity:      "high",
+			CloudProvider: "aws",
+			AccountID:     "123456789012",
+			Category:      "NETWORK",
+			ComplianceMappings: []ComplianceMapping{{
+				FrameworkID:   "pci-dss",
+				FrameworkName: "PCI-DSS",
+				ControlID:     "REQ.1",
+				ControlTitle:  "Restrict public exposure",
+				Severity:      "HIGH",
+			}},
+		},
+		{
+			ID:            "finding-batch-2",
+			Title:         "Batch issue 2",
+			ResourceType:  "database",
+			ResourceID:    "db-batch-2",
+			ResourceName:  "db-batch-2",
+			Type:          "misconfiguration",
+			Severity:      "high",
+			CloudProvider: "aws",
+			AccountID:     "123456789012",
+			Category:      "NETWORK",
+			ComplianceMappings: []ComplianceMapping{{
+				FrameworkID:   "pci-dss",
+				FrameworkName: "PCI-DSS",
+				ControlID:     "REQ.1",
+				ControlTitle:  "Restrict public exposure",
+				Severity:      "HIGH",
+			}},
+		},
+		{
+			ID:            "finding-batch-3",
+			Title:         "Batch issue 3",
+			ResourceType:  "database",
+			ResourceID:    "db-batch-3",
+			ResourceName:  "db-batch-3",
+			Type:          "misconfiguration",
+			Severity:      "high",
+			CloudProvider: "aws",
+			AccountID:     "123456789012",
+			Category:      "NETWORK",
+			ComplianceMappings: []ComplianceMapping{{
+				FrameworkID:   "pci-dss",
+				FrameworkName: "PCI-DSS",
+				ControlID:     "REQ.1",
+				ControlTitle:  "Restrict public exposure",
+				Severity:      "HIGH",
+			}},
+		},
+	}
+
+	if err := syncSecurityIssueSurfaceWithStoreAndDispatcherMode(context.Background(), store, manager, findings, "tenant-a", now, nil, zap.NewNop(), true, true, nil); err != nil {
+		t.Fatalf("syncSecurityIssueSurfaceWithStoreAndDispatcherMode() error = %v", err)
+	}
+
+	if len(store.materializationCalls) != 2 {
+		t.Fatalf("materialization upserts = %d, want 2 incremental batches", len(store.materializationCalls))
+	}
+	if len(store.materializationCalls[0].Issues) == 0 || len(store.materializationCalls[1].Issues) == 0 {
+		t.Fatal("expected both incremental batches to persist issues")
+	}
+}
+
 func TestToComplianceFinding_ParsesOptionalFields(t *testing.T) {
 	now := time.Date(2026, 3, 31, 15, 0, 0, 0, time.UTC)
 	cvss := 9.8

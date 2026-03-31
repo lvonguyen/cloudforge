@@ -9,6 +9,12 @@
 
 ## What Was Done
 
+Session 35 — live secgraph issue-surface stabilization:
+
+- **D19 secgraph live fix landed:** issue-surface startup now accumulates in place, skips unnecessary ticket-state loads when auto-dispatch is off, persists issue-surface batches incrementally, and bulk-upserts evaluations/issues/issue_findings instead of row-by-row round-trips to Neon
+- **Prod secgraph rollout verified (2026-03-31):** first live issue-surface batch committed `77116` evaluations/issues/issue_findings at `2026-03-31T22:23:46Z`
+- **Prod issues API E2E verified (2026-03-31):** `GET /api/v1/issues/stats`, `GET /api/v1/issues?per_page=5&page=1`, and `GET /api/v1/issues/ISS-03327F6E1F1C` all succeeded through the public demo API with an operator JWT
+
 Session 34 — CI repair, documentation refresh, diagram polish:
 
 - **CI fix (7 lint + 1 E2E):** exhaustive switch cases in secgraph materialize, goconst nolint exact-line placement, gosec SQL suppressions, ineffassign hops (wired depth-bounded CTE), revive indent-error-flow, Playwright role label mismatch
@@ -37,8 +43,10 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - **Tests:** Go 45 pkg / 2,146 tests pass. Frontend 452/452 vitest.
 - **CI:** other session reported 6/6 GREEN after the latest CI repair sweep
 - **Fly.io:** app version `88` healthy in `sjc`
+- **Fly.io secgraph live state (2026-03-31 22:24Z):** the public demo is serving Postgres-backed findings and incrementally materialized secgraph issues; first committed batch size is `77116`
 - **Prod provider probe (2026-03-31 20:35Z):** `https://api.cloudforge-demo.lvonguyen.com/api/v1/providers` reports the live `integrations` block and durable ticket storage
 - **D19 live state (2026-03-31):** `cloudforge-api` is running with `FINDINGS_SOURCE=postgres` against the dedicated Neon `cloudforge` database and serving the 300K seeded corpus
+- **Issues API live probe (2026-03-31 22:25Z):** `/api/v1/issues/stats`, `/api/v1/issues`, and `/api/v1/issues/{id}` all returned live operator data on the public demo
 - **D21 live mutation probe (2026-03-31 20:36Z):** Asana create/comment/resolve/sync succeeded on finding `f-005019`; Jira create/comment/sync succeeded on finding `f-003201`
 - **Uncommitted:** `frontend/src/pages/ops/AttackPaths.tsx` (other session / in-flight D20 visual work) and `frontend/src/pages/__tests__/FindingDetail.investigation.test.tsx` (other session / in-flight finding-detail work)
 - **Stash:** `stash@{0}` — mixed D10/D20 WIP. Has 4 TS errors. Do NOT pop blindly. Recover one file at a time, verify tsc after each.
@@ -104,7 +112,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
   - local follow-up docs/Makefile slice aligns the runbook with the real `aegis-seed` -> `seed-postgres` -> `seed-resources` -> secgraph-backfill flow
   - live Fly runtime now has `AEGIS_DATABASE_URL` and `FINDINGS_SOURCE=postgres` deployed
   - the dedicated Neon `cloudforge` database is seeded and live on the public demo
-  - remaining D19 work is capacity/design follow-up for deferred warmup and secgraph materialization, not seed/cutover execution
+  - remaining D19 work is capacity/design follow-up for deferred warmup and full graph-edge secgraph materialization, not seed/cutover execution
 - Safe next parallel slice `D19-live-seed-execution`: operator-only runbook / checklist work based on `scripts/fly-findings-seed-preflight.mjs`. Do not use 1Password or live Fly secrets without an explicit handoff note and a clean operator window.
 - Safe next parallel slice `D20-attackpath-visuals`: own `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/*`, and dedicated attack-path tests only. Focus on icons, hop indicators, crown-jewel cues, and embedded remediation/finding context. The standalone east/west readability pass is already done for `SecurityGraph`.
 - Deferred-track closeout gates that must remain on the board:

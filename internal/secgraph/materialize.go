@@ -35,6 +35,110 @@ type MaterializeOptions struct {
 	BlastRadiusHops int
 }
 
+// IssueSurfaceAccumulator merges operator-facing issue artifacts in place so
+// large corpus syncs do not repeatedly rebuild and sort the full result set.
+type IssueSurfaceAccumulator struct {
+	evaluationsByID map[string]ControlEvaluation
+	issuesByID      map[string]Issue
+	linksByKey      map[string]IssueFindingLink
+}
+
+// NewIssueSurfaceAccumulator allocates an accumulator sized for the expected
+// number of unique issue/evaluation records.
+func NewIssueSurfaceAccumulator(capacity int) *IssueSurfaceAccumulator {
+	if capacity < 0 {
+		capacity = 0
+	}
+	return &IssueSurfaceAccumulator{
+		evaluationsByID: make(map[string]ControlEvaluation, capacity),
+		issuesByID:      make(map[string]Issue, capacity),
+		linksByKey:      make(map[string]IssueFindingLink, capacity),
+	}
+}
+
+// Add folds a per-finding materialization result into the accumulator.
+func (a *IssueSurfaceAccumulator) Add(result MaterializationResult) {
+	if a == nil {
+		return
+	}
+	if a.evaluationsByID == nil {
+		a.evaluationsByID = make(map[string]ControlEvaluation)
+	}
+	if a.issuesByID == nil {
+		a.issuesByID = make(map[string]Issue)
+	}
+	if a.linksByKey == nil {
+		a.linksByKey = make(map[string]IssueFindingLink)
+	}
+
+	for _, evaluation := range result.Evaluations {
+		if existing, ok := a.evaluationsByID[evaluation.ID]; ok {
+			a.evaluationsByID[evaluation.ID] = mergeControlEvaluations(existing, evaluation)
+			continue
+		}
+		a.evaluationsByID[evaluation.ID] = evaluation
+	}
+	for _, issue := range result.Issues {
+		if existing, ok := a.issuesByID[issue.ID]; ok {
+			a.issuesByID[issue.ID] = mergeIssues(existing, issue)
+			continue
+		}
+		a.issuesByID[issue.ID] = issue
+	}
+	for _, link := range result.IssueFindings {
+		key := link.IssueID + "|" + link.FindingID
+		if existing, ok := a.linksByKey[key]; ok {
+			if link.CreatedAt.Before(existing.CreatedAt) {
+				a.linksByKey[key] = link
+			}
+			continue
+		}
+		a.linksByKey[key] = link
+	}
+}
+
+// Counts returns the current buffered issue-surface cardinalities.
+func (a *IssueSurfaceAccumulator) Counts() (evaluations, issues, links int) {
+	if a == nil {
+		return 0, 0, 0
+	}
+	return len(a.evaluationsByID), len(a.issuesByID), len(a.linksByKey)
+}
+
+// Snapshot returns a deterministic materialization result view of the
+// accumulated issue surface.
+func (a *IssueSurfaceAccumulator) Snapshot() MaterializationResult {
+	if a == nil {
+		return MaterializationResult{}
+	}
+
+	result := MaterializationResult{
+		Evaluations:   make([]ControlEvaluation, 0, len(a.evaluationsByID)),
+		Issues:        make([]Issue, 0, len(a.issuesByID)),
+		IssueFindings: make([]IssueFindingLink, 0, len(a.linksByKey)),
+	}
+	for _, evaluation := range a.evaluationsByID {
+		result.Evaluations = append(result.Evaluations, evaluation)
+	}
+	for _, issue := range a.issuesByID {
+		result.Issues = append(result.Issues, issue)
+	}
+	for _, link := range a.linksByKey {
+		result.IssueFindings = append(result.IssueFindings, link)
+	}
+
+	sort.Slice(result.Evaluations, func(i, j int) bool { return result.Evaluations[i].ID < result.Evaluations[j].ID })
+	sort.Slice(result.Issues, func(i, j int) bool { return result.Issues[i].ID < result.Issues[j].ID })
+	sort.Slice(result.IssueFindings, func(i, j int) bool {
+		if result.IssueFindings[i].IssueID == result.IssueFindings[j].IssueID {
+			return result.IssueFindings[i].FindingID < result.IssueFindings[j].FindingID
+		}
+		return result.IssueFindings[i].IssueID < result.IssueFindings[j].IssueID
+	})
+
+	return result
+}
+
 // BuildControlsFromManager flattens compliance frameworks into control rows
 // suitable for seeding the security graph control catalog.
 func BuildControlsFromManager(mgr *compliance.Manager, tenantID string, now time.Time) []Control {
@@ -321,6 +425,16 @@ func MergeMaterializationResults(base, next MaterializationResult) Materializati
 	sort.Slice(merged.Edges, func(i, j int) bool { return merged.Edges[i].ID < merged.Edges[j].ID })
 
 	return merged
+}
+
+// MergeIssueSurfaceResults combines only the operator-facing issue artifacts.
+// It intentionally excludes controls and graph edges so large-corpus startup
+// syncs can bound memory while still materializing the issue surface.
+func MergeIssueSurfaceResults(base, next MaterializationResult) MaterializationResult {
+	accumulator := NewIssueSurfaceAccumulator(len(base.Issues) + len(next.Issues))
+	accumulator.Add(base)
+	accumulator.Add(next)
+	return accumulator.Snapshot()
 }
 
 // CanonicalControlID returns a stable control identifier suitable for graph and

@@ -27,6 +27,203 @@ type sqlExecContexter interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
+type preparedExec struct {
+	stmt *sql.Stmt
+}
+
+func (p preparedExec) ExecContext(ctx context.Context, _ string, args ...any) (sql.Result, error) {
+	return p.stmt.ExecContext(ctx, args...)
+}
+
+const (
+	evaluationUpsertBatchSize   = 500
+	issueUpsertBatchSize        = 200
+	issueFindingUpsertBatchSize = 1000
+	edgeUpsertBatchSize         = 500
+)
+
+const upsertEvaluationPrefix = `
+	INSERT INTO control_evaluations (
+		control_id, resource_id, status, evidence, evaluated_at, tenant_id
+	) VALUES `
+
+const upsertEvaluationSuffix = `
+	ON CONFLICT (control_id, resource_id, tenant_id) DO UPDATE SET
+		status = CASE
+			WHEN CASE UPPER(EXCLUDED.status)
+				WHEN 'FAIL' THEN 3
+				WHEN 'NOT_APPLICABLE' THEN 2
+				WHEN 'PASS' THEN 1
+				ELSE 0
+			END > CASE UPPER(control_evaluations.status)
+				WHEN 'FAIL' THEN 3
+				WHEN 'NOT_APPLICABLE' THEN 2
+				WHEN 'PASS' THEN 1
+				ELSE 0
+			END THEN EXCLUDED.status
+			ELSE control_evaluations.status
+		END,
+		evidence = ARRAY(
+			SELECT DISTINCT evidence_item
+			FROM unnest(COALESCE(control_evaluations.evidence, ARRAY[]::text[]) || COALESCE(EXCLUDED.evidence, ARRAY[]::text[])) AS evidence_item
+			WHERE evidence_item IS NOT NULL AND evidence_item <> ''
+			ORDER BY evidence_item
+		),
+		evaluated_at = GREATEST(control_evaluations.evaluated_at, EXCLUDED.evaluated_at)
+`
+
+const upsertEvaluationQuery = upsertEvaluationPrefix + `($1, $2, $3, $4, $5, $6)` + upsertEvaluationSuffix
+
+const upsertIssuePrefix = `
+	INSERT INTO issues (
+		id, title, description, severity, risk_score, blast_radius, status,
+		control_id, resource_id, account_id, provider, assignee_id, ticket_id,
+		ticket_url, sla_breach_at, exposure_paths, tenant_id, created_at,
+		updated_at, resolved_at
+	) VALUES `
+
+const upsertIssueSuffix = `
+	ON CONFLICT (id) DO UPDATE SET
+		title = CASE
+			WHEN CASE UPPER(EXCLUDED.severity)
+				WHEN 'CRITICAL' THEN 4
+				WHEN 'HIGH' THEN 3
+				WHEN 'MEDIUM' THEN 2
+				WHEN 'LOW' THEN 1
+				ELSE 0
+			END > CASE UPPER(issues.severity)
+				WHEN 'CRITICAL' THEN 4
+				WHEN 'HIGH' THEN 3
+				WHEN 'MEDIUM' THEN 2
+				WHEN 'LOW' THEN 1
+				ELSE 0
+			END
+			OR EXCLUDED.risk_score > issues.risk_score THEN EXCLUDED.title
+			ELSE issues.title
+		END,
+		description = CASE
+			WHEN CASE UPPER(EXCLUDED.severity)
+				WHEN 'CRITICAL' THEN 4
+				WHEN 'HIGH' THEN 3
+				WHEN 'MEDIUM' THEN 2
+				WHEN 'LOW' THEN 1
+				ELSE 0
+			END > CASE UPPER(issues.severity)
+				WHEN 'CRITICAL' THEN 4
+				WHEN 'HIGH' THEN 3
+				WHEN 'MEDIUM' THEN 2
+				WHEN 'LOW' THEN 1
+				ELSE 0
+			END
+			OR EXCLUDED.risk_score > issues.risk_score THEN EXCLUDED.description
+			ELSE issues.description
+		END,
+		severity = CASE
+			WHEN CASE UPPER(EXCLUDED.severity)
+				WHEN 'CRITICAL' THEN 4
+				WHEN 'HIGH' THEN 3
+				WHEN 'MEDIUM' THEN 2
+				WHEN 'LOW' THEN 1
+				ELSE 0
+			END > CASE UPPER(issues.severity)
+				WHEN 'CRITICAL' THEN 4
+				WHEN 'HIGH' THEN 3
+				WHEN 'MEDIUM' THEN 2
+				WHEN 'LOW' THEN 1
+				ELSE 0
+			END THEN EXCLUDED.severity
+			ELSE issues.severity
+		END,
+		risk_score = GREATEST(issues.risk_score, EXCLUDED.risk_score),
+		blast_radius = GREATEST(issues.blast_radius, EXCLUDED.blast_radius),
+		status = CASE
+			WHEN CASE UPPER(EXCLUDED.status)
+				WHEN 'IN_PROGRESS' THEN 5
+				WHEN 'ACKNOWLEDGED' THEN 4
+				WHEN 'OPEN' THEN 3
+				WHEN 'SUPPRESSED' THEN 2
+				WHEN 'RESOLVED' THEN 1
+				ELSE 0
+			END > CASE UPPER(issues.status)
+				WHEN 'IN_PROGRESS' THEN 5
+				WHEN 'ACKNOWLEDGED' THEN 4
+				WHEN 'OPEN' THEN 3
+				WHEN 'SUPPRESSED' THEN 2
+				WHEN 'RESOLVED' THEN 1
+				ELSE 0
+			END THEN EXCLUDED.status
+			ELSE issues.status
+		END,
+		control_id = EXCLUDED.control_id,
+		resource_id = EXCLUDED.resource_id,
+		account_id = EXCLUDED.account_id,
+		provider = EXCLUDED.provider,
+		assignee_id = COALESCE(NULLIF(EXCLUDED.assignee_id, ''), issues.assignee_id),
+		ticket_id = COALESCE(NULLIF(EXCLUDED.ticket_id, ''), issues.ticket_id),
+		ticket_url = COALESCE(NULLIF(EXCLUDED.ticket_url, ''), issues.ticket_url),
+		sla_breach_at = CASE
+			WHEN issues.sla_breach_at IS NULL THEN EXCLUDED.sla_breach_at
+			WHEN EXCLUDED.sla_breach_at IS NULL THEN issues.sla_breach_at
+			ELSE LEAST(issues.sla_breach_at, EXCLUDED.sla_breach_at)
+		END,
+		exposure_paths = GREATEST(issues.exposure_paths, EXCLUDED.exposure_paths),
+		tenant_id = EXCLUDED.tenant_id,
+		created_at = LEAST(issues.created_at, EXCLUDED.created_at),
+		updated_at = GREATEST(issues.updated_at, EXCLUDED.updated_at),
+		resolved_at = CASE
+			WHEN CASE
+				WHEN CASE UPPER(EXCLUDED.status)
+					WHEN 'IN_PROGRESS' THEN 5
+					WHEN 'ACKNOWLEDGED' THEN 4
+					WHEN 'OPEN' THEN 3
+					WHEN 'SUPPRESSED' THEN 2
+					WHEN 'RESOLVED' THEN 1
+					ELSE 0
+				END > CASE UPPER(issues.status)
+					WHEN 'IN_PROGRESS' THEN 5
+					WHEN 'ACKNOWLEDGED' THEN 4
+					WHEN 'OPEN' THEN 3
+					WHEN 'SUPPRESSED' THEN 2
+					WHEN 'RESOLVED' THEN 1
+					ELSE 0
+				END THEN UPPER(EXCLUDED.status)
+				ELSE UPPER(issues.status)
+			END NOT IN ('RESOLVED', 'SUPPRESSED') THEN NULL
+			WHEN issues.resolved_at IS NULL THEN EXCLUDED.resolved_at
+			WHEN EXCLUDED.resolved_at IS NULL THEN issues.resolved_at
+			WHEN EXCLUDED.resolved_at > issues.resolved_at THEN EXCLUDED.resolved_at
+			ELSE issues.resolved_at
+		END
+`
+
+const upsertIssueQuery = upsertIssuePrefix + `(
+		$1, $2, $3, $4, $5, $6, $7,
+		$8, $9, $10, $11, $12, $13,
+		$14, $15, $16, $17, $18,
+		$19, $20
+	)` + upsertIssueSuffix
+
+const upsertIssueFindingPrefix = `
+	INSERT INTO issue_findings (issue_id, finding_id, created_at)
+	VALUES `
+
+const upsertIssueFindingSuffix = `
+	ON CONFLICT (issue_id, finding_id) DO NOTHING
+`
+
+const upsertIssueFindingQuery = upsertIssueFindingPrefix + `($1, $2, $3)` + upsertIssueFindingSuffix
+
+const upsertEdgePrefix = `
+	INSERT INTO graph_edges (
+		id, source_type, source_id, target_type, target_id, edge_type, properties, tenant_id, created_at
+	) VALUES `
+
+const upsertEdgeSuffix = `
+	ON CONFLICT (source_type, source_id, target_type, target_id, edge_type, tenant_id) DO NOTHING
+`
+
+const upsertEdgeQuery = upsertEdgePrefix + `($1, $2, $3, $4, $5, $6, $7, $8, $9)` + upsertEdgeSuffix
+
 // NewStore creates a secgraph store backed by a SQL database handle.
 func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
@@ -165,31 +362,162 @@ func (s *Store) UpsertMaterialization(ctx context.Context, result Materializatio
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	for _, evaluation := range result.Evaluations {
-		if err := s.upsertEvaluation(ctx, tx, evaluation); err != nil {
-			return err
-		}
+	if err := s.upsertEvaluationBatch(ctx, tx, result.Evaluations); err != nil {
+		return err
 	}
-	for _, issue := range result.Issues {
-		if err := s.upsertIssue(ctx, tx, issue); err != nil {
-			return err
-		}
+	if err := s.upsertIssueBatch(ctx, tx, result.Issues); err != nil {
+		return err
 	}
-	for _, link := range result.IssueFindings {
-		if err := s.upsertIssueFinding(ctx, tx, link); err != nil {
-			return err
-		}
+	if err := s.upsertIssueFindingBatch(ctx, tx, result.IssueFindings); err != nil {
+		return err
 	}
-	for _, edge := range result.Edges {
-		if err := s.upsertEdge(ctx, tx, edge); err != nil {
-			return err
-		}
+	if err := s.upsertEdgeBatch(ctx, tx, result.Edges); err != nil {
+		return err
 	}
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit materialization upsert: %w", err)
 	}
 
+	return nil
+}
+
+func valuesPlaceholders(rows, cols int) string {
+	var builder strings.Builder
+	builder.Grow(rows * cols * 4)
+	param := 1
+	for row := 0; row < rows; row++ {
+		if row > 0 {
+			builder.WriteString(", ")
+		}
+		builder.WriteByte('(')
+		for col := 0; col < cols; col++ {
+			if col > 0 {
+				builder.WriteString(", ")
+			}
+			builder.WriteString(fmt.Sprintf("$%d", param))
+			param++
+		}
+		builder.WriteByte(')')
+	}
+	return builder.String()
+}
+
+func (s *Store) upsertEvaluationBatch(ctx context.Context, execer sqlExecContexter, evaluations []ControlEvaluation) error {
+	for start := 0; start < len(evaluations); start += evaluationUpsertBatchSize {
+		end := start + evaluationUpsertBatchSize
+		if end > len(evaluations) {
+			end = len(evaluations)
+		}
+		batch := evaluations[start:end]
+		args := make([]any, 0, len(batch)*6)
+		for _, evaluation := range batch {
+			args = append(args,
+				evaluation.ControlID,
+				evaluation.ResourceID,
+				string(evaluation.Status),
+				pq.Array(evaluation.Evidence),
+				evaluation.EvaluatedAt,
+				evaluation.TenantID,
+			)
+		}
+		query := upsertEvaluationPrefix + valuesPlaceholders(len(batch), 6) + upsertEvaluationSuffix
+		if _, err := execer.ExecContext(ctx, query, args...); err != nil {
+			return fmt.Errorf("upserting evaluation batch [%d:%d): %w", start, end, err)
+		}
+	}
+	return nil
+}
+
+func (s *Store) upsertIssueBatch(ctx context.Context, execer sqlExecContexter, issues []Issue) error {
+	for start := 0; start < len(issues); start += issueUpsertBatchSize {
+		end := start + issueUpsertBatchSize
+		if end > len(issues) {
+			end = len(issues)
+		}
+		batch := issues[start:end]
+		args := make([]any, 0, len(batch)*20)
+		for _, issue := range batch {
+			args = append(args,
+				issue.ID,
+				issue.Title,
+				issue.Description,
+				issue.Severity,
+				issue.RiskScore,
+				issue.BlastRadius,
+				string(issue.Status),
+				issue.ControlID,
+				issue.ResourceID,
+				issue.AccountID,
+				issue.Provider,
+				issue.AssigneeID,
+				issue.TicketID,
+				issue.TicketURL,
+				issue.SLABreachAt,
+				issue.ExposurePaths,
+				issue.TenantID,
+				issue.CreatedAt,
+				issue.UpdatedAt,
+				issue.ResolvedAt,
+			)
+		}
+		query := upsertIssuePrefix + valuesPlaceholders(len(batch), 20) + upsertIssueSuffix
+		if _, err := execer.ExecContext(ctx, query, args...); err != nil {
+			return fmt.Errorf("upserting issue batch [%d:%d): %w", start, end, err)
+		}
+	}
+	return nil
+}
+
+func (s *Store) upsertIssueFindingBatch(ctx context.Context, execer sqlExecContexter, links []IssueFindingLink) error {
+	for start := 0; start < len(links); start += issueFindingUpsertBatchSize {
+		end := start + issueFindingUpsertBatchSize
+		if end > len(links) {
+			end = len(links)
+		}
+		batch := links[start:end]
+		args := make([]any, 0, len(batch)*3)
+		for _, link := range batch {
+			args = append(args, link.IssueID, link.FindingID, link.CreatedAt)
+		}
+		query := upsertIssueFindingPrefix + valuesPlaceholders(len(batch), 3) + upsertIssueFindingSuffix
+		if _, err := execer.ExecContext(ctx, query, args...); err != nil {
+			return fmt.Errorf("upserting issue_finding batch [%d:%d): %w", start, end, err)
+		}
+	}
+	return nil
+}
+
+func (s *Store) upsertEdgeBatch(ctx context.Context, execer sqlExecContexter, edges []GraphEdge) error {
+	for start := 0; start < len(edges); start += edgeUpsertBatchSize {
+		end := start + edgeUpsertBatchSize
+		if end > len(edges) {
+			end = len(edges)
+		}
+		batch := edges[start:end]
+		args := make([]any, 0, len(batch)*9)
+		for _, edge := range batch {
+			payload, err := json.Marshal(edge.Properties)
+			if err != nil {
+				return fmt.Errorf("marshalling edge %s properties: %w", edge.ID, err)
+			}
+			args = append(args,
+				edge.ID,
+				string(edge.SourceType),
+				edge.SourceID,
+				string(edge.TargetType),
+				edge.TargetID,
+				string(edge.EdgeType),
+				payload,
+				edge.TenantID,
+				edge.CreatedAt,
+			)
+		}
+		query := upsertEdgePrefix + valuesPlaceholders(len(batch), 9) + upsertEdgeSuffix
+		if _, err := execer.ExecContext(ctx, query, args...); err != nil {
+			return fmt.Errorf("upserting edge batch [%d:%d): %w", start, end, err)
+		}
+	}
 	return nil
 }
 
@@ -482,19 +810,7 @@ func (s *Store) GetIssue(ctx context.Context, tenantID, issueID string) (*IssueD
 
 // upsertEvaluation keeps one evaluation row per control/resource/tenant tuple.
 func (s *Store) upsertEvaluation(ctx context.Context, execer sqlExecContexter, evaluation ControlEvaluation) error {
-	const query = `
-		INSERT INTO control_evaluations (
-			id, control_id, resource_id, status, evidence, evaluated_at, tenant_id
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
-		ON CONFLICT (control_id, resource_id, tenant_id) DO UPDATE SET
-			id = EXCLUDED.id,
-			status = EXCLUDED.status,
-			evidence = EXCLUDED.evidence,
-			evaluated_at = EXCLUDED.evaluated_at
-	`
-
-	if _, err := execer.ExecContext(ctx, query,
-		evaluation.ID,
+	if _, err := execer.ExecContext(ctx, upsertEvaluationQuery,
 		evaluation.ControlID,
 		evaluation.ResourceID,
 		string(evaluation.Status),
@@ -511,40 +827,7 @@ func (s *Store) upsertEvaluation(ctx context.Context, execer sqlExecContexter, e
 // upsertIssue persists the materialized issue surface without deciding issue
 // state transitions; higher layers are expected to reconcile lifecycle first.
 func (s *Store) upsertIssue(ctx context.Context, execer sqlExecContexter, issue Issue) error {
-	const query = `
-		INSERT INTO issues (
-			id, title, description, severity, risk_score, blast_radius, status,
-			control_id, resource_id, account_id, provider, assignee_id, ticket_id,
-			ticket_url, sla_breach_at, exposure_paths, tenant_id, created_at,
-			updated_at, resolved_at
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7,
-			$8, $9, $10, $11, $12, $13,
-			$14, $15, $16, $17, $18,
-			$19, $20
-		)
-		ON CONFLICT (id) DO UPDATE SET
-			title = EXCLUDED.title,
-			description = EXCLUDED.description,
-			severity = EXCLUDED.severity,
-			risk_score = EXCLUDED.risk_score,
-			blast_radius = EXCLUDED.blast_radius,
-			status = EXCLUDED.status,
-			control_id = EXCLUDED.control_id,
-			resource_id = EXCLUDED.resource_id,
-			account_id = EXCLUDED.account_id,
-			provider = EXCLUDED.provider,
-			assignee_id = EXCLUDED.assignee_id,
-			ticket_id = EXCLUDED.ticket_id,
-			ticket_url = EXCLUDED.ticket_url,
-			sla_breach_at = EXCLUDED.sla_breach_at,
-			exposure_paths = EXCLUDED.exposure_paths,
-			tenant_id = EXCLUDED.tenant_id,
-			updated_at = EXCLUDED.updated_at,
-			resolved_at = EXCLUDED.resolved_at
-	`
-
-	if _, err := execer.ExecContext(ctx, query,
+	if _, err := execer.ExecContext(ctx, upsertIssueQuery,
 		issue.ID,
 		issue.Title,
 		issue.Description,
@@ -574,13 +857,7 @@ func (s *Store) upsertIssue(ctx context.Context, execer sqlExecContexter, issue 
 
 // upsertIssueFinding records the source findings that currently justify an issue.
 func (s *Store) upsertIssueFinding(ctx context.Context, execer sqlExecContexter, link IssueFindingLink) error {
-	const query = `
-		INSERT INTO issue_findings (issue_id, finding_id, created_at)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (issue_id, finding_id) DO NOTHING
-	`
-
-	if _, err := execer.ExecContext(ctx, query, link.IssueID, link.FindingID, link.CreatedAt); err != nil {
+	if _, err := execer.ExecContext(ctx, upsertIssueFindingQuery, link.IssueID, link.FindingID, link.CreatedAt); err != nil {
 		return fmt.Errorf("upserting issue_finding %s/%s: %w", link.IssueID, link.FindingID, err)
 	}
 
@@ -589,18 +866,11 @@ func (s *Store) upsertIssueFinding(ctx context.Context, execer sqlExecContexter,
 
 // upsertEdge persists graph relationships emitted during materialization.
 func (s *Store) upsertEdge(ctx context.Context, execer sqlExecContexter, edge GraphEdge) error {
-	const query = `
-		INSERT INTO graph_edges (
-			id, source_type, source_id, target_type, target_id, edge_type, properties, tenant_id, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		ON CONFLICT (source_type, source_id, target_type, target_id, edge_type, tenant_id) DO NOTHING
-	`
-
 	payload, err := json.Marshal(edge.Properties)
 	if err != nil {
 		return fmt.Errorf("marshalling edge %s properties: %w", edge.ID, err)
 	}
-	if _, err := execer.ExecContext(ctx, query,
+	if _, err := execer.ExecContext(ctx, upsertEdgeQuery,
 		edge.ID,
 		string(edge.SourceType),
 		edge.SourceID,

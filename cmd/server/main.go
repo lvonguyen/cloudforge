@@ -455,7 +455,7 @@ func main() {
 		go func() {
 			// Warm the security graph asynchronously so startup is gated only on
 			// serving the API, not on best-effort graph materialization.
-			edgeCtx, edgeCancel := context.WithTimeout(serverCtx, 60*time.Second)
+			edgeCtx, edgeCancel := context.WithTimeout(serverCtx, durationEnv("EDGE_BACKFILL_TIMEOUT", 60*time.Second, logger))
 			if bfErr := secgraph.RunEdgeBackfill(edgeCtx, auditDB, logger); bfErr != nil {
 				logger.Warn("Edge backfill failed (non-fatal, graph queries may be incomplete)",
 					zap.Error(bfErr),
@@ -472,7 +472,7 @@ func main() {
 				return
 			}
 
-			secgraphCtx, secgraphCancel := context.WithTimeout(serverCtx, 60*time.Second)
+			secgraphCtx, secgraphCancel := context.WithTimeout(serverCtx, durationEnv("SECGRAPH_SYNC_TIMEOUT", 60*time.Second, logger))
 			if sgErr := syncSecurityGraph(secgraphCtx, auditDB, complianceMgr, mockData.Findings, defaultTicketProvider, routingEngine, logger.Named("secgraph")); sgErr != nil {
 				logger.Warn("Security graph sync failed (non-fatal, issue graph may be incomplete)",
 					zap.Error(sgErr),

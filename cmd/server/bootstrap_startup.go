@@ -417,7 +417,7 @@ func loadRuntimeData(findingsSource string, auditDB *sql.DB, logger *zap.Logger)
 		return nil, fmt.Errorf("FINDINGS_SOURCE=postgres requires AEGIS_DATABASE_URL and a reachable PostgreSQL instance")
 	}
 
-	findingsCtx, findingsCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	findingsCtx, findingsCancel := context.WithTimeout(context.Background(), durationEnv("FINDINGS_LOAD_TIMEOUT", 30*time.Second, logger))
 	defer findingsCancel()
 
 	findings, err := loadFindingsFromPostgres(findingsCtx, auditDB)

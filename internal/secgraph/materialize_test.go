@@ -319,6 +319,139 @@ func TestMergeMaterializationResultsAggregatesSharedIssue(t *testing.T) {
 	}
 }
 
+func TestMergeIssueSurfaceResultsAggregatesSharedIssueWithoutEdges(t *testing.T) {
+	now := time.Date(2026, time.March, 31, 7, 30, 0, 0, time.UTC)
+	sharedMapping := []compliance.ComplianceMapping{
+		{FrameworkID: "nist-csf", FrameworkName: "NIST CSF", ControlID: "PR.2", ControlTitle: "Shared issue control", Severity: "HIGH"},
+	}
+
+	openFinding := &compliance.Finding{
+		ID:                 "F-005A",
+		Title:              "Active shared finding",
+		ResourceID:         "db-999",
+		ResourceName:       "db-999",
+		ResourceType:       compliance.ResourceTypeDatabase,
+		CloudProvider:      compliance.CloudProviderAWS,
+		AccountID:          "123456789012",
+		Severity:           "HIGH",
+		Status:             "open",
+		Category:           compliance.CategoryNetwork,
+		ExploitAvailable:   true,
+		ComplianceMappings: sharedMapping,
+	}
+	resolvedAt := now.Add(-30 * time.Minute)
+	resolvedFinding := &compliance.Finding{
+		ID:                 "F-006A",
+		Title:              "Resolved shared finding",
+		ResourceID:         "db-999",
+		ResourceName:       "db-999",
+		ResourceType:       compliance.ResourceTypeDatabase,
+		CloudProvider:      compliance.CloudProviderAWS,
+		AccountID:          "123456789012",
+		Severity:           "MEDIUM",
+		Status:             "resolved",
+		WorkflowStatus:     compliance.StatusRemediated,
+		ResolvedAt:         &resolvedAt,
+		ComplianceMappings: sharedMapping,
+	}
+
+	openResult := MaterializeFinding(openFinding, "tenant-a", now)
+	resolvedResult := MaterializeFinding(resolvedFinding, "tenant-a", now)
+	openResult.Edges = []GraphEdge{{ID: "edge-open"}}
+	resolvedResult.Edges = []GraphEdge{{ID: "edge-resolved"}}
+	merged := MergeIssueSurfaceResults(openResult, resolvedResult)
+
+	if len(merged.Edges) != 0 {
+		t.Fatalf("edges = %d, want 0", len(merged.Edges))
+	}
+	if len(merged.Issues) != 1 {
+		t.Fatalf("issues = %d, want 1", len(merged.Issues))
+	}
+	if len(merged.Evaluations) != 1 {
+		t.Fatalf("evaluations = %d, want 1", len(merged.Evaluations))
+	}
+	if len(merged.IssueFindings) != 2 {
+		t.Fatalf("issue_findings = %d, want 2", len(merged.IssueFindings))
+	}
+
+	if merged.Issues[0].Status != IssueOpen {
+		t.Fatalf("issue status = %q, want %q", merged.Issues[0].Status, IssueOpen)
+	}
+	if merged.Evaluations[0].Status != EvalFail {
+		t.Fatalf("evaluation status = %q, want %q", merged.Evaluations[0].Status, EvalFail)
+	}
+}
+
+func TestIssueSurfaceAccumulatorAggregatesSharedIssueWithoutEdges(t *testing.T) {
+	now := time.Date(2026, time.March, 31, 7, 45, 0, 0, time.UTC)
+	sharedMapping := []compliance.ComplianceMapping{
+		{FrameworkID: "nist-csf", FrameworkName: "NIST CSF", ControlID: "PR.2", ControlTitle: "Shared issue control", Severity: "HIGH"},
+	}
+
+	openFinding := &compliance.Finding{
+		ID:                 "F-005B",
+		Title:              "Active shared finding",
+		ResourceID:         "db-999",
+		ResourceName:       "db-999",
+		ResourceType:       compliance.ResourceTypeDatabase,
+		CloudProvider:      compliance.CloudProviderAWS,
+		AccountID:          "123456789012",
+		Severity:           "HIGH",
+		Status:             "open",
+		Category:           compliance.CategoryNetwork,
+		ExploitAvailable:   true,
+		ComplianceMappings: sharedMapping,
+	}
+	resolvedAt := now.Add(-30 * time.Minute)
+	resolvedFinding := &compliance.Finding{
+		ID:                 "F-006B",
+		Title:              "Resolved shared finding",
+		ResourceID:         "db-999",
+		ResourceName:       "db-999",
+		ResourceType:       compliance.ResourceTypeDatabase,
+		CloudProvider:      compliance.CloudProviderAWS,
+		AccountID:          "123456789012",
+		Severity:           "MEDIUM",
+		Status:             "resolved",
+		WorkflowStatus:     compliance.StatusRemediated,
+		ResolvedAt:         &resolvedAt,
+		ComplianceMappings: sharedMapping,
+	}
+
+	accumulator := NewIssueSurfaceAccumulator(2)
+	openResult := MaterializeFinding(openFinding, "tenant-a", now)
+	resolvedResult := MaterializeFinding(resolvedFinding, "tenant-a", now)
+	openResult.Edges = []GraphEdge{{ID: "edge-open"}}
+	resolvedResult.Edges = []GraphEdge{{ID: "edge-resolved"}}
+
+	accumulator.Add(openResult)
+	accumulator.Add(resolvedResult)
+	evaluations, issues, links := accumulator.Counts()
+	if evaluations != 1 || issues != 1 || links != 2 {
+		t.Fatalf("accumulator counts = (%d,%d,%d), want (1,1,2)", evaluations, issues, links)
+	}
+
+	snapshot := accumulator.Snapshot()
+	if len(snapshot.Edges) != 0 {
+		t.Fatalf("edges = %d, want 0", len(snapshot.Edges))
+	}
+	if len(snapshot.Issues) != 1 {
+		t.Fatalf("issues = %d, want 1", len(snapshot.Issues))
+	}
+	if len(snapshot.Evaluations) != 1 {
+		t.Fatalf("evaluations = %d, want 1", len(snapshot.Evaluations))
+	}
+	if len(snapshot.IssueFindings) != 2 {
+		t.Fatalf("issue_findings = %d, want 2", len(snapshot.IssueFindings))
+	}
+	if snapshot.Issues[0].Status != IssueOpen {
+		t.Fatalf("issue status = %q, want %q", snapshot.Issues[0].Status, IssueOpen)
+	}
+	if snapshot.Evaluations[0].Status != EvalFail {
+		t.Fatalf("evaluation status = %q, want %q", snapshot.Evaluations[0].Status, EvalFail)
+	}
+}
+
 func TestMaterializeFindingUsesAIRiskScoreFloor(t *testing.T) {
 	now := time.Date(2026, time.March, 31, 7, 0, 0, 0, time.UTC)
 	finding := &compliance.Finding{
