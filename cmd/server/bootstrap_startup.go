@@ -353,8 +353,11 @@ func initSecretsProvider(logger *zap.Logger) (secrets.Provider, error) {
 	}
 
 	return secrets.NewProviderFromConfig(secrets.ProviderConfig{
-		Type:   secretsType,
-		Logger: logger.Named("secrets"),
+		Type:     secretsType,
+		Region:   getEnv("SECRETS_AWS_REGION", getEnv("AWS_REGION", "")),
+		VaultURL: getEnv("SECRETS_AZURE_KEY_VAULT_URL", ""),
+		Project:  getEnv("SECRETS_GCP_PROJECT_ID", ""),
+		Logger:   logger.Named("secrets"),
 	})
 }
 

@@ -62,7 +62,168 @@
   - `env GOCACHE=/tmp/go-build-cache go test ./internal/webhooks -count=1`
   - `env GOCACHE=/tmp/go-build-cache go test ./internal/webhooks -run=^$ -fuzz=FuzzValidateWebhookURL -fuzztime=2s`
   - `env GOCACHE=/tmp/go-build-cache go test ./... -count=1` passes outside the sandbox after the graph URL hardening
-- Worktree is now dirty with local changes in `.dockerignore`, `cmd/server` tests/startup/NLQ+graph handlers, `cmd/server/main.go`, new startup/Postgres helper files, `internal/api`, `internal/graph`, `internal/ingestion/adapters`, `internal/rql`, `internal/terminal`, `internal/webhooks`, DSPM fixture extraction, and this handoff file.
+- Worktree remains dirty; current local delta is in `cmd/server/attackpath_enrich.go`, `cmd/server/service_enrichment_test.go`, the new fuzz test files under `cmd/server`, `internal/container`, `internal/secrets`, `internal/terminal`, and this handoff file.
+
+## Continuation Update (2026-03-30)
+
+- Added a third Go fuzz coverage wave for remaining structured-input and parser-heavy paths:
+  - `cmd/server`: `FuzzPostgresFindingRowToFinding`, `FuzzParseFindingEnrichment`, `FuzzParseEnrichmentResponse`, `FuzzBuildEnrichmentPrompt`
+  - `internal/container`: `FuzzParseTrivyK8sJSON`
+  - `internal/secrets`: `FuzzScannerScan`
+  - `internal/terminal`: `FuzzExecutorValidate`
+- Added deterministic `extractIPsFromText` coverage in `cmd/server/service_enrichment_test.go`.
+- Verified `gzipResponseWriter` already preserves `http.Flusher` and `http.Hijacker`; added regression tests in `cmd/server/middleware_test.go` and cleared the stale deferred note.
+- Fuzzing found and fixed a real prompt-sanitization gap in `cmd/server/attackpath_enrich.go`:
+  - `sanitizeForPrompt` now NFKC-normalizes input, strips ASCII control bytes, Unicode format chars, and normalizes non-ASCII space separators.
+  - `buildEnrichmentPrompt` now sanitizes edge labels and MITRE tactics before assembling the model prompt.
+- Verification during the 2026-03-30 continuation:
+  - Targeted package tests passed:
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestPostgresFindingRow|TestParseFindingEnrichment|TestTruncateField|TestExtractIPsFromText|TestAttackPaths_' -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestGzipMiddleware|TestGzipResponseWriter' -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/container -run Test -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/secrets -run Test -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/terminal -run Test -count=1`
+  - Extended fuzz runs passed:
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run=^$ -fuzz=FuzzPostgresFindingRowToFinding -fuzztime=30s`
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run=^$ -fuzz=FuzzParseFindingEnrichment -fuzztime=30s`
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run=^$ -fuzz=FuzzParseEnrichmentResponse -fuzztime=30s`
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run=^$ -fuzz=FuzzBuildEnrichmentPrompt -fuzztime=30s`
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/container -run=^$ -fuzz=FuzzParseTrivyK8sJSON -fuzztime=30s`
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/secrets -run=^$ -fuzz=FuzzScannerScan -fuzztime=30s`
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/terminal -run=^$ -fuzz=FuzzExecutorValidate -fuzztime=30s`
+  - `env GOCACHE=/tmp/go-build-cache go test ./... -count=1` passes outside the sandbox; the in-sandbox failure mode was expected because several packages use `httptest.NewServer`, which cannot bind localhost in this environment.
+
+## Architecture Coordination Update (2026-03-30)
+
+Use this file as the shared climbing board for all security-graph work. Before starting a substantial architecture or implementation slice:
+
+- claim the workstream below by appending your session/date
+- list the files or domains you intend to touch
+- move the item between `In Flight`, `Pending`, `Blocked`, and `Done`
+- do not modify another in-flight workstream's files without leaving a coordination note here first
+
+### Done
+
+- `WG-A: Security Graph platform decision` — completed 2026-03-31
+  - Scope completed: Neptune vs PuppyGraph vs Postgres role split; eventing backbone; graph source-of-truth recommendation
+  - Output: architecture recommendation, tooling tradeoffs, and staged migration path recorded below
+  - Working memo: `docs/research/security-graph-platform-options.md`
+
+- `WG-B: Graph data model — Phase 1 (Schema)` — completed 2026-03-30 (session 33)
+  - Scope completed: Canonical node taxonomy (6 vertex types) and edge taxonomy (8 edge types). Migration 007 with 6 new tables + 3 backfill queries. PuppyGraph schema updated (6 vertices, 8 edges). Go domain types in `internal/secgraph/types.go`.
+  - Output files:
+    - `docs/core/architecture/adr/ADR-020-security-graph-architecture.md` — master ADR
+    - `migrations/007_security_graph.sql` — accounts, controls, control_evaluations, issues, issue_findings, graph_edges
+    - `internal/secgraph/types.go` — Go types: Control, ControlEvaluation, Issue, Account, GraphEdge + enums
+    - `deploy/docker/puppygraph/schema.json` — 6 vertices, 8 edges (was 3/2)
+    - `docs/core/architecture/graph-native-attack-paths.md` — Gremlin query reference mapping heuristic→graph-native
+  - Remaining in WG-B Phase 2: Edge materialization (populate graph_edges on ingestion, control eval, issue creation). Backfill same_account/same_region co-location edges.
+
+- `WG-C: Controls → Issues engine — Phase 1 (Schema)` — completed 2026-03-30 (session 33)
+  - Scope completed: Control and Issue entity schemas, evaluation model (per-resource pass/fail), issue lifecycle (OPEN→ACKNOWLEDGED→IN_PROGRESS→RESOLVED→SUPPRESSED), dedup key (control_id, resource_id, tenant_id).
+  - Remaining in WG-C Phase 2: Control seeding from `internal/compliance` frameworks, evaluation bridge in `compliance.Manager.MapFinding()`, issue materialization engine, scoring (severity × blast_radius × exposure), ticket dispatch integration.
+
+- `WG-C Phase 2: Deterministic control seeding + materialization helpers` — completed 2026-03-31 (codex)
+  - Scope completed: exported framework listing from `internal/compliance`, deterministic control seeding helpers, issue/evaluation materialization helpers, and package tests
+  - Output files:
+    - `internal/secgraph/materialize.go`
+    - `internal/secgraph/materialize_test.go`
+    - `internal/secgraph/types.go`
+    - `internal/compliance/framework.go`
+  - Verification:
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/compliance -count=1`
+  - Remaining in WG-C Phase 2: persist seeded controls/evaluations/issues, bridge runtime finding mapping to secgraph writes, and ticket dispatch integration.
+
+- `WG-B Phase 2: Edge materialization` — completed 2026-03-31 (session 33, lead)
+  - Scope completed: Backfill functions for affects/belongs_to/maps_to/same_region edges, bootstrap wiring (runs after findings load, gated on auditDB != nil), NopEdgeStore removed (Codex store handles CRUD).
+  - Output files:
+    - `internal/secgraph/backfill.go` — RunEdgeBackfill + 4 backfill SQL functions
+    - `internal/secgraph/backfill_test.go` — 6 unit tests (edge types, node types, newEdge determinism, properties)
+    - `cmd/server/main.go` — secgraph.RunEdgeBackfill wired after loadRuntimeData
+  - Verification: `go build ./...` clean, `go vet ./...` clean, `go test ./internal/secgraph/ -count=1` — 9/9 pass
+  - Note: Codex agent reworked `store.go` during WG-C into a `Store` struct with `UpsertControls`/`UpsertMaterialization`. Backfill uses `*sql.DB` directly (separate concern from per-record CRUD).
+
+- `WSG-3: Eventing and tenant isolation (architecture)` — completed 2026-03-31 (codex)
+  - Scope completed: per-tenant event envelope, queueing/fanout recommendations, stage-by-stage graph change propagation design
+  - Output file:
+    - `docs/research/security-graph-eventing.md`
+  - Decision: use SQS + EventBridge Pipes for the internal graph/issue pipeline, SNS or EventBridge bus for many-to-many downstream fanout, and FIFO semantics for tenant/resource-sensitive mutation streams
+
+- `WG-C Phase 2: Startup sync bridge` — completed 2026-03-31 (codex)
+  - Scope completed: seed secgraph controls at startup, convert loaded findings into compliance findings, materialize issues/evaluations/edges, and persist them before graph backfill when Postgres is enabled
+  - Output files:
+    - `cmd/server/secgraph_sync.go`
+    - `cmd/server/secgraph_sync_test.go`
+    - `cmd/server/main.go`
+  - Verification:
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestSyncSecurityGraphWithStore|TestToComplianceFinding' -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestPostgresFindingRow|TestParseFindingEnrichment|TestAttackPaths_|TestSyncSecurityGraphWithStore|TestToComplianceFinding' -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph ./internal/compliance -count=1`
+
+### In Flight
+
+- `WG-C Phase 2: Issue ticket dispatch integration` — in progress 2026-03-31 (codex)
+  - Scope claimed: preserve existing secgraph issue ticket metadata during startup rematerialization and dispatch tickets for unticketed issues using the existing integrations provider/router path
+  - Write scope: `cmd/server/secgraph_sync.go`, `cmd/server/secgraph_sync_test.go`, `cmd/server/main.go`, `tasks/handoff.md`
+  - Coordination: avoiding frontend and live graph API files; this slice stays in startup/secgraph/integrations glue only
+
+### Pending
+
+- `WG-C Phase 2: Control evaluation + Issue pipeline`
+  - Ticket dispatch integration
+  - Optional follow-up: promote startup sync into incremental ingestion-time writes instead of startup-only materialization
+  - Likely touchpoints: `internal/secgraph/`, `internal/compliance/`, `cmd/server/handlers_*.go`
+
+- `WG-D: Live graph query/API path`
+  - Replace findings-derived frontend graph rendering with backend neighborhood queries and graph-native path projections
+  - Likely touchpoints: `cmd/server/handlers_graph.go`, `internal/graph/`, `frontend/src/pages/ops/SecurityGraph.tsx`
+  - Blocked by: WG-B Phase 2 (needs populated edges)
+
+- `WG-E: Graph UX modernization`
+  - Improve graph layout, expansion model, clustering, inspector rail, and attack-path drill-downs after backend contracts are settled
+  - Likely touchpoints: `frontend/src/components/ops/BaseGraphView.tsx`, `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/AttackPathMiniGraph.tsx`
+  - Blocked by: WG-D (needs backend graph query API)
+
+### Current Architecture Facts
+
+- Current attack paths are heuristic finding chains, not graph-native issue outputs.
+  - Evidence: `computeAttackPaths` builds paths from account grouping, entry/intermediate/target heuristics, and `canConnect` rules in `cmd/server/attackpath.go`.
+
+- The frontend attack-path experience still falls back to mock/precomputed payloads when the API is unavailable.
+  - Evidence: `frontend/src/hooks/useAttackPaths.ts`.
+
+- The main Security Graph UI is findings-derived, not backed by live graph neighborhoods.
+  - Evidence: `frontend/src/pages/ops/SecurityGraph.tsx`.
+
+- PuppyGraph is wired today as a query surface over relational tables, not yet as the primary risk computation engine.
+  - Evidence: `cmd/server/handlers_graph.go`, `internal/graph/client.go`, `deploy/docker/puppygraph/schema.json`.
+
+- The current PuppyGraph schema is too thin for Wiz-like path analysis.
+  - Today it models `finding`, `resource`, and `compliance_framework` with `affects` and `maps_to` edges only.
+
+### Working Target
+
+- `Security Graph` = tenant-scoped live graph of evidence and relationships
+- `Controls` = graph-native toxic-combination rules evaluated over current graph state
+- `Issues` = materialized control matches with lifecycle and severity
+- `Attack Paths / Blast Radius / Exposure Views` = projections over issues and graph neighborhoods, not standalone heuristics
+
+### Provisional Recommendation
+
+#### WG-A Decision Output (2026-03-31)
+
+- `Recommended target:` Neptune Database as the primary tenant-scoped security graph if the goal is Wiz-like live Controls -> Issues -> Attack Paths, with Aurora/Postgres retained for high-volume raw findings/config/control metadata and ElastiCache/Valkey considered for diff/cache hot paths.
+- `Recommended near-term role for PuppyGraph:` keep it as a federated read/query and analyst exploration layer while the graph-native control plane is being designed. It is useful for ad-hoc Gremlin/openCypher access and relational-to-graph projection, but it should not be the assumed long-term source of truth for live issue materialization.
+- `Why:` the current repo uses PuppyGraph as a read-only query surface over a thin relational schema (`finding`, `resource`, `compliance_framework`) and does not drive core risk computation from it. Wiz's published Neptune architecture uses Aurora + Neptune + ElastiCache together: Aurora for high-volume storage, Neptune for the security graph, ElastiCache for scan-comparison offload, and Bedrock for investigation/remediation assistance.
+- `AWS-native eventing direction to explore next:` EventBridge Pipes for source-to-target plumbing, or SNS/SQS fan-out when explicit queue isolation per tenant/workstream is needed. This belongs in `WSG-3`.
+- `Guardrail:` do not over-invest in graph UI polish until `WSG-B` and `WSG-C` define canonical node/edge taxonomy and the controls/issues contract.
+
+Source pointers:
+- AWS case study: https://aws.amazon.com/solutions/case-studies/wiz-neptune/
+- Neptune Streams change records: https://docs.aws.amazon.com/neptune/latest/userguide/streams-change-formats.html
+- EventBridge Pipes: https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-pipes.html
+- PuppyGraph getting started / query-as-graph positioning: https://docs.puppygraph.com/getting-started/
 
 ## What Was Done
 
@@ -99,6 +260,10 @@ Session 32 was a security hardening + QA sprint:
 - `deploy/docker/puppygraph/schema.json` — PuppyGraph vertex/edge schema (findings, resources, compliance)
 - `docs/core/diagrams/` — 8 Mermaid sources + SVG renders (all freshly rendered with brand palette)
 - `cmd/server/handlers_finops_test.go` — 9 new FinOps handler tests (budget, estimate, resources)
+- `docs/core/architecture/adr/ADR-020-security-graph-architecture.md` — Security Graph master ADR (system roles, taxonomy, phases)
+- `migrations/007_security_graph.sql` — accounts, controls, control_evaluations, issues, issue_findings, graph_edges tables
+- `internal/secgraph/types.go` — Security Graph domain types (Control, Issue, GraphEdge, Account + enums)
+- `docs/core/architecture/graph-native-attack-paths.md` — Gremlin query reference for attack path migration
 
 ## Pending Work
 
@@ -121,7 +286,7 @@ Session 32 was a security hardening + QA sprint:
 - [x] Add graph/auth helper fuzz coverage — fixed 2026-03-29 (`internal/graph`, `internal/api`)
 - [x] Add graph handler normalization fuzz coverage — fixed 2026-03-29 (`cmd/server`)
 - [x] Add webhook URL validation fuzz coverage — fixed 2026-03-29 (`internal/webhooks`)
-- [ ] Expand fuzz coverage further (remaining parsers, additional structured inputs, longer fuzz time on highest-value boundaries)
+- [x] Expand fuzz coverage further — fixed 2026-03-30 (`cmd/server`, `internal/container`, `internal/secrets`, `internal/terminal`; 30s fuzz passes on highest-value boundaries)
 - [ ] PuppyGraph: run multi-hop benchmarks on local Docker with 300K seed data
 
 ### ACCEPT (no fix needed)
@@ -155,5 +320,7 @@ curl http://localhost:8081/  # verify UI
 PUPPYGRAPH_URL=http://localhost:8081 go run ./cmd/server/
 
 # Optional: continue fuzzing from the new seeds/corpus
-env GOCACHE=/tmp/go-build-cache go test ./internal/rql -run=^$ -fuzz=FuzzParseAndMatch -fuzztime=30s
+env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run=^$ -fuzz=FuzzBuildEnrichmentPrompt -fuzztime=60s
+env GOCACHE=/tmp/go-build-cache go test ./internal/secrets -run=^$ -fuzz=FuzzScannerScan -fuzztime=60s
+env GOCACHE=/tmp/go-build-cache go test ./internal/rql -run=^$ -fuzz=FuzzParseAndMatch -fuzztime=60s
 ```

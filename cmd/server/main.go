@@ -27,6 +27,7 @@ import (
 	"aegis/internal/ingestion"
 	"aegis/internal/integrations"
 	"aegis/internal/observability"
+	"aegis/internal/secgraph"
 	"aegis/internal/secrets"
 	"aegis/internal/tenant"
 	"aegis/internal/terminal"
@@ -234,6 +235,7 @@ func main() {
 	}
 
 	ticketProviders, defaultTicketProvider := buildTicketProviders(logger)
+	routingEngine := integrations.NewRoutingEngine(integrations.DefaultRules())
 
 	// Initialize PuppyGraph client (feature-flagged — nil when PUPPYGRAPH_URL is empty)
 	graphClient := initGraphClient(logger)
@@ -284,6 +286,34 @@ func main() {
 	mockData, err := loadRuntimeData(findingsSource, auditDB, logger)
 	if err != nil {
 		logger.Fatal("Failed to load mock data", zap.Error(err))
+	}
+
+	complianceMgr := compliance.NewManager(logger.Named("compliance"))
+
+	// Seed controls and materialize issues/evaluations from loaded findings when
+	// Postgres is available. This keeps the security graph tables warm for graph
+	// queries while the full graph-native pipeline is being phased in.
+	if auditDB != nil {
+		secgraphCtx, secgraphCancel := context.WithTimeout(context.Background(), 60*time.Second)
+		if sgErr := syncSecurityGraph(secgraphCtx, auditDB, complianceMgr, mockData.Findings, defaultTicketProvider, routingEngine, logger.Named("secgraph")); sgErr != nil {
+			logger.Warn("Security graph sync failed (non-fatal, issue graph may be incomplete)",
+				zap.Error(sgErr),
+			)
+		}
+		secgraphCancel()
+	}
+
+	// Backfill security graph edges when postgres is available.
+	// Populates graph_edges (affects, belongs_to, maps_to, same_region)
+	// used by PuppyGraph and future graph-native attack paths (ADR-020).
+	if auditDB != nil {
+		edgeCtx, edgeCancel := context.WithTimeout(context.Background(), 60*time.Second)
+		if bfErr := secgraph.RunEdgeBackfill(edgeCtx, auditDB, logger); bfErr != nil {
+			logger.Warn("Edge backfill failed (non-fatal, graph queries may be incomplete)",
+				zap.Error(bfErr),
+			)
+		}
+		edgeCancel()
 	}
 
 	// Build O(1) lookup maps after the final findings source is selected.
@@ -353,7 +383,7 @@ func main() {
 		integrationHandler: &IntegrationHandler{
 			provider:          defaultTicketProvider,
 			providers:         ticketProviders,
-			router:            integrations.NewRoutingEngine(integrations.DefaultRules()),
+			router:            routingEngine,
 			workflow:          workflowEngine,
 			auditLogger:       newAuditLogger("integrations"),
 			logger:            logger.Named("integrations"),
@@ -361,7 +391,7 @@ func main() {
 			asanaWebhookToken: os.Getenv("ASANA_WEBHOOK_TOKEN"),
 		},
 		webhookEngine: webhooks.NewMemoryEngine(logger.Named("webhooks")),
-		complianceMgr: compliance.NewManager(logger.Named("compliance")),
+		complianceMgr: complianceMgr,
 		asmSvc:        &asmService{scanner: asm.NewMockScanner()},
 		orgScanner:    secrets.NewMockOrgScanner(),
 		graphClient:   graphClient,

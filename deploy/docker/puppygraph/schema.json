@@ -66,6 +66,62 @@
           }
         }
       ]
+    },
+    {
+      "label": "account",
+      "oneOf": [
+        {
+          "tableName": "accounts",
+          "catalog": "aegis_pg",
+          "schema": "public",
+          "mappings": {
+            "id": { "column": "id", "type": "string" },
+            "name": { "column": "name", "type": "string" },
+            "cloud_provider": { "column": "cloud_provider", "type": "string" },
+            "environment_type": { "column": "environment_type", "type": "string" }
+          }
+        }
+      ]
+    },
+    {
+      "label": "control",
+      "oneOf": [
+        {
+          "tableName": "controls",
+          "catalog": "aegis_pg",
+          "schema": "public",
+          "mappings": {
+            "id": { "column": "id", "type": "string" },
+            "framework_id": { "column": "framework_id", "type": "string" },
+            "title": { "column": "title", "type": "string" },
+            "category": { "column": "category", "type": "string" },
+            "severity": { "column": "severity", "type": "string" },
+            "provider": { "column": "provider", "type": "string" },
+            "status": { "column": "status", "type": "string" }
+          }
+        }
+      ]
+    },
+    {
+      "label": "issue",
+      "oneOf": [
+        {
+          "tableName": "issues",
+          "catalog": "aegis_pg",
+          "schema": "public",
+          "mappings": {
+            "id": { "column": "id", "type": "string" },
+            "title": { "column": "title", "type": "string" },
+            "severity": { "column": "severity", "type": "string" },
+            "risk_score": { "column": "risk_score", "type": "double" },
+            "blast_radius": { "column": "blast_radius", "type": "int" },
+            "status": { "column": "status", "type": "string" },
+            "control_id": { "column": "control_id", "type": "string" },
+            "resource_id": { "column": "resource_id", "type": "string" },
+            "account_id": { "column": "account_id", "type": "string" }
+          }
+        }
+      ]
     }
   ],
   "edges": [
@@ -75,28 +131,130 @@
       "to": "resource",
       "oneOf": [
         {
-          "tableName": "findings",
+          "tableName": "graph_edges",
           "catalog": "aegis_pg",
           "schema": "public",
+          "conditions": "edge_type = 'affects'",
           "mappings": {
-            "from": { "column": "id" },
-            "to": { "column": "resource_id" }
+            "from": { "column": "source_id" },
+            "to": { "column": "target_id" }
+          }
+        }
+      ]
+    },
+    {
+      "label": "violates",
+      "from": "finding",
+      "to": "control",
+      "oneOf": [
+        {
+          "tableName": "graph_edges",
+          "catalog": "aegis_pg",
+          "schema": "public",
+          "conditions": "edge_type = 'violates'",
+          "mappings": {
+            "from": { "column": "source_id" },
+            "to": { "column": "target_id" }
           }
         }
       ]
     },
     {
       "label": "maps_to",
-      "from": "finding",
+      "from": "control",
       "to": "compliance_framework",
       "oneOf": [
         {
-          "tableName": "compliance_mappings",
+          "tableName": "graph_edges",
+          "catalog": "aegis_pg",
+          "schema": "public",
+          "conditions": "edge_type = 'maps_to'",
+          "mappings": {
+            "from": { "column": "source_id" },
+            "to": { "column": "target_id" }
+          }
+        }
+      ]
+    },
+    {
+      "label": "evaluated_by",
+      "from": "resource",
+      "to": "control",
+      "oneOf": [
+        {
+          "tableName": "control_evaluations",
+          "catalog": "aegis_pg",
+          "schema": "public",
+          "mappings": {
+            "from": { "column": "resource_id" },
+            "to": { "column": "control_id" }
+          }
+        }
+      ]
+    },
+    {
+      "label": "materializes_to",
+      "from": "finding",
+      "to": "issue",
+      "oneOf": [
+        {
+          "tableName": "issue_findings",
           "catalog": "aegis_pg",
           "schema": "public",
           "mappings": {
             "from": { "column": "finding_id" },
-            "to": { "column": "framework_id" }
+            "to": { "column": "issue_id" }
+          }
+        }
+      ]
+    },
+    {
+      "label": "belongs_to",
+      "from": "resource",
+      "to": "account",
+      "oneOf": [
+        {
+          "tableName": "graph_edges",
+          "catalog": "aegis_pg",
+          "schema": "public",
+          "conditions": "edge_type = 'belongs_to'",
+          "mappings": {
+            "from": { "column": "source_id" },
+            "to": { "column": "target_id" }
+          }
+        }
+      ]
+    },
+    {
+      "label": "same_account",
+      "from": "resource",
+      "to": "resource",
+      "oneOf": [
+        {
+          "tableName": "graph_edges",
+          "catalog": "aegis_pg",
+          "schema": "public",
+          "conditions": "edge_type = 'same_account'",
+          "mappings": {
+            "from": { "column": "source_id" },
+            "to": { "column": "target_id" }
+          }
+        }
+      ]
+    },
+    {
+      "label": "same_region",
+      "from": "resource",
+      "to": "resource",
+      "oneOf": [
+        {
+          "tableName": "graph_edges",
+          "catalog": "aegis_pg",
+          "schema": "public",
+          "conditions": "edge_type = 'same_region'",
+          "mappings": {
+            "from": { "column": "source_id" },
+            "to": { "column": "target_id" }
           }
         }
       ]

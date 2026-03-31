@@ -142,6 +142,15 @@ func (m *Manager) GetFramework(id string) (*Framework, bool) {
 	return fw, ok
 }
 
+// ListFrameworks returns all registered frameworks in unspecified order.
+func (m *Manager) ListFrameworks() []*Framework {
+	frameworks := make([]*Framework, 0, len(m.frameworks))
+	for _, fw := range m.frameworks {
+		frameworks = append(frameworks, fw)
+	}
+	return frameworks
+}
+
 // GetFrameworksForSector returns frameworks applicable to a sector
 func (m *Manager) GetFrameworksForSector(sector Sector) []*Framework {
 	profile, ok := m.sectorProfiles[sector]
