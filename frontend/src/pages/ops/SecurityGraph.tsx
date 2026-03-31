@@ -320,9 +320,31 @@ export default function SecurityGraph() {
   const graphNodes = useBackend ? backendView.nodes : clientView.graphNodes
   const graphEdges = useBackend ? backendView.edges : clientView.graphEdges
 
+  // Build a lookup map from backend nodes for click handling
+  const backendNodeMap = useMemo(() => {
+    if (!backendGraph?.nodes) return new Map<string, SecurityGraphNode>()
+    const m = new Map<string, SecurityGraphNode>()
+    for (const n of backendGraph.nodes) {
+      m.set(n.id, {
+        id: n.id,
+        resource_id: n.id,
+        resource_name: n.label,
+        resource_type: n.props?.detail ?? n.type,
+        provider: n.props?.provider ?? '',
+        region: n.props?.region ?? '',
+        finding_count: 0,
+        max_severity: n.props?.detail ?? 'LOW',
+      })
+    }
+    return m
+  }, [backendGraph])
+
   const handleNodeClick = useCallback((nodeId: string) => {
-    setSelectedNode(clientView.nodeMap.get(nodeId) ?? null)
-  }, [clientView.nodeMap])
+    const node = useBackend
+      ? (backendNodeMap.get(nodeId) ?? clientView.nodeMap.get(nodeId) ?? null)
+      : (clientView.nodeMap.get(nodeId) ?? null)
+    setSelectedNode(node)
+  }, [useBackend, backendNodeMap, clientView.nodeMap])
 
   if (findingsLoading) return <div className="text-sm text-muted-foreground p-4">Loading security graph...</div>
 

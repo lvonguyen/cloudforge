@@ -135,6 +135,12 @@ func (q *PostgresQuerier) UpdateIssue(ctx context.Context, tenantID, id string, 
 	argN := 1
 
 	if update.Status != nil {
+		switch *update.Status {
+		case IssueOpen, IssueAcknowledged, IssueInProgress, IssueResolved, IssueSuppressed:
+			// valid
+		default:
+			return nil, fmt.Errorf("invalid issue status: %q", *update.Status)
+		}
 		setClauses = append(setClauses, fmt.Sprintf("status = $%d", argN))
 		args = append(args, string(*update.Status))
 		argN++

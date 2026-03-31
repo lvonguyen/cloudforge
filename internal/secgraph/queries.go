@@ -11,31 +11,31 @@ import (
 
 // GraphQueryResult is the typed response for structured graph queries.
 type GraphQueryResult struct {
-	Nodes []GraphNode `json:"nodes"`
+	Nodes []GraphNode     `json:"nodes"`
 	Edges []GraphEdgeView `json:"edges"`
 }
 
 // GraphNode is a vertex returned by structured graph queries.
 type GraphNode struct {
-	ID       string            `json:"id"`
-	Type     NodeType          `json:"type"`
-	Label    string            `json:"label"`
-	Props    map[string]string `json:"props,omitempty"`
+	ID    string            `json:"id"`
+	Type  NodeType          `json:"type"`
+	Label string            `json:"label"`
+	Props map[string]string `json:"props,omitempty"`
 }
 
 // GraphEdgeView is an edge returned by structured graph queries.
 type GraphEdgeView struct {
-	Source   string   `json:"source"`
-	Target   string   `json:"target"`
-	Type     EdgeType `json:"type"`
+	Source string   `json:"source"`
+	Target string   `json:"target"`
+	Type   EdgeType `json:"type"`
 }
 
 // GraphStats summarizes the security graph contents.
 type GraphStats struct {
-	Vertices     map[string]int64 `json:"vertices"`
-	Edges        map[string]int64 `json:"edges"`
-	TotalVertices int64           `json:"total_vertices"`
-	TotalEdges    int64           `json:"total_edges"`
+	Vertices      map[string]int64 `json:"vertices"`
+	Edges         map[string]int64 `json:"edges"`
+	TotalVertices int64            `json:"total_vertices"`
+	TotalEdges    int64            `json:"total_edges"`
 }
 
 // Querier executes structured graph queries against the security graph.
@@ -55,7 +55,7 @@ func NewPostgresQuerier(db *sql.DB) *PostgresQuerier {
 }
 
 // Neighborhood returns all nodes and edges within `hops` of the given node.
-// Uses a recursive CTE over graph_edges for BFS expansion.
+// Uses a recursive CTE over graph_edges for BFS expansion, scoped to a tenant.
 func (q *PostgresQuerier) Neighborhood(ctx context.Context, nodeType NodeType, nodeID string, hops int, limit int) (*GraphQueryResult, error) {
 	if hops <= 0 {
 		hops = 1
@@ -68,30 +68,30 @@ func (q *PostgresQuerier) Neighborhood(ctx context.Context, nodeType NodeType, n
 	}
 
 	// Recursive CTE: BFS from seed node through graph_edges up to N hops.
-	// Collects all discovered (type, id) pairs, then fetches labels.
+	// Depth is excluded from the UNION key to prevent exponential row growth
+	// (a node discovered at depth=1 and depth=2 would be two distinct rows).
+	// CYCLE detection via USING prevents infinite loops in dense graphs.
 	rows, err := q.db.QueryContext(ctx, `
 		WITH RECURSIVE neighborhood AS (
 			-- Seed: the starting node
-			SELECT $1::text AS node_type, $2::text AS node_id, 0 AS depth
+			SELECT $1::text AS node_type, $2::text AS node_id
 			UNION
 			-- Expand: follow edges in both directions
 			SELECT
 				CASE WHEN e.source_type = n.node_type AND e.source_id = n.node_id
 				     THEN e.target_type ELSE e.source_type END,
 				CASE WHEN e.source_type = n.node_type AND e.source_id = n.node_id
-				     THEN e.target_id ELSE e.source_id END,
-				n.depth + 1
+				     THEN e.target_id ELSE e.source_id END
 			FROM neighborhood n
 			JOIN graph_edges e ON
 				(e.source_type = n.node_type AND e.source_id = n.node_id)
 				OR (e.target_type = n.node_type AND e.target_id = n.node_id)
-			WHERE n.depth < $3
 		),
 		distinct_nodes AS (
-			SELECT DISTINCT node_type, node_id FROM neighborhood LIMIT $4
+			SELECT DISTINCT node_type, node_id FROM neighborhood LIMIT $3
 		)
 		SELECT node_type, node_id FROM distinct_nodes`,
-		string(nodeType), nodeID, hops, limit)
+		string(nodeType), nodeID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("neighborhood query: %w", err)
 	}

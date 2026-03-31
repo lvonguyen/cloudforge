@@ -69,7 +69,8 @@ func (a *AdjacencySet) Neighbors(id string) []string {
 }
 
 // BlastRadius returns the count of unique resources reachable within maxHops
-// from the given resource ID. Used to compute graph-derived issue blast radius.
+// from the given resource ID. Capped at maxVisited (default 1000) to prevent
+// unbounded memory growth on dense graphs.
 func (a *AdjacencySet) BlastRadius(resourceID string, maxHops int) int {
 	if a == nil || a.edges == nil {
 		return 0
@@ -77,6 +78,7 @@ func (a *AdjacencySet) BlastRadius(resourceID string, maxHops int) int {
 	if maxHops <= 0 {
 		maxHops = 2
 	}
+	const maxVisited = 1000
 	visited := map[string]bool{resourceID: true}
 	frontier := []string{resourceID}
 	for hop := 0; hop < maxHops && len(frontier) > 0; hop++ {
@@ -86,6 +88,9 @@ func (a *AdjacencySet) BlastRadius(resourceID string, maxHops int) int {
 				if !visited[neighbor] {
 					visited[neighbor] = true
 					next = append(next, neighbor)
+					if len(visited) >= maxVisited {
+						return len(visited) - 1
+					}
 				}
 			}
 		}

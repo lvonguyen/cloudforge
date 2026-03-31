@@ -151,7 +151,30 @@ func (s *Server) handleUpdateIssue(w http.ResponseWriter, r *http.Request) {
 		attribute.String("tenant.id", issueTenantID(r)),
 	)
 
-	updated, err := iq.UpdateIssue(ctx, issueTenantID(r), id, update)
+	// Fetch the issue first to enforce scope before allowing modification.
+	tenantID := issueTenantID(r)
+	existing, err := iq.GetIssue(ctx, tenantID, id)
+	if err != nil {
+		s.logger.Warn("get issue for scope check failed", zap.String("id", id), zap.Error(err))
+		writeErrorResponse(w, "failed to get issue", http.StatusInternalServerError)
+		return
+	}
+	if existing == nil {
+		writeErrorResponse(w, "issue not found", http.StatusNotFound)
+		return
+	}
+
+	if claims, ok := api.GetClaimsFromContext(r.Context()); ok && claims != nil {
+		if scope := api.ScopeFromContext(claims); scope != nil {
+			if scopeErr := api.EnforceScope(scope, existing.Issue); scopeErr != nil {
+				api.LogScopeDenial(s.logger, claims.Subject, existing.Issue.ID, existing.Issue.AccountID, existing.Issue.Region, scopeErr.Error())
+				writeErrorResponse(w, "forbidden: resource outside authorized scope", http.StatusForbidden)
+				return
+			}
+		}
+	}
+
+	updated, err := iq.UpdateIssue(ctx, tenantID, id, update)
 	if err != nil {
 		s.logger.Warn("update issue failed", zap.String("id", id), zap.Error(err))
 		writeErrorResponse(w, "failed to update issue", http.StatusInternalServerError)

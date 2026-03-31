@@ -303,6 +303,13 @@ func TestGetIssueReturnsDetail(t *testing.T) {
 func TestUpdateIssuePropagatesTenant(t *testing.T) {
 	srv, router := testServer(t)
 	srv.graphQuerier = &stubIssueQuerier{
+		getFunc: func(_ context.Context, _, issueID string) (*secgraph.IssueDetail, error) {
+			return &secgraph.IssueDetail{
+				Issue: secgraph.IssueSummary{
+					Issue: secgraph.Issue{ID: issueID, TenantID: defaultSecgraphTenantID},
+				},
+			}, nil
+		},
 		updateFunc: func(_ context.Context, tenantID, issueID string, update secgraph.IssueUpdate) (*secgraph.Issue, error) {
 			if tenantID != defaultSecgraphTenantID {
 				t.Fatalf("tenant_id = %q, want %q", tenantID, defaultSecgraphTenantID)
