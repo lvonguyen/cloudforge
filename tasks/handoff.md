@@ -483,8 +483,10 @@ Session 32 was a security hardening + QA sprint:
 - [x] `D14` Attack-path O(1) lookup
   - Shipped via `PathsByID` in `cmd/server/handlers_attackpath.go`.
 - [x] `D15` OPA fail-open to fail-closed
-- [ ] `D16` OPA `RequestContext` support for future policy expressiveness
-- [ ] `D17` OPA string literal cleanup in `cmd/server/handlers_api.go`
+- [x] `D16` OPA `RequestContext` support for future policy expressiveness
+  - Fixed 2026-03-30 by threading request metadata through the AI enrichment OPA gate via `internal/ai-governance/opa/engine.go` and `cmd/server/handlers_api.go`.
+- [x] `D17` OPA string literal cleanup in `cmd/server/handlers_api.go`
+  - Fixed 2026-03-30 by promoting the enrichment OPA agent/tool identifiers and request header names to package-level constants and covering the request-context helper in `cmd/server/handlers_api_test.go`.
 - [ ] `D18` Global light/dark/auto theme follow-up
   - Partially superseded: the app already has a global `ThemeToggle`, and Attack Paths already has its local Auto/Light/Dark canvas tone control. The remaining work is global Auto-mode behavior plus a full light-mode readability audit across the app.
 - [ ] `D19` Seed full findings corpus into Fly.io Postgres

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"sort"
 	"strconv"
@@ -17,6 +18,49 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
+
+const (
+	opaEnrichmentAgentID      = "aegis-api"
+	opaEnrichmentAgentName    = "enrichment"
+	opaEnrichmentToolName     = "ai_enrich"
+	opaEnrichmentToolCategory = "analysis"
+	traceparentHeader         = "traceparent"
+	xForwardedForHeader       = "X-Forwarded-For"
+)
+
+func buildOPARequestContext(r *http.Request, claims *api.Claims) *opa.RequestContext {
+	if r == nil {
+		return nil
+	}
+
+	var userID string
+	if claims != nil {
+		userID = claims.Subject
+	}
+
+	return &opa.RequestContext{
+		UserID:    userID,
+		SessionID: strings.TrimSpace(r.Header.Get(traceparentHeader)),
+		Timestamp: time.Now().UTC(),
+		IP:        clientRequestIP(r),
+	}
+}
+
+func clientRequestIP(r *http.Request) string {
+	if r == nil {
+		return ""
+	}
+	if forwarded := strings.TrimSpace(r.Header.Get(xForwardedForHeader)); forwarded != "" {
+		if first, _, _ := strings.Cut(forwarded, ","); first != "" {
+			return strings.TrimSpace(first)
+		}
+	}
+	host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
+	if err == nil {
+		return host
+	}
+	return strings.TrimSpace(r.RemoteAddr)
+}
 
 func (s *Server) listFindings(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listFindings")
@@ -617,21 +661,25 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	claims, ok := api.GetClaimsFromContext(r.Context())
+	if !ok || claims == nil {
+		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
+
 	// OPA policy gate: evaluate AI tool access if engine is configured.
 	// Nil engine = no policies loaded = allow (graceful degradation).
 	if s.opaEngine != nil {
-		opaInput := &opa.EvaluationInput{
-			Agent: opa.AgentContext{
-				ID:          "aegis-api",
-				Name:        "enrichment",
-				Environment: getEnv("APP_ENV", "production"),
-			},
-			Tool: &opa.ToolContext{
-				Name:     "ai_enrich",
-				Category: "analysis",
-			},
+		agentCtx := &opa.AgentContext{
+			ID:          opaEnrichmentAgentID,
+			Name:        opaEnrichmentAgentName,
+			Environment: getEnv("APP_ENV", "production"),
 		}
-		decision, err := s.opaEngine.EvaluateToolAccess(ctx, &opaInput.Agent, opaInput.Tool)
+		toolCtx := &opa.ToolContext{
+			Name:     opaEnrichmentToolName,
+			Category: opaEnrichmentToolCategory,
+		}
+		decision, err := s.opaEngine.EvaluateToolAccessWithRequest(ctx, agentCtx, toolCtx, buildOPARequestContext(r, claims))
 		if err != nil {
 			s.logger.Error("OPA evaluation failed, denying request (fail-closed)",
 				zap.String("finding_id", id),
@@ -658,11 +706,6 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Enforce ABAC scope — same check as getFinding
-	claims, ok := api.GetClaimsFromContext(r.Context())
-	if !ok || claims == nil {
-		writeErrorResponse(w, "authentication required", http.StatusUnauthorized)
-		return
-	}
 	scope := api.ScopeFromContext(claims)
 	if err := api.EnforceScope(scope, finding); err != nil {
 		api.LogScopeDenial(s.logger, claims.Subject, finding.ID, finding.AccountID, finding.Region, err.Error())

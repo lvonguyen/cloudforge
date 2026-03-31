@@ -222,9 +222,16 @@ func (e *Engine) Evaluate(ctx context.Context, policyPath string, input *Evaluat
 
 // EvaluateToolAccess evaluates tool access policy for an AI agent.
 func (e *Engine) EvaluateToolAccess(ctx context.Context, agent *AgentContext, tool *ToolContext) (*Decision, error) {
+	return e.EvaluateToolAccessWithRequest(ctx, agent, tool, nil)
+}
+
+// EvaluateToolAccessWithRequest evaluates tool access policy for an AI agent,
+// including optional request metadata for future policy expressiveness.
+func (e *Engine) EvaluateToolAccessWithRequest(ctx context.Context, agent *AgentContext, tool *ToolContext, request *RequestContext) (*Decision, error) {
 	input := &EvaluationInput{
-		Agent: *agent,
-		Tool:  tool,
+		Agent:   *agent,
+		Tool:    tool,
+		Request: request,
 	}
 	return e.Evaluate(ctx, "aegis.ai.tool_access.allow", input)
 }

@@ -5,6 +5,7 @@ import (
 	"aegis/internal/audit"
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -20,6 +21,30 @@ func TestListFindings(t *testing.T) {
 
 	if len(results) < 100 {
 		t.Errorf("findings count = %d, want >= 100", len(results))
+	}
+}
+
+func TestBuildOPARequestContext(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/findings/f-001/enrich", nil)
+	req.Header.Set(traceparentHeader, "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00")
+	req.Header.Set(xForwardedForHeader, "203.0.113.10, 10.0.0.5")
+	req.RemoteAddr = "127.0.0.1:12345"
+
+	ctx := buildOPARequestContext(req, &api.Claims{Subject: "user-123"})
+	if ctx == nil {
+		t.Fatal("expected non-nil request context")
+	}
+	if ctx.UserID != "user-123" {
+		t.Fatalf("user_id = %q, want user-123", ctx.UserID)
+	}
+	if ctx.SessionID == "" {
+		t.Fatal("expected session_id from traceparent header")
+	}
+	if ctx.IP != "203.0.113.10" {
+		t.Fatalf("ip = %q, want 203.0.113.10", ctx.IP)
+	}
+	if ctx.Timestamp.IsZero() {
+		t.Fatal("expected timestamp to be populated")
 	}
 }
 

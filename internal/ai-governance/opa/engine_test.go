@@ -30,6 +30,16 @@ package aegis.ai.group_b
 default allow = false
 `
 
+const policyRequestAwareToolAccess = `
+package aegis.ai
+
+default allow = false
+
+allow {
+  input.request.user_id == "allowed-user"
+}
+`
+
 // TestLoadPolicies_KeyCollision verifies that calling LoadPolicies twice with
 // different path sets produces two independently stored queries.
 //
@@ -127,5 +137,43 @@ func TestLoadPolicies_EmptyPaths(t *testing.T) {
 
 	if err := engine.LoadPolicies(context.Background(), []string{}); err == nil {
 		t.Error("expected error for empty paths, got nil")
+	}
+}
+
+func TestEvaluateToolAccessWithRequest_PassesRequestContext(t *testing.T) {
+	dir := t.TempDir()
+	policyPath := writeTempPolicy(t, dir, "tool_access.rego", policyRequestAwareToolAccess)
+
+	ctx := context.Background()
+	engine, err := NewEngine()
+	if err != nil {
+		t.Fatalf("NewEngine: %v", err)
+	}
+	if err := engine.LoadPolicies(ctx, []string{policyPath}); err != nil {
+		t.Fatalf("LoadPolicies: %v", err)
+	}
+
+	decision, err := engine.EvaluateToolAccessWithRequest(ctx,
+		&AgentContext{ID: "agent-1", Name: "agent"},
+		&ToolContext{Name: "ai_enrich", Category: "analysis"},
+		&RequestContext{UserID: "allowed-user"},
+	)
+	if err != nil {
+		t.Fatalf("EvaluateToolAccessWithRequest: %v", err)
+	}
+	if !decision.Allow {
+		t.Fatal("expected request-aware policy to allow the matching user")
+	}
+
+	decision, err = engine.EvaluateToolAccessWithRequest(ctx,
+		&AgentContext{ID: "agent-1", Name: "agent"},
+		&ToolContext{Name: "ai_enrich", Category: "analysis"},
+		&RequestContext{UserID: "blocked-user"},
+	)
+	if err != nil {
+		t.Fatalf("EvaluateToolAccessWithRequest(blocked): %v", err)
+	}
+	if decision.Allow {
+		t.Fatal("expected request-aware policy to deny the non-matching user")
 	}
 }
