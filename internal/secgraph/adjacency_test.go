@@ -66,6 +66,41 @@ func TestAdjacencySetSize(t *testing.T) {
 	}
 }
 
+func TestAdjacencySetBlastRadius(t *testing.T) {
+	// r-001 → r-002 → r-003 → r-004 (chain of 3 hops)
+	adj := NewAdjacencySet()
+	adj.Add("r-001", "r-002", EdgeSameRegion)
+	adj.Add("r-002", "r-003", EdgeSameRegion)
+	adj.Add("r-003", "r-004", EdgeSameRegion)
+	adj.Add("r-001", "r-005", EdgeSameAccount) // branch
+
+	// 1 hop from r-001: r-002 + r-005 = 2
+	if br := adj.BlastRadius("r-001", 1); br != 2 {
+		t.Errorf("1-hop blast radius from r-001 = %d, want 2", br)
+	}
+
+	// 2 hops from r-001: r-002 + r-005 + r-003 = 3
+	if br := adj.BlastRadius("r-001", 2); br != 3 {
+		t.Errorf("2-hop blast radius from r-001 = %d, want 3", br)
+	}
+
+	// 3 hops from r-001: r-002 + r-005 + r-003 + r-004 = 4
+	if br := adj.BlastRadius("r-001", 3); br != 4 {
+		t.Errorf("3-hop blast radius from r-001 = %d, want 4", br)
+	}
+
+	// Unknown node
+	if br := adj.BlastRadius("r-999", 2); br != 0 {
+		t.Errorf("blast radius of unknown node = %d, want 0", br)
+	}
+
+	// Nil safety
+	var nilAdj *AdjacencySet
+	if br := nilAdj.BlastRadius("r-001", 2); br != 0 {
+		t.Errorf("nil adjacency blast radius = %d, want 0", br)
+	}
+}
+
 func TestAdjacencySetNilSafe(t *testing.T) {
 	var adj *AdjacencySet
 	if adj.Connected("a", "b") {

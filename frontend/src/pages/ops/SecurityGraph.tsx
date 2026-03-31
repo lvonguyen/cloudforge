@@ -126,12 +126,21 @@ export default function SecurityGraph() {
   const [filter, setFilter] = useState('')
   const [showAll, setShowAll] = useState(false)
 
-  // Backend graph neighborhood query (when resource is focused and DB is available)
+  // Pick a seed node for backend graph query: focused resource, or the first
+  // CRITICAL/HIGH finding's resource as a meaningful default entry point.
+  const defaultSeed = useMemo(() => {
+    if (focusResourceId) return { type: 'resource' as const, id: focusResourceId }
+    const critical = findings.find(f => f.severity === 'CRITICAL' || f.severity === 'HIGH')
+    if (critical?.resource_id) return { type: 'resource' as const, id: critical.resource_id }
+    return null
+  }, [focusResourceId, findings])
+
+  // Backend graph neighborhood query — always attempts when a seed exists
   const { data: backendGraph } = useGraphNeighborhood(
-    focusResourceId ? 'resource' : null,
-    focusResourceId,
+    defaultSeed?.type ?? null,
+    defaultSeed?.id ?? null,
     2,
-    100,
+    150,
   )
 
   // Backend graph stats
@@ -306,8 +315,8 @@ export default function SecurityGraph() {
     return { graphNodes: nodes, graphEdges: visibleEdges, nodeMap: nMap, connectedCount: connectedIds.size, totalCount: nMap.size }
   }, [findings, filter, focusResourceId, showAll])
 
-  // Use backend data when available (focus mode + DB configured), otherwise client-side
-  const useBackend = !!backendView && !!focusResourceId
+  // Use backend data when available (DB configured + graph populated), otherwise client-side
+  const useBackend = !!backendView
   const graphNodes = useBackend ? backendView.nodes : clientView.graphNodes
   const graphEdges = useBackend ? backendView.edges : clientView.graphEdges
 
