@@ -361,6 +361,7 @@ Use this file as the shared climbing board for all security-graph work. Before s
 
 ### GitHub CI Watch (refreshed 2026-03-31)
 
+- Update 2026-03-31: another session reported GitHub CI GREEN with all 6 jobs passing (`Frontend Checks`, `Build & Test`, `Lint`, `OPA Policy Test`, `Security Scan`, `Lighthouse CI`). Treat the failed run below as historical regression context, not the current branch state.
 - Latest completed failed GitHub Actions `CI` run on `origin/main` is commit `ac8205a30427c2631f084ffce28d244419388016` (run `23779521389`, 2026-03-31T03:49:09Z).
   - `Lint` failed again with the repo-wide lint backlog (same buckets as the prior run: `exhaustive`, `goconst`, `gosec`, `ineffassign`, `revive`; see `internal/secgraph/materialize.go`, `cmd/server/handlers_attackpath.go`, `internal/secgraph/issue_queries.go`, `internal/secgraph/store.go`, `internal/secgraph/queries.go`, and `cmd/server/handlers_issues.go`).
   - `Frontend Checks` failed in Playwright smoke on the viewer role switcher, timing out while waiting for stale label text `Demo Viewer — All Modules`.
@@ -476,6 +477,7 @@ Session 32 was a security hardening + QA sprint:
 - [x] `D9` Mock fallback production guard
 - [ ] `D10` Split oversized frontend pages
   - `frontend/src/pages/portal/Request.tsx` is still large and worth decomposing; the `PolicyDetail.tsx` portion of the old note is stale because the current file is `frontend/src/pages/admin/PolicyDetail.tsx` at a much smaller size.
+  - Coordination note 2026-03-30: a local WIP tree already extracted `frontend/src/components/portal/request/ConfigurationStep.tsx`, `PolicyValidationStep.tsx`, `ResourceSelectionStep.tsx`, `ReviewStep.tsx`, and `request-shared.ts`, but `Request.tsx` is not yet wired to those files. Do not stage the extracted files alone; claim this item only if you are also taking the integrating `Request.tsx` refactor and validating `cd frontend && npx tsc --noEmit`.
 - [x] `D11` Vite manual chunks
 - [x] `D12` `gzipResponseWriter` interface forwarding
 - [x] `D13` Extract `pathToFlow` JSX from `useMemo`
@@ -491,28 +493,48 @@ Session 32 was a security hardening + QA sprint:
   - Fixed 2026-03-31 by adding a true global Auto/Light/Dark theme selector in `frontend/src/components/layout/ThemeToggle.tsx`, synchronizing root theme mode in `frontend/src/lib/theme-utils.ts` + `frontend/src/lib/config-context.tsx`, and updating `frontend/index.html` so the boot shell honors light mode instead of flashing a dark-only skeleton.
   - Residual page-by-page readability cleanup remains folded into `D8` and `D20`; `D18` itself is no longer an app-level theme-mode gap.
 - [ ] `D19` Seed full findings corpus into Fly.io Postgres
-  - Context: the Fly Postgres addon and seed pipeline exist (`scripts/aegis-seed.mjs` + `scripts/seed-postgres.mjs`), but the full corpus has not yet been streamed into Fly Postgres and switched live via `FINDINGS_SOURCE=postgres`.
-  - Expected steps:
-    - get the Fly Postgres connection string for `cloudforge-db`
-    - generate the full seed locally with `node scripts/aegis-seed.mjs --full`
-    - stream it into Fly Postgres with `node scripts/seed-postgres.mjs`
-    - set `FINDINGS_SOURCE=postgres` on the Fly app
-    - validate API health, startup graph backfill, and attack-path/secgraph behavior against the Fly-hosted dataset
-  - Guardrail: check Fly Postgres sizing first; 300K findings plus `graph_edges` backfill may require capacity tuning.
+  - Context: the Fly Postgres addon and seed pipeline exist (`scripts/aegis-seed.mjs`, `scripts/seed-postgres.mjs`, `scripts/seed-resources.mjs`), but the full corpus has not yet been loaded into Fly Postgres and switched live via `FINDINGS_SOURCE=postgres`.
+  - Corrected execution sequence:
+    - obtain the `cloudforge-db` connection string and export both `DATABASE_URL` and `AEGIS_DATABASE_URL`
+    - ensure `pgcrypto` exists before running migrations because the schema uses `gen_random_uuid()`: `psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS pgcrypto;'`
+    - apply migrations `001, 002, 003, 005, 006, 007, 008` in order; do not rely on `make migrate` alone unless it is first updated to cover the full chain
+    - generate the full corpus explicitly with `node --max-old-space-size=6144 scripts/aegis-seed.mjs --count 300000 --out testdata/seed --full --seed 42`
+    - render findings SQL with `node scripts/seed-postgres.mjs --in testdata/seed --out /tmp/seed-findings.sql` and load it with `psql "$DATABASE_URL" -f /tmp/seed-findings.sql`
+    - render resource SQL with `node scripts/seed-resources.mjs --in testdata/seed --out /tmp/seed-resources.sql` and load it with `psql "$DATABASE_URL" -f /tmp/seed-resources.sql`
+    - insert distinct accounts from the seeded findings or provide an equivalent account backfill, because the current migrations only backfill accounts/resources present when the migrations themselves run
+    - set Fly secrets explicitly, keeping the current name drift in mind: `flyctl secrets set AEGIS_DATABASE_URL=... FINDINGS_SOURCE=postgres -a cloudforge-api`
+    - deploy and validate health, startup sync/backfill duration, attack-path/secgraph behavior, and startup time on Fly
+  - Risks / guardrails:
+    - `scripts/seed-postgres.mjs` does not stream directly into Postgres; it emits SQL that must be applied
+    - `node scripts/aegis-seed.mjs --full` alone is not sufficient for the target dataset; `--count 300000` is required
+    - `fly.toml` is not yet wired for `FINDINGS_SOURCE=postgres` / `AEGIS_DATABASE_URL`; keep config changes in the same workstream
+    - 300K findings plus startup sync/backfill may exceed current Fly startup/health-check timing unless startup is staged or capacity is increased
 - [ ] `D20` Wiz-parity investigation + remediation polish
   - Context: WG-E readability shipped a lighter canvas and local tone control, but the broader analyst-facing investigation/remediation experience is still behind the reviewed Wiz demo.
   - Progress 2026-03-30: finding-detail summary cards, richer compliance mapping presentation, and structured remediation plans shipped via `frontend/src/pages/ops/FindingDetail.tsx` and `frontend/src/components/ops/finding-detail/*`.
+  - Progress 2026-03-30: `81aaacd8` (`feat: add finding detail investigation workspaces`) added top-level `Attack Path` / `Security Graph` investigation workspaces in the finding-detail surface via `frontend/src/components/ops/finding-detail/FindingAttackPathWorkspace.tsx`, `FindingSecurityGraphWorkspace.tsx`, and `timeline.ts`.
+  - Coordination note 2026-03-30: the attack-path analyst-context slice is safely committed in `ed2f52b7` (`feat: enrich attack path analyst context`). A separate session stashed broader frontend WIP as `stash@{0}` after mixing D10/D20/finding-detail changes and seeing transient local TS/test failures on the combined tree. Do not recommit the entire stash blindly; restore one slice at a time, re-run `cd frontend && npx tsc --noEmit`, then run only the targeted Vitest suite for that slice before staging.
+  - CI coordination note 2026-03-30: another session reported that the mixed local tree produced `4` TypeScript errors and broad Vitest fallout, but that was after combining uncommitted Codex WIP across multiple slices. Treat `HEAD` (`ed2f52b7`) as the safe baseline and treat the stash/WIP separately. If a CI repair is needed against the committed tree, keep it surgical; one observed candidate on the committed `FindingDetail.tsx` was an unused `Shield` import, while `CircleDot` / `UserCheck` were confirmed as still used.
+  - Suggested stash recovery order:
+    - `D20` finding-detail investigation workspace (`FindingDetail.tsx` + `frontend/src/components/ops/finding-detail/*` + `FindingDetail.investigation.test.tsx`)
+    - `D10` portal request decomposition (`frontend/src/pages/portal/Request.tsx` + `frontend/src/components/portal/request/*`)
+    - leave unrelated theme/readability files out unless they are the active owned workstream
   - Investigation Board / graph UX scope:
     - richer node/icon treatment and denser path context
     - stronger analyst-oriented detail rail / path explanation
     - clearer blast-radius, entry-point, and target emphasis
     - hierarchical / analyst-friendly layout and visual hierarchy closer to the reviewed demo
     - cleaner directional edge labels and grouping where appropriate
+    - keep the attack-path view nested under finding detail as the primary analyst entrypoint, not just as a standalone page
+    - shift the main path composition toward an east/west analyst layout instead of a radial center-out presentation
+    - keep the security-graph timeline visible and information-dense from the finding-detail tabs
+    - add real CSP/resource icons plus hop indicators for privilege escalation, crown jewels, and toxic-combination pivots
   - Finding / remediation detail scope:
     - inline “part of N attack paths” and timeline context
     - structured remediation step rendering
     - better compliance-mapping presentation
     - stronger SLA / due-date visualization
+    - CVE / vulnerability deep links, toxic misconfiguration context, and recommended remediation copy embedded in the analyst flow
     - 2026-03-31 progress: `frontend/src/pages/ops/FindingDetail.tsx` and `frontend/src/components/ops/EntityDetailPanel.tsx` now surface SLA/ownership/path summary cards plus structured compliance and remediation rendering; the remaining gap is the broader investigation-board / graph UX layer.
   - Guardrail: preserve Cloudforge branding and avoid copying vendor UI verbatim.
   - Likely touchpoints:
@@ -522,6 +544,23 @@ Session 32 was a security hardening + QA sprint:
     - `frontend/src/components/attack-path/AttackPathMiniGraph.tsx`
     - `frontend/src/components/ops/EntityDetailPanel.tsx`
     - `frontend/src/components/ops/BaseGraphView.tsx`
+- [ ] `D21` Durable Jira / Asana ticket parity from findings to secgraph issues
+  - Context: provider adapters exist and secgraph issue ticket dispatch is now materially stronger than the older finding-level remediation path, but the finding-level Jira/Asana experience still has demo-only and durability gaps.
+  - Audit findings to address:
+    - replace the in-memory finding ticket store in `cmd/server/handlers_integration.go` with durable persistence or bridge it to secgraph issue ticket fields
+    - persist provider sync results back into the finding/issue record instead of treating sync as read-only
+    - wire real webhook processing for status/comment updates; Asana is currently handshake/signature validation plus logging only, and Jira has no webhook route yet
+    - stop relying on `VITE_DEMO_MODE=true` fallthrough for real ticket creation/comment/sync paths in the main frontend UX
+    - add provider selection and assignee controls in the remediation UI where the backend contract already supports them
+  - Likely touchpoints:
+    - `cmd/server/handlers_integration.go`
+    - `cmd/server/routes.go`
+    - `frontend/src/hooks/useIntegrations.ts`
+    - `frontend/src/components/remediation/IntegrationViewport.tsx`
+    - `frontend/src/components/remediation/TicketViewportContent.tsx`
+    - `internal/secgraph/store.go`
+    - `cmd/server/secgraph_sync.go`
+  - Guardrail: keep provider-specific secrets/config in 1Password / environment only; do not hardcode any token or webhook secret into the repo.
 
 ### ACCEPT (no fix needed)
 
