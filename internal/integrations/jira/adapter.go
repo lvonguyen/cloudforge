@@ -115,6 +115,36 @@ func (a *Adapter) AddComment(ctx context.Context, externalID, body string) (*int
 	}, nil
 }
 
+// ListComments returns all comments synced from the Jira issue.
+func (a *Adapter) ListComments(ctx context.Context, externalID string) ([]integrations.CommentSync, error) {
+	comments, err := a.client.ListComments(ctx, externalID)
+	if err != nil {
+		return nil, fmt.Errorf("listing jira comments: %w", err)
+	}
+
+	result := make([]integrations.CommentSync, 0, len(comments))
+	for _, comment := range comments {
+		createdAt, err := time.Parse("2006-01-02T15:04:05.000-0700", comment.Created)
+		if err != nil {
+			a.logger.Warn("parsing jira timestamp", zap.String("raw", comment.Created), zap.Error(err))
+		}
+
+		var author string
+		if comment.Author != nil {
+			author = comment.Author.DisplayName
+		}
+
+		result = append(result, integrations.CommentSync{
+			ID:         comment.ID,
+			ExternalID: comment.ID,
+			Body:       adfToText(comment.Body),
+			Author:     author,
+			CreatedAt:  createdAt,
+		})
+	}
+	return result, nil
+}
+
 func (a *Adapter) SyncStatus(ctx context.Context, externalID string) (integrations.TicketStatus, error) {
 	resp, err := a.client.GetIssue(ctx, externalID)
 	if err != nil {

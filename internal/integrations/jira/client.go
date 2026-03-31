@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -176,6 +177,10 @@ type jiraCommentResponse struct {
 	Created string            `json:"created"`
 }
 
+type jiraCommentListResponse struct {
+	Comments []jiraCommentResponse `json:"comments"`
+}
+
 type jiraTransitionsResponse struct {
 	Transitions []jiraTransition `json:"transitions"`
 }
@@ -201,6 +206,30 @@ func newADFText(text string) *jiraADFDoc {
 			},
 		},
 	}
+}
+
+func adfToText(doc *jiraADFDoc) string {
+	if doc == nil {
+		return ""
+	}
+	lines := make([]string, 0, len(doc.Content))
+	for _, node := range doc.Content {
+		if len(node.Content) == 0 {
+			continue
+		}
+		parts := make([]string, 0, len(node.Content))
+		for _, leaf := range node.Content {
+			if leaf.Text == "" {
+				continue
+			}
+			parts = append(parts, leaf.Text)
+		}
+		if len(parts) == 0 {
+			continue
+		}
+		lines = append(lines, strings.Join(parts, ""))
+	}
+	return strings.Join(lines, "\n")
 }
 
 // --- Public methods ---
@@ -261,6 +290,19 @@ func (c *Client) AddComment(ctx context.Context, issueKey, text string) (*jiraCo
 		return nil, fmt.Errorf("adding comment to %s: %w", issueKey, err)
 	}
 	return &resp, nil
+}
+
+// ListComments retrieves comments for an issue.
+func (c *Client) ListComments(ctx context.Context, issueKey string) ([]jiraCommentResponse, error) {
+	if err := validateIssueKey(issueKey); err != nil {
+		return nil, err
+	}
+
+	var resp jiraCommentListResponse
+	if err := c.doJSON(ctx, http.MethodGet, "/rest/api/3/issue/"+issueKey+"/comment", nil, &resp); err != nil {
+		return nil, fmt.Errorf("listing comments for %s: %w", issueKey, err)
+	}
+	return resp.Comments, nil
 }
 
 // GetTransitions retrieves available transitions for an issue (for future status sync).

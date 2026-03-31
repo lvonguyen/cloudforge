@@ -21,8 +21,9 @@ type stubFindingTicketStore struct {
 }
 
 type stubTicketProvider struct {
-	name    string
-	tickets map[string]*integrations.Ticket
+	name     string
+	tickets  map[string]*integrations.Ticket
+	comments map[string][]integrations.CommentSync
 }
 
 func (p *stubTicketProvider) Name() string { return p.name }
@@ -53,13 +54,28 @@ func (p *stubTicketProvider) GetTicket(_ context.Context, externalID string) (*i
 }
 
 func (p *stubTicketProvider) AddComment(_ context.Context, externalID, body string) (*integrations.CommentSync, error) {
-	return &integrations.CommentSync{
+	comment := integrations.CommentSync{
 		ID:         "comment-" + externalID,
 		ExternalID: "comment-" + externalID,
 		Body:       body,
 		Author:     "stub",
 		CreatedAt:  time.Now().UTC(),
-	}, nil
+	}
+	if p.comments == nil {
+		p.comments = make(map[string][]integrations.CommentSync)
+	}
+	p.comments[externalID] = append(p.comments[externalID], comment)
+	return &comment, nil
+}
+
+func (p *stubTicketProvider) ListComments(_ context.Context, externalID string) ([]integrations.CommentSync, error) {
+	if p.comments == nil {
+		return nil, nil
+	}
+	comments := p.comments[externalID]
+	out := make([]integrations.CommentSync, len(comments))
+	copy(out, comments)
+	return out, nil
 }
 
 func (p *stubTicketProvider) SyncStatus(_ context.Context, externalID string) (integrations.TicketStatus, error) {
@@ -295,6 +311,69 @@ func TestGetFindingTicket_RefreshesFromProviderAndDurableStore(t *testing.T) {
 	}
 	if stored.Status != integrations.TicketStatusResolved {
 		t.Fatalf("stored status = %q, want %q", stored.Status, integrations.TicketStatusResolved)
+	}
+}
+
+func TestGetTicketComments_UsesFindingProvider(t *testing.T) {
+	srv, router := testServer(t)
+	jwt := operatorJWT(t)
+	repo := &stubFindingTicketStore{
+		tickets: map[string]*integrations.Ticket{
+			"default:f-jira-comments": {
+				ID:         "JIRA-88",
+				ExternalID: "JIRA-88",
+				Provider:   "jira",
+				FindingID:  "f-jira-comments",
+				Title:      "Persisted remediation ticket",
+				Status:     integrations.TicketStatusOpen,
+				Priority:   integrations.PriorityHigh,
+				URL:        "https://jira.local/browse/JIRA-88",
+			},
+		},
+	}
+	jiraProvider := &stubTicketProvider{
+		name: "jira",
+		tickets: map[string]*integrations.Ticket{
+			"JIRA-88": {
+				ID:         "JIRA-88",
+				ExternalID: "JIRA-88",
+				Provider:   "jira",
+				Title:      "Persisted remediation ticket",
+				Status:     integrations.TicketStatusOpen,
+				Priority:   integrations.PriorityHigh,
+				URL:        "https://jira.local/browse/JIRA-88",
+			},
+		},
+		comments: map[string][]integrations.CommentSync{
+			"JIRA-88": {
+				{
+					ID:         "comment-JIRA-88",
+					ExternalID: "comment-JIRA-88",
+					Body:       "Investigating blast radius",
+					Author:     "jira-bot",
+					CreatedAt:  time.Now().UTC(),
+				},
+			},
+		},
+	}
+
+	srv.integrationHandler.ticketRepo = repo
+	srv.integrationHandler.provider = jiraProvider
+	srv.integrationHandler.providers = map[string]integrations.TicketProvider{"jira": jiraProvider}
+
+	rr := doRequest(t, router, "GET", "/api/v1/findings/f-jira-comments/ticket/comments", "", jwt)
+	assertStatus(t, rr, http.StatusOK)
+
+	var comments []integrations.CommentSync
+	assertJSON(t, rr, &comments)
+	if len(comments) != 1 {
+		t.Fatalf("comment count = %d, want 1", len(comments))
+	}
+	if comments[0].Body != "Investigating blast radius" {
+		t.Fatalf("body = %q, want Investigating blast radius", comments[0].Body)
+	}
+	if comments[0].Author != "jira-bot" {
+		t.Fatalf("author = %q, want jira-bot", comments[0].Author)
 	}
 }
 
