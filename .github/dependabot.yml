@@ -1,0 +1,44 @@
+version: 2
+
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    reviewers:
+      - lvonguyen
+    assignees:
+      - lvonguyen
+    labels:
+      - dependencies
+      - go
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    reviewers:
+      - lvonguyen
+    assignees:
+      - lvonguyen
+    labels:
+      - dependencies
+      - npm
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    reviewers:
+      - lvonguyen
+    assignees:
+      - lvonguyen
+    labels:
+      - dependencies
+      - ci
