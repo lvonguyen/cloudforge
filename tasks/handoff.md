@@ -23,6 +23,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - **D21 Jira comment parity landed:** `6489f888` adds Jira `ListComments` support so linked finding ticket activity no longer degrades on Jira-backed findings
 - **D21 provider readiness landed:** `95ad7f80` extends `/api/v1/providers` and OpenAPI so operators can verify active ticket providers, durable ticket storage, and Asana webhook readiness
 - **D19 preflight landed:** `f0bf363f` added `scripts/fly-findings-seed-preflight.mjs` plus secgraph godoc coverage
+- **D19 operator prep landed:** local docs/Makefile slice clarifies the full Fly/Postgres seed sequence, updates the runbook/checklist, and fixes `make migrate` so the preflight no longer flags a stale migration path
 - **D20 security-graph readability landed:** `a809c42f` moved the graph shell to a lighter analyst canvas and replaced the old scattered dark treatment with a more columnar left-to-right view
 - **D20 finding-detail shell landed:** `27774cf9` nests the attack-path and security-graph workspaces under finding detail so investigation stays in-context
 
@@ -86,6 +87,10 @@ Session 34 — CI repair, documentation refresh, diagram polish:
   - `6489f888` landed Jira comment readback parity for finding-linked tickets
   - `95ad7f80` landed operator visibility into active ticket providers / readiness via `/api/v1/providers`
   - highest-value remaining D21 slice is real env validation with 1Password-backed credentials during an explicit operator window, followed by any provider-specific gaps that show up in that exercise
+- `D19` progress snapshot:
+  - `f0bf363f` landed the local preflight script for the Fly/Postgres seed path
+  - local follow-up docs/Makefile slice aligns the runbook with the real `aegis-seed` -> `seed-postgres` -> `seed-resources` -> secgraph-backfill flow
+  - remaining D19 blockers are operator-only: Fly secrets/env cutover, live Postgres load, and startup headroom validation on the current Fly machine/grace-period budget
 - Safe next parallel slice `D19-live-seed-execution`: operator-only runbook / checklist work based on `scripts/fly-findings-seed-preflight.mjs`. Do not use 1Password or live Fly secrets without an explicit handoff note and a clean operator window.
 - Safe next parallel slice `D20-attackpath-visuals`: own `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/*`, and dedicated attack-path tests only. Focus on icons, hop indicators, crown-jewel cues, and embedded remediation/finding context. The standalone east/west readability pass is already done for `SecurityGraph`.
 - Deferred-track closeout gates that must remain on the board:
