@@ -248,6 +248,17 @@ Use this file as the shared climbing board for all security-graph work. Before s
     - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -run 'TestMaterializeFinding|TestMergeMaterializationResultsAggregatesSharedIssue' -count=1`
     - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestSyncSecurityGraphWithStore_|TestSyncSecurityGraphWithStoreAndDispatcher|TestSecgraphTicketDispatcher|TestSecgraphAutoTicketsEnabled|TestToComplianceFinding' -count=1`
 
+- `WG-C Follow-up: Full-sync stale issue reconciliation` — completed 2026-03-30 (codex)
+  - Scope completed: startup/full sync now reconciles stale secgraph issue links and materialization edges for findings that disappear from the current source set, resolves issues with no remaining source findings, and keeps incremental ingest intentionally non-reconciling
+  - Output files:
+    - `internal/secgraph/store.go`
+    - `cmd/server/secgraph_sync.go`
+    - `cmd/server/secgraph_sync_test.go`
+  - Guardrail: reconciliation SQL lives in `secgraph.Store`, but the coverage here is at the sync/control-flow layer; incremental ingest still skips global reconciliation on purpose
+  - Verification:
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestSyncSecurityGraphWithStore_|TestSyncSecurityGraphWithStoreAndDispatcher|TestSecgraphTicketDispatcher|TestSecgraphAutoTicketsEnabled|TestToComplianceFinding' -count=1`
+
 - `WG-E Follow-up: Attack-path readability + theme controls` — completed 2026-03-31 (codex)
   - Scope completed: lighter/whiter analyst-friendly attack-path detail canvas, clearer node/icon presentation, and an explicit local canvas tone control layered on top of the existing app theme without changing backend graph contracts
   - Output files:
@@ -278,11 +289,6 @@ Use this file as the shared climbing board for all security-graph work. Before s
 ### In Flight
 
 (none currently)
-
-- `WG-C Follow-up: Full-sync stale issue reconciliation` — in progress 2026-03-30 (codex)
-  - Scope claimed: full startup sync should reconcile away issues/materialization links for findings that disappear from the current source set, while incremental ingest remains non-reconciling
-  - Write scope: `internal/secgraph/store.go`, `cmd/server/secgraph_sync.go`, `cmd/server/secgraph_sync_test.go`, `tasks/handoff.md`
-  - Coordination: backend-only; keep incremental ingest behavior unchanged
 
 ### Pending
 

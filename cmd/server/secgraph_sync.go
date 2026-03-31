@@ -22,6 +22,10 @@ type secgraphPersister interface {
 	UpsertMaterialization(ctx context.Context, result secgraph.MaterializationResult) error
 }
 
+type secgraphReconciler interface {
+	ReconcileStaleMaterialization(ctx context.Context, tenantID string, activeFindingIDs []string, now time.Time) error
+}
+
 type secgraphIssueDispatcher interface {
 	Dispatch(ctx context.Context, issue *secgraph.Issue) error
 }
@@ -174,14 +178,18 @@ func syncSecurityGraph(ctx context.Context, db *sql.DB, mgr *compliance.Manager,
 		autoDispatch: secgraphAutoTicketsEnabled(),
 		logger:       logger,
 	}
-	return syncSecurityGraphWithStoreAndDispatcher(ctx, secgraph.NewStore(db), mgr, findings, defaultSecgraphTenantID, time.Now().UTC(), dispatcher, logger)
+	return syncSecurityGraphWithStoreAndDispatcherMode(ctx, secgraph.NewStore(db), mgr, findings, defaultSecgraphTenantID, time.Now().UTC(), dispatcher, logger, true)
 }
 
 func syncSecurityGraphWithStore(ctx context.Context, store secgraphPersister, mgr *compliance.Manager, findings []Finding, tenantID string, now time.Time, logger *zap.Logger) error {
-	return syncSecurityGraphWithStoreAndDispatcher(ctx, store, mgr, findings, tenantID, now, nil, logger)
+	return syncSecurityGraphWithStoreAndDispatcherMode(ctx, store, mgr, findings, tenantID, now, nil, logger, true)
 }
 
 func syncSecurityGraphWithStoreAndDispatcher(ctx context.Context, store secgraphPersister, mgr *compliance.Manager, findings []Finding, tenantID string, now time.Time, dispatcher secgraphIssueDispatcher, logger *zap.Logger) error {
+	return syncSecurityGraphWithStoreAndDispatcherMode(ctx, store, mgr, findings, tenantID, now, dispatcher, logger, false)
+}
+
+func syncSecurityGraphWithStoreAndDispatcherMode(ctx context.Context, store secgraphPersister, mgr *compliance.Manager, findings []Finding, tenantID string, now time.Time, dispatcher secgraphIssueDispatcher, logger *zap.Logger, reconcile bool) error {
 	if store == nil || mgr == nil {
 		return nil
 	}
@@ -243,6 +251,13 @@ func syncSecurityGraphWithStoreAndDispatcher(ctx context.Context, store secgraph
 			return fmt.Errorf("persist secgraph artifacts: %w", err)
 		}
 	}
+	if reconcile {
+		if reconciler, ok := store.(secgraphReconciler); ok {
+			if err := reconciler.ReconcileStaleMaterialization(ctx, tenantID, activeFindingIDs(findings), now); err != nil {
+				return fmt.Errorf("reconcile stale secgraph materialization: %w", err)
+			}
+		}
+	}
 
 	if logger != nil {
 		logger.Info("Security graph sync complete",
@@ -253,6 +268,23 @@ func syncSecurityGraphWithStoreAndDispatcher(ctx context.Context, store secgraph
 	}
 
 	return nil
+}
+
+func activeFindingIDs(findings []Finding) []string {
+	seen := make(map[string]struct{}, len(findings))
+	active := make([]string, 0, len(findings))
+	for _, finding := range findings {
+		id := strings.TrimSpace(finding.ID)
+		if id == "" {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		active = append(active, id)
+	}
+	return active
 }
 
 func buildSecgraphIssueTicketDescription(issue secgraph.Issue, decision *integrations.RoutingDecision) string {

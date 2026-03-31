@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/lib/pq"
 )
@@ -113,6 +114,111 @@ func (s *Store) UpsertMaterialization(ctx context.Context, result Materializatio
 		}
 	}
 
+	return nil
+}
+
+// ReconcileStaleMaterialization prunes stale finding->issue links for a tenant
+// after a full sync and resolves any issues that no longer have source findings.
+func (s *Store) ReconcileStaleMaterialization(ctx context.Context, tenantID string, activeFindingIDs []string, now time.Time) error {
+	if s == nil || s.db == nil {
+		return nil
+	}
+	tenantID = strings.TrimSpace(tenantID)
+	if tenantID == "" {
+		tenantID = "default"
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin stale materialization reconciliation: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var (
+		deleteIssueFindingsQuery string
+		deleteEdgesQuery         string
+		args                     []any
+	)
+	if len(activeFindingIDs) == 0 {
+		deleteIssueFindingsQuery = `
+			DELETE FROM issue_findings ifl
+			USING issues i
+			WHERE i.id = ifl.issue_id
+			  AND i.tenant_id = $1
+		`
+		deleteEdgesQuery = `
+			DELETE FROM graph_edges ge
+			USING issues i
+			WHERE ge.target_type = 'issue'
+			  AND ge.edge_type = 'materializes_to'
+			  AND ge.target_id = i.id
+			  AND ge.tenant_id = $1
+			  AND i.tenant_id = $1
+		`
+		args = []any{tenantID}
+	} else {
+		deleteIssueFindingsQuery = `
+			DELETE FROM issue_findings ifl
+			USING issues i
+			WHERE i.id = ifl.issue_id
+			  AND i.tenant_id = $1
+			  AND NOT (ifl.finding_id = ANY($2))
+		`
+		deleteEdgesQuery = `
+			DELETE FROM graph_edges ge
+			USING issues i
+			WHERE ge.target_type = 'issue'
+			  AND ge.edge_type = 'materializes_to'
+			  AND ge.target_id = i.id
+			  AND ge.tenant_id = $1
+			  AND i.tenant_id = $1
+			  AND NOT (ge.source_id = ANY($2))
+		`
+		args = []any{tenantID, pq.Array(activeFindingIDs)}
+	}
+
+	if _, err := tx.ExecContext(ctx, deleteIssueFindingsQuery, args...); err != nil {
+		return fmt.Errorf("delete stale issue_finding links: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, deleteEdgesQuery, args...); err != nil {
+		return fmt.Errorf("delete stale materializes_to edges: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE issues i
+		SET status = 'RESOLVED',
+		    resolved_at = COALESCE(i.resolved_at, $2),
+		    updated_at = $2
+		WHERE i.tenant_id = $1
+		  AND i.status NOT IN ('RESOLVED', 'SUPPRESSED')
+		  AND NOT EXISTS (
+			SELECT 1
+			FROM issue_findings ifl
+			WHERE ifl.issue_id = i.id
+		  )
+	`, tenantID, now.UTC()); err != nil {
+		return fmt.Errorf("resolve stale issues: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE control_evaluations ce
+		SET status = 'PASS',
+		    evidence = ARRAY[]::text[],
+		    evaluated_at = $2
+		WHERE ce.tenant_id = $1
+		  AND NOT EXISTS (
+			SELECT 1
+			FROM issues i
+			JOIN issue_findings ifl ON ifl.issue_id = i.id
+			WHERE i.tenant_id = ce.tenant_id
+			  AND i.control_id = ce.control_id
+			  AND i.resource_id = ce.resource_id
+		  )
+	`, tenantID, now.UTC()); err != nil {
+		return fmt.Errorf("resolve stale evaluations: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit stale materialization reconciliation: %w", err)
+	}
 	return nil
 }
 

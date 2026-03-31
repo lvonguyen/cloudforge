@@ -16,8 +16,13 @@ import (
 type recordingSecgraphStore struct {
 	controlsCalls        [][]secgraph.Control
 	materializationCalls []secgraph.MaterializationResult
+	reconcileCalls       int
+	reconcileTenantID    string
+	reconcileFindingIDs  []string
+	reconcileAt          time.Time
 	controlsErr          error
 	materializationErr   error
+	reconcileErr         error
 }
 
 func (s *recordingSecgraphStore) UpsertControls(_ context.Context, controls []secgraph.Control) error {
@@ -34,6 +39,17 @@ func (s *recordingSecgraphStore) UpsertMaterialization(_ context.Context, result
 		return s.materializationErr
 	}
 	s.materializationCalls = append(s.materializationCalls, result)
+	return nil
+}
+
+func (s *recordingSecgraphStore) ReconcileStaleMaterialization(_ context.Context, tenantID string, activeFindingIDs []string, now time.Time) error {
+	if s.reconcileErr != nil {
+		return s.reconcileErr
+	}
+	s.reconcileCalls++
+	s.reconcileTenantID = tenantID
+	s.reconcileFindingIDs = append([]string(nil), activeFindingIDs...)
+	s.reconcileAt = now
 	return nil
 }
 
@@ -278,6 +294,44 @@ func TestSyncSecurityGraphWithStore_MergesSharedIssueAcrossFindings(t *testing.T
 	}
 	if len(result.Evaluations[0].Evidence) != 2 {
 		t.Fatalf("evaluation evidence = %+v, want 2 finding ids", result.Evaluations[0].Evidence)
+	}
+	if store.reconcileCalls != 1 {
+		t.Fatalf("reconcile calls = %d, want 1", store.reconcileCalls)
+	}
+	if store.reconcileTenantID != "tenant-a" {
+		t.Fatalf("reconcile tenant_id = %q, want tenant-a", store.reconcileTenantID)
+	}
+	if len(store.reconcileFindingIDs) != 2 {
+		t.Fatalf("reconcile finding ids = %+v, want 2 ids", store.reconcileFindingIDs)
+	}
+}
+
+func TestSyncSecurityGraphWithStoreAndDispatcher_DoesNotReconcileIncrementalBatch(t *testing.T) {
+	manager := compliance.NewManager(zap.NewNop())
+	store := &recordingSecgraphStore{}
+	now := time.Date(2026, 3, 31, 14, 5, 0, 0, time.UTC)
+
+	finding := Finding{
+		ID:           "finding-incremental",
+		Title:        "Incremental batch finding",
+		Description:  "Should materialize without global reconciliation",
+		ResourceType: "database",
+		ResourceID:   "db-incremental",
+		ResourceName: "db-incremental",
+		Type:         "misconfiguration",
+		Severity:     "medium",
+		AccountID:    "acct-1",
+		Category:     "COMPLIANCE",
+		ComplianceMappings: []ComplianceMapping{
+			{FrameworkID: "custom-fw", FrameworkName: "Custom Framework", ControlID: "CTRL-INCR", ControlTitle: "Incremental control", Severity: "MEDIUM"},
+		},
+	}
+
+	if err := syncSecurityGraphWithStoreAndDispatcher(context.Background(), store, manager, []Finding{finding}, "tenant-a", now, nil, zap.NewNop()); err != nil {
+		t.Fatalf("syncSecurityGraphWithStoreAndDispatcher() error = %v", err)
+	}
+	if store.reconcileCalls != 0 {
+		t.Fatalf("reconcile calls = %d, want 0 for incremental batch", store.reconcileCalls)
 	}
 }
 
