@@ -14,6 +14,7 @@ import {
   formatWorkflowStatus,
   getFindingSlaState,
 } from '@/components/ops/finding-detail/helpers'
+import { buildFindingTimeline } from '@/components/ops/finding-detail/timeline'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -93,6 +94,16 @@ function FindingDetail({
     () => remediations.find(r => r.finding_id === finding.id),
     [remediations, finding.id],
   )
+  const slaState = useMemo(() => getFindingSlaState(finding), [finding])
+  const timeline = useMemo(
+    () => buildFindingTimeline(finding, { relatedPaths }),
+    [finding, relatedPaths],
+  )
+  const primaryPath = relatedPaths[0]
+  const mappedControls = useMemo(
+    () => finding.compliance_mappings?.map(mapping => `${mapping.framework_name} ${mapping.control_id}`).slice(0, 4) ?? [],
+    [finding.compliance_mappings],
+  )
 
   const scoreColor =
     finding.ai_risk_score >= 9 ? 'text-red-400' :
@@ -112,7 +123,7 @@ function FindingDetail({
         <KV label="Type" value={finding.category} />
         <KV label="First Seen" value={new Date(finding.first_found_at).toLocaleDateString()} />
         <KV label="Due" value={formatDate(finding.due_date)} />
-        <KV label="SLA" value={getFindingSlaState(finding).label} />
+        <KV label="SLA" value={slaState.label} />
         <KV label="Owner" value={finding.assignee?.user_name ?? 'Unassigned'} />
         <KV
           label="Risk Score"
@@ -169,6 +180,18 @@ function FindingDetail({
       {/* Attack Paths */}
       {relatedPaths.length > 0 && (
         <Section label="Attack Paths" count={relatedPaths.length} defaultOpen={false}>
+          {primaryPath && (
+            <div className="mb-2 rounded border border-[#1e2330] bg-[#111318] px-2 py-2">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-gray-500">
+                <span>Primary chain</span>
+                <span className="text-gray-700">/</span>
+                <span>{primaryPath.hop_count} hops</span>
+                <span className="text-gray-700">/</span>
+                <span>{primaryPath.score.toFixed(0)} score</span>
+              </div>
+              <p className="mt-1 text-xs text-gray-300">{primaryPath.entry_point.resource_name} -> {primaryPath.target.resource_name}</p>
+            </div>
+          )}
           {relatedPaths.map(p => (
             <Link
               key={p.id}
@@ -184,6 +207,23 @@ function FindingDetail({
           ))}
         </Section>
       )}
+
+      <Section label="Security Graph" defaultOpen={false}>
+        <KV label="Workflow" value={formatWorkflowStatus(finding.workflow_status)} />
+        <KV label="SLA Detail" value={slaState.detail} />
+        <KV label="Latest Seen" value={formatDateTime(finding.last_seen_at)} />
+        <KV label="Mapped Controls" value={finding.compliance_mappings?.length ?? 0} />
+        <KV label="MITRE" value={finding.mitre_techniques?.length ?? 0} />
+        {mappedControls.length > 0 && (
+          <div className="flex flex-wrap gap-1 pt-2">
+            {mappedControls.map(control => (
+              <span key={control} className="text-[9px] font-mono bg-[#161b22] text-gray-400 px-1.5 py-0.5">
+                {control}
+              </span>
+            ))}
+          </div>
+        )}
+      </Section>
 
       <Section label="Signals" defaultOpen={false}>
         <KV label="Attack Paths" value={relatedPaths.length > 0 ? `${relatedPaths.length} linked` : 'None'} />
@@ -238,22 +278,10 @@ function FindingDetail({
       {/* Timeline */}
       <Section label="Timeline" defaultOpen={false}>
         <div className="space-y-1.5">
-          <TimelineEntry date={finding.first_found_at} label="Detected" filled />
-          {finding.ai_risk_rationale && (
-            <TimelineEntry label="AI Enriched" filled />
-          )}
-          {remediation && (
-            <TimelineEntry
-              date={remediation.created_at}
-              label={`Remediation ${remediation.status}`}
-              filled={remediation.status === 'completed'}
-            />
-          )}
-          {finding.resolved_at ? (
-            <TimelineEntry date={finding.resolved_at} label="Resolved" filled />
-          ) : (
-            <TimelineEntry label="Pending resolution" filled={false} />
-          )}
+          {timeline.slice(0, 5).map((event) => (
+            <TimelineEntry key={event.id} date={event.time} label={event.label} filled={event.id !== 'sla-due'} />
+          ))}
+          {timeline.length === 0 && <TimelineEntry label="Pending resolution" filled={false} />}
         </div>
       </Section>
     </>
