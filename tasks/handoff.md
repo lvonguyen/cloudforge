@@ -22,6 +22,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - **D21 ticket parity slices landed:** `6d38c8e1` refreshes cached remediation tickets from provider webhooks and `2c2e363f` adds frontend provider selection / assignee controls
 - **D19 preflight landed:** `f0bf363f` added `scripts/fly-findings-seed-preflight.mjs` plus secgraph godoc coverage
 - **D20 security-graph readability landed:** `a809c42f` moved the graph shell to a lighter analyst canvas and replaced the old scattered dark treatment with a more columnar left-to-right view
+- **D20 finding-detail shell landed:** `27774cf9` nests the attack-path and security-graph workspaces under finding detail so investigation stays in-context
 
 ## Current State
 
@@ -29,7 +30,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - **Tests:** Go 45 pkg / 2,146 tests pass. Frontend 452/452 vitest.
 - **CI:** other session reported 6/6 GREEN after the latest CI repair sweep
 - **Fly.io:** v59 healthy (sjc)
-- **Uncommitted:** `frontend/src/pages/__tests__/FindingDetail.investigation.test.tsx` only (other session / in-flight finding-detail work)
+- **Uncommitted:** `frontend/src/pages/__tests__/FindingDetail.investigation.test.tsx` (other session / in-flight finding-detail work)
 - **Stash:** `stash@{0}` — mixed D10/D20 WIP. Has 4 TS errors. Do NOT pop blindly. Recover one file at a time, verify tsc after each.
 - **Open PRs:** None
 
@@ -51,7 +52,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 ### P1 — Should Fix
 
 - [ ] `D19` Seed findings into Fly Postgres
-- [ ] `D20` Wiz-parity polish: findings-nested attack paths, security-graph timeline surfacing, attack-path icons/indicators, richer remediation/CVE context
+- [ ] `D20` Wiz-parity polish: attack-path icons/indicators, crown-jewel cues, richer remediation/CVE context, final analyst-layout polish
 - [ ] `D21` Complete integration parity beyond Jira/Asana provider controls and webhook refresh
 - [ ] CHANGELOG catch-up (17+ sessions behind)
 
@@ -74,11 +75,11 @@ Session 34 — CI repair, documentation refresh, diagram polish:
   - `Zeno` -> `D20-attackpath-gap-audit` -> audit complete; main gap is finding-detail wiring, not missing graph components
 - `D20` progress snapshot:
   - `a809c42f` completed the standalone `SecurityGraph` readability + left-to-right analyst shell
+  - `27774cf9` mounted `FindingAttackPathWorkspace` and `FindingSecurityGraphWorkspace` under `frontend/src/pages/ops/FindingDetail.tsx`
   - richer finding-detail workspaces already exist in `frontend/src/components/ops/finding-detail/*`
-  - the highest-value remaining D20 slice is mounting those workspaces in `frontend/src/pages/ops/FindingDetail.tsx` once the other session's in-flight finding-detail changes are stable
+  - the highest-value remaining D20 slice is the standalone attack-path visual parity pass, not more finding-detail shell wiring
 - Safe next parallel slice `D19-live-seed-execution`: operator-only runbook / checklist work based on `scripts/fly-findings-seed-preflight.mjs`. Do not use 1Password or live Fly secrets without an explicit handoff note and a clean operator window.
 - Safe next parallel slice `D20-attackpath-visuals`: own `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/*`, and dedicated attack-path tests only. Focus on icons, hop indicators, crown-jewel cues, and embedded remediation/finding context. The standalone east/west readability pass is already done for `SecurityGraph`.
-- Safe next parallel slice `D20-finding-detail-shell`: only after explicit takeover of the in-flight finding-detail work. Target `frontend/src/pages/ops/FindingDetail.tsx` plus `frontend/src/components/ops/finding-detail/*` to nest attack path + security graph workspaces under finding detail.
 - Deferred-track closeout gates that must remain on the board:
   - after the high-value deferred items are implemented, run `/qa-visual -e ensemble` against production and click through the completed surfaces end to end before closing the track
   - after the docs / diagrams session lands and the render outputs are stable, run `docs-audit` again before closing the track
