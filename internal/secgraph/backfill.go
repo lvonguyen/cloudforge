@@ -9,8 +9,8 @@ import (
 )
 
 // RunEdgeBackfill populates graph_edges from existing relational data.
-// Idempotent: uses ON CONFLICT DO NOTHING so repeated runs are safe.
-// This is a startup-time operation, not a per-request path.
+// The operations are ordered from direct relational facts to derived
+// co-location edges so startup logs point to the failing edge family.
 func RunEdgeBackfill(ctx context.Context, db *sql.DB, logger *zap.Logger) error {
 	type op struct {
 		name string
@@ -91,8 +91,8 @@ func backfillMapsTo(ctx context.Context, db *sql.DB) (int64, error) {
 }
 
 // backfillCoLocation materializes same_region edges between resources sharing
-// account_id AND region. Only processes groups with <= maxResources to prevent
-// O(n^2) blowup in large accounts.
+// account_id and region. The group-size cap keeps startup backfills from
+// exploding quadratically on very large shared environments.
 func backfillCoLocation(ctx context.Context, db *sql.DB, maxResources int) (int64, error) {
 	if maxResources <= 0 {
 		maxResources = 500

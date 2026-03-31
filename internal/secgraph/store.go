@@ -87,7 +87,9 @@ func (s *Store) UpsertControls(ctx context.Context, controls []Control) error {
 	return nil
 }
 
-// UpsertMaterialization persists evaluations, issues, issue-finding links, and graph edges.
+// UpsertMaterialization persists the full control-evaluation result set in the
+// order needed by downstream reads: evaluations first, then issues, their
+// finding links, and finally the graph edges that expose those issues.
 func (s *Store) UpsertMaterialization(ctx context.Context, result MaterializationResult) error {
 	if s == nil || s.db == nil {
 		return nil
@@ -404,6 +406,7 @@ func (s *Store) GetIssue(ctx context.Context, tenantID, issueID string) (*IssueD
 	return &detail, nil
 }
 
+// upsertEvaluation keeps one evaluation row per control/resource/tenant tuple.
 func (s *Store) upsertEvaluation(ctx context.Context, evaluation ControlEvaluation) error {
 	const query = `
 		INSERT INTO control_evaluations (
@@ -431,6 +434,8 @@ func (s *Store) upsertEvaluation(ctx context.Context, evaluation ControlEvaluati
 	return nil
 }
 
+// upsertIssue persists the materialized issue surface without deciding issue
+// state transitions; higher layers are expected to reconcile lifecycle first.
 func (s *Store) upsertIssue(ctx context.Context, issue Issue) error {
 	const query = `
 		INSERT INTO issues (
@@ -493,6 +498,7 @@ func (s *Store) upsertIssue(ctx context.Context, issue Issue) error {
 	return nil
 }
 
+// upsertIssueFinding records the source findings that currently justify an issue.
 func (s *Store) upsertIssueFinding(ctx context.Context, link IssueFindingLink) error {
 	const query = `
 		INSERT INTO issue_findings (issue_id, finding_id, created_at)
@@ -507,6 +513,7 @@ func (s *Store) upsertIssueFinding(ctx context.Context, link IssueFindingLink) e
 	return nil
 }
 
+// upsertEdge persists graph relationships emitted during materialization.
 func (s *Store) upsertEdge(ctx context.Context, edge GraphEdge) error {
 	const query = `
 		INSERT INTO graph_edges (
@@ -536,16 +543,21 @@ func (s *Store) upsertEdge(ctx context.Context, edge GraphEdge) error {
 	return nil
 }
 
+// issueSummaryScanner captures the subset shared by sql.Row and sql.Rows so
+// summary decoding stays in one place for list and detail queries.
 type issueSummaryScanner interface {
 	Scan(dest ...any) error
 }
 
+// scanIssueSummary allocates a summary and delegates the field mapping logic.
 func scanIssueSummary(scanner issueSummaryScanner) (IssueSummary, error) {
 	var issue IssueSummary
 	err := scanIssueSummaryInto(scanner, &issue)
 	return issue, err
 }
 
+// scanIssueSummaryInto normalizes SQL nullables and derived joins into the
+// operator-facing IssueSummary shape used by list/detail endpoints.
 func scanIssueSummaryInto(scanner issueSummaryScanner, issue *IssueSummary) error {
 	if issue == nil {
 		return fmt.Errorf("issue summary destination is nil")
@@ -618,6 +630,8 @@ func scanIssueSummaryInto(scanner issueSummaryScanner, issue *IssueSummary) erro
 	return nil
 }
 
+// buildIssueWhereClause centralizes tenant scoping plus optional filters so
+// list/count queries stay in lockstep as new operator filters are added.
 func buildIssueWhereClause(filter IssueListFilter) (string, []any) {
 	tenantID := strings.TrimSpace(filter.TenantID)
 	if tenantID == "" {
@@ -678,6 +692,7 @@ func buildIssueWhereClause(filter IssueListFilter) (string, []any) {
 	return " WHERE " + strings.Join(clauses, " AND "), args
 }
 
+// buildIssueSortClause returns an allowlisted ORDER BY fragment for issue lists.
 func buildIssueSortClause(filter IssueListFilter) string {
 	order := "DESC"
 	if strings.EqualFold(strings.TrimSpace(filter.SortOrder), "asc") {
@@ -706,6 +721,7 @@ func buildIssueSortClause(filter IssueListFilter) string {
 	}
 }
 
+// min is used for capacity hints when preallocating list buffers.
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -713,6 +729,8 @@ func min(a, b int) int {
 	return b
 }
 
+// normalizeLowercase trims, lowercases, and drops empty scope values before
+// they are bound into ANY(...) filters.
 func normalizeLowercase(values []string) []string {
 	normalized := make([]string, 0, len(values))
 	for _, value := range values {

@@ -185,6 +185,8 @@ func (q *PostgresQuerier) Stats(ctx context.Context) (*GraphStats, error) {
 	return stats, nil
 }
 
+// resolveNodeLabels fans out across the backing relational tables so graph
+// responses can carry operator-facing labels instead of raw vertex IDs.
 func (q *PostgresQuerier) resolveNodeLabels(ctx context.Context, nodeIDs map[NodeType][]string) ([]GraphNode, error) {
 	var nodes []GraphNode
 
@@ -240,6 +242,8 @@ func (q *PostgresQuerier) resolveNodeLabels(ctx context.Context, nodeIDs map[Nod
 	return nodes, nil
 }
 
+// fetchEdgesBetween returns only edges whose endpoints are already part of the
+// discovered neighborhood, keeping the response bounded to the requested view.
 func (q *PostgresQuerier) fetchEdgesBetween(ctx context.Context, nodeIDs []string, limit int) ([]GraphEdgeView, error) {
 	if len(nodeIDs) == 0 {
 		return nil, nil

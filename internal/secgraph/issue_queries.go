@@ -129,6 +129,8 @@ func (q *PostgresQuerier) GetIssue(ctx context.Context, tenantID, id string) (*I
 }
 
 // UpdateIssue applies partial updates to an issue and returns the updated row.
+// Resolved issues get resolved_at stamped here so HTTP handlers do not need to
+// duplicate lifecycle bookkeeping.
 func (q *PostgresQuerier) UpdateIssue(ctx context.Context, tenantID, id string, update IssueUpdate) (*Issue, error) {
 	var setClauses []string
 	var args []interface{}
@@ -202,6 +204,8 @@ func (q *PostgresQuerier) UpdateIssue(ctx context.Context, tenantID, id string, 
 }
 
 // IssueStats returns aggregate counts by severity, status, and provider.
+// It favors partial operator visibility over hard failure, so individual
+// aggregate queries can fail without aborting the entire response.
 func (q *PostgresQuerier) IssueStats(ctx context.Context, tenantID string) (*IssueStats, error) {
 	if tenantID == "" {
 		tenantID = "default"

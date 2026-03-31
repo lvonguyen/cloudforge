@@ -108,9 +108,9 @@ func (a *AdjacencySet) Size() int {
 	return count / 2 // bidirectional
 }
 
-// LoadAdjacencyFromDB builds an AdjacencySet from resource-to-resource edges
-// in graph_edges (same_region, same_account). Also includes finding→resource
-// affects edges for chain building. Returns nil if DB is nil.
+// LoadAdjacencyFromDB builds an AdjacencySet from persisted resource-to-resource
+// graph edges. It intentionally ignores other edge families because callers use
+// this structure for resource neighborhood and blast-radius calculations.
 func LoadAdjacencyFromDB(ctx context.Context, db *sql.DB) (*AdjacencySet, error) {
 	if db == nil {
 		return nil, nil
