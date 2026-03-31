@@ -92,6 +92,9 @@ func TestMaterializeFindingProducesDeterministicArtifacts(t *testing.T) {
 	if issue.ExposurePaths != 3 {
 		t.Fatalf("exposure_paths = %d, want 3", issue.ExposurePaths)
 	}
+	if issue.RiskScore != 100 {
+		t.Fatalf("risk_score = %.2f, want 100.00", issue.RiskScore)
+	}
 	if issue.ID != MaterializeFinding(finding, "tenant-a", now).Issues[0].ID {
 		t.Fatal("expected deterministic issue ID")
 	}
@@ -200,5 +203,32 @@ func TestMaterializeFindingDerivesSuppressedLifecycle(t *testing.T) {
 	}
 	if result.Evaluations[0].Status != EvalNotApplicable {
 		t.Fatalf("evaluation status = %q, want %q", result.Evaluations[0].Status, EvalNotApplicable)
+	}
+}
+
+func TestMaterializeFindingUsesAIRiskScoreFloor(t *testing.T) {
+	now := time.Date(2026, time.March, 31, 7, 0, 0, 0, time.UTC)
+	finding := &compliance.Finding{
+		ID:            "F-005",
+		Title:         "Low severity but contextually risky",
+		ResourceID:    "vm-789",
+		ResourceName:  "vm-789",
+		ResourceType:  compliance.ResourceTypeCompute,
+		CloudProvider: compliance.CloudProviderAWS,
+		AccountID:     "123456789012",
+		Severity:      "LOW",
+		AIRiskScore:   8.5,
+		ComplianceMappings: []compliance.ComplianceMapping{
+			{FrameworkID: "cis-benchmarks", FrameworkName: "CIS Benchmarks", ControlID: "4.2", ControlTitle: "Protect compute instances", Severity: "LOW"},
+		},
+	}
+
+	result := MaterializeFinding(finding, "tenant-a", now)
+	if len(result.Issues) != 1 {
+		t.Fatalf("issues = %d, want 1", len(result.Issues))
+	}
+
+	if result.Issues[0].RiskScore != 85 {
+		t.Fatalf("risk_score = %.2f, want 85.00", result.Issues[0].RiskScore)
 	}
 }

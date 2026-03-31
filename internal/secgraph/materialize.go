@@ -18,6 +18,13 @@ var severityWeight = map[string]float64{
 	"LOW":      3,
 }
 
+var severityBaseScore = map[string]float64{
+	"CRITICAL": 90,
+	"HIGH":     75,
+	"MEDIUM":   50,
+	"LOW":      25,
+}
+
 // BuildControlsFromManager flattens compliance frameworks into control rows
 // suitable for seeding the security graph control catalog.
 func BuildControlsFromManager(mgr *compliance.Manager, tenantID string, now time.Time) []Control {
@@ -220,17 +227,29 @@ func maxSeverity(values ...string) string {
 }
 
 func computeRiskScore(finding *compliance.Finding, severity string) float64 {
-	score := severityWeight[normalizeSeverity(severity)]
-	score += float64(minInt(len(finding.ImpactedResources), 5)) * 0.4
-	if finding.ExploitAvailable {
-		score += 1.0
+	normalizedSeverity := normalizeSeverity(severity)
+	score := severityBaseScore[normalizedSeverity]
+	if score == 0 {
+		score = severityBaseScore["MEDIUM"]
 	}
-	switch finding.Category {
-	case compliance.CategoryNetwork, compliance.CategoryIdentity:
-		score += 0.5
+	if finding == nil {
+		return score
 	}
-	if score > 10 {
-		return 10
+
+	blastRadius := minInt(len(finding.ImpactedResources), 5)
+	score *= 1 + float64(blastRadius)*0.05
+
+	exposureFactor := maxInt(1, exposurePathCount(finding))
+	score *= 1 + float64(exposureFactor-1)*0.10
+
+	if finding.AIRiskScore > 0 {
+		score = maxFloat(score, finding.AIRiskScore*10)
+	}
+	if score > 100 {
+		return 100
+	}
+	if score < 0 {
+		return 0
 	}
 	return score
 }
@@ -381,6 +400,20 @@ func cloneTimePtr(value *time.Time) *time.Time {
 
 func minInt(a, b int) int {
 	if a < b {
+		return a
+	}
+	return b
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func maxFloat(a, b float64) float64 {
+	if a > b {
 		return a
 	}
 	return b

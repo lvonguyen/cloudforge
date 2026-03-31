@@ -221,6 +221,16 @@ Use this file as the shared climbing board for all security-graph work. Before s
     - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -count=1`
     - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestSyncSecurityGraphWithStore_|TestSyncSecurityGraphWithStoreAndDispatcher|TestSecgraphTicketDispatcher|TestSecgraphAutoTicketsEnabled|TestToComplianceFinding' -count=1`
 
+- `WG-C Follow-up: Issue score normalization` — completed 2026-03-30 (codex)
+  - Scope completed: replace the placeholder secgraph issue score with a 0-100 composite aligned to ADR-020 (`severity × blast_radius × exposure`) while preserving a floor from upstream AI risk telemetry when available
+  - Output files:
+    - `internal/secgraph/materialize.go`
+    - `internal/secgraph/materialize_test.go`
+  - Guardrail: this keeps blast radius and exposure heuristic for now; graph-derived blast radius still belongs to the later graph-native scoring slice
+  - Verification:
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestSyncSecurityGraphWithStore_|TestSyncSecurityGraphWithStoreAndDispatcher|TestSecgraphTicketDispatcher|TestSecgraphAutoTicketsEnabled|TestToComplianceFinding' -count=1`
+
 - `WG-E Follow-up: Attack-path readability + theme controls` — completed 2026-03-31 (codex)
   - Scope completed: lighter/whiter analyst-friendly attack-path detail canvas, clearer node/icon presentation, and an explicit local canvas tone control layered on top of the existing app theme without changing backend graph contracts
   - Output files:
