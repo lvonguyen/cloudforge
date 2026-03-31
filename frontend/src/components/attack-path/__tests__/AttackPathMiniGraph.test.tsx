@@ -1,5 +1,5 @@
-import { beforeAll, beforeEach, describe, expect, it, waitFor } from 'vitest'
-import { screen } from '@testing-library/react'
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { act, screen, waitFor } from '@testing-library/react'
 import { AttackPathMiniGraph } from '@/components/attack-path/AttackPathMiniGraph'
 import { renderWithProviders } from '@/test/utils'
 import type { AttackPath } from '@/types/attack-path'
@@ -110,14 +110,17 @@ describe('AttackPathMiniGraph', () => {
     renderWithProviders(<AttackPathMiniGraph paths={[SAMPLE_PATH]} resourceId="res-1" />)
 
     expect(screen.getByText('Attack Path')).toBeInTheDocument()
-    expect(screen.getByText('Public workload pivots to production database')).toBeInTheDocument()
+    expect(screen.getAllByText('public-api').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('prod-orders-db').length).toBeGreaterThan(0)
     expect(document.querySelector('[data-canvas-tone="light"]')).toBeTruthy()
   })
 
   it('reacts to document dark mode changes', async () => {
     renderWithProviders(<AttackPathMiniGraph paths={[SAMPLE_PATH]} resourceId="res-1" />)
 
-    document.documentElement.classList.add('dark')
+    act(() => {
+      document.documentElement.classList.add('dark')
+    })
 
     await waitFor(() => {
       expect(document.querySelector('[data-canvas-tone="dark"]')).toBeTruthy()
