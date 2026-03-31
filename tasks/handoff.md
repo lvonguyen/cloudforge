@@ -1,9 +1,9 @@
 # Session Handoff
 
-**Generated:** 2026-03-31T05:35:00Z
+**Generated:** 2026-03-31T05:45:00Z
 **Repo:** cloudforge (Cloud Aegis)
 **Branch:** main
-**Recent code commits:** `2c2e363f` remediation provider controls, `6d38c8e1` webhook ticket refresh, `c3d987db` Fly runbook refresh, `f0bf363f` secgraph godoc + D19 preflight
+**Recent code commits:** `a809c42f` security graph readability, `2c2e363f` remediation provider controls, `6d38c8e1` webhook ticket refresh, `c3d987db` Fly runbook refresh, `f0bf363f` secgraph godoc + D19 preflight
 
 > Coordination note: this file is still the shared climbing board. Before replacing it with a compressed session summary, preserve the deferred / workstream detail from `8e38ca17` and `0ea823f5` (`D19`, `D20`, `D21`, the `/qa-visual -e ensemble` prod exit gate, and the follow-up `docs-audit` gate), or merge those sections back in after the docs session lands.
 
@@ -21,6 +21,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - **Runbook refresh landed:** `c3d987db` updated deployment and teardown docs for the current Fly.io + CF Pages topology
 - **D21 ticket parity slices landed:** `6d38c8e1` refreshes cached remediation tickets from provider webhooks and `2c2e363f` adds frontend provider selection / assignee controls
 - **D19 preflight landed:** `f0bf363f` added `scripts/fly-findings-seed-preflight.mjs` plus secgraph godoc coverage
+- **D20 security-graph readability landed:** `a809c42f` moved the graph shell to a lighter analyst canvas and replaced the old scattered dark treatment with a more columnar left-to-right view
 
 ## Current State
 
@@ -50,7 +51,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 ### P1 — Should Fix
 
 - [ ] `D19` Seed findings into Fly Postgres
-- [ ] `D20` Wiz-parity polish: findings-nested attack paths, east/west analyst layout, lighter theme, icons/indicators, richer remediation/CVE context
+- [ ] `D20` Wiz-parity polish: findings-nested attack paths, security-graph timeline surfacing, attack-path icons/indicators, richer remediation/CVE context
 - [ ] `D21` Complete integration parity beyond Jira/Asana provider controls and webhook refresh
 - [ ] CHANGELOG catch-up (17+ sessions behind)
 
@@ -70,9 +71,13 @@ Session 34 — CI repair, documentation refresh, diagram polish:
   - `Nash` -> `D21-frontend-provider-controls` -> landed in `2c2e363f`
   - `Herschel` -> `D19-preflight` (read-only) -> landed in `f0bf363f`
   - `Mendel` -> `D21-backend-webhook-parity` -> landed in `6d38c8e1`
-  - `Zeno` -> `D20-attackpath-gap-audit` -> in progress / waiting on read-only audit
+  - `Zeno` -> `D20-attackpath-gap-audit` -> audit complete; main gap is finding-detail wiring, not missing graph components
+- `D20` progress snapshot:
+  - `a809c42f` completed the standalone `SecurityGraph` readability + left-to-right analyst shell
+  - richer finding-detail workspaces already exist in `frontend/src/components/ops/finding-detail/*`
+  - the highest-value remaining D20 slice is mounting those workspaces in `frontend/src/pages/ops/FindingDetail.tsx` once the other session's in-flight finding-detail changes are stable
 - Safe next parallel slice `D19-live-seed-execution`: operator-only runbook / checklist work based on `scripts/fly-findings-seed-preflight.mjs`. Do not use 1Password or live Fly secrets without an explicit handoff note and a clean operator window.
-- Safe next parallel slice `D20-attackpath-visuals`: own `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/*`, and dedicated attack-path tests only. Focus on east/west layout, icons, hop indicators, lighter readability, and embedded remediation/finding context.
+- Safe next parallel slice `D20-attackpath-visuals`: own `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/*`, and dedicated attack-path tests only. Focus on icons, hop indicators, crown-jewel cues, and embedded remediation/finding context. The standalone east/west readability pass is already done for `SecurityGraph`.
 - Safe next parallel slice `D20-finding-detail-shell`: only after explicit takeover of the in-flight finding-detail work. Target `frontend/src/pages/ops/FindingDetail.tsx` plus `frontend/src/components/ops/finding-detail/*` to nest attack path + security graph workspaces under finding detail.
 - Deferred-track closeout gates that must remain on the board:
   - after the high-value deferred items are implemented, run `/qa-visual -e ensemble` against production and click through the completed surfaces end to end before closing the track
