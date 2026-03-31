@@ -29,6 +29,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - **CHANGELOG catch-up landed:** `1aa11cd1` updates `CHANGELOG.md` for the recent D19/D20/D21/theme/readability slices
 - **Prod-safe status check (2026-03-31):** `GET /health` is healthy, but `GET /api/v1/providers` on `api.cloudforge-demo.lvonguyen.com` still returns the older shape and reports `grc=memory`, so the latest provider-readiness work is not live there yet
 - **Fly runtime probe (2026-03-31):** `fly status -a cloudforge-api` shows app version `63` healthy, but `fly secrets list -a cloudforge-api` only shows JWT/JWKS/CORS secrets. `AEGIS_DATABASE_URL`, `FINDINGS_SOURCE`, `ASANA_PAT`, `JIRA_URL`, and related D19/D21 runtime config are not deployed there yet
+- **D21 read-only credential validation (2026-03-31):** 1Password-backed probes succeeded against Jira project `CVRT` and Asana project `Cloud Vulnerability Remediation Tracking`, so provider auth/connectivity is confirmed without creating tickets
 
 ## Current State
 
@@ -38,6 +39,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - **Fly.io:** v59 healthy (sjc)
 - **Prod read-only probe (2026-03-31 05:51Z):** `https://api.cloudforge-demo.lvonguyen.com/health` is healthy, but `/api/v1/providers` still returns the older schema without the new `integrations` block, so `95ad7f80` is not visible on the public demo API yet
 - **Fly secrets probe (2026-03-31 05:53Z):** live `cloudforge-api` currently has only `AEGIS_JWT_SECRET`, `AEGIS_JWKS_URL`, `CLOUDFORGE_JWKS_URL`, and `CORS_ALLOWED_ORIGINS` deployed
+- **Integration auth probe (2026-03-31 05:57Z):** Jira project `CVRT` and the Asana remediation project both responded successfully with 1Password-backed credentials; live mutation-path testing is the remaining D21 step
 - **Uncommitted:** `frontend/src/pages/ops/AttackPaths.tsx` (other session / in-flight D20 visual work) and `frontend/src/pages/__tests__/FindingDetail.investigation.test.tsx` (other session / in-flight finding-detail work)
 - **Stash:** `stash@{0}` — mixed D10/D20 WIP. Has 4 TS errors. Do NOT pop blindly. Recover one file at a time, verify tsc after each.
 - **Open PRs:** None
@@ -93,7 +95,8 @@ Session 34 — CI repair, documentation refresh, diagram polish:
   - `95ad7f80` landed operator visibility into active ticket providers / readiness via `/api/v1/providers`
   - prod-safe check on 2026-03-31 shows the public API is still serving the older provider-status shape and `grc=memory`
   - live Fly runtime does not yet have `ASANA_PAT`, `JIRA_URL`, or related ticket-provider envs deployed
-  - highest-value remaining D21 slice is real env validation with 1Password-backed credentials during an explicit operator window, followed by any provider-specific gaps that show up in that exercise
+  - read-only provider auth/connectivity is confirmed against the Jira `CVRT` project and the Asana remediation project
+  - highest-value remaining D21 slice is live mutation-path testing during an explicit operator window: create ticket, add comment, sync status, and validate webhook/update behavior end to end
 - `D19` progress snapshot:
   - `f0bf363f` landed the local preflight script for the Fly/Postgres seed path
   - local follow-up docs/Makefile slice aligns the runbook with the real `aegis-seed` -> `seed-postgres` -> `seed-resources` -> secgraph-backfill flow
