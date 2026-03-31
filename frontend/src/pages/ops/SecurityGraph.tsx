@@ -4,11 +4,12 @@ import { type Node, type Edge, Position, MarkerType } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { BaseGraphView } from '@/components/ops/BaseGraphView'
 import { useFindings } from '@/hooks/useFindings'
+import { useGraphNeighborhood, useGraphStats } from '@/hooks/useGraphQuery'
 import { Badge } from '@/components/ui/badge'
-import { Network, Search, X, Shield, Eye, EyeOff } from 'lucide-react'
+import { Network, Search, X, Shield, Eye, EyeOff, Activity } from 'lucide-react'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS } from '@/lib/severity'
-import type { SecurityGraphNode } from '@/types/security-graph'
+import type { SecurityGraphNode, GraphNode as BackendGraphNode, NodeType } from '@/types/security-graph'
 
 const NODE_FILL: Record<string, string> = {
   CRITICAL: '#7f1d1d',
@@ -17,7 +18,29 @@ const NODE_FILL: Record<string, string> = {
   LOW: '#1e3a5f',
 }
 
-// Deterministic x-position based on resource_type string hash for cluster distribution.
+// Node type colors for graph-native vertex types
+const TYPE_FILL: Partial<Record<NodeType, string>> = {
+  finding: '#7c2d12',
+  resource: '#1e3a5f',
+  control: '#1e40af',
+  issue: '#7f1d1d',
+  account: '#334155',
+  compliance_framework: '#065f46',
+}
+
+// Edge type styles
+const EDGE_STYLES: Record<string, { stroke: string; dash?: string }> = {
+  affects: { stroke: '#ef4444' },
+  violates: { stroke: '#f59e0b', dash: '5 3' },
+  maps_to: { stroke: '#22c55e', dash: '4 4' },
+  belongs_to: { stroke: '#64748b' },
+  same_region: { stroke: '#3b82f6' },
+  same_account: { stroke: '#475569' },
+  evaluated_by: { stroke: '#8b5cf6', dash: '3 3' },
+  materializes_to: { stroke: '#ef4444', dash: '6 3' },
+}
+
+// Type-lane x-positions for clustering
 const TYPE_LANES: Record<string, number> = {
   storage: 0, bucket: 0, blob: 0,
   compute: 200, instance: 200, vm: 200, ec2: 200, lambda: 200, function: 200,
@@ -25,6 +48,8 @@ const TYPE_LANES: Record<string, number> = {
   network: 600, vpc: 600, subnet: 600, security_group: 600, nsg: 600, firewall: 600,
   iam: 800, role: 800, user: 800, identity: 800, policy: 800,
   container: 1000, eks: 1000, ecs: 1000, kubernetes: 1000, pod: 1000,
+  // Graph-native node types get their own lanes
+  control: 1200, issue: 1400, account: -200, compliance_framework: -400,
 }
 
 function getXForType(rt: string): number {
@@ -39,7 +64,6 @@ function getXForType(rt: string): number {
 
 const MAX_BFS_NODES = 500
 
-/** BFS to find all nodes within N hops of a seed node, capped at MAX_BFS_NODES. */
 function bfsNeighborhood(seedId: string, adjacency: Map<string, Set<string>>, maxHops: number): Set<string> {
   const visited = new Set<string>([seedId])
   let frontier = [seedId]
@@ -59,8 +83,42 @@ function bfsNeighborhood(seedId: string, adjacency: Map<string, Set<string>>, ma
   return visited
 }
 
+/** Convert a backend GraphNode to a ReactFlow Node with visual styling. */
+function backendNodeToReactFlow(
+  n: BackendGraphNode,
+  index: number,
+  focusId: string | null,
+): Node {
+  const x = getXForType(n.type === 'resource' ? (n.props?.detail ?? n.type) : n.type)
+  const idHash = n.id.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
+  const jitter = (Math.abs(idHash) % 60) - 30
+  const isFocused = n.id === focusId
+  const fill = TYPE_FILL[n.type] ?? '#1e293b'
+  const sevFill = n.props?.detail ? (NODE_FILL[n.props.detail] ?? fill) : fill
+
+  return {
+    id: n.id,
+    position: { x: x + jitter, y: index * 90 + 50 },
+    sourcePosition: Position.Right,
+    targetPosition: Position.Left,
+    data: {
+      label: (
+        <div className="px-2 py-1.5 text-left min-w-[130px]" style={{
+          background: sevFill,
+          border: isFocused ? '3px solid #3b82f6' : '1px solid #334155',
+          borderRadius: n.type === 'control' || n.type === 'compliance_framework' ? '6px' : '0',
+        }}>
+          <div className="text-[10px] font-medium text-white truncate">{n.label}</div>
+          <div className="text-[9px] text-gray-400">{n.type}</div>
+        </div>
+      ),
+    },
+    style: { padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
+  }
+}
+
 export default function SecurityGraph() {
-  const { data: findings = [], isLoading } = useFindings()
+  const { data: findings = [], isLoading: findingsLoading } = useFindings()
   const [searchParams] = useSearchParams()
   const rawFocus = searchParams.get('focus')
   const focusResourceId = rawFocus && rawFocus.length <= 256 ? rawFocus : null
@@ -68,10 +126,46 @@ export default function SecurityGraph() {
   const [filter, setFilter] = useState('')
   const [showAll, setShowAll] = useState(false)
 
-  const { graphNodes, graphEdges, nodeMap, connectedCount, totalCount } = useMemo(() => {
+  // Backend graph neighborhood query (when resource is focused and DB is available)
+  const { data: backendGraph } = useGraphNeighborhood(
+    focusResourceId ? 'resource' : null,
+    focusResourceId,
+    2,
+    100,
+  )
+
+  // Backend graph stats
+  const { data: graphStats } = useGraphStats()
+
+  // Convert backend graph data to ReactFlow nodes/edges when available
+  const backendView = useMemo(() => {
+    if (!backendGraph?.nodes?.length) return null
+
+    const nodes: Node[] = backendGraph.nodes.map((n, i) =>
+      backendNodeToReactFlow(n, i, focusResourceId),
+    )
+
+    const edges: Edge[] = (backendGraph.edges ?? []).map((e, i) => {
+      const style = EDGE_STYLES[e.type] ?? { stroke: '#475569' }
+      return {
+        id: `be-${i}`,
+        source: e.source,
+        target: e.target,
+        animated: e.type === 'affects' || e.type === 'violates',
+        style: { stroke: style.stroke, strokeWidth: 1.5, ...(style.dash ? { strokeDasharray: style.dash } : {}) },
+        markerEnd: { type: MarkerType.ArrowClosed, color: style.stroke, width: 10, height: 10 },
+        label: e.type.replace(/_/g, ' '),
+        labelStyle: { fontSize: 9, fill: '#94a3b8' },
+      }
+    })
+
+    return { nodes, edges }
+  }, [backendGraph, focusResourceId])
+
+  // Client-side fallback: build graph from flat findings (existing logic)
+  const clientView = useMemo(() => {
     const nMap = new Map<string, SecurityGraphNode>()
 
-    // Build unique resource nodes from findings
     for (const f of findings) {
       const existing = nMap.get(f.resource_id)
       if (existing) {
@@ -94,7 +188,6 @@ export default function SecurityGraph() {
       }
     }
 
-    // Build edges from impacted_resources and toxic_combo_details
     const edgeSet = new Set<string>()
     const edges: Edge[] = []
     const adjacency = new Map<string, Set<string>>()
@@ -147,7 +240,6 @@ export default function SecurityGraph() {
       }
     }
 
-    // Determine which nodes to show
     const connectedIds = new Set<string>()
     for (const [id, neighbors] of adjacency) {
       if (neighbors.size > 0) {
@@ -158,26 +250,22 @@ export default function SecurityGraph() {
 
     let visibleIds: Set<string>
     if (focusResourceId && nMap.has(focusResourceId)) {
-      // Focus mode: 2-hop neighborhood around the focused resource
       visibleIds = bfsNeighborhood(focusResourceId, adjacency, 2)
-      // If no edges exist for focused resource, show same-account + same-region (1-hop context)
       if (visibleIds.size <= 1) {
         const focusNode = nMap.get(focusResourceId)!
         for (const [nodeId, node] of nMap) {
           if (node.provider === focusNode.provider && node.region === focusNode.region) {
             visibleIds.add(nodeId)
-            if (visibleIds.size > 50) break // cap neighborhood
+            if (visibleIds.size > 50) break
           }
         }
       }
     } else if (showAll) {
       visibleIds = new Set(nMap.keys())
     } else {
-      // Default: connected subgraphs only
       visibleIds = connectedIds
     }
 
-    // Apply text filter
     const filterLower = filter.toLowerCase()
     const typeCounters = new Map<number, number>()
     const nodes: Node[] = [...nMap.values()]
@@ -188,7 +276,6 @@ export default function SecurityGraph() {
         const count = typeCounters.get(x) ?? 0
         typeCounters.set(x, count + 1)
         const isFocused = n.id === focusResourceId
-        // Deterministic jitter from node ID to avoid layout thrash on re-render
         const idHash = n.id.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
         const jitter = (Math.abs(idHash) % 60) - 30
         return {
@@ -214,17 +301,21 @@ export default function SecurityGraph() {
         }
       })
 
-    // Filter edges to only include visible nodes
     const visibleEdges = edges.filter(e => visibleIds.has(e.source as string) && visibleIds.has(e.target as string))
 
     return { graphNodes: nodes, graphEdges: visibleEdges, nodeMap: nMap, connectedCount: connectedIds.size, totalCount: nMap.size }
   }, [findings, filter, focusResourceId, showAll])
 
-  const handleNodeClick = useCallback((nodeId: string) => {
-    setSelectedNode(nodeMap.get(nodeId) ?? null)
-  }, [nodeMap])
+  // Use backend data when available (focus mode + DB configured), otherwise client-side
+  const useBackend = !!backendView && !!focusResourceId
+  const graphNodes = useBackend ? backendView.nodes : clientView.graphNodes
+  const graphEdges = useBackend ? backendView.edges : clientView.graphEdges
 
-  if (isLoading) return <div className="text-sm text-muted-foreground p-4">Loading security graph...</div>
+  const handleNodeClick = useCallback((nodeId: string) => {
+    setSelectedNode(clientView.nodeMap.get(nodeId) ?? null)
+  }, [clientView.nodeMap])
+
+  if (findingsLoading) return <div className="text-sm text-muted-foreground p-4">Loading security graph...</div>
 
   return (
     <div className="flex h-full gap-0">
@@ -235,14 +326,37 @@ export default function SecurityGraph() {
           <h2 className="text-sm font-semibold">Security Graph</h2>
         </div>
         <p className="text-[10px] text-muted-foreground">
-          {graphNodes.length} resources · {graphEdges.length} connections
-          {!showAll && !focusResourceId && connectedCount < totalCount && (
-            <span> (of {totalCount} total)</span>
+          {graphNodes.length} nodes · {graphEdges.length} edges
+          {useBackend && <span className="text-blue-400 ml-1">(live)</span>}
+          {!useBackend && !showAll && !focusResourceId && clientView.connectedCount < clientView.totalCount && (
+            <span> (of {clientView.totalCount} total)</span>
           )}
         </p>
+
+        {/* Graph stats from backend */}
+        {graphStats && (
+          <div className="border border-border p-2 space-y-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
+              <Activity className="h-3 w-3" />
+              Graph Stats
+            </div>
+            <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[9px]">
+              {Object.entries(graphStats.vertices).map(([type, count]) => (
+                <div key={type} className="flex justify-between">
+                  <span className="text-muted-foreground">{type}</span>
+                  <span className="text-foreground font-mono">{count.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+            <div className="text-[9px] text-muted-foreground pt-1 border-t border-border">
+              {graphStats.total_vertices.toLocaleString()} vertices · {graphStats.total_edges.toLocaleString()} edges
+            </div>
+          </div>
+        )}
+
         {focusResourceId && (
           <Badge variant="outline" className="text-[10px]">
-            Focused: {nodeMap.get(focusResourceId)?.resource_name ?? focusResourceId}
+            Focused: {clientView.nodeMap.get(focusResourceId)?.resource_name ?? focusResourceId}
           </Badge>
         )}
         <div className="relative">
@@ -270,8 +384,11 @@ export default function SecurityGraph() {
           </button>
         )}
         <div className="text-[10px] text-muted-foreground space-y-1">
-          <div className="flex items-center gap-1.5"><span className="h-2 w-2 bg-[#3b82f6]" />Impact edges</div>
-          <div className="flex items-center gap-1.5"><span className="h-2 w-2 bg-[#ef4444]" />Toxic combo links</div>
+          <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: '#ef4444' }} />affects</div>
+          <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: '#f59e0b' }} />violates</div>
+          <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: '#3b82f6' }} />same region</div>
+          <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: '#22c55e' }} />maps to</div>
+          <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: '#64748b' }} />belongs to</div>
         </div>
       </div>
 

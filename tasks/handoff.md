@@ -186,7 +186,15 @@ Use this file as the shared climbing board for all security-graph work. Before s
 
 ### In Flight
 
-(none currently)
+- `WG-E: Graph UX modernization` — in progress 2026-03-31 (session 33, lead)
+  - Scope claimed: Wire SecurityGraph page to backend neighborhood API, add issue/control node rendering, improve graph layout with type-lane clustering, add graph stats panel
+  - Write scope: `frontend/src/pages/ops/SecurityGraph.tsx`, `frontend/src/types/security-graph.ts`, `frontend/src/hooks/useGraphQuery.ts` (new), `frontend/src/components/ops/BaseGraphView.tsx`
+  - Coordination: backend graph API (WG-D) is done and committed
+
+- `WG-E Follow-up: Attack-path readability + theme controls` — in progress 2026-03-31 (codex)
+  - Scope claimed: lighter/whiter readable attack-path analysis surface, clearer node/icon presentation, and an explicit local canvas tone control layered on top of the existing app theme
+  - Write scope: `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/AttackPathMiniGraph.tsx`, attack-path page tests only
+  - Coordination: presentation-only and intentionally avoids `frontend/src/components/ops/BaseGraphView.tsx` because that file is already claimed by `WG-E`
 
 ### Pending
 
@@ -194,21 +202,9 @@ Use this file as the shared climbing board for all security-graph work. Before s
   - Optional follow-up: broaden auto-dispatch policy beyond startup and add issue-level read/write APIs if secgraph issues become a first-class operator surface
   - Likely touchpoints: `internal/secgraph/`, `internal/compliance/`, `cmd/server/handlers_*.go`
 
-- `WG-D: Live graph query/API path` — in progress 2026-03-31 (session 33, lead)
-  - Scope claimed: Structured graph query endpoints (neighborhood, paths, stats), Postgres fallback querier, tests
-  - Write scope: `internal/secgraph/queries.go`, `internal/secgraph/queries_test.go`, `cmd/server/handlers_graph.go`, `cmd/server/routes.go`
-  - Coordination: does not touch `store.go`, `materialize.go`, `secgraph_sync.go`, or `handlers_ingest.go`
-  - Unblocked: WG-B Phase 2 (edges populated) is done
-
-- `WG-E: Graph UX modernization`
-  - Improve graph layout, expansion model, clustering, inspector rail, and attack-path drill-downs after backend contracts are settled
-  - Likely touchpoints: `frontend/src/components/ops/BaseGraphView.tsx`, `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/AttackPathMiniGraph.tsx`
-  - Blocked by: WG-D (needs backend graph query API)
-
 - `WG-E Follow-up: Attack-path readability + theme controls`
   - Goal: lighter/whiter, more readable attack-path analysis view with clearer icons and an explicit dark/light option
-  - Likely touchpoints: `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/AttackPathMiniGraph.tsx`, `frontend/src/components/ops/BaseGraphView.tsx`, shared graph/icon styles
-  - Can run in parallel with: WG-D, as long as it stays presentation-focused and does not change graph API contracts
+  - Likely touchpoints: `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/AttackPathMiniGraph.tsx`, attack-path page tests
 
 ### Current Architecture Facts
 
