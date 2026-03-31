@@ -457,8 +457,22 @@ func main() {
 	}
 	srv.terminalHandler = terminal.NewHandler(authMiddleware, newAuditLogger("terminal"), logger.Named("terminal"), srv.roles.DevMode, termOrigins...)
 
+	// Load adjacency set from graph_edges for evidence-based attack paths (ADR-020 Phase 2).
+	// Returns nil when no DB is available — computeAttackPaths falls back to heuristic.
+	var attackAdj *secgraph.AdjacencySet
+	if auditDB != nil {
+		adjCtx, adjCancel := context.WithTimeout(context.Background(), 15*time.Second)
+		if loaded, adjErr := secgraph.LoadAdjacencyFromDB(adjCtx, auditDB); adjErr != nil {
+			logger.Warn("Failed to load graph adjacency (using heuristic fallback)", zap.Error(adjErr))
+		} else if loaded != nil {
+			attackAdj = loaded
+			logger.Info("Graph adjacency loaded for attack paths", zap.Int("edges", loaded.Size()))
+		}
+		adjCancel()
+	}
+
 	// Compute attack paths from findings
-	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings)
+	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings, attackAdj)
 
 	srv.attackPathSvc = &AttackPathService{
 		Paths: attackPaths,

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"aegis/internal/secgraph"
 	"context"
 	"fmt"
 	"sort"
@@ -89,9 +90,10 @@ func getSeverityRank(s string) int {
 }
 
 // computeAttackPaths builds an in-memory graph from findings and runs BFS
-// from entry points (internet-exposed/NETWORK/VULNERABILITY with exploit)
-// to targets (storage/database resources).
-func computeAttackPaths(findings []Finding) ([]AttackPath, *AttackPathStats) {
+// from entry points to targets. When adj is non-nil, edge connectivity is
+// resolved from the pre-built graph_edges adjacency set (ADR-020 Phase 2).
+// When adj is nil, falls back to heuristic co-location inference.
+func computeAttackPaths(findings []Finding, adj *secgraph.AdjacencySet) ([]AttackPath, *AttackPathStats) {
 	_, span := otel.Tracer("aegis.compute").Start(context.Background(), "compute.attack_paths")
 	defer span.End()
 	span.SetAttributes(attribute.Int("findings.input_count", len(findings)))
@@ -130,7 +132,7 @@ func computeAttackPaths(findings []Finding) ([]AttackPath, *AttackPathStats) {
 		// For each entry point, try to build a path to each target through intermediates
 		for _, entry := range entryPoints {
 			for _, target := range targets {
-				chain := buildChain(entry, intermediates, target)
+				chain := buildChain(entry, intermediates, target, adj)
 				if chain == nil {
 					continue
 				}
@@ -161,7 +163,7 @@ func computeAttackPaths(findings []Finding) ([]AttackPath, *AttackPathStats) {
 				if findingsInPaths[f2.ID] {
 					continue
 				}
-				if canConnect(f1, f2) {
+				if canConnect(f1, f2, adj) {
 					pathID++
 					chain := []Finding{f1, f2}
 					path := buildAttackPath(fmt.Sprintf("ap-%03d", pathID), accountID, chain)
@@ -240,21 +242,31 @@ func isTarget(f Finding) bool {
 	return rt == "storage" || rt == "database" || rt == "secret" || rt == "encryption"
 }
 
-// canConnect returns true if two findings could be linked in an attack chain
-// (same account and compatible resource types).
-func canConnect(a, b Finding) bool {
+// canConnect returns true if two findings could be linked in an attack chain.
+// When adj is non-nil, checks for an explicit edge between the resources
+// in graph_edges (evidence-based). When adj is nil, falls back to heuristic:
+// same account AND (same region OR same resource type).
+func canConnect(a, b Finding, adj *secgraph.AdjacencySet) bool {
 	if a.AccountID != b.AccountID {
 		return false
 	}
 	if a.ResourceID == b.ResourceID {
 		return false
 	}
+	// Graph-native: check explicit edge
+	if adj != nil && adj.Connected(a.ResourceID, b.ResourceID) {
+		return true
+	}
+	// Heuristic fallback (used when no graph_edges data)
+	if adj != nil {
+		return false // adj available but no edge — not connected
+	}
 	return a.Region == b.Region || a.ResourceType == b.ResourceType
 }
 
 // buildChain attempts to build a chain from entry through intermediates to target.
 // Returns nil if no viable chain exists.
-func buildChain(entry Finding, intermediates []Finding, target Finding) []Finding {
+func buildChain(entry Finding, intermediates []Finding, target Finding, adj *secgraph.AdjacencySet) []Finding {
 	if entry.AccountID != target.AccountID {
 		return nil
 	}
@@ -263,7 +275,7 @@ func buildChain(entry Finding, intermediates []Finding, target Finding) []Findin
 	}
 
 	// Direct connection: entry -> target (must pass canConnect gate)
-	if canConnect(entry, target) {
+	if canConnect(entry, target, adj) {
 		return []Finding{entry, target}
 	}
 
@@ -272,7 +284,7 @@ func buildChain(entry Finding, intermediates []Finding, target Finding) []Findin
 		if mid.ID == entry.ID || mid.ID == target.ID {
 			continue
 		}
-		if canConnect(entry, mid) && canConnect(mid, target) &&
+		if canConnect(entry, mid, adj) && canConnect(mid, target, adj) &&
 			(mid.Region == entry.Region || mid.Region == target.Region) {
 			return []Finding{entry, mid, target}
 		}
