@@ -268,8 +268,8 @@ func (svc *AttackPathService) getAttackPathStats(w http.ResponseWriter, r *http.
 			continue
 		}
 		scoped.TotalPaths++
-		switch svc.Paths[i].Severity { //nolint:goconst // severity literals used across package as domain values
-		case "CRITICAL":
+		switch svc.Paths[i].Severity {
+		case "CRITICAL": //nolint:goconst // severity literals used across package as domain values
 			scoped.CriticalPaths++
 		case "HIGH":
 			scoped.HighPaths++
