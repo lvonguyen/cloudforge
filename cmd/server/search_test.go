@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -307,6 +308,71 @@ func TestHybridSearch_FallsBackToKeyword(t *testing.T) {
 	}
 }
 
+func TestSemanticSearchMaxFindings_DefaultAndOverride(t *testing.T) {
+	t.Setenv("SEMANTIC_SEARCH_MAX_FINDINGS", "")
+	if got, want := semanticSearchMaxFindings(), defaultSemanticSearchMaxFindings; got != want {
+		t.Fatalf("default limit = %d, want %d", got, want)
+	}
+
+	t.Setenv("SEMANTIC_SEARCH_MAX_FINDINGS", "25000")
+	if got, want := semanticSearchMaxFindings(), 25000; got != want {
+		t.Fatalf("override limit = %d, want %d", got, want)
+	}
+
+	t.Setenv("SEMANTIC_SEARCH_MAX_FINDINGS", "invalid")
+	if got, want := semanticSearchMaxFindings(), defaultSemanticSearchMaxFindings; got != want {
+		t.Fatalf("invalid override limit = %d, want %d", got, want)
+	}
+
+	t.Setenv("SEMANTIC_SEARCH_MAX_FINDINGS", strconv.Itoa(0))
+	if semanticSearchEnabledForCorpus(10) {
+		t.Fatal("expected semantic search to be disabled when limit is zero")
+	}
+}
+
+func TestSemanticSearchEnabledForCorpus(t *testing.T) {
+	t.Setenv("SEMANTIC_SEARCH_MAX_FINDINGS", "100")
+
+	if !semanticSearchEnabledForCorpus(100) {
+		t.Fatal("expected semantic search enabled at limit")
+	}
+	if semanticSearchEnabledForCorpus(101) {
+		t.Fatal("expected semantic search disabled above limit")
+	}
+}
+
+func TestFallbackKeywordSearch_RanksTitlePhraseFirst(t *testing.T) {
+	findings := []Finding{
+		{
+			ID:          "title-match",
+			Title:       "S3 bucket public access detected",
+			Description: "Public access is enabled on this storage resource.",
+		},
+		{
+			ID:          "description-match",
+			Title:       "Storage misconfiguration found",
+			Description: "An S3 bucket has public access enabled.",
+		},
+	}
+
+	result := fallbackKeywordSearch(findings, "S3 bucket", 10)
+	if result.Total != 2 {
+		t.Fatalf("expected 2 fallback results, got %d", result.Total)
+	}
+	if got := result.Findings[0].Finding.ID; got != "title-match" {
+		t.Fatalf("first fallback result = %s, want title-match", got)
+	}
+}
+
+func TestFallbackKeywordSearchCandidateLimit(t *testing.T) {
+	if got := fallbackKeywordSearchCandidateLimit(1, 10); got != 200 {
+		t.Fatalf("limit for small page = %d, want 200", got)
+	}
+	if got := fallbackKeywordSearchCandidateLimit(5, 50); got != fallbackKeywordSearchMaxCandidates {
+		t.Fatalf("limit for large page = %d, want %d", got, fallbackKeywordSearchMaxCandidates)
+	}
+}
+
 // --- Handler tests ---
 
 func TestSearchFindings_Handler(t *testing.T) {
@@ -426,13 +492,19 @@ func TestSearchFindings_HybridMode(t *testing.T) {
 	}
 }
 
-func TestSearchFindings_NotInitialized(t *testing.T) {
+func TestSearchFindings_NotInitializedFallsBackToKeyword(t *testing.T) {
 	_, router := testServer(t)
-	// searchSvc is nil by default in testServer.
 	jwt := adminJWT(t)
 
 	rr := doRequest(t, router, "POST", "/api/v1/findings/search", `{"query":"test"}`, jwt)
-	assertStatus(t, rr, http.StatusServiceUnavailable)
+	assertStatus(t, rr, http.StatusOK)
+
+	var resp searchResponse
+	assertJSON(t, rr, &resp)
+
+	if resp.Mode != "keyword" {
+		t.Fatalf("mode = %s, want keyword fallback", resp.Mode)
+	}
 }
 
 // --- Helpers ---

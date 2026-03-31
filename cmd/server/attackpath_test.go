@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"aegis/internal/secgraph"
@@ -288,5 +290,158 @@ func TestAttackPaths_Pagination(t *testing.T) {
 	}
 	if resp.TotalPages < 1 {
 		t.Error("expected total_pages >= 1")
+	}
+}
+
+func TestSelectDeferredAttackPathCandidates_CapsPerAccount(t *testing.T) {
+	findings := []Finding{
+		{
+			ID:              "f-entry-1",
+			AccountID:       "acct-a",
+			ResourceID:      "r-entry-1",
+			ResourceName:    "edge-1",
+			ResourceType:    "compute",
+			Region:          "us-east-1",
+			Severity:        "CRITICAL",
+			Category:        "NETWORK",
+			EnvironmentType: "production",
+			Status:          "open",
+		},
+		{
+			ID:           "f-target-1",
+			AccountID:    "acct-a",
+			ResourceID:   "r-target-1",
+			ResourceName: "db-1",
+			ResourceType: "database",
+			Region:       "us-east-1",
+			Severity:     "HIGH",
+			Category:     "DATA",
+			Status:       "open",
+		},
+		{
+			ID:           "f-mid-1",
+			AccountID:    "acct-a",
+			ResourceID:   "r-mid-1",
+			ResourceName: "mid-1",
+			ResourceType: "identity",
+			Region:       "us-east-1",
+			Severity:     "LOW",
+			Category:     "IDENTITY",
+			Status:       "open",
+		},
+		{
+			ID:              "f-entry-2",
+			AccountID:       "acct-b",
+			ResourceID:      "r-entry-2",
+			ResourceName:    "edge-2",
+			ResourceType:    "compute",
+			Region:          "us-west-2",
+			Severity:        "CRITICAL",
+			Category:        "NETWORK",
+			EnvironmentType: "production",
+			Status:          "open",
+		},
+		{
+			ID:           "f-target-2",
+			AccountID:    "acct-b",
+			ResourceID:   "r-target-2",
+			ResourceName: "db-2",
+			ResourceType: "database",
+			Region:       "us-west-2",
+			Severity:     "HIGH",
+			Category:     "DATA",
+			Status:       "open",
+		},
+	}
+
+	selected := selectDeferredAttackPathCandidates(findings, 4, 2)
+	if len(selected) != 4 {
+		t.Fatalf("candidate count = %d, want 4", len(selected))
+	}
+
+	perAccount := map[string]int{}
+	for _, finding := range selected {
+		perAccount[finding.AccountID]++
+	}
+	if perAccount["acct-a"] != 2 || perAccount["acct-b"] != 2 {
+		t.Fatalf("per-account selection = %#v, want acct-a=2 acct-b=2", perAccount)
+	}
+}
+
+func TestAttackPathService_EnsuresDeferredInitialization(t *testing.T) {
+	svc := NewAttackPathService()
+	svc.setInitializer(func(context.Context) ([]AttackPath, *AttackPathStats, error) {
+		return []AttackPath{
+				{
+					ID:       "ap-001",
+					Title:    "edge -> db",
+					Severity: "CRITICAL",
+					Nodes: []AttackPathNode{
+						{ID: "n-1", FindingID: "f-1", AccountID: "acct-1", Region: "us-east-1", Provider: "aws"},
+						{ID: "n-2", FindingID: "f-2", AccountID: "acct-1", Region: "us-east-1", Provider: "aws"},
+					},
+					FindingIDs: []string{"f-1", "f-2"},
+				},
+			}, &AttackPathStats{
+				TotalFindings:     100,
+				FindingsInPaths:   2,
+				IsolatedFindings:  98,
+				TotalPaths:        1,
+				CriticalPaths:     1,
+				Mode:              "sampled",
+				CandidateFindings: 25,
+				ByProvider:        map[string]int{"aws": 1},
+			}, nil
+	}, nil)
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/attack-paths", nil)
+	svc.listAttackPaths(rr, req)
+	assertStatus(t, rr, http.StatusOK)
+
+	var resp paginatedPaths
+	assertJSON(t, rr, &resp)
+	if resp.Total != 1 {
+		t.Fatalf("path total = %d, want 1", resp.Total)
+	}
+	if resp.Data[0].ID != "ap-001" {
+		t.Fatalf("path id = %q, want ap-001", resp.Data[0].ID)
+	}
+}
+
+func TestComputeDeferredAttackPaths_FallsBackToHeuristicWhenAdjacencyYieldsNoPaths(t *testing.T) {
+	findings := []Finding{
+		{
+			ID:              "f-entry",
+			AccountID:       "acct-a",
+			ResourceID:      "r-entry",
+			ResourceName:    "edge",
+			ResourceType:    "compute",
+			Region:          "us-east-1",
+			Severity:        "CRITICAL",
+			Category:        "NETWORK",
+			EnvironmentType: "production",
+			Status:          "open",
+		},
+		{
+			ID:           "f-target",
+			AccountID:    "acct-a",
+			ResourceID:   "r-target",
+			ResourceName: "db",
+			ResourceType: "database",
+			Region:       "us-east-1",
+			Severity:     "HIGH",
+			Category:     "DATA",
+			Status:       "open",
+		},
+	}
+
+	adjacency := secgraph.NewAdjacencySet()
+	paths, stats := computeDeferredAttackPaths(findings, adjacency)
+	if len(paths) != 1 {
+		t.Fatalf("path count = %d, want 1", len(paths))
+	}
+	if stats.Mode != "full_heuristic" {
+		t.Fatalf("stats mode = %q, want full_heuristic", stats.Mode)
 	}
 }

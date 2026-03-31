@@ -180,17 +180,47 @@ FROM compliance_mappings cm
 ON CONFLICT DO NOTHING;
 
 -- Triggers
-CREATE TRIGGER accounts_updated_at
-    BEFORE UPDATE ON accounts
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_trigger
+        WHERE tgname = 'accounts_updated_at'
+          AND tgrelid = 'accounts'::regclass
+    ) THEN
+        CREATE TRIGGER accounts_updated_at
+            BEFORE UPDATE ON accounts
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+    END IF;
+END $$;
 
-CREATE TRIGGER controls_updated_at
-    BEFORE UPDATE ON controls
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_trigger
+        WHERE tgname = 'controls_updated_at'
+          AND tgrelid = 'controls'::regclass
+    ) THEN
+        CREATE TRIGGER controls_updated_at
+            BEFORE UPDATE ON controls
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+    END IF;
+END $$;
 
-CREATE TRIGGER issues_updated_at
-    BEFORE UPDATE ON issues
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_trigger
+        WHERE tgname = 'issues_updated_at'
+          AND tgrelid = 'issues'::regclass
+    ) THEN
+        CREATE TRIGGER issues_updated_at
+            BEFORE UPDATE ON issues
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+    END IF;
+END $$;
 
 -- Comments
 COMMENT ON TABLE accounts IS 'Cloud accounts/projects/subscriptions — graph vertex source (ADR-020)';

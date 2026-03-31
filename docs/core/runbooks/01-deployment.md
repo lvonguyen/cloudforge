@@ -4,7 +4,7 @@
 
 This runbook covers the current production-style demo deployment path:
 - Backend API on Fly.io (`cloudforge-api`)
-- Frontend on Cloudflare Pages (`cloudguard` / `cloudaegis-demo`)
+- Frontend on Cloudflare Pages (`cloudguard` / `cloudforge-demo`)
 - PostgreSQL via `AEGIS_DATABASE_URL` when Postgres-backed findings or GRC are enabled
 
 The earlier ECS/RDS rollout path has been retired. Do not use Kubernetes, ECS, or ALB procedures from older notes for the active demo environment.
@@ -34,7 +34,7 @@ fly secrets list -a cloudforge-api
 psql "$AEGIS_DATABASE_URL" -c 'select 1;'
 
 # 5. Check the most recent Cloudflare Pages frontend deployment
-wrangler pages deployment list --project-name cloudaegis-demo | head -5
+wrangler pages deployment list --project-name cloudforge-demo | head -5
 ```
 
 ## Deployment Procedure
@@ -59,7 +59,7 @@ Cloudflare Pages deploys automatically from GitHub on pushes to `main`.
 
 ```bash
 # Inspect recent frontend deployments
-wrangler pages deployment list --project-name cloudaegis-demo | head -10
+wrangler pages deployment list --project-name cloudforge-demo | head -10
 
 # Validate required build-time env vars in the Pages dashboard:
 # - VITE_API_URL=https://api.cloudforge-demo.lvonguyen.com/api/v1
@@ -67,20 +67,29 @@ wrangler pages deployment list --project-name cloudaegis-demo | head -10
 # - JWT_SECRET=<secret used to generate the static demo token>
 ```
 
+Cloudflare refs currently present in the `Development` vault:
+- Scoped Pages deploy token: `op://Development/cf-pages-deploy/credential`
+- Global API key fallback: `op://Development/cf-gbl-api-token/credential`
+- Global API key email / username: `op://Development/cf-gbl-api-token/username`
+- Verified 2026-03-31: the token can list deployments for `cloudguard` and `cloudforge-demo`. `cloudaegis-demo.lvonguyen.com` is the custom domain, not the Pages project name.
+
 ### Runtime Secrets Update
 
 If backend configuration changed, update Fly.io secrets before or during deploy:
 
 ```bash
-fly secrets set \
-  AEGIS_JWT_SECRET=... \
-  AEGIS_DATABASE_URL=... \
-  JIRA_URL=... \
-  JIRA_USERNAME=... \
-  JIRA_API_TOKEN=... \
-  ASANA_PAT=... \
-  -a cloudforge-api
+# Dry-run the 1Password-backed sync first.
+./scripts/fly-sync-runtime-secrets.sh --include-integrations --include-threat-intel
+
+# Apply the core + integration runtime values.
+./scripts/fly-sync-runtime-secrets.sh --include-integrations --include-threat-intel --apply
 ```
+
+Notes:
+- `scripts/fly-sync-runtime-secrets.sh` can bootstrap `FLY_API_TOKEN` from `op://Development/flyio-org-deploy-token/credential`, so `--apply` does not depend on an existing `fly auth` session.
+- `scripts/fly-sync-runtime-secrets.sh` defaults to the personal demo context and resolves the JWT, Asana, Jira, GreyNoise, HIBP, OTX, and ThreatFox keys from 1Password.
+- Personal-context threat-intel refs: `op://Development/glzdciaetfnrafvhntwe6enymu/credential` (GreyNoise), `op://Development/itrqxidqwvzwviz357fqtpcdi4/credential` (HIBP), `op://Development/dy5ds2uttd35prezcbyb4753ra/credential` (OTX), `op://Development/qxi4xw27nzkw6diikdug4arose/wvvuolayxv6m7b75ldy4c52aiu` (abuse.ch ThreatFox Auth-Key).
+- For `HAEA` or any renamed 1Password items, override the `*_REF` env vars instead of editing the script.
 
 ### Database Migration
 
@@ -153,22 +162,41 @@ psql "$DATABASE_URL" -c 'select count(*) from accounts;'
 psql "$DATABASE_URL" -c 'select count(*) from graph_edges;'
 ```
 
+Stage the runtime secrets first, but keep findings on `mock` until the database is fully loaded:
+
+```bash
+AEGIS_DATABASE_URL_REF='op://Development/4uvialfye3icuwak32yblswaam/credential' \
+./scripts/fly-sync-runtime-secrets.sh --include-integrations --include-threat-intel --include-postgres
+
+AEGIS_DATABASE_URL_REF='op://Development/4uvialfye3icuwak32yblswaam/credential' \
+./scripts/fly-sync-runtime-secrets.sh --include-integrations --include-threat-intel --include-postgres --apply
+```
+
 Cut over the app only after those counts look correct and startup headroom is acceptable:
 
 ```bash
-fly secrets set \
-  AEGIS_DATABASE_URL="$DATABASE_URL" \
-  FINDINGS_SOURCE=postgres \
-  SECGRAPH_AUTO_TICKETS=false \
-  -a cloudforge-api
+FINDINGS_SOURCE=postgres \
+AEGIS_DATABASE_URL_REF='op://Development/4uvialfye3icuwak32yblswaam/credential' \
+./scripts/fly-sync-runtime-secrets.sh --include-integrations --include-threat-intel --include-postgres --apply
 
 fly deploy -a cloudforge-api
 ```
 
 Notes:
 - `scripts/seed-postgres.mjs` and `scripts/seed-resources.mjs` generate SQL; they do not load Postgres by themselves.
-- The current startup path still eagerly loads findings, search state, and secgraph materialization. Treat the first live cutover as high risk on the current Fly machine size/grace period.
+- Personal-context default: `AEGIS_DATABASE_URL_REF` resolves from the dedicated Development-vault item UUID ref `op://Development/4uvialfye3icuwak32yblswaam/credential` (`cloudforge neon-db`).
+- `scripts/fly-sync-runtime-secrets.sh` now defaults `FINDINGS_SOURCE=mock`; the final Postgres cutover must be explicit with `FINDINGS_SOURCE=postgres`.
+- Verified March 31, 2026: Neon Launch now fits the full 300K corpus. The seeded `cloudforge` database is `1,078,362,112` bytes (`1028 MB`, about `1.03 GB`).
+- Verified March 31, 2026: the live Fly app is now Postgres-backed on the full 300K corpus.
+- Leave `LARGE_CORPUS_WARMUP_ENABLED` unset on the current `2 GB` shared Fly VM. Enabling large-corpus search/attack-path warmup on startup causes health flaps and eventual OOM on the current machine size.
+- Leave `LARGE_CORPUS_SECGRAPH_SYNC_ENABLED` unset on the current `2 GB` shared Fly VM. Enabling full large-corpus secgraph materialization on startup causes repeated OOM restarts after backfill on the current machine size.
+- Current stable behavior on Fly: findings load from Postgres, the full large-corpus startup warmup and secgraph sync are skipped by default, authenticated findings search degrades to in-memory keyword mode when the Bleve index is intentionally absent, and attack paths lazily materialize a bounded sampled cache on first request.
+- Verified March 31, 2026: the degraded keyword search path served the live-sized 300K corpus locally in about `748 ms` for a hybrid-mode request while warmup stayed disabled.
+- Verified March 31, 2026: the deferred attack-path path served the live-sized 300K corpus locally in about `0.4s` on the first cold request after adjacency skipping, returning `5476` cached paths from `5000` candidate findings with stats mode `sampled`.
+- Tune deferred attack-path sampling with `ATTACK_PATH_MAX_FINDINGS` and `ATTACK_PATH_MAX_PER_ACCOUNT` only after verifying memory headroom on Fly.
 - If cutover fails, revert `FINDINGS_SOURCE=mock` and restart before doing any deeper DB surgery.
+- Verified March 31, 2026: `/api/v1/providers` on the live demo now reports `integrations.default=asana`, `integrations.enabled=[asana,jira,mock]`, `integrations.ticket_store=durable`, and `integrations.asana_webhook=configured`.
+- Verified March 31, 2026: live remediation mutation passed against both providers. Asana create/comment/resolve/sync succeeded through `cloudforge-api`, and Jira create/comment/sync succeeded through `cloudforge-api`.
 
 ## Verification
 
@@ -191,7 +219,10 @@ Expected response shape:
 ```bash
 # Authenticated findings request
 curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/findings?limit=5 \
-  -H "Authorization: Bearer $API_TOKEN" | jq '.items | length'
+  -H "Authorization: Bearer $API_TOKEN" | jq '.data | length'
+
+# Provider readiness / durable ticket store
+curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/providers | jq '.integrations'
 
 # Frontend smoke
 open https://cloudaegis-demo.lvonguyen.com
@@ -200,8 +231,34 @@ open https://cloudaegis-demo.lvonguyen.com
 Check:
 - frontend loads without auth redirect loops
 - findings and issues views render
+- `/api/v1/providers` reports the expected integration provider set and durable ticket store
+- findings search returns results even when `LARGE_CORPUS_WARMUP_ENABLED` remains unset
 - attack path and graph pages do not 5xx
+- first attack-path request may be materially slower on a cold process while the sampled cache is built
 - integrations remain disabled unless the required secrets are set
+
+Optional operator-window remediation smoke:
+
+```bash
+# Create an Asana-backed remediation ticket for a known finding.
+curl -sf -X POST "https://api.cloudforge-demo.lvonguyen.com/api/v1/findings/<finding-id>/remediate" \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"provider":"asana","severity":"CRITICAL"}' | jq .
+
+# Add a comment and then force-refresh status.
+curl -sf -X POST "https://api.cloudforge-demo.lvonguyen.com/api/v1/findings/<finding-id>/ticket/comments" \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"body":"operator smoke"}' | jq .
+
+curl -sf -X POST "https://api.cloudforge-demo.lvonguyen.com/api/v1/findings/<finding-id>/ticket/sync" \
+  -H "Authorization: Bearer $API_TOKEN" | jq .
+```
+
+Notes:
+- Use `provider:"jira"` to force the Jira path instead of the default Asana path.
+- `integrations.asana_webhook=configured` only proves the handshake token is present. It does not prove that an external Asana webhook registration is currently active.
 
 ### Fly.io Release Verification
 
@@ -234,8 +291,10 @@ If a migration introduced an incompatible schema change, restore from backup or 
 1. [ ] Verify Fly.io health and recent logs
 2. [ ] Verify frontend loads from Cloudflare Pages
 3. [ ] Verify authenticated API calls against `/api/v1/findings`
-4. [ ] Verify optional Postgres-backed features if `AEGIS_DATABASE_URL` is enabled
-5. [ ] Notify stakeholders / update the deployment record
+4. [ ] Verify `/api/v1/providers` reports the expected integration readiness
+5. [ ] Verify optional Postgres-backed features if `AEGIS_DATABASE_URL` is enabled
+6. [ ] During an operator window, run one remediation create/comment/sync smoke on the active ticket provider path
+7. [ ] Notify stakeholders / update the deployment record
 
 ## Escalation
 

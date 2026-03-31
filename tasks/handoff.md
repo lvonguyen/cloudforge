@@ -27,21 +27,19 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - **D20 security-graph readability landed:** `a809c42f` moved the graph shell to a lighter analyst canvas and replaced the old scattered dark treatment with a more columnar left-to-right view
 - **D20 finding-detail shell landed:** `27774cf9` nests the attack-path and security-graph workspaces under finding detail so investigation stays in-context
 - **CHANGELOG catch-up landed:** `1aa11cd1` updates `CHANGELOG.md` for the recent D19/D20/D21/theme/readability slices
-- **Prod-safe status check (2026-03-31):** `GET /health` is healthy, but `GET /api/v1/providers` on `api.cloudforge-demo.lvonguyen.com` still returns the older shape and reports `grc=memory`, so the latest provider-readiness work is not live there yet
-- **Fly runtime probe (2026-03-31):** `fly status -a cloudforge-api` shows app version `63` healthy, but `fly secrets list -a cloudforge-api` only shows JWT/JWKS/CORS secrets. `AEGIS_DATABASE_URL`, `FINDINGS_SOURCE`, `ASANA_PAT`, `JIRA_URL`, and related D19/D21 runtime config are not deployed there yet
-- **Fly Postgres probe (2026-03-31):** `fly postgres list` and `fly mpg list -o personal` both return no clusters. D19 currently lacks a target Fly Postgres instance entirely
-- **D21 read-only credential validation (2026-03-31):** 1Password-backed probes succeeded against Jira project `CVRT` and Asana project `Cloud Vulnerability Remediation Tracking`, so provider auth/connectivity is confirmed without creating tickets
+- **Prod readiness check (2026-03-31):** `GET /health` is healthy and `GET /api/v1/providers` on `api.cloudforge-demo.lvonguyen.com` now returns the live `integrations` block with `default=asana`, `enabled=[asana,jira,mock]`, `ticket_store=durable`, and `asana_webhook=configured`
+- **Fly runtime probe (2026-03-31):** `fly status -a cloudforge-api` is healthy on the Postgres-backed image and the live app is serving the 300K seeded corpus from Neon
+- **D21 live mutation probe (2026-03-31):** public API mutation succeeded against both providers: Asana create/comment/resolve/sync and Jira create/comment/sync both completed with live tickets (`1213889865183970`, `CVRT-27`)
 
 ## Current State
 
 - **Build:** Go clean, lint 0 issues
 - **Tests:** Go 45 pkg / 2,146 tests pass. Frontend 452/452 vitest.
 - **CI:** other session reported 6/6 GREEN after the latest CI repair sweep
-- **Fly.io:** v59 healthy (sjc)
-- **Prod read-only probe (2026-03-31 05:51Z):** `https://api.cloudforge-demo.lvonguyen.com/health` is healthy, but `/api/v1/providers` still returns the older schema without the new `integrations` block, so `95ad7f80` is not visible on the public demo API yet
-- **Fly secrets probe (2026-03-31 05:53Z):** live `cloudforge-api` currently has only `AEGIS_JWT_SECRET`, `AEGIS_JWKS_URL`, `CLOUDFORGE_JWKS_URL`, and `CORS_ALLOWED_ORIGINS` deployed
-- **Fly Postgres probe (2026-03-31 05:56Z):** no unmanaged or managed Fly Postgres clusters exist in org `personal`
-- **Integration auth probe (2026-03-31 05:57Z):** Jira project `CVRT` and the Asana remediation project both responded successfully with 1Password-backed credentials; live mutation-path testing is the remaining D21 step
+- **Fly.io:** app version `88` healthy in `sjc`
+- **Prod provider probe (2026-03-31 20:35Z):** `https://api.cloudforge-demo.lvonguyen.com/api/v1/providers` reports the live `integrations` block and durable ticket storage
+- **D19 live state (2026-03-31):** `cloudforge-api` is running with `FINDINGS_SOURCE=postgres` against the dedicated Neon `cloudforge` database and serving the 300K seeded corpus
+- **D21 live mutation probe (2026-03-31 20:36Z):** Asana create/comment/resolve/sync succeeded on finding `f-005019`; Jira create/comment/sync succeeded on finding `f-003201`
 - **Uncommitted:** `frontend/src/pages/ops/AttackPaths.tsx` (other session / in-flight D20 visual work) and `frontend/src/pages/__tests__/FindingDetail.investigation.test.tsx` (other session / in-flight finding-detail work)
 - **Stash:** `stash@{0}` — mixed D10/D20 WIP. Has 4 TS errors. Do NOT pop blindly. Recover one file at a time, verify tsc after each.
 - **Open PRs:** None
@@ -63,9 +61,9 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 
 ### P1 — Should Fix
 
-- [ ] `D19` Seed findings into Fly Postgres
+- [x] `D19` Seed findings into Fly Postgres
 - [ ] `D20` Wiz-parity polish: attack-path icons/indicators, crown-jewel cues, richer remediation/CVE context, final analyst-layout polish
-- [ ] `D21` Complete integration parity beyond Jira/Asana provider controls and webhook refresh
+- [ ] `D21` Complete webhook auto-refresh parity beyond the verified live Asana/Jira mutation path
 - [x] CHANGELOG catch-up
 
 ### P2 — Backlog
@@ -95,16 +93,18 @@ Session 34 — CI repair, documentation refresh, diagram polish:
   - `6d38c8e1` landed backend webhook-driven ticket refresh
   - `6489f888` landed Jira comment readback parity for finding-linked tickets
   - `95ad7f80` landed operator visibility into active ticket providers / readiness via `/api/v1/providers`
-  - prod-safe check on 2026-03-31 shows the public API is still serving the older provider-status shape and `grc=memory`
-  - live Fly runtime does not yet have `ASANA_PAT`, `JIRA_URL`, or related ticket-provider envs deployed
-  - read-only provider auth/connectivity is confirmed against the Jira `CVRT` project and the Asana remediation project
-  - highest-value remaining D21 slice is live mutation-path testing during an explicit operator window: create ticket, add comment, sync status, and validate webhook/update behavior end to end
+  - live `cloudforge-api` now reports the provider-readiness block publicly via `/api/v1/providers`
+  - live runtime has `ASANA_PAT`, `JIRA_URL`, `JIRA_API_TOKEN`, and `ASANA_WEBHOOK_TOKEN` deployed
+  - live mutation-path testing is now verified against both providers:
+    - Asana finding `f-005019` -> task `1213889865183970` create/comment/resolve/sync
+    - Jira finding `f-003201` -> issue `CVRT-27` create/comment/sync
+  - remaining D21 gap is webhook auto-refresh verification against a real external Asana callback, not basic provider mutation
 - `D19` progress snapshot:
   - `f0bf363f` landed the local preflight script for the Fly/Postgres seed path
   - local follow-up docs/Makefile slice aligns the runbook with the real `aegis-seed` -> `seed-postgres` -> `seed-resources` -> secgraph-backfill flow
-  - live Fly runtime does not yet have `AEGIS_DATABASE_URL` or `FINDINGS_SOURCE` deployed
-  - there is currently no Fly Postgres cluster in org `personal`, so D19 is blocked on database provisioning before any seed/cutover work
-  - after provisioning, the remaining blockers are operator-only: Fly secrets/env cutover, live Postgres load, and startup headroom validation on the current Fly machine/grace-period budget
+  - live Fly runtime now has `AEGIS_DATABASE_URL` and `FINDINGS_SOURCE=postgres` deployed
+  - the dedicated Neon `cloudforge` database is seeded and live on the public demo
+  - remaining D19 work is capacity/design follow-up for deferred warmup and secgraph materialization, not seed/cutover execution
 - Safe next parallel slice `D19-live-seed-execution`: operator-only runbook / checklist work based on `scripts/fly-findings-seed-preflight.mjs`. Do not use 1Password or live Fly secrets without an explicit handoff note and a clean operator window.
 - Safe next parallel slice `D20-attackpath-visuals`: own `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/*`, and dedicated attack-path tests only. Focus on icons, hop indicators, crown-jewel cues, and embedded remediation/finding context. The standalone east/west readability pass is already done for `SecurityGraph`.
 - Deferred-track closeout gates that must remain on the board:

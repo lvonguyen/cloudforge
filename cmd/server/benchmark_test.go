@@ -64,8 +64,8 @@ func benchServer(b *testing.B) (*Server, *mux.Router) {
 		logger:         logger,
 		data:           NewDataStore(mockData),
 		attackPathSvc: func() *AttackPathService {
-			svc := &AttackPathService{Paths: attackPaths, Stats: attackPathStats}
-			svc.buildPathIndex()
+			svc := NewAttackPathService()
+			svc.setComputedPaths(attackPaths, attackPathStats)
 			return svc
 		}(),
 		enrichmentSvc: &EnrichmentService{

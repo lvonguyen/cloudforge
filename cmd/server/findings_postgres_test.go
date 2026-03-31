@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"os"
 	"testing"
 	"time"
 
@@ -35,14 +37,14 @@ func TestPostgresFindingRow_ToFinding(t *testing.T) {
 		AIRiskScore:         sql.NullFloat64{Float64: 9.2, Valid: true},
 		AIRiskLevel:         sql.NullString{String: "critical", Valid: true},
 		AIRiskRationale:     sql.NullString{String: "Internet exposure with known exploit path.", Valid: true},
-		AIContextualFactors: pq.StringArray{"production_environment", "exploit_available"},
+		AIContextualFactors: []string{"production_environment", "exploit_available"},
 		CVSS:                sql.NullFloat64{Float64: 9.8, Valid: true},
 		CVSSVector:          sql.NullString{String: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", Valid: true},
 		EPSS:                sql.NullFloat64{Float64: 0.91, Valid: true},
 		ExploitAvailable:    true,
 		CVEsRaw:             []byte(`[{"id":"CVE-2026-0001","description":"Critical RCE","cisa_known_exploited":true,"published":"2026-01-01T00:00:00Z","modified":"2026-01-02T00:00:00Z"}]`),
-		MITRETactics:        pq.StringArray{"TA0001"},
-		MITRETechniques:     pq.StringArray{"T1190"},
+		MITRETactics:        []string{"TA0001"},
+		MITRETechniques:     []string{"T1190"},
 		ComplianceRaw:       []byte(`[{"framework_id":"pci-dss","framework_name":"PCI-DSS v4.0","control_id":"REQ.1.2","control_title":"Restrict inbound traffic","section":"REQ.1","severity":"critical","url":""}]`),
 		Remediation:         sql.NullString{String: "Restrict network access and patch immediately.", Valid: true},
 		AutoRemediatable:    false,
@@ -141,5 +143,56 @@ func TestPostgresFindingRow_ToFinding_HandlesNulls(t *testing.T) {
 	}
 	if len(finding.ComplianceMappings) != 0 {
 		t.Fatalf("expected no compliance mappings, got %#v", finding.ComplianceMappings)
+	}
+}
+
+func TestPostgresFindingRow_ArrayScannerUsesPlainStringSlices(t *testing.T) {
+	var row postgresFindingRow
+
+	if err := pq.Array(&row.AIContextualFactors).Scan(`{"production_environment","exploit_available"}`); err != nil {
+		t.Fatalf("scan ai_contextual_factors: %v", err)
+	}
+	if err := pq.Array(&row.MITRETactics).Scan(`{"TA0001","TA0004"}`); err != nil {
+		t.Fatalf("scan mitre_tactics: %v", err)
+	}
+	if err := pq.Array(&row.MITRETechniques).Scan(`{"T1190","T1566"}`); err != nil {
+		t.Fatalf("scan mitre_techniques: %v", err)
+	}
+
+	if got, want := len(row.AIContextualFactors), 2; got != want {
+		t.Fatalf("ai_contextual_factors len = %d, want %d", got, want)
+	}
+	if got, want := len(row.MITRETactics), 2; got != want {
+		t.Fatalf("mitre_tactics len = %d, want %d", got, want)
+	}
+	if got, want := len(row.MITRETechniques), 2; got != want {
+		t.Fatalf("mitre_techniques len = %d, want %d", got, want)
+	}
+	if row.AIContextualFactors[0] != "production_environment" || row.MITRETactics[1] != "TA0004" || row.MITRETechniques[1] != "T1566" {
+		t.Fatalf("unexpected scanned arrays: %+v", row)
+	}
+}
+
+func TestLoadFindingsFromPostgres_Smoke(t *testing.T) {
+	dsn := os.Getenv("AEGIS_DATABASE_URL")
+	if dsn == "" {
+		t.Skip("AEGIS_DATABASE_URL is not set")
+	}
+
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		t.Fatalf("open postgres: %v", err)
+	}
+	defer db.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	findings, err := loadFindingsFromPostgres(ctx, db)
+	if err != nil {
+		t.Fatalf("loadFindingsFromPostgres: %v", err)
+	}
+	if len(findings) == 0 {
+		t.Fatal("expected findings from postgres")
 	}
 }

@@ -657,7 +657,7 @@ func (s *Server) enrichFinding(w http.ResponseWriter, r *http.Request) {
 	span.SetAttributes(attribute.String("finding.id", id))
 
 	if !s.enrichmentSvc.Enabled() {
-		writeErrorResponse(w, "AI enrichment is not enabled", http.StatusServiceUnavailable)
+		writeErrorResponse(w, "finding enrichment is not enabled", http.StatusServiceUnavailable)
 		return
 	}
 

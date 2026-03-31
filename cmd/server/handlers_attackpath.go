@@ -24,6 +24,11 @@ type AttackPathService struct {
 	PathsByID map[string]*AttackPath // O(1) lookup by ID
 	Stats     *AttackPathStats
 	Mu        sync.RWMutex
+
+	initMu          sync.Mutex
+	initialized     bool
+	initializer     func(context.Context) ([]AttackPath, *AttackPathStats, error)
+	afterInitialize func()
 }
 
 // buildPathIndex populates PathsByID from the Paths slice.
@@ -32,6 +37,86 @@ func (svc *AttackPathService) buildPathIndex() {
 	for i := range svc.Paths {
 		svc.PathsByID[svc.Paths[i].ID] = &svc.Paths[i]
 	}
+}
+
+func NewAttackPathService() *AttackPathService {
+	return &AttackPathService{
+		Paths:     []AttackPath{},
+		PathsByID: make(map[string]*AttackPath),
+		Stats: &AttackPathStats{
+			ByProvider: map[string]int{},
+		},
+	}
+}
+
+func (svc *AttackPathService) setComputedPaths(paths []AttackPath, stats *AttackPathStats) {
+	svc.Mu.Lock()
+	defer svc.Mu.Unlock()
+	svc.setComputedPathsLocked(paths, stats)
+}
+
+func (svc *AttackPathService) setComputedPathsLocked(paths []AttackPath, stats *AttackPathStats) {
+	if stats == nil {
+		stats = &AttackPathStats{}
+	}
+	if stats.ByProvider == nil {
+		stats.ByProvider = map[string]int{}
+	}
+
+	svc.Paths = paths
+	svc.Stats = stats
+	svc.buildPathIndex()
+	svc.initialized = true
+}
+
+func (svc *AttackPathService) setInitializer(
+	initializer func(context.Context) ([]AttackPath, *AttackPathStats, error),
+	afterInitialize func(),
+) {
+	svc.initMu.Lock()
+	defer svc.initMu.Unlock()
+
+	svc.initializer = initializer
+	svc.afterInitialize = afterInitialize
+}
+
+func (svc *AttackPathService) ensureInitialized(ctx context.Context) error {
+	svc.Mu.RLock()
+	initialized := svc.initialized
+	initializer := svc.initializer
+	svc.Mu.RUnlock()
+	if initialized || initializer == nil {
+		return nil
+	}
+
+	svc.initMu.Lock()
+	defer svc.initMu.Unlock()
+
+	svc.Mu.RLock()
+	if svc.initialized || svc.initializer == nil {
+		svc.Mu.RUnlock()
+		return nil
+	}
+	initializer = svc.initializer
+	afterInitialize := svc.afterInitialize
+	svc.Mu.RUnlock()
+
+	paths, stats, err := initializer(ctx)
+	if err != nil {
+		return err
+	}
+
+	svc.Mu.Lock()
+	svc.setComputedPathsLocked(paths, stats)
+	svc.initializer = nil
+	svc.afterInitialize = nil
+	svc.Mu.Unlock()
+
+	if afterInitialize != nil {
+		afterInitialize()
+	}
+
+	return nil
 }
 
 // attackPathInScope returns true if all nodes in the path fall within the scope.
@@ -52,6 +137,11 @@ func attackPathInScope(scope *api.ResourceScope, path *AttackPath) bool {
 func (svc *AttackPathService) listAttackPaths(w http.ResponseWriter, r *http.Request) {
 	_, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.listAttackPaths")
 	defer span.End()
+
+	if err := svc.ensureInitialized(r.Context()); err != nil {
+		writeErrorResponse(w, "attack paths unavailable", http.StatusServiceUnavailable)
+		return
+	}
 
 	claims, _ := api.GetClaimsFromContext(r.Context())
 	scope := api.ScopeFromContext(claims)
@@ -83,6 +173,11 @@ func (svc *AttackPathService) getAttackPath(w http.ResponseWriter, r *http.Reque
 	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getAttackPath")
 	defer span.End()
 	r = r.WithContext(ctx)
+
+	if err := svc.ensureInitialized(ctx); err != nil {
+		writeErrorResponse(w, "attack paths unavailable", http.StatusServiceUnavailable)
+		return
+	}
 
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("attack_path.id", id))
@@ -131,6 +226,11 @@ type blastRadiusDetail struct {
 func (s *Server) getAttackPathAnalysis(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getAttackPathAnalysis")
 	defer span.End()
+
+	if err := s.attackPathSvc.ensureInitialized(ctx); err != nil {
+		writeErrorResponse(w, "attack paths unavailable", http.StatusServiceUnavailable)
+		return
+	}
 
 	id := mux.Vars(r)["id"]
 	span.SetAttributes(attribute.String("attack_path.id", id))
@@ -245,6 +345,11 @@ func (svc *AttackPathService) getAttackPathStats(w http.ResponseWriter, r *http.
 	_, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.getAttackPathStats")
 	defer span.End()
 
+	if err := svc.ensureInitialized(r.Context()); err != nil {
+		writeErrorResponse(w, "attack paths unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
 	claims, _ := api.GetClaimsFromContext(r.Context())
 	scope := api.ScopeFromContext(claims)
 
@@ -261,7 +366,9 @@ func (svc *AttackPathService) getAttackPathStats(w http.ResponseWriter, r *http.
 	// Scoped path: compute stats on the fly for the caller's scope.
 	scoped := &AttackPathStats{
 		ByProvider: make(map[string]int),
+		Mode:       svc.Stats.Mode,
 	}
+	scoped.CandidateFindings = svc.Stats.CandidateFindings
 	scopedFindingIDs := make(map[string]bool)
 	for i := range svc.Paths {
 		if !attackPathInScope(scope, &svc.Paths[i]) {

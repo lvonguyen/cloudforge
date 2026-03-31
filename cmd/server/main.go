@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -123,10 +124,31 @@ type Server struct {
 	secgraphIssues secgraph.IssueReader // issue list/detail (Postgres store)
 
 	// Full-text search (BM25 + optional semantic/hybrid)
-	searchSvc *SearchService
+	searchSvc   *SearchService
+	searchSvcMu sync.RWMutex
 
 	// Integrated terminal (WebSocket — operator+ only)
 	terminalHandler *terminal.Handler
+}
+
+func (s *Server) getSearchService() *SearchService {
+	s.searchSvcMu.RLock()
+	defer s.searchSvcMu.RUnlock()
+	return s.searchSvc
+}
+
+func (s *Server) setSearchService(searchSvc *SearchService) {
+	s.searchSvcMu.Lock()
+	s.searchSvc = searchSvc
+	s.searchSvcMu.Unlock()
+}
+
+func largeCorpusWarmupEnabled() bool {
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("LARGE_CORPUS_WARMUP_ENABLED")), "true")
+}
+
+func largeCorpusSecgraphSyncEnabled() bool {
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("LARGE_CORPUS_SECGRAPH_SYNC_ENABLED")), "true")
 }
 
 func main() {
@@ -301,32 +323,6 @@ func main() {
 		logger:       logger.Named("secgraph.tickets"),
 	}
 
-	// Backfill security graph edges when postgres is available.
-	// Populates graph_edges (affects, belongs_to, maps_to, same_region)
-	// used by PuppyGraph and future graph-native attack paths (ADR-020).
-	if auditDB != nil {
-		edgeCtx, edgeCancel := context.WithTimeout(context.Background(), 60*time.Second)
-		if bfErr := secgraph.RunEdgeBackfill(edgeCtx, auditDB, logger); bfErr != nil {
-			logger.Warn("Edge backfill failed (non-fatal, graph queries may be incomplete)",
-				zap.Error(bfErr),
-			)
-		}
-		edgeCancel()
-	}
-
-	// Seed controls and materialize issues/evaluations from loaded findings when
-	// Postgres is available. This keeps the security graph tables warm for graph
-	// queries while the full graph-native pipeline is being phased in.
-	if auditDB != nil {
-		secgraphCtx, secgraphCancel := context.WithTimeout(context.Background(), 60*time.Second)
-		if sgErr := syncSecurityGraph(secgraphCtx, auditDB, complianceMgr, mockData.Findings, defaultTicketProvider, routingEngine, logger.Named("secgraph")); sgErr != nil {
-			logger.Warn("Security graph sync failed (non-fatal, issue graph may be incomplete)",
-				zap.Error(sgErr),
-			)
-		}
-		secgraphCancel()
-	}
-
 	// Build O(1) lookup maps after the final findings source is selected.
 	dataStore := NewDataStore(mockData)
 
@@ -441,19 +437,6 @@ func main() {
 		zap.Int("catalog_modules", len(mockData.CatalogModules)),
 	)
 
-	// Initialize full-text search index (BM25 + TF-IDF embeddings)
-	searchSvc, err := NewSearchService(mockData.Findings)
-	if err != nil {
-		logger.Fatal("Failed to initialize search service", zap.Error(err))
-	}
-	embedSvc := NewEmbeddingService(mockData.Findings)
-	searchSvc.embedSvc = embedSvc
-	srv.searchSvc = searchSvc
-	logger.Info("Search service initialized",
-		zap.Int("indexed_findings", len(mockData.Findings)),
-		zap.Int("vocab_size", embedSvc.vocabSize),
-	)
-
 	// Integrated terminal (WebSocket — operator+ only)
 	var termOrigins []string
 	if cfg.CORSOrigins != "" {
@@ -461,32 +444,170 @@ func main() {
 	}
 	srv.terminalHandler = terminal.NewHandler(authMiddleware, newAuditLogger("terminal"), logger.Named("terminal"), srv.roles.DevMode, termOrigins...)
 
-	// Load adjacency set from graph_edges for evidence-based attack paths (ADR-020 Phase 2).
-	// Returns nil when no DB is available — computeAttackPaths falls back to heuristic.
-	var attackAdj *secgraph.AdjacencySet
-	if auditDB != nil {
-		adjCtx, adjCancel := context.WithTimeout(context.Background(), 15*time.Second)
-		if loaded, adjErr := secgraph.LoadAdjacencyFromDB(adjCtx, auditDB); adjErr != nil {
-			logger.Warn("Failed to load graph adjacency (using heuristic fallback)", zap.Error(adjErr))
-		} else if loaded != nil {
-			attackAdj = loaded
-			logger.Info("Graph adjacency loaded for attack paths", zap.Int("edges", loaded.Size()))
-		}
-		adjCancel()
-	}
-
-	// Compute attack paths from findings
-	attackPaths, attackPathStats := computeAttackPaths(mockData.Findings, attackAdj)
-
-	srv.attackPathSvc = &AttackPathService{
-		Paths: attackPaths,
-		Stats: attackPathStats,
-	}
-	srv.attackPathSvc.buildPathIndex()
+	srv.attackPathSvc = NewAttackPathService()
 
 	// Server-scoped context: cancelled on SIGINT/SIGTERM to stop background work.
 	serverCtx, serverCancel := context.WithCancel(context.Background())
 	defer serverCancel()
+
+	if auditDB != nil {
+		go func() {
+			// Warm the security graph asynchronously so startup is gated only on
+			// serving the API, not on best-effort graph materialization.
+			edgeCtx, edgeCancel := context.WithTimeout(serverCtx, 60*time.Second)
+			if bfErr := secgraph.RunEdgeBackfill(edgeCtx, auditDB, logger); bfErr != nil {
+				logger.Warn("Edge backfill failed (non-fatal, graph queries may be incomplete)",
+					zap.Error(bfErr),
+				)
+			}
+			edgeCancel()
+
+			if !semanticSearchEnabledForCorpus(len(mockData.Findings)) && !largeCorpusSecgraphSyncEnabled() {
+				logger.Warn("Skipping security graph sync for large corpus",
+					zap.Int("findings", len(mockData.Findings)),
+					zap.Int("max_blocking_findings", semanticSearchMaxFindings()),
+					zap.String("opt_in_env", "LARGE_CORPUS_SECGRAPH_SYNC_ENABLED=true"),
+				)
+				return
+			}
+
+			secgraphCtx, secgraphCancel := context.WithTimeout(serverCtx, 60*time.Second)
+			if sgErr := syncSecurityGraph(secgraphCtx, auditDB, complianceMgr, mockData.Findings, defaultTicketProvider, routingEngine, logger.Named("secgraph")); sgErr != nil {
+				logger.Warn("Security graph sync failed (non-fatal, issue graph may be incomplete)",
+					zap.Error(sgErr),
+				)
+			}
+			secgraphCancel()
+		}()
+	}
+
+	initializeSearchService := func(fatalOnError bool) {
+		start := time.Now()
+		searchSvc, searchErr := NewSearchService(mockData.Findings)
+		if searchErr != nil {
+			if fatalOnError {
+				logger.Fatal("Failed to initialize search service", zap.Error(searchErr))
+			}
+			logger.Error("Search service initialization failed", zap.Error(searchErr))
+			return
+		}
+
+		semanticEnabled := semanticSearchEnabledForCorpus(len(mockData.Findings))
+		vocabSize := 0
+		if semanticEnabled {
+			embedSvc := NewEmbeddingService(mockData.Findings)
+			searchSvc.embedSvc = embedSvc
+			vocabSize = embedSvc.vocabSize
+		} else {
+			logger.Warn("Semantic search disabled for large corpus",
+				zap.Int("indexed_findings", len(mockData.Findings)),
+				zap.Int("max_findings", semanticSearchMaxFindings()),
+			)
+		}
+
+		srv.setSearchService(searchSvc)
+		logger.Info("Search service initialized",
+			zap.Int("indexed_findings", len(mockData.Findings)),
+			zap.Int("vocab_size", vocabSize),
+			zap.Bool("semantic_enabled", semanticEnabled),
+			zap.Duration("took", time.Since(start)),
+		)
+	}
+
+	startAttackPathEnrichment := func() {
+		if srv.enrichmentSvc.AI == nil {
+			return
+		}
+
+		srv.attackPathSvc.Mu.RLock()
+		paths := srv.attackPathSvc.Paths
+		srv.attackPathSvc.Mu.RUnlock()
+		if len(paths) == 0 {
+			return
+		}
+
+		go func() {
+			enrichCtx, enrichCancel := context.WithTimeout(serverCtx, 5*time.Minute)
+			defer enrichCancel()
+			enrichAttackPaths(enrichCtx, srv.enrichmentSvc.AI, paths, &srv.attackPathSvc.Mu, logger)
+		}()
+	}
+
+	computeAttackPathsForMode := func(ctx context.Context, sampled bool) ([]AttackPath, *AttackPathStats, error) {
+		start := time.Now()
+
+		// Load adjacency set from graph_edges for evidence-based attack paths (ADR-020 Phase 2).
+		// Deferred large-corpus attack paths intentionally skip adjacency loading on
+		// the current Fly VM profile to avoid OOM during the first cold request.
+		// Returns nil when no DB is available — computeAttackPaths falls back to heuristic.
+		var attackAdj *secgraph.AdjacencySet
+		if auditDB != nil && !sampled {
+			adjCtx, adjCancel := context.WithTimeout(ctx, 15*time.Second)
+			if loaded, adjErr := secgraph.LoadAdjacencyFromDB(adjCtx, auditDB); adjErr != nil {
+				logger.Warn("Failed to load graph adjacency (using heuristic fallback)", zap.Error(adjErr))
+			} else if loaded != nil {
+				attackAdj = loaded
+				logger.Info("Graph adjacency loaded for attack paths", zap.Int("edges", loaded.Size()))
+			}
+			adjCancel()
+		}
+
+		var attackPaths []AttackPath
+		var attackPathStats *AttackPathStats
+		if sampled {
+			attackPaths, attackPathStats = computeDeferredAttackPaths(mockData.Findings, attackAdj)
+		} else {
+			attackPaths, attackPathStats = computeAttackPaths(mockData.Findings, attackAdj)
+			attackPathStats.Mode = "full"
+			attackPathStats.CandidateFindings = len(mockData.Findings)
+		}
+
+		logger.Info("Attack paths computed",
+			zap.String("mode", attackPathStats.Mode),
+			zap.Int("paths", len(attackPaths)),
+			zap.Int("candidate_findings", attackPathStats.CandidateFindings),
+			zap.Int("findings_in_paths", attackPathStats.FindingsInPaths),
+			zap.Int("isolated", attackPathStats.IsolatedFindings),
+			zap.Duration("took", time.Since(start)),
+		)
+
+		return attackPaths, attackPathStats, nil
+	}
+
+	initializeAttackPaths := func() {
+		attackPaths, attackPathStats, attackPathErr := computeAttackPathsForMode(serverCtx, false)
+		if attackPathErr != nil {
+			logger.Warn("Attack path initialization failed", zap.Error(attackPathErr))
+			return
+		}
+
+		srv.attackPathSvc.setComputedPaths(attackPaths, attackPathStats)
+		startAttackPathEnrichment()
+	}
+
+	initializeDerivedState := func(fatalOnSearchError bool) {
+		initializeSearchService(fatalOnSearchError)
+		initializeAttackPaths()
+	}
+
+	if semanticSearchEnabledForCorpus(len(mockData.Findings)) {
+		initializeDerivedState(true)
+	} else if largeCorpusWarmupEnabled() {
+		logger.Warn("Deferring search and attack path initialization for large corpus",
+			zap.Int("findings", len(mockData.Findings)),
+			zap.Int("max_blocking_findings", semanticSearchMaxFindings()),
+		)
+		go initializeDerivedState(false)
+	} else {
+		logger.Warn("Skipping search and attack path initialization for large corpus",
+			zap.Int("findings", len(mockData.Findings)),
+			zap.Int("max_blocking_findings", semanticSearchMaxFindings()),
+			zap.String("opt_in_env", "LARGE_CORPUS_WARMUP_ENABLED=true"),
+		)
+		srv.attackPathSvc.setInitializer(func(ctx context.Context) ([]AttackPath, *AttackPathStats, error) {
+			return computeAttackPathsForMode(ctx, true)
+		}, startAttackPathEnrichment)
+	}
 
 	// Start Prometheus system metrics collector (goroutine count, memory usage)
 	if telemetry != nil {
@@ -507,22 +628,6 @@ func main() {
 			logger.Info("KEV catalog loaded", zap.Int("entries", kevCatalog.Count()))
 		}
 	}()
-
-	// Enrich attack paths with AI in the background to avoid blocking startup.
-	// Assign attackPathSvc before spawning so HTTP handlers always see the slice.
-	// Guard on AI specifically (attack path enrichment requires an LLM, not just threat intel).
-	if srv.enrichmentSvc.AI != nil {
-		go func() {
-			enrichCtx, enrichCancel := context.WithTimeout(serverCtx, 5*time.Minute)
-			defer enrichCancel()
-			enrichAttackPaths(enrichCtx, srv.enrichmentSvc.AI, srv.attackPathSvc.Paths, &srv.attackPathSvc.Mu, logger)
-		}()
-	}
-	logger.Info("Attack paths computed",
-		zap.Int("paths", len(attackPaths)),
-		zap.Int("findings_in_paths", attackPathStats.FindingsInPaths),
-		zap.Int("isolated", attackPathStats.IsolatedFindings),
-	)
 
 	// Register domain health checks so the /health endpoint reports real status
 	healthChecker.RegisterCheck(observability.HealthCheck{
@@ -640,8 +745,8 @@ func main() {
 	}
 
 	// Close search index to release Bleve resources.
-	if srv.searchSvc != nil {
-		if err := srv.searchSvc.Close(); err != nil {
+	if searchSvc := srv.getSearchService(); searchSvc != nil {
+		if err := searchSvc.Close(); err != nil {
 			logger.Warn("Search service close error", zap.Error(err))
 		}
 	}

@@ -49,25 +49,50 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 
 ### Fly.io API
 - [ ] Verify required Fly secrets before deploy: `fly secrets list -a cloudforge-api`
+- [ ] Prefer the 1Password-backed sync script over ad-hoc `fly secrets set` commands:
+  ```bash
+  ./scripts/fly-sync-runtime-secrets.sh --include-integrations
+  ./scripts/fly-sync-runtime-secrets.sh --include-integrations --apply
+  ```
+- [ ] Fly token in Development vault: `op://Development/flyio-org-deploy-token/credential`
 - [ ] Integration env vars (all from Secrets Manager or 1P):
   ```
   ASANA_PAT, ASANA_WORKSPACE_GID, ASANA_DEFAULT_PROJECT_GID
   JIRA_URL, JIRA_USERNAME, JIRA_API_TOKEN, JIRA_PROJECT_KEY
   PUPPYGRAPH_URL (when graph instance active)
   ```
-- [ ] Feature flags: 13 backend features gated by env vars -- all OFF by default
+- [ ] For D19 Postgres cutover, keep the DSN in 1Password and pass its ref explicitly:
+  ```bash
+  AEGIS_DATABASE_URL_REF='op://Development/4uvialfye3icuwak32yblswaam/credential' \
+  ./scripts/fly-sync-runtime-secrets.sh --include-integrations --include-threat-intel --include-postgres --apply
+  ```
+- [ ] Do not flip the demo to `FINDINGS_SOURCE=postgres` until the target DB already has the D19 schema + seeded findings/resources. The sync script now defaults to `FINDINGS_SOURCE=mock`; final cutover must be explicit:
+  ```bash
+  FINDINGS_SOURCE=postgres \
+  AEGIS_DATABASE_URL_REF='op://Development/4uvialfye3icuwak32yblswaam/credential' \
+  ./scripts/fly-sync-runtime-secrets.sh --include-integrations --include-threat-intel --include-postgres --apply
+  ```
+- [ ] Verified March 31, 2026: Neon Launch now fits the full 300K D19 corpus. The seeded `cloudforge` database footprint is `1,078,362,112` bytes (`1028 MB`, about `1.03 GB`).
+- [ ] Verified March 31, 2026: leave `LARGE_CORPUS_WARMUP_ENABLED` unset on the current `2 GB` Fly VM. Enabling startup warmup for large-corpus search/attack paths causes health flaps and eventual OOM on the current machine size.
+- [ ] Verified March 31, 2026: leave `LARGE_CORPUS_SECGRAPH_SYNC_ENABLED` unset on the current `2 GB` Fly VM. Enabling full large-corpus secgraph materialization on startup causes repeated OOM restarts after backfill on the current machine size.
+- [ ] Verified March 31, 2026: authenticated findings search now falls back to in-memory keyword mode when `LARGE_CORPUS_WARMUP_ENABLED` remains unset, so operators are no longer blocked on a full Bleve warmup for the 300K corpus.
+- [ ] Verified March 31, 2026: attack paths now lazily materialize a bounded sampled cache on first request when `LARGE_CORPUS_WARMUP_ENABLED` remains unset; expect a slower first cold request instead of an empty result set.
+- [ ] Feature flags: 14 backend features gated by env vars -- all OFF by default
   - PUPPYGRAPH_URL, AEGIS_AI_ENABLED, AEGIS_TRACING_ENABLED
-  - GREYNOISE_API_KEY, HIBP_API_KEY, OTX_API_KEY
+  - GREYNOISE_API_KEY, HIBP_API_KEY, OTX_API_KEY, THREATFOX_AUTH_KEY
   - JIRA_URL, ASANA_WEBHOOK_TOKEN, WS_SERVER_URL
   - RATE_LIMIT_ENABLED, Slack alerting, PagerDuty, Semantic search
+- [ ] Threat-intel refs in Development: `op://Development/glzdciaetfnrafvhntwe6enymu/credential` (GreyNoise), `op://Development/itrqxidqwvzwviz357fqtpcdi4/credential` (HIBP), `op://Development/dy5ds2uttd35prezcbyb4753ra/credential` (OTX), `op://Development/qxi4xw27nzkw6diikdug4arose/wvvuolayxv6m7b75ldy4c52aiu` (abuse.ch ThreatFox Auth-Key)
 - [ ] Deploy with `fly deploy -a cloudforge-api`
 - [ ] Watch rollout with `fly status -a cloudforge-api` and `fly logs -a cloudforge-api`
 - [ ] Wait for health check to pass before validating frontend/API flows
 
 ### CF Pages
 - [ ] **cloudguard** (personal demo): auto-deploys from GH on push to `main`. Root: `frontend/`, build: `npx vite build`, output: `dist`
-- [ ] **cloudforge-demo** (portfolio): auto-deploys from GH. Env: `VITE_API_URL` + `VITE_DEMO_MODE=true`
+- [ ] **cloudforge-demo** (portfolio Pages project backing `cloudaegis-demo.lvonguyen.com`): auto-deploys from GH. Env: `VITE_API_URL` + `VITE_DEMO_MODE=true`
 - [ ] JWT: add `JWT_SECRET` as encrypted env var in CF Pages settings, update build command to generate token inline
+- [ ] Cloudflare token refs in Development: `op://Development/cf-pages-deploy/credential` (Pages deploy), `op://Development/cf-gbl-api-token/credential` (global key), `op://Development/cf-gbl-api-token/username` (email)
+- [ ] Verified 2026-03-31: the scoped Pages token can read both `cloudguard` and `cloudforge-demo`
 - [ ] Verify CORS: backend must have outer handler chain (gorilla/mux preflight 405 bug)
 
 ---
@@ -78,7 +103,11 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 - [ ] Health: `curl https://<api-url>/health`
 - [ ] Auth: verify JWT accepted (static token flow)
 - [ ] Findings: `curl -H "Authorization: Bearer $JWT" https://<api-url>/api/v1/findings?limit=5`
+- [ ] Providers: `curl -H "Authorization: Bearer $JWT" https://<api-url>/api/v1/providers`
 - [ ] Frontend loads without "Redirecting to login..." loop
+- [ ] During an operator window, create one remediation ticket through `/api/v1/findings/{id}/remediate`, add one `/ticket/comments` entry, and run `/ticket/sync`
+- [ ] Verified March 31, 2026: live `cloudforge-api` passed Asana create/comment/resolve/sync and Jira create/comment/sync against the public demo API
+- [ ] `integrations.asana_webhook=configured` means the handshake token is present; it does not by itself prove an active external Asana webhook registration
 
 ### Cost Monitoring
 - [ ] AWS Budget set ($65/mo on personal account)
@@ -167,7 +196,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 - [ ] Resources loader is separate: `node scripts/seed-resources.mjs --in testdata/seed --out /tmp/seed-resources.sql` then `psql "$DATABASE_URL" -f /tmp/seed-resources.sql`
 - [ ] Re-run `migrations/006_graph_support.sql` and `migrations/007_security_graph.sql` after findings/resources load so accounts and graph edges backfill from the seeded corpus
 - [ ] Verify counts before cutover: `findings`, `resources`, `accounts`, `graph_edges`
-- [ ] Current startup still eagerly loads findings/search/secgraph state; treat the first live `FINDINGS_SOURCE=postgres` cutover as high risk on the current Fly CPU/RAM/grace-period budget
+- [ ] Current stable live posture: findings load from Postgres, the full large-corpus startup warmup and secgraph sync stay disabled by default on the current Fly VM, findings search degrades to keyword mode when the search service is intentionally absent, and attack paths are built lazily from a bounded sampled cache
 
 ---
 

@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
@@ -49,6 +52,9 @@ type SearchService struct {
 	embedSvc *EmbeddingService   // optional: nil when semantic search is disabled
 }
 
+const defaultSemanticSearchMaxFindings = 10000
+const fallbackKeywordSearchMaxCandidates = 1000
+
 // NewSearchService builds an in-memory BM25 index from the given findings.
 func NewSearchService(findings []Finding) (*SearchService, error) {
 	indexMapping := buildIndexMapping()
@@ -80,6 +86,203 @@ func NewSearchService(findings []Finding) (*SearchService, error) {
 	}
 
 	return ss, nil
+}
+
+func semanticSearchMaxFindings() int {
+	raw := strings.TrimSpace(os.Getenv("SEMANTIC_SEARCH_MAX_FINDINGS"))
+	if raw == "" {
+		return defaultSemanticSearchMaxFindings
+	}
+
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 0 {
+		return defaultSemanticSearchMaxFindings
+	}
+	return n
+}
+
+func semanticSearchEnabledForCorpus(findingsCount int) bool {
+	limit := semanticSearchMaxFindings()
+	if limit == 0 {
+		return false
+	}
+	return findingsCount <= limit
+}
+
+func fallbackKeywordSearchCandidateLimit(page, perPage int) int {
+	limit := perPage * 10
+	if limit < 200 {
+		limit = 200
+	}
+
+	pageWindow := page * perPage * 4
+	if pageWindow > limit {
+		limit = pageWindow
+	}
+	if limit > fallbackKeywordSearchMaxCandidates {
+		limit = fallbackKeywordSearchMaxCandidates
+	}
+	return limit
+}
+
+func fallbackKeywordSearch(findings []Finding, query string, limit int) *SearchResult {
+	start := time.Now()
+	terms := tokenizeFallbackSearchQuery(query)
+	if len(terms) == 0 {
+		return &SearchResult{
+			Findings: []ScoredFinding{},
+			Took:     time.Since(start),
+		}
+	}
+	if limit <= 0 {
+		limit = 200
+	}
+
+	phrase := strings.Join(terms, " ")
+	results := make([]ScoredFinding, 0, min(limit, len(findings)))
+	minIdx := -1
+	minScore := 0.0
+
+	for i := range findings {
+		score := fallbackKeywordScore(&findings[i], phrase, terms)
+		if score <= 0 {
+			continue
+		}
+
+		candidate := ScoredFinding{Finding: findings[i], Score: score}
+		if len(results) < limit {
+			results = append(results, candidate)
+			if minIdx == -1 || score < minScore {
+				minIdx = len(results) - 1
+				minScore = score
+			}
+			continue
+		}
+		if score <= minScore {
+			continue
+		}
+
+		results[minIdx] = candidate
+		minIdx, minScore = fallbackMinScore(results)
+	}
+
+	sort.SliceStable(results, func(i, j int) bool {
+		if results[i].Score == results[j].Score {
+			return results[i].Finding.ID < results[j].Finding.ID
+		}
+		return results[i].Score > results[j].Score
+	})
+
+	maxScore := 0.0
+	if len(results) > 0 {
+		maxScore = results[0].Score
+	}
+
+	return &SearchResult{
+		Findings: results,
+		Total:    len(results),
+		MaxScore: maxScore,
+		Took:     time.Since(start),
+	}
+}
+
+func fallbackMinScore(results []ScoredFinding) (int, float64) {
+	minIdx := 0
+	minScore := results[0].Score
+	for i := 1; i < len(results); i++ {
+		if results[i].Score < minScore {
+			minIdx = i
+			minScore = results[i].Score
+		}
+	}
+	return minIdx, minScore
+}
+
+func tokenizeFallbackSearchQuery(query string) []string {
+	tokens := strings.FieldsFunc(strings.ToLower(query), func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsNumber(r)
+	})
+	if len(tokens) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]struct{}, len(tokens))
+	normalized := make([]string, 0, len(tokens))
+	for _, token := range tokens {
+		if len(token) < 2 && token != "s3" {
+			continue
+		}
+		if _, ok := seen[token]; ok {
+			continue
+		}
+		seen[token] = struct{}{}
+		normalized = append(normalized, token)
+	}
+	return normalized
+}
+
+func fallbackKeywordScore(f *Finding, phrase string, terms []string) float64 {
+	title := strings.ToLower(f.Title)
+	resource := strings.ToLower(strings.TrimSpace(f.ResourceID + " " + f.ResourceName))
+	description := strings.ToLower(f.Description)
+	remediation := strings.ToLower(f.Remediation)
+	supplementary := strings.ToLower(strings.Join([]string{
+		f.ResourceARN,
+		f.CanonicalRuleID,
+		f.ServiceName,
+		f.Category,
+		f.Type,
+		f.AIRiskRationale,
+		f.CloudProvider,
+		f.Region,
+		f.AccountName,
+	}, " "))
+
+	score := 0.0
+	matchedTerms := 0
+	for _, term := range terms {
+		matched := false
+		if strings.Contains(title, term) {
+			score += 6
+			matched = true
+		}
+		if strings.Contains(resource, term) {
+			score += 4
+			matched = true
+		}
+		if strings.Contains(description, term) {
+			score += 2
+			matched = true
+		}
+		if strings.Contains(remediation, term) {
+			score += 1.5
+			matched = true
+		}
+		if strings.Contains(supplementary, term) {
+			score += 1
+			matched = true
+		}
+		if matched {
+			matchedTerms++
+		}
+	}
+	if matchedTerms == 0 {
+		return 0
+	}
+
+	if phrase != "" {
+		if strings.Contains(title, phrase) {
+			score += 8
+		}
+		if strings.Contains(resource, phrase) {
+			score += 5
+		}
+		if strings.Contains(description, phrase) {
+			score += 4
+		}
+	}
+
+	return score * (float64(matchedTerms) / float64(len(terms)))
 }
 
 // buildIndexMapping creates a Bleve index mapping for single-field documents.

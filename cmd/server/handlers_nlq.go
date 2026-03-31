@@ -160,16 +160,28 @@ func (s *Server) queryNLQ(w http.ResponseWriter, r *http.Request) {
 	// When NLQ returns a text field but no structured filters, use full-text
 	// search to return actual matching findings alongside the NLQ response.
 	if resp.Text != "" && len(resp.Severity) == 0 && len(resp.Provider) == 0 &&
-		len(resp.Category) == 0 && len(resp.Status) == 0 && len(resp.Environment) == 0 &&
-		s.searchSvc != nil {
-		if searchResult, err := s.searchSvc.Search(r.Context(), resp.Text, 1, 10); err == nil && searchResult.Total > 0 {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]any{
-				"filters":  resp,
-				"findings": searchResult.Findings,
-				"total":    searchResult.Total,
-			})
-			return
+		len(resp.Category) == 0 && len(resp.Status) == 0 && len(resp.Environment) == 0 {
+		if searchSvc := s.getSearchService(); searchSvc != nil {
+			if searchResult, err := searchSvc.Search(r.Context(), resp.Text, 1, 10); err == nil && searchResult.Total > 0 {
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]any{
+					"filters":  resp,
+					"findings": searchResult.Findings,
+					"total":    searchResult.Total,
+				})
+				return
+			}
+		} else {
+			searchResult := fallbackKeywordSearch(s.data.Findings, resp.Text, 10)
+			if searchResult.Total > 0 {
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]any{
+					"filters":  resp,
+					"findings": searchResult.Findings,
+					"total":    searchResult.Total,
+				})
+				return
+			}
 		}
 	}
 

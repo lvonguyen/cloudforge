@@ -32,14 +32,14 @@ type postgresFindingRow struct {
 	AIRiskScore         sql.NullFloat64
 	AIRiskLevel         sql.NullString
 	AIRiskRationale     sql.NullString
-	AIContextualFactors pq.StringArray
+	AIContextualFactors []string
 	CVSS                sql.NullFloat64
 	CVSSVector          sql.NullString
 	EPSS                sql.NullFloat64
 	ExploitAvailable    bool
 	CVEsRaw             []byte
-	MITRETactics        pq.StringArray
-	MITRETechniques     pq.StringArray
+	MITRETactics        []string
+	MITRETechniques     []string
 	ComplianceRaw       []byte
 	Remediation         sql.NullString
 	AutoRemediatable    bool

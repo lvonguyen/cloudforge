@@ -8,6 +8,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.uber.org/zap"
 )
 
 // searchRequest is the request body for POST /api/v1/findings/search.
@@ -43,11 +44,6 @@ func (s *Server) searchFindings(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.searchFindings")
 	defer span.End()
 	r = r.WithContext(ctx)
-
-	if s.searchSvc == nil {
-		writeErrorResponse(w, "search service not initialized", http.StatusServiceUnavailable)
-		return
-	}
 
 	var req searchRequest
 	if !s.decodeJSONBody(w, r, &req) {
@@ -97,28 +93,43 @@ func (s *Server) searchFindings(w http.ResponseWriter, r *http.Request) {
 	)
 
 	// Execute search based on mode.
+	searchSvc := s.getSearchService()
 	var result *SearchResult
 	var err error
+	effectiveMode := mode
 
-	switch mode {
-	case "keyword":
-		// Fetch wide window from Bleve — post-filter ABAC + structured filters
-		// will reduce the set, so pre-paginating at the index level produces
-		// wrong results for scoped users on page 2+.
-		result, err = s.searchSvc.Search(ctx, query, 1, 200)
-	case "semantic":
-		if s.searchSvc.embedSvc == nil {
-			writeErrorResponse(w, "semantic search not available", http.StatusServiceUnavailable)
-			return
+	if searchSvc == nil {
+		effectiveMode = "keyword"
+		result = fallbackKeywordSearch(s.data.Findings, query, fallbackKeywordSearchCandidateLimit(page, perPage))
+		span.SetAttributes(attribute.Bool("search.degraded", true))
+		if s.logger != nil {
+			s.logger.Warn("Falling back to in-memory keyword search",
+				zap.String("requested_mode", mode),
+				zap.Int("findings", len(s.data.Findings)),
+				zap.Int("candidate_limit", fallbackKeywordSearchCandidateLimit(page, perPage)),
+			)
 		}
-		scored, sErr := s.searchSvc.semanticSearch(ctx, query, 200)
-		if sErr != nil {
-			s.writeInternalError(w, sErr, "semantic_search")
-			return
+	} else {
+		switch mode {
+		case "keyword":
+			// Fetch wide window from Bleve — post-filter ABAC + structured filters
+			// will reduce the set, so pre-paginating at the index level produces
+			// wrong results for scoped users on page 2+.
+			result, err = searchSvc.Search(ctx, query, 1, 200)
+		case "semantic":
+			if searchSvc.embedSvc == nil {
+				writeErrorResponse(w, "semantic search not available", http.StatusServiceUnavailable)
+				return
+			}
+			scored, sErr := searchSvc.semanticSearch(ctx, query, 200)
+			if sErr != nil {
+				s.writeInternalError(w, sErr, "semantic_search")
+				return
+			}
+			result, err = searchSvc.paginateScored(scored, page, perPage, 0)
+		case "hybrid":
+			result, err = searchSvc.HybridSearch(ctx, query, page, perPage)
 		}
-		result, err = s.searchSvc.paginateScored(scored, page, perPage, 0)
-	case "hybrid":
-		result, err = s.searchSvc.HybridSearch(ctx, query, page, perPage)
 	}
 
 	if err != nil {
@@ -174,7 +185,7 @@ func (s *Server) searchFindings(w http.ResponseWriter, r *http.Request) {
 		PerPage:  perPage,
 		MaxScore: maxScore,
 		TookMS:   result.Took.Milliseconds(),
-		Mode:     mode,
+		Mode:     effectiveMode,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

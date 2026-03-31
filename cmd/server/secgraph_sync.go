@@ -18,6 +18,7 @@ import (
 const defaultSecgraphTenantID = "default"
 
 type secgraphPersister interface {
+	UpsertFrameworks(ctx context.Context, frameworks []secgraph.FrameworkDefinition) error
 	UpsertControls(ctx context.Context, controls []secgraph.Control) error
 	UpsertMaterialization(ctx context.Context, result secgraph.MaterializationResult) error
 }
@@ -203,11 +204,19 @@ func syncSecurityGraphWithStoreAndDispatcherMode(ctx context.Context, store secg
 		return nil
 	}
 
+	frameworks := secgraph.BuildFrameworkDefinitionsFromManager(mgr, now)
+	if err := store.UpsertFrameworks(ctx, frameworks); err != nil {
+		return fmt.Errorf("seed secgraph frameworks: %w", err)
+	}
 	controls := secgraph.BuildControlsFromManager(mgr, tenantID, now)
 	if err := store.UpsertControls(ctx, controls); err != nil {
 		return fmt.Errorf("seed secgraph controls: %w", err)
 	}
 
+	seenFrameworks := make(map[string]struct{}, len(frameworks))
+	for _, framework := range frameworks {
+		seenFrameworks[framework.ID] = struct{}{}
+	}
 	seenControls := make(map[string]struct{}, len(controls))
 	for _, control := range controls {
 		seenControls[control.ID] = struct{}{}
@@ -232,6 +241,16 @@ func syncSecurityGraphWithStoreAndDispatcherMode(ctx context.Context, store secg
 		})
 		if len(result.Issues) == 0 && len(result.Evaluations) == 0 && len(result.Edges) == 0 {
 			continue
+		}
+
+		extraFrameworks := missingFrameworkDefinitions(seenFrameworks, frameworkDefinitionsFromMappings(complianceFinding.ComplianceMappings, now))
+		if len(extraFrameworks) > 0 {
+			if err := store.UpsertFrameworks(ctx, extraFrameworks); err != nil {
+				return fmt.Errorf("seed materialized frameworks for finding %s: %w", finding.ID, err)
+			}
+			for _, framework := range extraFrameworks {
+				seenFrameworks[framework.ID] = struct{}{}
+			}
 		}
 
 		var extraControls []secgraph.Control
@@ -282,6 +301,7 @@ func syncSecurityGraphWithStoreAndDispatcherMode(ctx context.Context, store secg
 
 	if logger != nil {
 		logger.Info("Security graph sync complete",
+			zap.Int("frameworks_seeded", len(frameworks)),
 			zap.Int("controls_seeded", len(controls)),
 			zap.Int("findings_materialized", materializedFindings),
 			zap.Int("issues_materialized", len(materialized.Issues)),
@@ -320,6 +340,69 @@ func activeFindingIDs(findings []Finding) []string {
 		active = append(active, id)
 	}
 	return active
+}
+
+func frameworkDefinitionsFromMappings(mappings []compliance.ComplianceMapping, now time.Time) []secgraph.FrameworkDefinition {
+	if len(mappings) == 0 {
+		return nil
+	}
+
+	byID := make(map[string]secgraph.FrameworkDefinition, len(mappings))
+	controlSets := make(map[string]map[string]struct{}, len(mappings))
+	for _, mapping := range mappings {
+		frameworkID := strings.TrimSpace(mapping.FrameworkID)
+		if frameworkID == "" {
+			continue
+		}
+		definition, exists := byID[frameworkID]
+		if !exists {
+			name := strings.TrimSpace(mapping.FrameworkName)
+			if name == "" {
+				name = frameworkID
+			}
+			definition = secgraph.FrameworkDefinition{
+				ID:          frameworkID,
+				Name:        name,
+				Description: "Framework referenced by persisted finding mappings",
+				Category:    "custom",
+				CreatedAt:   now.UTC(),
+				UpdatedAt:   now.UTC(),
+			}
+		}
+		if definition.Name == "" {
+			definition.Name = frameworkID
+		}
+		byID[frameworkID] = definition
+		if _, ok := controlSets[frameworkID]; !ok {
+			controlSets[frameworkID] = make(map[string]struct{})
+		}
+		controlID := strings.TrimSpace(mapping.ControlID)
+		if controlID != "" {
+			controlSets[frameworkID][controlID] = struct{}{}
+		}
+	}
+
+	definitions := make([]secgraph.FrameworkDefinition, 0, len(byID))
+	for frameworkID, definition := range byID {
+		definition.TotalControls = len(controlSets[frameworkID])
+		definitions = append(definitions, definition)
+	}
+	return definitions
+}
+
+func missingFrameworkDefinitions(seen map[string]struct{}, frameworks []secgraph.FrameworkDefinition) []secgraph.FrameworkDefinition {
+	if len(frameworks) == 0 {
+		return nil
+	}
+
+	missing := make([]secgraph.FrameworkDefinition, 0, len(frameworks))
+	for _, framework := range frameworks {
+		if _, ok := seen[framework.ID]; ok {
+			continue
+		}
+		missing = append(missing, framework)
+	}
+	return missing
 }
 
 func buildSecgraphIssueTicketDescription(issue secgraph.Issue, decision *integrations.RoutingDecision) string {

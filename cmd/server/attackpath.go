@@ -4,7 +4,9 @@ import (
 	"aegis/internal/secgraph"
 	"context"
 	"fmt"
+	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	"go.opentelemetry.io/otel"
@@ -63,16 +65,23 @@ type AttackPathEdge struct {
 
 // AttackPathStats holds coverage statistics.
 type AttackPathStats struct {
-	TotalFindings    int            `json:"total_findings"`
-	FindingsInPaths  int            `json:"findings_in_paths"`
-	IsolatedFindings int            `json:"isolated_findings"`
-	CoveragePercent  float64        `json:"coverage_percent"`
-	TotalPaths       int            `json:"total_paths"`
-	CriticalPaths    int            `json:"critical_paths"`
-	HighPaths        int            `json:"high_paths"`
-	MediumPaths      int            `json:"medium_paths"`
-	ByProvider       map[string]int `json:"by_provider"`
+	TotalFindings     int            `json:"total_findings"`
+	FindingsInPaths   int            `json:"findings_in_paths"`
+	IsolatedFindings  int            `json:"isolated_findings"`
+	CoveragePercent   float64        `json:"coverage_percent"`
+	TotalPaths        int            `json:"total_paths"`
+	CriticalPaths     int            `json:"critical_paths"`
+	HighPaths         int            `json:"high_paths"`
+	MediumPaths       int            `json:"medium_paths"`
+	Mode              string         `json:"mode,omitempty"`
+	CandidateFindings int            `json:"candidate_findings,omitempty"`
+	ByProvider        map[string]int `json:"by_provider"`
 }
+
+const (
+	defaultDeferredAttackPathMaxFindings   = 5000
+	defaultDeferredAttackPathMaxPerAccount = 125
+)
 
 // severityRank orders severities for comparison.
 var severityRank = map[string]int{
@@ -87,6 +96,196 @@ var severityRank = map[string]int{
 // getSeverityRank normalizes severity to uppercase before lookup.
 func getSeverityRank(s string) int {
 	return severityRank[strings.ToUpper(s)]
+}
+
+func deferredAttackPathMaxFindings() int {
+	raw := strings.TrimSpace(os.Getenv("ATTACK_PATH_MAX_FINDINGS"))
+	if raw == "" {
+		return defaultDeferredAttackPathMaxFindings
+	}
+
+	n, err := strconv.Atoi(raw)
+	if err != nil || n <= 0 {
+		return defaultDeferredAttackPathMaxFindings
+	}
+	return n
+}
+
+func deferredAttackPathMaxPerAccount() int {
+	raw := strings.TrimSpace(os.Getenv("ATTACK_PATH_MAX_PER_ACCOUNT"))
+	if raw == "" {
+		return defaultDeferredAttackPathMaxPerAccount
+	}
+
+	n, err := strconv.Atoi(raw)
+	if err != nil || n <= 0 {
+		return defaultDeferredAttackPathMaxPerAccount
+	}
+	return n
+}
+
+type rankedAttackPathFinding struct {
+	Finding Finding
+	Score   int
+}
+
+func deferredAttackPathPriority(f Finding) int {
+	score := getSeverityRank(f.Severity) * 100
+	if isEntryPoint(f) {
+		score += 220
+	}
+	if isTarget(f) {
+		score += 180
+	}
+	if f.ExploitAvailable {
+		score += 120
+	}
+
+	switch strings.ToLower(f.EnvironmentType) {
+	case "production":
+		score += 40
+	case "staging":
+		score += 20
+	}
+
+	switch strings.ToLower(f.Status) {
+	case "open":
+		score += 30
+	case "in_progress":
+		score += 20
+	}
+
+	switch strings.ToUpper(f.Category) {
+	case "NETWORK":
+		score += 50
+	case "IDENTITY":
+		score += 40
+	case "DATA_EXPOSURE":
+		score += 30
+	}
+
+	if len(f.CVEs) > 0 {
+		score += min(len(f.CVEs), 3) * 10
+	}
+	if f.ResourceID != "" {
+		score += 5
+	}
+
+	return score
+}
+
+func sortRankedAttackPathFindings(findings []rankedAttackPathFinding) {
+	sort.SliceStable(findings, func(i, j int) bool {
+		if findings[i].Score != findings[j].Score {
+			return findings[i].Score > findings[j].Score
+		}
+		if findings[i].Finding.FirstFoundAt != findings[j].Finding.FirstFoundAt {
+			return findings[i].Finding.FirstFoundAt > findings[j].Finding.FirstFoundAt
+		}
+		return findings[i].Finding.ID < findings[j].Finding.ID
+	})
+}
+
+func selectDeferredAttackPathCandidates(findings []Finding, maxFindings, maxPerAccount int) []Finding {
+	if len(findings) == 0 {
+		return nil
+	}
+	if maxFindings <= 0 || len(findings) <= maxFindings {
+		return append([]Finding(nil), findings...)
+	}
+	if maxPerAccount <= 0 {
+		maxPerAccount = maxFindings
+	}
+
+	byAccount := make(map[string][]rankedAttackPathFinding)
+	for _, finding := range findings {
+		accountID := finding.AccountID
+		if accountID == "" {
+			accountID = "__unknown__"
+		}
+		byAccount[accountID] = append(byAccount[accountID], rankedAttackPathFinding{
+			Finding: finding,
+			Score:   deferredAttackPathPriority(finding),
+		})
+	}
+
+	accountIDs := make([]string, 0, len(byAccount))
+	for accountID := range byAccount {
+		accountIDs = append(accountIDs, accountID)
+	}
+	sort.Strings(accountIDs)
+
+	selected := make([]Finding, 0, min(maxFindings, len(findings)))
+	leftovers := make([]rankedAttackPathFinding, 0, len(findings))
+	for _, accountID := range accountIDs {
+		ranked := byAccount[accountID]
+		sortRankedAttackPathFindings(ranked)
+
+		limit := min(maxPerAccount, len(ranked))
+		if remaining := maxFindings - len(selected); remaining < limit {
+			limit = remaining
+		}
+		for i := 0; i < limit; i++ {
+			selected = append(selected, ranked[i].Finding)
+		}
+		if limit < len(ranked) {
+			leftovers = append(leftovers, ranked[limit:]...)
+		}
+		if len(selected) == maxFindings {
+			return selected
+		}
+	}
+
+	sortRankedAttackPathFindings(leftovers)
+	for _, ranked := range leftovers {
+		if len(selected) == maxFindings {
+			break
+		}
+		selected = append(selected, ranked.Finding)
+	}
+
+	return selected
+}
+
+func computeDeferredAttackPaths(findings []Finding, adj *secgraph.AdjacencySet) ([]AttackPath, *AttackPathStats) {
+	candidates := selectDeferredAttackPathCandidates(
+		findings,
+		deferredAttackPathMaxFindings(),
+		deferredAttackPathMaxPerAccount(),
+	)
+
+	paths, stats := computeAttackPaths(candidates, adj)
+	mode := "full"
+	if len(candidates) < len(findings) {
+		mode = "sampled"
+	}
+	if len(paths) == 0 && adj != nil {
+		paths, stats = computeAttackPaths(candidates, nil)
+		mode += "_heuristic"
+	}
+	if stats == nil {
+		stats = &AttackPathStats{ByProvider: map[string]int{}}
+	}
+	if stats.ByProvider == nil {
+		stats.ByProvider = map[string]int{}
+	}
+
+	stats.CandidateFindings = len(candidates)
+	if len(candidates) < len(findings) {
+		stats.Mode = mode
+		stats.TotalFindings = len(findings)
+		stats.IsolatedFindings = len(findings) - stats.FindingsInPaths
+		if stats.IsolatedFindings < 0 {
+			stats.IsolatedFindings = 0
+		}
+		if len(findings) > 0 {
+			stats.CoveragePercent = float64(stats.FindingsInPaths) / float64(len(findings)) * 100
+		}
+		return paths, stats
+	}
+
+	stats.Mode = mode
+	return paths, stats
 }
 
 // computeAttackPaths builds an in-memory graph from findings and runs BFS

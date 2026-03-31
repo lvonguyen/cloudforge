@@ -47,6 +47,9 @@ function boolCheck(ok, message, fix = null) {
 
 const makefile = exists('Makefile') ? read('Makefile') : ''
 const flyToml = exists('fly.toml') ? read('fly.toml') : ''
+const flySecretSyncScript = exists('scripts/fly-sync-runtime-secrets.sh')
+  ? read('scripts/fly-sync-runtime-secrets.sh')
+  : ''
 const migration001 = exists('migrations/001_exception_management.sql')
   ? read('migrations/001_exception_management.sql')
   : ''
@@ -59,14 +62,20 @@ const seedResources = exists('scripts/seed-resources.mjs') ? read('scripts/seed-
 
 const findingsTimeout = match(/findingsCtx,\s*findingsCancel := context\.WithTimeout\(context\.Background\(\),\s*(\d+)\*time\.Second\)/, startup)
 const flyGracePeriod = match(/grace_period = "([^"]+)"/, flyToml)
-const hasFindingsSourceEnv = /FINDINGS_SOURCE\s*=/.test(flyToml)
-const hasDatabaseEnv = /AEGIS_DATABASE_URL\s*=/.test(flyToml)
 const makefileMigrateOnly001 = /migrate:\s*\n(?:.*\n)*\s*psql\s+\$\(DATABASE_URL\)\s+-f\s+migrations\/001_exception_management\.sql/m.test(makefile)
 const migrationUsesGenRandomUUID = /gen_random_uuid\(\)/.test(migration001)
 const seedDefault20000 = /const TARGET_COUNT = parseInt\(getArg\('--count'\) \?\? '20000'/.test(seedScript)
 const fullModeMentioned = /--full/.test(seedScript)
 const seedPostgresGeneratesSql = /Generate SQL seed file/.test(seedPostgres) && /psql "\$DATABASE_URL" < /.test(seedPostgres)
 const seedResourcesExists = seedResources.length > 0
+const syncScriptExists = flySecretSyncScript.length > 0
+const syncScriptSetsDatabaseUrl = /add_secret_ref "AEGIS_DATABASE_URL"/.test(flySecretSyncScript)
+const syncScriptSetsFindingsSource = /add_plain_value "FINDINGS_SOURCE"/.test(flySecretSyncScript)
+const syncScriptDefaultsToMock = /FINDINGS_SOURCE="\$\{FINDINGS_SOURCE:-mock\}"/.test(flySecretSyncScript)
+const syncScriptSetsGreyNoise = /add_secret_ref "GREYNOISE_API_KEY"/.test(flySecretSyncScript)
+const syncScriptSetsHIBP = /add_secret_ref "HIBP_API_KEY"/.test(flySecretSyncScript)
+const syncScriptSetsOTX = /add_secret_ref "OTX_API_KEY"/.test(flySecretSyncScript)
+const syncScriptSetsThreatFox = /add_secret_ref "THREATFOX_AUTH_KEY"/.test(flySecretSyncScript)
 
 const migrationChecks = requiredMigrations.map((name) =>
   boolCheck(exists(`migrations/${name}`), `migration present: ${name}`)
@@ -82,18 +91,18 @@ const checks = [
   boolCheck(seedPostgresGeneratesSql, 'seed-postgres is SQL generation only and still requires explicit psql load'),
   boolCheck(migrationUsesGenRandomUUID, 'schema uses gen_random_uuid(), so pgcrypto bootstrap must be part of the operator runbook'),
   boolCheck(!makefileMigrateOnly001, 'Makefile migrate target is not stale', 'expand make migrate beyond 001 or avoid it for D19'),
-  boolCheck(hasFindingsSourceEnv, 'fly.toml already declares FINDINGS_SOURCE', 'set FINDINGS_SOURCE=postgres during Fly deploy/cutover'),
-  boolCheck(hasDatabaseEnv, 'fly.toml already declares AEGIS_DATABASE_URL', 'use Fly secrets for AEGIS_DATABASE_URL; do not hardcode it in fly.toml'),
+  boolCheck(syncScriptExists, 'Fly runtime secret sync script exists', 'restore or add scripts/fly-sync-runtime-secrets.sh'),
+  boolCheck(syncScriptSetsDatabaseUrl, 'Fly runtime sync can inject AEGIS_DATABASE_URL via secrets', 'add AEGIS_DATABASE_URL handling to scripts/fly-sync-runtime-secrets.sh'),
+  boolCheck(syncScriptSetsFindingsSource, 'Fly runtime sync can control FINDINGS_SOURCE explicitly', 'add FINDINGS_SOURCE handling to scripts/fly-sync-runtime-secrets.sh'),
+  boolCheck(syncScriptDefaultsToMock, 'Fly runtime sync defaults FINDINGS_SOURCE to mock until cutover is explicit', 'default FINDINGS_SOURCE to mock in scripts/fly-sync-runtime-secrets.sh'),
+  boolCheck(syncScriptSetsGreyNoise, 'Fly runtime sync can inject GREYNOISE_API_KEY via secrets', 'add GREYNOISE_API_KEY handling to scripts/fly-sync-runtime-secrets.sh'),
+  boolCheck(syncScriptSetsHIBP, 'Fly runtime sync can inject HIBP_API_KEY via secrets', 'add HIBP_API_KEY handling to scripts/fly-sync-runtime-secrets.sh'),
+  boolCheck(syncScriptSetsOTX, 'Fly runtime sync can inject OTX_API_KEY via secrets', 'add OTX_API_KEY handling to scripts/fly-sync-runtime-secrets.sh'),
+  boolCheck(syncScriptSetsThreatFox, 'Fly runtime sync can inject THREATFOX_AUTH_KEY via secrets', 'add THREATFOX_AUTH_KEY handling to scripts/fly-sync-runtime-secrets.sh'),
 ]
 
 const warnings = []
 
-if (!hasFindingsSourceEnv) {
-  warnings.push('fly.toml does not currently declare FINDINGS_SOURCE; D19 needs an explicit Fly secret or env override.')
-}
-if (!hasDatabaseEnv) {
-  warnings.push('fly.toml does not declare AEGIS_DATABASE_URL; use Fly secrets and keep the current env-name contract consistent.')
-}
 if (makefileMigrateOnly001) {
   warnings.push('make migrate still only applies migration 001 and is not sufficient for a live D19 cutover.')
 }
@@ -109,10 +118,14 @@ if (flyGracePeriod) {
 if (!seedResourcesExists) {
   warnings.push('resources cannot be backfilled from a dedicated seed script because scripts/seed-resources.mjs is missing.')
 }
+if (syncScriptExists && !syncScriptDefaultsToMock) {
+  warnings.push('Fly runtime sync does not default FINDINGS_SOURCE to mock; enabling postgres before schema/data load will crash startup.')
+}
 
 const recommendedCommands = [
-  `export DATABASE_URL='<fly postgres url>'`,
+  `export DATABASE_URL='<postgres dsn>'`,
   `export AEGIS_DATABASE_URL="$DATABASE_URL"`,
+  `export AEGIS_DATABASE_URL_REF='op://Development/4uvialfye3icuwak32yblswaam/credential'`,
   `psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS pgcrypto;'`,
   `for f in migrations/001_exception_management.sql migrations/002_findings_and_compliance.sql migrations/003_operations_and_agents.sql migrations/005_tenant_isolation.sql migrations/006_graph_support.sql migrations/007_security_graph.sql migrations/008_findings_assignment_context.sql migrations/009_finding_tickets.sql; do psql "$DATABASE_URL" -f "$f"; done`,
   `node --max-old-space-size=6144 scripts/aegis-seed.mjs --count 300000 --out testdata/seed --full --seed 42`,
@@ -121,7 +134,9 @@ const recommendedCommands = [
   `node scripts/seed-resources.mjs --in testdata/seed --out /tmp/seed-resources.sql`,
   `psql "$DATABASE_URL" -f /tmp/seed-resources.sql`,
   `# insert distinct accounts from findings or add a dedicated account seeding step`,
-  `flyctl secrets set AEGIS_DATABASE_URL="$DATABASE_URL" FINDINGS_SOURCE=postgres -a cloudforge-api`,
+  `./scripts/fly-sync-runtime-secrets.sh --include-integrations --include-threat-intel --include-postgres`,
+  `./scripts/fly-sync-runtime-secrets.sh --include-integrations --include-threat-intel --include-postgres --apply`,
+  `FINDINGS_SOURCE=postgres ./scripts/fly-sync-runtime-secrets.sh --include-integrations --include-threat-intel --include-postgres --apply`,
   `flyctl deploy --remote-only`,
 ]
 

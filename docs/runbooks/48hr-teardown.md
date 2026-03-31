@@ -110,13 +110,13 @@ Cloudflare Pages is free, so cleanup is optional unless you want a fully blank s
 
 ```bash
 # Review recent Pages deployments before removing anything
-wrangler pages deployment list --project-name cloudaegis-demo | head -5
+wrangler pages deployment list --project-name cloudforge-demo | head -5
 wrangler pages deployment list --project-name cloudguard | head -5
 ```
 
 DNS records to consider:
 - `api.cloudforge-demo.lvonguyen.com` -> `cloudforge-api.fly.dev`
-- `cloudaegis-demo.lvonguyen.com` -> Cloudflare Pages
+- `cloudaegis-demo.lvonguyen.com` -> Cloudflare Pages project `cloudforge-demo`
 - `cloudguard.lvonguyen.com` -> Cloudflare Pages
 
 If decommissioning entirely:

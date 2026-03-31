@@ -14,15 +14,26 @@ import (
 )
 
 type recordingSecgraphStore struct {
+	frameworksCalls      [][]secgraph.FrameworkDefinition
 	controlsCalls        [][]secgraph.Control
 	materializationCalls []secgraph.MaterializationResult
 	reconcileCalls       int
 	reconcileTenantID    string
 	reconcileFindingIDs  []string
 	reconcileAt          time.Time
+	frameworksErr        error
 	controlsErr          error
 	materializationErr   error
 	reconcileErr         error
+}
+
+func (s *recordingSecgraphStore) UpsertFrameworks(_ context.Context, frameworks []secgraph.FrameworkDefinition) error {
+	if s.frameworksErr != nil {
+		return s.frameworksErr
+	}
+	copied := append([]secgraph.FrameworkDefinition(nil), frameworks...)
+	s.frameworksCalls = append(s.frameworksCalls, copied)
+	return nil
 }
 
 func (s *recordingSecgraphStore) UpsertControls(_ context.Context, controls []secgraph.Control) error {
@@ -98,6 +109,12 @@ func TestSyncSecurityGraphWithStore_SeedsAndMaterializesMappedFindings(t *testin
 		t.Fatalf("syncSecurityGraphWithStore() error = %v", err)
 	}
 
+	if len(store.frameworksCalls) != 1 {
+		t.Fatalf("framework upserts = %d, want 1", len(store.frameworksCalls))
+	}
+	if len(store.frameworksCalls[0]) == 0 {
+		t.Fatal("expected seeded frameworks from compliance manager")
+	}
 	if len(store.controlsCalls) != 1 {
 		t.Fatalf("controls upserts = %d, want 1", len(store.controlsCalls))
 	}
@@ -154,6 +171,15 @@ func TestSyncSecurityGraphWithStore_SeedsExtraControlsForPreMappedFindings(t *te
 		t.Fatalf("syncSecurityGraphWithStore() error = %v", err)
 	}
 
+	if len(store.frameworksCalls) != 2 {
+		t.Fatalf("framework upserts = %d, want 2 (manager seed + custom framework)", len(store.frameworksCalls))
+	}
+	if len(store.frameworksCalls[1]) != 1 {
+		t.Fatalf("extra framework upsert size = %d, want 1", len(store.frameworksCalls[1]))
+	}
+	if got := store.frameworksCalls[1][0].ID; got != "custom-fw" {
+		t.Fatalf("extra framework id = %q, want custom-fw", got)
+	}
 	if len(store.controlsCalls) != 2 {
 		t.Fatalf("controls upserts = %d, want 2 (manager seed + custom control)", len(store.controlsCalls))
 	}
@@ -449,6 +475,11 @@ func TestSyncSecurityGraphWithStore_PropagatesStoreErrors(t *testing.T) {
 	controlsErr := errors.New("controls failed")
 	if err := syncSecurityGraphWithStore(context.Background(), &recordingSecgraphStore{controlsErr: controlsErr}, manager, []Finding{finding}, "tenant-a", now, zap.NewNop()); !errors.Is(err, controlsErr) {
 		t.Fatalf("controls error = %v, want %v", err, controlsErr)
+	}
+
+	frameworksErr := errors.New("frameworks failed")
+	if err := syncSecurityGraphWithStore(context.Background(), &recordingSecgraphStore{frameworksErr: frameworksErr}, manager, []Finding{finding}, "tenant-a", now, zap.NewNop()); !errors.Is(err, frameworksErr) {
+		t.Fatalf("frameworks error = %v, want %v", err, frameworksErr)
 	}
 
 	materializationErr := errors.New("materialization failed")

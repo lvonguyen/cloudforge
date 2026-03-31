@@ -137,7 +137,7 @@ CREATE INDEX idx_costs_account ON cost_summaries(account_id);
 
 CREATE INDEX idx_audit_action ON audit_log(action);
 CREATE INDEX idx_audit_actor ON audit_log(actor_email);
-CREATE INDEX idx_audit_timestamp ON audit_log(timestamp);
+CREATE INDEX idx_audit_log_timestamp ON audit_log(timestamp);
 CREATE INDEX idx_audit_result ON audit_log(result);
 
 CREATE INDEX idx_users_role ON users(role);

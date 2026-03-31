@@ -40,6 +40,19 @@ const (
 	ControlDeprecated ControlStatus = "DEPRECATED"
 )
 
+// FrameworkDefinition represents a compliance framework row required by the
+// control catalog foreign key.
+type FrameworkDefinition struct {
+	ID            string    `json:"id" db:"id"`
+	Name          string    `json:"name" db:"name"`
+	Description   string    `json:"description" db:"description"`
+	Version       string    `json:"version" db:"version"`
+	Category      string    `json:"category" db:"category"`
+	TotalControls int       `json:"total_controls" db:"total_controls"`
+	CreatedAt     time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
+}
+
 // EvalStatus represents the outcome of evaluating a control against a resource.
 type EvalStatus string
 

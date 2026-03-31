@@ -44,6 +44,46 @@ func BuildControlsFromManager(mgr *compliance.Manager, tenantID string, now time
 	return BuildControlsFromFrameworks(mgr.ListFrameworks(), tenantID, now)
 }
 
+// BuildFrameworkDefinitionsFromManager flattens compliance frameworks into
+// compliance_framework rows needed by the secgraph control catalog.
+func BuildFrameworkDefinitionsFromManager(mgr *compliance.Manager, now time.Time) []FrameworkDefinition {
+	if mgr == nil {
+		return nil
+	}
+	return BuildFrameworkDefinitionsFromFrameworks(mgr.ListFrameworks(), now)
+}
+
+// BuildFrameworkDefinitionsFromFrameworks deterministically converts
+// compliance frameworks into framework catalog rows.
+func BuildFrameworkDefinitionsFromFrameworks(frameworks []*compliance.Framework, now time.Time) []FrameworkDefinition {
+	definitions := make([]FrameworkDefinition, 0, len(frameworks))
+	for _, framework := range frameworks {
+		if framework == nil {
+			continue
+		}
+		category := strings.TrimSpace(string(framework.Sector))
+		if category == "" {
+			category = "general"
+		}
+		definitions = append(definitions, FrameworkDefinition{
+			ID:            framework.ID,
+			Name:          framework.Name,
+			Description:   framework.Description,
+			Version:       framework.Version,
+			Category:      category,
+			TotalControls: len(framework.Controls),
+			CreatedAt:     now.UTC(),
+			UpdatedAt:     now.UTC(),
+		})
+	}
+
+	sort.Slice(definitions, func(i, j int) bool {
+		return definitions[i].ID < definitions[j].ID
+	})
+
+	return definitions
+}
+
 // BuildControlsFromFrameworks deterministically converts framework controls
 // into secgraph controls.
 func BuildControlsFromFrameworks(frameworks []*compliance.Framework, tenantID string, now time.Time) []Control {

@@ -23,9 +23,63 @@ type Store struct {
 	db *sql.DB
 }
 
+type sqlExecContexter interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
 // NewStore creates a secgraph store backed by a SQL database handle.
 func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
+}
+
+// UpsertFrameworks persists framework catalog rows required by the control
+// foreign key.
+func (s *Store) UpsertFrameworks(ctx context.Context, frameworks []FrameworkDefinition) error {
+	if s == nil || s.db == nil || len(frameworks) == 0 {
+		return nil
+	}
+
+	const query = `
+		INSERT INTO compliance_frameworks (
+			id, name, description, version, category, total_controls, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8
+		)
+		ON CONFLICT (id) DO UPDATE SET
+			name = EXCLUDED.name,
+			description = EXCLUDED.description,
+			version = EXCLUDED.version,
+			category = EXCLUDED.category,
+			total_controls = EXCLUDED.total_controls,
+			updated_at = EXCLUDED.updated_at
+	`
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin framework upsert: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	for _, framework := range frameworks {
+		if _, err := tx.ExecContext(ctx, query,
+			framework.ID,
+			framework.Name,
+			framework.Description,
+			framework.Version,
+			framework.Category,
+			framework.TotalControls,
+			framework.CreatedAt,
+			framework.UpdatedAt,
+		); err != nil {
+			return fmt.Errorf("upserting framework %s: %w", framework.ID, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit framework upsert: %w", err)
+	}
+
+	return nil
 }
 
 // UpsertControls persists control definitions into the controls table.
@@ -61,8 +115,14 @@ func (s *Store) UpsertControls(ctx context.Context, controls []Control) error {
 			updated_at = EXCLUDED.updated_at
 	`
 
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin control upsert: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
 	for _, control := range controls {
-		if _, err := s.db.ExecContext(ctx, query,
+		if _, err := tx.ExecContext(ctx, query,
 			control.ID,
 			control.FrameworkID,
 			control.Title,
@@ -84,6 +144,10 @@ func (s *Store) UpsertControls(ctx context.Context, controls []Control) error {
 		}
 	}
 
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit control upsert: %w", err)
+	}
+
 	return nil
 }
 
@@ -95,25 +159,35 @@ func (s *Store) UpsertMaterialization(ctx context.Context, result Materializatio
 		return nil
 	}
 
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin materialization upsert: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
 	for _, evaluation := range result.Evaluations {
-		if err := s.upsertEvaluation(ctx, evaluation); err != nil {
+		if err := s.upsertEvaluation(ctx, tx, evaluation); err != nil {
 			return err
 		}
 	}
 	for _, issue := range result.Issues {
-		if err := s.upsertIssue(ctx, issue); err != nil {
+		if err := s.upsertIssue(ctx, tx, issue); err != nil {
 			return err
 		}
 	}
 	for _, link := range result.IssueFindings {
-		if err := s.upsertIssueFinding(ctx, link); err != nil {
+		if err := s.upsertIssueFinding(ctx, tx, link); err != nil {
 			return err
 		}
 	}
 	for _, edge := range result.Edges {
-		if err := s.upsertEdge(ctx, edge); err != nil {
+		if err := s.upsertEdge(ctx, tx, edge); err != nil {
 			return err
 		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit materialization upsert: %w", err)
 	}
 
 	return nil
@@ -407,7 +481,7 @@ func (s *Store) GetIssue(ctx context.Context, tenantID, issueID string) (*IssueD
 }
 
 // upsertEvaluation keeps one evaluation row per control/resource/tenant tuple.
-func (s *Store) upsertEvaluation(ctx context.Context, evaluation ControlEvaluation) error {
+func (s *Store) upsertEvaluation(ctx context.Context, execer sqlExecContexter, evaluation ControlEvaluation) error {
 	const query = `
 		INSERT INTO control_evaluations (
 			id, control_id, resource_id, status, evidence, evaluated_at, tenant_id
@@ -419,7 +493,7 @@ func (s *Store) upsertEvaluation(ctx context.Context, evaluation ControlEvaluati
 			evaluated_at = EXCLUDED.evaluated_at
 	`
 
-	if _, err := s.db.ExecContext(ctx, query,
+	if _, err := execer.ExecContext(ctx, query,
 		evaluation.ID,
 		evaluation.ControlID,
 		evaluation.ResourceID,
@@ -436,7 +510,7 @@ func (s *Store) upsertEvaluation(ctx context.Context, evaluation ControlEvaluati
 
 // upsertIssue persists the materialized issue surface without deciding issue
 // state transitions; higher layers are expected to reconcile lifecycle first.
-func (s *Store) upsertIssue(ctx context.Context, issue Issue) error {
+func (s *Store) upsertIssue(ctx context.Context, execer sqlExecContexter, issue Issue) error {
 	const query = `
 		INSERT INTO issues (
 			id, title, description, severity, risk_score, blast_radius, status,
@@ -470,7 +544,7 @@ func (s *Store) upsertIssue(ctx context.Context, issue Issue) error {
 			resolved_at = EXCLUDED.resolved_at
 	`
 
-	if _, err := s.db.ExecContext(ctx, query,
+	if _, err := execer.ExecContext(ctx, query,
 		issue.ID,
 		issue.Title,
 		issue.Description,
@@ -499,14 +573,14 @@ func (s *Store) upsertIssue(ctx context.Context, issue Issue) error {
 }
 
 // upsertIssueFinding records the source findings that currently justify an issue.
-func (s *Store) upsertIssueFinding(ctx context.Context, link IssueFindingLink) error {
+func (s *Store) upsertIssueFinding(ctx context.Context, execer sqlExecContexter, link IssueFindingLink) error {
 	const query = `
 		INSERT INTO issue_findings (issue_id, finding_id, created_at)
 		VALUES ($1, $2, $3)
 		ON CONFLICT (issue_id, finding_id) DO NOTHING
 	`
 
-	if _, err := s.db.ExecContext(ctx, query, link.IssueID, link.FindingID, link.CreatedAt); err != nil {
+	if _, err := execer.ExecContext(ctx, query, link.IssueID, link.FindingID, link.CreatedAt); err != nil {
 		return fmt.Errorf("upserting issue_finding %s/%s: %w", link.IssueID, link.FindingID, err)
 	}
 
@@ -514,7 +588,7 @@ func (s *Store) upsertIssueFinding(ctx context.Context, link IssueFindingLink) e
 }
 
 // upsertEdge persists graph relationships emitted during materialization.
-func (s *Store) upsertEdge(ctx context.Context, edge GraphEdge) error {
+func (s *Store) upsertEdge(ctx context.Context, execer sqlExecContexter, edge GraphEdge) error {
 	const query = `
 		INSERT INTO graph_edges (
 			id, source_type, source_id, target_type, target_id, edge_type, properties, tenant_id, created_at
@@ -526,7 +600,7 @@ func (s *Store) upsertEdge(ctx context.Context, edge GraphEdge) error {
 	if err != nil {
 		return fmt.Errorf("marshalling edge %s properties: %w", edge.ID, err)
 	}
-	if _, err := s.db.ExecContext(ctx, query,
+	if _, err := execer.ExecContext(ctx, query,
 		edge.ID,
 		string(edge.SourceType),
 		edge.SourceID,
