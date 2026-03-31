@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query'
-import { TOKEN_KEY } from './auth'
+import { TOKEN_KEY, getPreviewRoleOverride } from './auth'
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api/v1'
 
@@ -47,6 +47,10 @@ export class ApiError extends Error {
   }
 }
 
+export function isMockFallbackEnabled(): boolean {
+  return import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.VITE_ENABLE_MOCK_FALLBACK === 'true'
+}
+
 function authHeaders(): Record<string, string> {
   const isDev = import.meta.env.DEV
   const staticToken = import.meta.env.VITE_STATIC_TOKEN as string | undefined
@@ -55,10 +59,10 @@ function authHeaders(): Record<string, string> {
     : (staticToken ?? sessionStorage.getItem(TOKEN_KEY))
   const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
 
-  // In dev/demo mode, forward the frontend role override so the backend
+  // In dev mode, forward the frontend role override so the backend
   // RoleEnforcer (which checks X-Aegis-Role in dev mode) stays in sync.
   if (isDev) {
-    const role = sessionStorage.getItem(`${import.meta.env.VITE_STORAGE_PREFIX || 'aegis'}_role`)
+    const role = getPreviewRoleOverride()
     if (role) headers['X-Aegis-Role'] = role
   }
 
@@ -101,9 +105,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 /**
  * Fetch from API with automatic mock-data fallback in dev/demo mode.
- * Re-throws client errors (4xx) so they surface in the UI. In dev mode,
- * swallows 5xx / network errors and returns mock data. In production,
- * propagates all errors so React Query retry/error UI handles them.
+ * Re-throws client errors (4xx) so they surface in the UI. For server/network
+ * errors, mock fallback only activates when explicitly enabled.
  *
  * For single-item lookups that need post-filtering, use the inline
  * try/catch pattern instead (see useAgent, usePolicy).
@@ -130,7 +133,7 @@ export async function fetchWithMockFallback<T>(
     return raw as T
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
-    if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'true') throw err
+    if (!isMockFallbackEnabled()) throw err
     console.warn(`[${label}] API unavailable, using mock data`)
     try {
       const mod = await mockImport()

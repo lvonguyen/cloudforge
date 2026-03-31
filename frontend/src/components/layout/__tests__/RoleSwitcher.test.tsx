@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, fireEvent } from '@testing-library/react'
 import { renderWithAuth } from '@/test/utils'
+import { setPreviewRoleOverride } from '@/lib/auth'
 import { RoleSwitcher } from '../RoleSwitcher'
 
 // Radix DropdownMenu requires pointer events to open in jsdom.
@@ -14,6 +15,7 @@ describe('RoleSwitcher', () => {
   beforeEach(() => {
     vi.stubEnv('DEV', true)
     sessionStorage.clear()
+    setPreviewRoleOverride(null)
   })
 
   it('renders the current role label in the trigger', () => {
@@ -27,8 +29,8 @@ describe('RoleSwitcher', () => {
     expect(screen.getByRole('button')).toBeInTheDocument()
   })
 
-  it('shows operator role label after switching via sessionStorage', () => {
-    sessionStorage.setItem('aegis_role', 'operator')
+  it('shows operator role label when a preview override is active', () => {
+    setPreviewRoleOverride('operator')
     renderWithAuth(<RoleSwitcher />)
     expect(screen.getByText('Operator')).toBeInTheDocument()
   })

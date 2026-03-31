@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 	"testing"
 	"time"
@@ -141,6 +142,38 @@ func TestTruncateField(t *testing.T) {
 	short := "hello"
 	if truncateField(short, 2000) != short {
 		t.Error("short string should not be truncated")
+	}
+}
+
+func TestExtractIPsFromText(t *testing.T) {
+	text := strings.Join([]string{
+		"reachable hosts: 8.8.8.8 and 1.1.1.1",
+		"duplicates 8.8.8.8 should collapse",
+		"ignore loopback 127.0.0.1 and link-local 169.254.1.10",
+		"ignore invalid 999.999.999.999 and broadcast 255.255.255.255",
+		"ignore wildcard 0.0.0.0",
+	}, "\n")
+
+	got := extractIPsFromText(text)
+	want := []string{"8.8.8.8", "1.1.1.1"}
+	if len(got) != len(want) {
+		t.Fatalf("ips = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("ips[%d] = %q, want %q", i, got[i], want[i])
+		}
+	}
+
+	seen := make(map[string]bool, len(got))
+	for _, ip := range got {
+		if net.ParseIP(ip) == nil {
+			t.Fatalf("returned invalid IP %q", ip)
+		}
+		if seen[ip] {
+			t.Fatalf("returned duplicate IP %q", ip)
+		}
+		seen[ip] = true
 	}
 }
 

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // ProwlerAdapter parses Prowler v3/v4 JSON output.
@@ -49,10 +48,9 @@ func (a *ProwlerAdapter) Parse(_ context.Context, data []byte) ([]NormalizedFind
 			continue
 		}
 
-		foundAt, _ := time.Parse(time.RFC3339, pf.Timestamp)
-		if foundAt.IsZero() {
-			foundAt = time.Now().UTC()
-		}
+		foundAt, timestampData := parseFindingTimestamp(
+			timestampCandidate{name: "timestamp", value: pf.Timestamp},
+		)
 
 		cloud := strings.ToLower(pf.Provider)
 		if cloud == "" {
@@ -71,11 +69,11 @@ func (a *ProwlerAdapter) Parse(_ context.Context, data []byte) ([]NormalizedFind
 			Scanner:       "prowler",
 			SourceCheckID: pf.CheckID,
 			FoundAt:       foundAt,
-			RawData: map[string]string{
+			RawData: mergeRawData(map[string]string{
 				"index":         strconv.Itoa(i),
 				"service":       pf.ServiceName,
 				"extended_info": pf.StatusExtInfo,
-			},
+			}, timestampData),
 		})
 	}
 	return findings, nil

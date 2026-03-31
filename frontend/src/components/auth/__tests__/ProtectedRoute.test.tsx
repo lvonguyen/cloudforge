@@ -2,15 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import { renderWithAuth } from '@/test/utils'
 import { ProtectedRoute } from '../ProtectedRoute'
-import type { Role } from '@/lib/auth'
+import { setPreviewRoleOverride } from '@/lib/auth'
 
 describe('ProtectedRoute', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     sessionStorage.clear()
-    // Role now stored in sessionStorage (not localStorage)
     // Set DEV mode to true to bypass authentication redirects
     vi.stubEnv('DEV', true)
+    setPreviewRoleOverride(null)
   })
 
   it('renders children when user role is in allowed roles', () => {
@@ -34,7 +34,7 @@ describe('ProtectedRoute', () => {
   })
 
   it('redirects to home when user role is not in allowed roles', async () => {
-    sessionStorage.setItem('aegis_role', 'viewer')
+    setPreviewRoleOverride('viewer')
 
     renderWithAuth(
       <ProtectedRoute roles={['admin']}>
@@ -49,7 +49,7 @@ describe('ProtectedRoute', () => {
   })
 
   it('allows operator access to operator-only routes', () => {
-    sessionStorage.setItem('aegis_role', 'operator')
+    setPreviewRoleOverride('operator')
 
     renderWithAuth(
       <ProtectedRoute roles={['operator']}>
@@ -61,7 +61,7 @@ describe('ProtectedRoute', () => {
   })
 
   it('allows requester access to requester routes', () => {
-    sessionStorage.setItem('aegis_role', 'requester')
+    setPreviewRoleOverride('requester')
 
     renderWithAuth(
       <ProtectedRoute roles={['requester']}>
@@ -73,7 +73,7 @@ describe('ProtectedRoute', () => {
   })
 
   it('allows multiple roles to access the same route', () => {
-    sessionStorage.setItem('aegis_role', 'operator')
+    setPreviewRoleOverride('operator')
 
     renderWithAuth(
       <ProtectedRoute roles={['admin', 'operator', 'requester']}>
@@ -115,7 +115,7 @@ describe('ProtectedRoute', () => {
   it('bypasses auth when VITE_DEMO_MODE is set (demo deployment)', () => {
     vi.stubEnv('DEV', false)
     vi.stubEnv('VITE_DEMO_MODE', 'true')
-    sessionStorage.setItem('aegis_role', 'admin')
+    setPreviewRoleOverride('admin')
 
     renderWithAuth(
       <ProtectedRoute roles={['admin']}>

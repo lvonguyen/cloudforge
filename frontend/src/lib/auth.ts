@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useMemo, type ReactNode, createElement } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, type ReactNode, createElement } from 'react'
 import { branding } from '@/lib/branding'
 
 export type Role = 'admin' | 'operator' | 'requester' | 'viewer'
@@ -100,9 +100,21 @@ export function isTokenExpired(token: string): boolean {
   return payload.exp * 1000 < Date.now()
 }
 
-// Role rank: higher number = more privilege. Used to prevent
-// sessionStorage role from escalating above JWT-derived authority.
+// Role rank: higher number = more privilege. Used to cap preview-only
+// role switching in dev/demo contexts.
 const ROLE_RANK: Record<Role, number> = { viewer: 0, requester: 1, operator: 2, admin: 3 }
+
+// Preview-only role switching is intentionally ephemeral. This stays in
+// memory for the current runtime and is never persisted to storage.
+let previewRoleOverride: Role | null = null
+
+export function getPreviewRoleOverride(): Role | null {
+  return previewRoleOverride
+}
+
+export function setPreviewRoleOverride(role: Role | null): void {
+  previewRoleOverride = role
+}
 
 export function deriveRoleFromGroups(groups: string[]): Role {
   if (groups.includes(`${GROUP_PREFIX}-admin`)) return 'admin'
@@ -111,22 +123,14 @@ export function deriveRoleFromGroups(groups: string[]): Role {
   return 'viewer'
 }
 
-export function userFromToken(token: string, savedRole: Role | null): User {
+export function userFromToken(token: string): User {
   const payload = parseJWTPayload(token)
   const email = (payload?.email as string) ?? ''
   const name = (payload?.name as string) || email
   const groups = (payload?.groups as string[]) ?? []
 
-  // Always derive authoritative role from JWT groups — never trust
-  // sessionStorage for authorization. savedRole may only downgrade
-  // (e.g. admin choosing to preview as viewer), never escalate.
   const jwtRole = deriveRoleFromGroups(groups)
-  let role = jwtRole
-  if (savedRole && ROLE_RANK[savedRole] <= ROLE_RANK[jwtRole]) {
-    role = savedRole
-  }
-
-  return { name, email, role }
+  return { name, email, role: jwtRole, groups }
 }
 
 // --- Auth context ---
@@ -145,24 +149,35 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const savedRole = sessionStorage.getItem(ROLE_KEY) as Role | null
   const isDev = import.meta.env.DEV
   const isDemo = import.meta.env.VITE_DEMO_MODE === 'true'
 
   const staticToken = import.meta.env.VITE_STATIC_TOKEN as string | undefined
 
   const [user, setUser] = useState<User>(() => {
-    if (isDev) return { ...DEFAULT_USER, role: savedRole ?? DEFAULT_USER.role }
-    if (isDemo) return { ...DEMO_USER, role: savedRole ?? DEMO_USER.role }
+    const previewRole = getPreviewRoleOverride()
+    if (isDev) {
+      return previewRole
+        ? { ...DEFAULT_USER, role: previewRole, name: ROLE_DISPLAY_NAMES[previewRole] }
+        : DEFAULT_USER
+    }
+    if (isDemo) {
+      return previewRole
+        ? { ...DEMO_USER, role: previewRole, name: ROLE_DISPLAY_NAMES[previewRole] }
+        : DEMO_USER
+    }
 
     // Static token: pre-signed JWT for demo deployments without an IdP
     if (staticToken && !isTokenExpired(staticToken)) {
-      return userFromToken(staticToken, savedRole)
+      return userFromToken(staticToken)
     }
 
     const token = getStoredToken()
     if (token && !isTokenExpired(token)) {
-      return userFromToken(token, savedRole)
+      const nextUser = userFromToken(token)
+      return sessionStorage.getItem(DEMO_SESSION_KEY) === 'true'
+        ? { ...nextUser, role: 'viewer' }
+        : nextUser
     }
     return ANONYMOUS_USER
   })
@@ -173,6 +188,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = getStoredToken()
     return !!token && !isTokenExpired(token)
   })
+
+  useEffect(() => {
+    // Clear any legacy persisted role override so old preview data cannot
+    // leak across reloads or into authenticated flows.
+    sessionStorage.removeItem(ROLE_KEY)
+  }, [])
 
   const login = useCallback(async () => {
     if (!OKTA_ISSUER || !OKTA_CLIENT_ID) {
@@ -248,6 +269,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(NONCE_KEY)
     sessionStorage.removeItem(ROLE_KEY)
     sessionStorage.removeItem(DEMO_SESSION_KEY)
+    setPreviewRoleOverride(null)
 
     // Always clear React state so UI reflects logged-out immediately,
     // even if the Okta redirect is slow or fails.
@@ -269,19 +291,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isDev])
 
   const setRole = useCallback((role: Role) => {
-    // Enforce: requested role must not exceed JWT-derived authority.
-    // In dev/demo mode the default user's role is the ceiling.
-    const token = getStoredToken()
-    // Demo mode allows unrestricted role switching for portfolio walkthrough.
-    // Production: ceiling is JWT-derived role. Dev: ceiling is DEFAULT_USER.role.
-    const maxRole = token ? deriveRoleFromGroups((parseJWTPayload(token)?.groups as string[]) ?? [])
-      : (isDev ? DEFAULT_USER.role : isDemo ? 'admin' as Role : 'requester')
+    if (!isDev && !isDemo) return
+    const maxRole = isDev ? DEFAULT_USER.role : 'admin' as Role
     const effective = ROLE_RANK[role] <= ROLE_RANK[maxRole] ? role : maxRole
-    sessionStorage.setItem(ROLE_KEY, effective)
+    setPreviewRoleOverride(effective)
     setUser((prev) => ({
       ...prev,
       role: effective,
-      name: (isDev || isDemo) ? ROLE_DISPLAY_NAMES[effective] : prev.name,
+      name: ROLE_DISPLAY_NAMES[effective],
     }))
   }, [isDev, isDemo])
 
@@ -335,10 +352,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Demo sessions default to viewer (read-only). Regular users derive
     // their role from group claims in the access token.
     const isDemo = sessionStorage.getItem(DEMO_SESSION_KEY) === 'true'
-    const currentRole = sessionStorage.getItem(ROLE_KEY) as Role | null
-    const effectiveRole = currentRole ?? (isDemo ? 'viewer' : null)
-    const u = userFromToken(data.access_token, effectiveRole)
-    setUser(u)
+    const nextUser = userFromToken(data.access_token)
+    setUser(isDemo ? { ...nextUser, role: 'viewer' } : nextUser)
     setIsAuthenticated(true)
   }, [])
 

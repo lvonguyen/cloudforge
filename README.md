@@ -137,8 +137,8 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 | Go tests | 1,474 |
 | Frontend tests | 447+ (52 test files) |
 | Benchmarks | 8 |
-| CI gates | 8 (lint, gosec, Trivy, vitest, npm audit, integration, Codecov, Lighthouse) |
-| Coverage thresholds | v8 lines: 70%, functions: 75%, branches: 65% |
+| CI checks | 8 (lint, gosec, Trivy, vitest, npm audit, integration, Codecov, Lighthouse) |
+| Coverage thresholds | v8 lines: 70%, functions: 75%, branches: 65% (configured in frontend Vitest) |
 | 100% coverage packages | workflow, remediation/secrets, finops/aggregator |
 
 ## [!] Known Limitations

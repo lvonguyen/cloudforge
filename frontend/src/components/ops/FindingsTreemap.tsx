@@ -1,13 +1,7 @@
 import { useMemo, useCallback } from 'react'
 import { Treemap, ResponsiveContainer, Tooltip } from 'recharts'
+import { SEVERITY_HEX, SEVERITY_NEUTRAL_HEX } from '@/lib/severity'
 import type { Finding } from '@/types/compliance'
-
-const SEV_FILL: Record<string, string> = {
-  CRITICAL: '#ef4444',
-  HIGH: '#f97316',
-  MEDIUM: '#eab308',
-  LOW: '#3b82f6',
-}
 
 const SEV_ABBR: Record<string, string> = {
   CRITICAL: 'CRT',
@@ -60,7 +54,7 @@ function buildTreeData(findings: Finding[]): TreeNode[] {
       children: fs.map(f => ({
         name: f.resource_name || f.id.slice(0, 8),
         size: f.ai_risk_score || 1,
-        fill: SEV_FILL[f.severity] ?? '#6b7280',
+        fill: SEVERITY_HEX[f.severity] ?? SEVERITY_NEUTRAL_HEX,
         findingId: f.id,
         severity: f.severity,
         provider: f.cloud_provider.toUpperCase(),
@@ -98,7 +92,7 @@ function CustomCell(props: Record<string, unknown>) {
     <g>
       <rect
         x={x} y={y} width={width} height={height}
-        fill={fill ?? '#6b7280'}
+        fill={fill ?? SEVERITY_NEUTRAL_HEX}
         stroke="#0a0a0f"
         strokeWidth={1}
         style={{ cursor: 'pointer' }}
@@ -146,7 +140,7 @@ function TreemapTooltip({ active, payload }: {
       maxWidth: 300,
     }}>
       <div style={{
-        color: SEV_FILL[d.severity as string] ?? '#9ca3af',
+        color: SEVERITY_HEX[d.severity as string] ?? '#9ca3af',
         fontWeight: 600,
         marginBottom: 2,
       }}>
@@ -194,7 +188,7 @@ export function FindingsTreemap({ findings, onSelect }: Props) {
         </ResponsiveContainer>
       </div>
       <div className="flex items-center gap-4 mt-3">
-        {Object.entries(SEV_FILL).map(([sev, color]) => (
+        {Object.entries(SEVERITY_HEX).map(([sev, color]) => (
           <span key={sev} className="flex items-center gap-1 text-[9px] font-mono text-gray-500">
             <span className="h-2 w-2" style={{ background: color }} />
             {sev}

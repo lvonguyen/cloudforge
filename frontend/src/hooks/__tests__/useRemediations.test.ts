@@ -24,10 +24,15 @@ vi.mock('@/lib/api', () => {
   return {
     ApiError: MockApiError,
     apiClient: client,
+    isMockFallbackEnabled: () =>
+      import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.VITE_ENABLE_MOCK_FALLBACK === 'true',
     fetchWithMockFallback: vi.fn(async (path, mockImport, _label) => {
       try { return await client.get(path) }
       catch (err) {
         if (err instanceof MockApiError && err.status < 500) throw err
+        if (import.meta.env.VITE_DEMO_MODE !== 'true' && import.meta.env.VITE_ENABLE_MOCK_FALLBACK !== 'true') {
+          throw err
+        }
         const mod = await mockImport()
         return mod.default
       }
@@ -60,6 +65,7 @@ describe('useRemediations', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllEnvs()
   })
 
   it('returns loading state initially', () => {
@@ -97,12 +103,20 @@ describe('useRemediations', () => {
   })
 
   it('falls back to mock data when API returns 500', async () => {
+    vi.stubEnv('VITE_ENABLE_MOCK_FALLBACK', 'true')
     vi.mocked(apiClient.get).mockRejectedValue(new ApiError(500, 'Server Error'))
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const { result } = renderHook(() => useRemediations(), { wrapper: makeWrapper() })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toBeDefined()
     warnSpy.mockRestore()
+  })
+
+  it('surfaces 500 errors when mock fallback is disabled', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(new ApiError(500, 'Server Error'))
+    const { result } = renderHook(() => useRemediations(), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as ApiError).status).toBe(500)
   })
 
   it('rethrows 4xx ApiErrors', async () => {

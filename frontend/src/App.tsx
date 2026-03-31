@@ -96,7 +96,7 @@ export default function App() {
                 <Route path="/profile" element={<ProtectedRoute roles={['admin', 'operator', 'requester', 'viewer']}><Suspense fallback={<PageFallback />}><Profile /></Suspense></ProtectedRoute>} />
 
                 {/* Admin routes */}
-                <Route element={<ProtectedRoute roles={['admin', 'viewer']}><Outlet /></ProtectedRoute>}>
+                <Route element={<ProtectedRoute roles={['admin']}><Outlet /></ProtectedRoute>}>
                   <Route element={<RoutingErrorBoundary fallbackLabel="Admin"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></RoutingErrorBoundary>}>
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/admin/policies" element={<Policies />} />
@@ -125,7 +125,7 @@ export default function App() {
                 </Route>
 
                 {/* Operator routes (full ops access) */}
-                <Route element={<ProtectedRoute roles={['admin', 'operator', 'viewer']}><Outlet /></ProtectedRoute>}>
+                <Route element={<ProtectedRoute roles={['admin', 'operator']}><Outlet /></ProtectedRoute>}>
                   <Route element={<RoutingErrorBoundary fallbackLabel="Ops"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></RoutingErrorBoundary>}>
                     <Route path="/ops" element={<CommandCenter />} />
                     <Route path="/ops/remediation" element={<RemediationQueue />} />
@@ -143,7 +143,7 @@ export default function App() {
                 </Route>
 
                 {/* Requester / portal routes */}
-                <Route element={<ProtectedRoute roles={['admin', 'operator', 'requester', 'viewer']}><Outlet /></ProtectedRoute>}>
+                <Route element={<ProtectedRoute roles={['admin', 'operator', 'requester']}><Outlet /></ProtectedRoute>}>
                   <Route element={<RoutingErrorBoundary fallbackLabel="Portal"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></RoutingErrorBoundary>}>
                     <Route path="/portal" element={<PortalDashboard />} />
                     <Route path="/portal/request" element={<Request />} />

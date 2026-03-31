@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
-	"time"
 )
 
 // AWSConfigAdapter parses AWS Config evaluation results.
@@ -38,10 +37,10 @@ func (a *AWSConfigAdapter) Parse(_ context.Context, data []byte) ([]NormalizedFi
 			continue
 		}
 
-		foundAt, _ := time.Parse(time.RFC3339, ev.ResultRecordedTime)
-		if foundAt.IsZero() {
-			foundAt = time.Now().UTC()
-		}
+		foundAt, timestampData := parseFindingTimestamp(
+			timestampCandidate{name: "result_recorded_time", value: ev.ResultRecordedTime},
+			timestampCandidate{name: "ordering_timestamp", value: ev.OrderingTimestamp},
+		)
 
 		severity := ruleNameToSeverity(ev.ConfigRuleName)
 
@@ -57,6 +56,7 @@ func (a *AWSConfigAdapter) Parse(_ context.Context, data []byte) ([]NormalizedFi
 			Scanner:       "aws-config",
 			SourceCheckID: ev.ConfigRuleName,
 			FoundAt:       foundAt,
+			RawData:       timestampData,
 		})
 	}
 	return findings, nil

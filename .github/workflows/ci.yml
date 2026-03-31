@@ -216,7 +216,7 @@ jobs:
   frontend:
     name: Frontend Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
@@ -229,12 +229,32 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install, type-check, and build
-        run: cd frontend && npm ci && npx tsc -b && npm run build
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
 
-      - name: Run frontend tests
+      - name: Lint frontend
+        continue-on-error: true  # Advisory until the existing frontend lint backlog is retired
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Type-check and build frontend
+        working-directory: frontend
+        run: |
+          npx tsc -b
+          npm run build
+
+      - name: Run frontend unit tests
         working-directory: frontend
         run: npm run test
+
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright smoke tests
+        working-directory: frontend
+        run: npx playwright test e2e/landing.spec.ts e2e/role-switcher.spec.ts --reporter=line
 
       - name: Frontend security audit
         working-directory: frontend

@@ -2,6 +2,7 @@ package secrets
 
 import (
 	"fmt"
+	"strings"
 
 	"go.uber.org/zap"
 )
@@ -41,11 +42,32 @@ func NewProviderFromConfig(cfg ProviderConfig) (Provider, error) {
 	case ProviderTypeMemory, "":
 		return NewMemoryProvider(name), nil
 	case ProviderTypeAWS:
-		return NewAWSSecretsProvider(cfg.Region, logger), nil
+		if strings.TrimSpace(cfg.Region) == "" {
+			return nil, fmt.Errorf("aws secrets provider requires region")
+		}
+		provider := NewAWSSecretsProvider(cfg.Region, logger)
+		if provider.client == nil {
+			return nil, fmt.Errorf("aws secrets provider initialization failed")
+		}
+		return provider, nil
 	case ProviderTypeAzure:
-		return NewAzureKeyVaultProvider(cfg.VaultURL, logger), nil
+		if strings.TrimSpace(cfg.VaultURL) == "" {
+			return nil, fmt.Errorf("azure secrets provider requires vault URL")
+		}
+		provider := NewAzureKeyVaultProvider(cfg.VaultURL, logger)
+		if provider.client == nil {
+			return nil, fmt.Errorf("azure secrets provider initialization failed")
+		}
+		return provider, nil
 	case ProviderTypeGCP:
-		return NewGCPSecretManagerProvider(cfg.Project, logger), nil
+		if strings.TrimSpace(cfg.Project) == "" {
+			return nil, fmt.Errorf("gcp secrets provider requires project ID")
+		}
+		provider := NewGCPSecretManagerProvider(cfg.Project, logger)
+		if provider.client == nil {
+			return nil, fmt.Errorf("gcp secrets provider initialization failed")
+		}
+		return provider, nil
 	default:
 		return nil, fmt.Errorf("unknown secrets provider type: %s", cfg.Type)
 	}

@@ -12,11 +12,11 @@ const ROLE_BADGE: Record<string, string> = {
   viewer: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300',
 }
 
-const DEMO_ENTITLEMENTS: Record<string, string[]> = {
+const ROLE_ENTITLEMENTS: Record<string, string[]> = {
   admin: ['Platform Settings', 'User Management', 'Policy Editor', 'Audit Log', 'Webhooks', 'Secrets Scan', 'All Ops Modules'],
   operator: ['Command Center', 'Findings', 'Remediation', 'Terminal', 'Spend', 'Compliance', 'Threat Intel', 'Attack Paths'],
   requester: ['Self-Service Dashboard', 'New Request', 'My Requests', 'Service Catalog'],
-  viewer: ['All Modules (Read-Only)'],
+  viewer: ['Findings', 'Compliance', 'AI Agents / Traces'],
 }
 
 const DEMO_ACTIVITY = [
@@ -85,7 +85,7 @@ export default function Profile() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-1.5">
-              {(DEMO_ENTITLEMENTS[user.role] ?? DEMO_ENTITLEMENTS.viewer).map(e => (
+              {(ROLE_ENTITLEMENTS[user.role] ?? ROLE_ENTITLEMENTS.viewer).map(e => (
                 <li key={e} className="text-xs flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-green-500 shrink-0" />
                   {e}

@@ -8,7 +8,7 @@ All configuration is via environment variables. Defaults are tuned for local dev
 |----------|---------|----------|-------------|
 | `PORT` | `8080` | No | HTTP listen port |
 | `APP_ENV` | `production` | No | Environment (`development` enables pprof, dev CORS, RoleSwitcher) |
-| `GRC_PROVIDER` | `memory` | No | GRC backend (`memory`, `archer`, `servicenow`) |
+| `GRC_PROVIDER` | `memory` | No | GRC backend (`memory`, `postgres`, `archer`, `servicenow`) |
 | `CORS_ALLOWED_ORIGINS` | *(empty)* | No | Comma-separated allowed CORS origins |
 
 ## Auth / JWT
@@ -69,9 +69,9 @@ Falls back to local (in-memory) rate limiting when Redis is unavailable.
 
 | Variable | Default | Required | Description |
 |----------|---------|----------|-------------|
-| `AEGIS_DATABASE_URL` | *(empty)* | No | PostgreSQL connection string for durable audit logging (`postgres://user:pass@host:5432/db?sslmode=require`) |
+| `AEGIS_DATABASE_URL` | *(empty)* | No | PostgreSQL connection string for the Postgres GRC backend and `FINDINGS_SOURCE=postgres` (`postgres://user:pass@host:5432/db?sslmode=require`) |
 
-Falls back to in-memory audit logging when unset.
+When unset, audit logging stays in-memory. If `GRC_PROVIDER=postgres` or `FINDINGS_SOURCE=postgres`, startup requires this variable.
 
 ## Provider Selection
 
@@ -82,6 +82,9 @@ These variables control which provider implementation each subsystem uses. All d
 | `WORKFLOW_ENGINE` | `memory` | No | Workflow engine backend (`temporal` for real workflows) |
 | `WAF_PROVIDER` | `memory` | No | WAF backend (`aws`, `cloudflare` for real WAF rules) |
 | `SECRETS_PROVIDER` | `memory` | No | Secrets scanner backend (`aws`, `azure`, `gcp` for real vault scanning) |
+| `SECRETS_AWS_REGION` | *(empty)* | If `SECRETS_PROVIDER=aws` | AWS region for Secrets Manager (falls back to `AWS_REGION` if set) |
+| `SECRETS_AZURE_KEY_VAULT_URL` | *(empty)* | If `SECRETS_PROVIDER=azure` | Azure Key Vault URL (`https://<vault>.vault.azure.net`) |
+| `SECRETS_GCP_PROJECT_ID` | *(empty)* | If `SECRETS_PROVIDER=gcp` | GCP project ID for Secret Manager |
 
 ## Graph Database
 
@@ -221,7 +224,7 @@ When optional services are unavailable, the server degrades gracefully:
 | Threat intel API keys | Respective feed skipped |
 | ws-server URL | Deploy preview SSE disabled |
 | Jira URL | Mock ticket provider |
-| `AEGIS_DATABASE_URL` | In-memory audit logging only |
+| `AEGIS_DATABASE_URL` | In-memory audit logging only unless postgres-backed GRC/findings are explicitly enabled; those modes require this variable and fail fast when it is missing |
 | `WORKFLOW_ENGINE` | In-memory workflow stubs |
 | `WAF_PROVIDER` | In-memory WAF stubs |
 | `SECRETS_PROVIDER` | In-memory secrets scanner |

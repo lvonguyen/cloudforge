@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { SEVERITY_DOT_COLORS } from '@/lib/severity'
 import type { Finding } from '@/types/compliance'
 
 interface StatusBarProps {
@@ -31,13 +32,17 @@ export function StatusBar({
   const hasDateFilter = dateRange?.start || dateRange?.end
 
   return (
-    <div className="flex items-center justify-between px-4 h-10 bg-[#0a0a0f] border-t border-[#1e2330] text-[10px] font-mono select-none">
+    <div
+      className="flex items-center justify-between px-4 h-10 bg-[#0a0a0f] border-t border-[#1e2330] text-[10px] font-mono select-none"
+      role="status"
+      aria-label="Command center status summary"
+    >
       {/* Severity classification legend */}
       <div className="flex items-center gap-5">
-        <Indicator color="bg-red-400" label="CRITICAL" count={counts.CRITICAL ?? 0} />
-        <Indicator color="bg-orange-400" label="HIGH" count={counts.HIGH ?? 0} />
-        <Indicator color="bg-yellow-500" label="MEDIUM" count={counts.MEDIUM ?? 0} />
-        <Indicator color="bg-blue-400" label="LOW" count={counts.LOW ?? 0} />
+        <Indicator color={SEVERITY_DOT_COLORS.CRITICAL} label="CRITICAL" count={counts.CRITICAL ?? 0} />
+        <Indicator color={SEVERITY_DOT_COLORS.HIGH} label="HIGH" count={counts.HIGH ?? 0} />
+        <Indicator color={SEVERITY_DOT_COLORS.MEDIUM} label="MEDIUM" count={counts.MEDIUM ?? 0} />
+        <Indicator color={SEVERITY_DOT_COLORS.LOW} label="LOW" count={counts.LOW ?? 0} />
       </div>
 
       {/* Center — date range filter */}
@@ -103,7 +108,7 @@ export function StatusBar({
 function Indicator({ color, label, count }: { color: string; label: string; count: number }) {
   return (
     <span className="flex items-center gap-1.5 tabular-nums">
-      <span className={`h-2 w-2 ${color}`} />
+      <span className={`h-2 w-2 ${color}`} aria-hidden="true" />
       <span className="text-gray-500">{label}</span>
       <span className="text-gray-300">{count.toLocaleString()}</span>
     </span>

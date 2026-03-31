@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import { Routes, Route } from 'react-router-dom'
 import { renderWithProviders, renderWithAuth } from '@/test/utils'
@@ -11,6 +11,12 @@ beforeAll(() => {
     unobserve() {}
     disconnect() {}
   }
+
+  vi.stubEnv('VITE_ENABLE_MOCK_FALLBACK', 'true')
+})
+
+afterAll(() => {
+  vi.unstubAllEnvs()
 })
 
 // ---------------------------------------------------------------------------

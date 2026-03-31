@@ -49,8 +49,8 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 - [ ] Feature flags: 13 backend features gated by env vars -- all OFF by default
   - PUPPYGRAPH_URL, AEGIS_AI_ENABLED, AEGIS_TRACING_ENABLED
   - GREYNOISE_API_KEY, HIBP_API_KEY, OTX_API_KEY
-  - JIRA_URL, ASANA_WEBHOOK_TOKEN, WSServerURL
-  - RateLimitEnabled, Slack alerting, PagerDuty, Semantic search
+  - JIRA_URL, ASANA_WEBHOOK_TOKEN, WS_SERVER_URL
+  - RATE_LIMIT_ENABLED, Slack alerting, PagerDuty, Semantic search
 - [ ] Docker build MUST target `--platform linux/amd64` -- Mac M-series builds arm64 by default, ECS Fargate rejects it silently
 - [ ] Tag images per session (`session19-YYYYMMDD-HHMM`) -- don't overwrite `:latest` blindly
 - [ ] Force new deployment: `aws ecs update-service --force-new-deployment`
@@ -67,7 +67,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 ## Post-Deploy
 
 ### Verification
-- [ ] Health: `curl https://<api-url>/api/v1/health`
+- [ ] Health: `curl https://<api-url>/health`
 - [ ] Auth: verify JWT accepted (static token flow)
 - [ ] Findings: `curl -H "Authorization: Bearer $JWT" https://<api-url>/api/v1/findings?limit=5`
 - [ ] Frontend loads without "Redirecting to login..." loop
@@ -215,7 +215,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 | Gremlin HTTP POST | "Invalid WebSocket handshake" | Use WebSocket client on port 8182, not HTTP |
 | Cypher port 8184 | Connection refused | Port closed on Marketplace AMI -- Gremlin only |
 | PuppyGraph demo data | Graphs show northwind/modern | Reconfigure data source via UI/API post-boot |
-| PuppyGraph /health 404 | Health check fails | Use `GET /` or `GET /login` instead (both return 200) |
+| PuppyGraph /health 404 | Health check fails | Use `GET /login` (or `/`) instead; local compose now health-checks `/login` |
 | Gremlin JSON timeout | WebSocket connects but query hangs | TinkerPop binary frame protocol required, not raw JSON |
 | Severity sort inverted | desc returns LOW first | Higher sevOrder numeric = more severe |
 

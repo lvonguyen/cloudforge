@@ -73,6 +73,27 @@ func TestParseAndMatch(t *testing.T) {
 			want:   true,
 		},
 		{
+			name:  "AND binds tighter than OR",
+			query: `cloud_provider = "aws" OR severity = HIGH AND status = "open"`,
+			fields: map[string]string{
+				"cloud_provider": "aws",
+				"severity":       "LOW",
+				"status":         "resolved",
+			},
+			want: true,
+		},
+		{
+			name:  "multiple OR segments preserve AND grouping",
+			query: `severity = HIGH AND cloud_provider = "aws" OR status = "open" AND resource.type = "ec2"`,
+			fields: map[string]string{
+				"severity":       "LOW",
+				"cloud_provider": "aws",
+				"status":         "open",
+				"resource.type":  "ec2",
+			},
+			want: true,
+		},
+		{
 			name:   "numeric gt",
 			query:  `ai_risk_score > 7.5`,
 			fields: map[string]string{"ai_risk_score": "8.2"},

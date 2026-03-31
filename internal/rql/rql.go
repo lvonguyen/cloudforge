@@ -105,21 +105,23 @@ func (e *Evaluator) Match(q *Query) bool {
 		results[i] = e.evalCondition(cond)
 	}
 
-	// Evaluate left to right: AND binds tighter than OR.
-	// Group by OR segments, each segment is ANDed together.
-	result := results[0]
+	// AND binds tighter than OR.
+	// Evaluate each AND segment first, then OR the segment results together.
+	segmentResult := results[0]
+	result := false
 	for i, junc := range q.Junctions {
 		next := results[i+1]
 		switch junc {
 		case JuncAnd:
-			result = result && next
+			segmentResult = segmentResult && next
 		case JuncOr:
-			result = result || next
+			result = result || segmentResult
+			segmentResult = next
 		case JuncNone:
 			// no-op: single condition, no junction needed
 		}
 	}
-	return result
+	return result || segmentResult
 }
 
 func (e *Evaluator) evalCondition(c Condition) bool {

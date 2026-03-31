@@ -10,16 +10,13 @@ services:
       - PORT=8080
       - GRC_PROVIDER=postgres
       # [!] Production: set POSTGRES_PASSWORD via .env or secret manager
-      - DATABASE_URL=postgres://aegis:${POSTGRES_PASSWORD:-changeme}@postgres:5432/aegis?sslmode=prefer
-      - OPA_URL=http://opa:8181
+      - AEGIS_DATABASE_URL=postgres://aegis:${POSTGRES_PASSWORD:-changeme}@postgres:5432/aegis?sslmode=prefer
       - APP_ENV=production
       - AEGIS_TRACING_ENABLED=true
       - AEGIS_OTLP_ENDPOINT=jaeger:4317
     depends_on:
       postgres:
         condition: service_healthy
-      opa:
-        condition: service_started
       jaeger:
         condition: service_started
     restart: unless-stopped
@@ -42,7 +39,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # Open Policy Agent
+  # Optional standalone Open Policy Agent for manual policy inspection.
+  # The server embeds OPA and does not require this service to start.
   opa:
     image: openpolicyagent/opa:latest
     ports:

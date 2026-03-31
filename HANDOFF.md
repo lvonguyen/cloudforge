@@ -9,7 +9,7 @@
 [+] Sprint C complete: Viewer read-only surface, choke points, metric cards, filter pills, kanban, preview panel, NLQ bar, lifecycle timeline, data layer toggles, blast radius, container security
 [+] Sprint D complete: NLQ backend, DSPM classification, security graph, investigation board, LayoutSwitcher; 18/18 Chrome routes PASS
 [+] Sprint E complete: attack path fidelity (client-side fallback, pre-computed paths), Bedrock enrichment (confidence scoring, tier routing), SecurityGraph focus mode, AI budget guard, real-data pipeline (9000 findings)
-[+] CI gates enforced: gosec HIGH+, Trivy exit-code 1, Codecov fail-on-error, frontend vitest, npm audit
+[+] CI checks running: gosec + Trivy SARIF uploads, frontend vitest, npm audit, and Codecov upload; some lint/security signals remain advisory while backlog is being retired
 [+] Security: resource-scoped RBAC (ABAC), finding integrity SHA-256, AES-256-GCM rollback encryption, AI cost budget guard
 [+] Audit: real audit logging with integrity hashes (MemoryAuditLogger + ZapAuditLogger)
 [+] Ingest: POST /api/v1/findings/ingest with SHA-256 dedup, 24h TTL

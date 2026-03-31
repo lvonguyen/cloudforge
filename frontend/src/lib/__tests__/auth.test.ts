@@ -62,7 +62,7 @@ describe('isTokenExpired', () => {
 describe('userFromToken', () => {
   it('derives admin role from aegis-admin group', () => {
     const token = makeJWT({ email: 'admin@test.com', name: 'Admin One', groups: ['aegis-admin'] })
-    const user = userFromToken(token, null)
+    const user = userFromToken(token)
     expect(user.role).toBe('admin')
     expect(user.email).toBe('admin@test.com')
     expect(user.name).toBe('Admin One')
@@ -70,49 +70,37 @@ describe('userFromToken', () => {
 
   it('derives operator role from aegis-operator group', () => {
     const token = makeJWT({ email: 'op@test.com', name: 'Operator', groups: ['aegis-operator'] })
-    const user = userFromToken(token, null)
+    const user = userFromToken(token)
     expect(user.role).toBe('operator')
   })
 
-  it('allows savedRole as downgrade (admin -> viewer)', () => {
+  it('always uses JWT-derived role instead of any client-stored override', () => {
     const token = makeJWT({ email: 'admin@test.com', name: 'Admin', groups: ['aegis-admin'] })
-    const user = userFromToken(token, 'viewer')
-    expect(user.role).toBe('viewer')
-  })
-
-  it('prevents savedRole from escalating above JWT groups (viewer -> admin)', () => {
-    const token = makeJWT({ email: 'user@test.com', name: 'User', groups: ['some-other-group'] })
-    const user = userFromToken(token, 'admin')
-    expect(user.role).toBe('viewer') // capped at JWT-derived role (least privilege)
-  })
-
-  it('prevents operator from escalating to admin via savedRole', () => {
-    const token = makeJWT({ email: 'op@test.com', name: 'Op', groups: ['aegis-operator'] })
-    const user = userFromToken(token, 'admin')
-    expect(user.role).toBe('operator') // capped at JWT-derived role
+    const user = userFromToken(token)
+    expect(user.role).toBe('admin')
   })
 
   it('falls back to viewer when no group match and no savedRole', () => {
     const token = makeJWT({ email: 'user@test.com', name: 'User', groups: ['some-other-group'] })
-    const user = userFromToken(token, null)
+    const user = userFromToken(token)
     expect(user.role).toBe('viewer')
   })
 
   it('falls back to viewer when groups claim is absent', () => {
     const token = makeJWT({ email: 'user@test.com', name: 'User' })
-    const user = userFromToken(token, null)
+    const user = userFromToken(token)
     expect(user.role).toBe('viewer')
   })
 
   it('uses email as name fallback when name claim is missing', () => {
     const token = makeJWT({ email: 'fallback@test.com' })
-    const user = userFromToken(token, null)
+    const user = userFromToken(token)
     expect(user.name).toBe('fallback@test.com')
   })
 
   it('prefers admin over operator when both groups present', () => {
     const token = makeJWT({ email: 'a@b.com', name: 'X', groups: ['aegis-admin', 'aegis-operator'] })
-    const user = userFromToken(token, null)
+    const user = userFromToken(token)
     expect(user.role).toBe('admin')
   })
 })

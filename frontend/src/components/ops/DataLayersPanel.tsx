@@ -5,6 +5,7 @@ import {
   parseLayerKey,
   layerKey,
 } from '@/contexts/CommandCenterContext'
+import { SEVERITY_DOT_COLORS } from '@/lib/severity'
 import type { Finding } from '@/types/compliance'
 import type { AttackPath } from '@/types/attack-path'
 
@@ -110,12 +111,16 @@ function LayerGroup({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   const Icon = open ? ChevronDown : ChevronRight
+  const contentId = `layer-group-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
 
   return (
     <div>
       <button
+        type="button"
         onClick={() => setOpen(!open)}
         className="flex w-full items-center gap-1.5 py-1.5 text-left hover:bg-[#161b22]/50 px-3 -mx-3 transition-colors"
+        aria-expanded={open}
+        aria-controls={contentId}
       >
         <Icon className="h-3 w-3 shrink-0 text-gray-500" />
         <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 flex-1">
@@ -125,16 +130,9 @@ function LayerGroup({
           <span className="text-[10px] font-mono text-gray-600 tabular-nums">{count}</span>
         )}
       </button>
-      {open && <div className="ml-4 space-y-px pb-1">{children}</div>}
+      {open && <div id={contentId} className="ml-4 space-y-px pb-1">{children}</div>}
     </div>
   )
-}
-
-const SEVERITY_DOT: Record<string, string> = {
-  CRITICAL: 'bg-red-400',
-  HIGH:     'bg-orange-400',
-  MEDIUM:   'bg-yellow-500',
-  LOW:      'bg-blue-400',
 }
 
 const PROVIDER_DOT: Record<string, string> = {
@@ -164,7 +162,7 @@ function LayerToggle({
         onChange={onChange}
         className="h-3 w-3 accent-amber-500 shrink-0"
       />
-      {dotColor && <span className={`h-1.5 w-1.5 shrink-0 ${dotColor}`} />}
+      {dotColor && <span className={`h-1.5 w-1.5 shrink-0 ${dotColor}`} aria-hidden="true" />}
       <span className={`flex-1 truncate ${checked ? 'text-gray-200' : 'text-gray-500'}`}>
         {label}
       </span>
@@ -227,10 +225,12 @@ function ThreatIntelDrillDown({ findings, attackPaths }: { findings: Finding[]; 
       {feeds.map(feed => (
         <div key={feed.id}>
           <button
+            type="button"
             onClick={() => setExpanded(expanded === feed.id ? null : feed.id)}
             className="flex items-center gap-2 w-full py-0.5 px-3 -mx-3 text-xs hover:bg-[#161b22]/40 transition-colors cursor-pointer"
+            aria-expanded={expanded === feed.id}
           >
-            <span className={`h-1.5 w-1.5 shrink-0 ${FEED_DOT[feed.id] ?? 'bg-gray-400'}`} />
+            <span className={`h-1.5 w-1.5 shrink-0 ${FEED_DOT[feed.id] ?? 'bg-gray-400'}`} aria-hidden="true" />
             <span className={`flex-1 truncate ${feed.status === 'active' ? 'text-gray-200' : 'text-gray-500'}`}>
               {feed.label}
             </span>
@@ -345,7 +345,7 @@ export function DataLayersPanel({ findings, attackPaths }: DataLayersPanelProps)
               count={severityCounts[sev] ?? 0}
               checked={!!activeLayers[layerKey('severity', sev)]}
               onChange={() => toggle('severity', sev)}
-              dotColor={SEVERITY_DOT[sev]}
+              dotColor={SEVERITY_DOT_COLORS[sev]}
             />
           ))}
         </LayerGroup>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth, type Role } from '@/lib/auth'
 import { useTerminalPanel } from '@/lib/terminal-context'
@@ -82,54 +82,11 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
   ],
   viewer: [
     {
-      section: 'Platform',
+      section: 'Read Only',
       items: [
-        { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-        { to: '/admin/policies', label: 'Policies', icon: FileText },
-        { to: '/admin/ai-agents', label: 'AI Agents', icon: Bot },
-      ],
-    },
-    {
-      section: 'Operations',
-      items: [
-        { to: '/ops', label: 'Command Center', icon: Activity },
         { to: '/ops/findings', label: 'Findings', icon: AlertTriangle },
-        { to: '/ops/remediation', label: 'Remediation', icon: Wrench },
-      ],
-    },
-    {
-      section: 'Intelligence',
-      items: [
-        { to: '/ops/costs', label: 'Spend', icon: DollarSign },
         { to: '/ops/compliance', label: 'Compliance', icon: Shield },
-        { to: '/ops/containers', label: 'Containers', icon: Box },
-        { to: '/ops/app-catalog', label: 'Application Catalog', icon: Database },
-        { to: '/ops/investigations', label: 'Investigations', icon: Search },
-        { to: '/ops/attack-paths', label: 'Attack Paths', icon: Crosshair },
-        { to: '/ops/attack-surface', label: 'Attack Surface', icon: Globe },
-        { to: '/ops/threat-intel', label: 'Threat Intel', icon: Shield },
-        { to: '/ops/data-sources', label: 'Data Sources', icon: Layers },
-      ],
-    },
-    {
-      section: 'Management',
-      items: [
-        { to: '/admin/users', label: 'Users', icon: Users },
-        { to: '/admin/exceptions', label: 'Exceptions', icon: ListChecks },
-        { to: '/admin/audit-log', label: 'Audit Log', icon: ClipboardList },
-        { to: '/admin/reports', label: 'Reports', icon: BarChart3 },
-        { to: '/admin/webhooks', label: 'Webhooks', icon: Link2 },
-        { to: '/admin/secrets-scan', label: 'Secrets Scan', icon: KeyRound },
-        { to: '/admin/system', label: 'System', icon: Settings },
-      ],
-    },
-    {
-      section: 'Self-Service',
-      items: [
-        { to: '/portal', label: 'My Dashboard', icon: Home },
-        { to: '/portal/request', label: 'New Request', icon: PlusCircle },
-        { to: '/portal/requests', label: 'My Requests', icon: List },
-        { to: '/portal/catalog', label: 'Catalog', icon: Package },
+        { to: '/ops/agents', label: 'AI Agents', icon: Bot },
       ],
     },
   ],
@@ -273,6 +230,24 @@ function NavContent({ collapsed }: { collapsed: boolean }) {
 
 export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen: boolean; onMobileClose: () => void }) {
   const [collapsed, setCollapsed] = useState(false)
+  const mobileDialogRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (!mobileOpen) {
+      return
+    }
+
+    mobileDialogRef.current?.focus()
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onMobileClose()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [mobileOpen, onMobileClose])
 
   return (
     <>
@@ -302,11 +277,23 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen: boolean; on
       {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={onMobileClose} />
-          <aside className="absolute left-0 top-0 h-full w-64 bg-sidebar-background border-r border-border shadow-lg">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            onClick={onMobileClose}
+            aria-label="Close navigation menu"
+          />
+          <aside
+            ref={mobileDialogRef}
+            className="absolute left-0 top-0 h-full w-64 bg-sidebar-background border-r border-border shadow-lg"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-sidebar-title"
+            tabIndex={-1}
+          >
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <span className="text-sm font-semibold text-sidebar-foreground">Navigation</span>
-              <button onClick={onMobileClose} aria-label="Close menu" className="text-muted-foreground hover:text-foreground">
+              <span id="mobile-sidebar-title" className="text-sm font-semibold text-sidebar-foreground">Navigation</span>
+              <button type="button" onClick={onMobileClose} aria-label="Close menu" className="text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
               </button>
             </div>

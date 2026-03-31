@@ -26,7 +26,7 @@ import { useFindings } from '@/hooks/useFindings'
 import { useAttackPaths, useAttackPathStats } from '@/hooks/useAttackPaths'
 import { useRemediations } from '@/hooks/useRemediations'
 import { Badge } from '@/components/ui/badge'
-import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS } from '@/lib/severity'
+import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS, SEVERITY_HEX, SEVERITY_NEUTRAL_HEX } from '@/lib/severity'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import {
   ArrowLeft,
@@ -36,17 +36,6 @@ import {
 } from 'lucide-react'
 import type { AttackPath } from '@/types/attack-path'
 import type { Finding } from '@/types/compliance'
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const NODE_BORDER: Record<string, string> = {
-  CRITICAL: '#ef4444',
-  HIGH: '#f97316',
-  MEDIUM: '#eab308',
-  LOW: '#3b82f6',
-}
 
 // ---------------------------------------------------------------------------
 // Attack path → ReactFlow conversion
@@ -77,7 +66,7 @@ function pathToFlow(path: AttackPath): { nodes: Node[]; edges: Edge[] } {
     sourcePosition: Position.Right,
     targetPosition: Position.Left,
     style: {
-      border: `2px solid ${NODE_BORDER[n.severity] ?? '#4b5563'}`,
+      border: `2px solid ${SEVERITY_HEX[n.severity] ?? SEVERITY_NEUTRAL_HEX}`,
       borderRadius: '0px',
       background: '#111318',
       padding: '4px',
@@ -270,7 +259,7 @@ function CenterPane({
             <Background gap={20} size={1} color="#1a1e26" />
             <Controls showInteractive={false} />
             <MiniMap
-              nodeColor={(n) => NODE_BORDER[(n.data?.severity as string) ?? ''] ?? '#4b5563'}
+              nodeColor={(n) => SEVERITY_HEX[(n.data?.severity as string) ?? ''] ?? SEVERITY_NEUTRAL_HEX}
               style={{ background: '#0d1117' }}
               maskColor="rgba(0,0,0,0.6)"
             />

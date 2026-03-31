@@ -8,10 +8,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"aegis/internal/ai"
 
 	"go.uber.org/zap"
+	"golang.org/x/text/unicode/norm"
 )
 
 // enrichmentResponse is the expected JSON structure from the AI model.
@@ -169,11 +171,20 @@ func applyEnrichment(path *AttackPath, result *enrichmentResponse) {
 // sanitizeForPrompt strips control characters and truncates to maxLen.
 // Prevents prompt injection via user-controlled resource names/types.
 func sanitizeForPrompt(s string, maxLen int) string {
+	s = norm.NFKC.String(s)
 	var b strings.Builder
 	for _, r := range s {
-		if r >= 32 && r != 127 { // printable ASCII + valid Unicode
-			b.WriteRune(r)
+		if r < 32 || r == 127 {
+			continue
 		}
+		if unicode.Is(unicode.Cf, r) {
+			continue
+		}
+		if r != ' ' && unicode.Is(unicode.Zs, r) {
+			b.WriteRune(' ')
+			continue
+		}
+		b.WriteRune(r)
 	}
 	result := b.String()
 	runes := []rune(result)
@@ -207,15 +218,34 @@ func buildEnrichmentPrompt(path *AttackPath) string {
 		if i > 0 {
 			sb.WriteString(" → ")
 		}
-		sb.WriteString(e.Label)
+		label := sanitizeForPrompt(e.Label, 64)
+		if label == "" {
+			label = "unknown"
+		}
+		sb.WriteString(label)
 	}
 	sb.WriteString("\n")
 
 	if len(path.MITRETactics) > 0 {
-		sb.WriteString("\nCurrent MITRE Tactics: " + strings.Join(path.MITRETactics, ", ") + "\n")
+		tactics := sanitizePromptFields(path.MITRETactics, 64)
+		if len(tactics) > 0 {
+			sb.WriteString("\nCurrent MITRE Tactics: " + strings.Join(tactics, ", ") + "\n")
+		}
 	}
 
 	return sb.String()
+}
+
+func sanitizePromptFields(values []string, maxLen int) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		cleaned := sanitizeForPrompt(value, maxLen)
+		if cleaned == "" {
+			continue
+		}
+		result = append(result, cleaned)
+	}
+	return result
 }
 
 func writeNodeSummary(sb *strings.Builder, node *AttackPathNode) {

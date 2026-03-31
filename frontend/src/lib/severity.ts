@@ -1,6 +1,22 @@
 // Canonical severity and status color maps — single source of truth.
 // Import these instead of defining inline color maps in individual components.
 
+export const SEVERITY_HEX: Record<string, string> = {
+  CRITICAL: '#ef4444',
+  HIGH: '#f97316',
+  MEDIUM: '#eab308',
+  LOW: '#3b82f6',
+}
+
+export const SEVERITY_DOT_COLORS: Record<string, string> = {
+  CRITICAL: 'bg-red-400',
+  HIGH: 'bg-orange-400',
+  MEDIUM: 'bg-yellow-500',
+  LOW: 'bg-blue-400',
+}
+
+export const SEVERITY_NEUTRAL_HEX = '#6b7280'
+
 export const SEVERITY_COLORS: Record<string, string> = {
   CRITICAL: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
   HIGH: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',

@@ -18,14 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Network, AlertTriangle, Maximize2, Minimize2, X } from 'lucide-react'
 import type { AttackPath, AttackPathNode } from '@/types/attack-path'
-import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS } from '@/lib/severity'
-
-const NODE_BORDER_COLORS: Record<string, string> = {
-  CRITICAL: '#ef4444',
-  HIGH: '#f97316',
-  MEDIUM: '#eab308',
-  LOW: '#3b82f6',
-}
+import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS, SEVERITY_HEX, SEVERITY_NEUTRAL_HEX } from '@/lib/severity'
 
 function pathToFlowNodes(path: AttackPath): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = path.nodes.map((n, i) => ({
@@ -48,7 +41,7 @@ function pathToFlowNodes(path: AttackPath): { nodes: Node[]; edges: Edge[] } {
     sourcePosition: Position.Right,
     targetPosition: Position.Left,
     style: {
-      border: `2px solid ${NODE_BORDER_COLORS[n.severity] ?? '#6b7280'}`,
+      border: `2px solid ${SEVERITY_HEX[n.severity] ?? SEVERITY_NEUTRAL_HEX}`,
       borderRadius: '0px',
       background: 'var(--color-card)',
       padding: '4px',

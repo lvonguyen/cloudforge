@@ -150,19 +150,23 @@ function StepResourceSelection({
 
       <div>
         <h2 className="text-sm font-semibold mb-3">Select Resource Type</h2>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4" role="list" aria-label="Available resource types">
           {filteredCatalog.map(item => (
-            <div
-              key={item.id}
-              className={`cursor-pointer rounded-none ring-2 transition-all ${
-                selectedId === item.id ? 'ring-primary' : 'ring-transparent hover:ring-muted-foreground/30'
-              }`}
-              onClick={() => {
-                onSelect(item.id)
-                onProviderChange(item.provider)
-              }}
-            >
-              <ResourceCatalogCard item={item} />
+            <div key={item.id} role="listitem">
+              <button
+                type="button"
+                className={`w-full cursor-pointer rounded-none ring-2 transition-all ${
+                  selectedId === item.id ? 'ring-primary' : 'ring-transparent hover:ring-muted-foreground/30'
+                }`}
+                onClick={() => {
+                  onSelect(item.id)
+                  onProviderChange(item.provider)
+                }}
+                aria-pressed={selectedId === item.id}
+                aria-label={`Select ${item.name} on ${item.provider.toUpperCase()}`}
+              >
+                <ResourceCatalogCard item={item} />
+              </button>
             </div>
           ))}
         </div>

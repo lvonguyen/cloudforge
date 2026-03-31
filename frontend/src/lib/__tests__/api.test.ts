@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ApiError, queryClient, apiClient } from '@/lib/api'
+import { setPreviewRoleOverride } from '@/lib/auth'
 
 describe('ApiError', () => {
   it('constructs with status and message', () => {
@@ -138,17 +139,19 @@ describe('authHeaders (via apiClient)', () => {
   beforeEach(() => {
     global.fetch = vi.fn()
     sessionStorage.clear()
+    setPreviewRoleOverride(null)
   })
 
   afterEach(() => {
     global.fetch = originalFetch
     vi.restoreAllMocks()
     vi.unstubAllEnvs()
+    setPreviewRoleOverride(null)
   })
 
   it('includes X-Aegis-Role header in DEV mode when role is set', async () => {
     vi.stubEnv('DEV', true)
-    sessionStorage.setItem('aegis_role', 'operator')
+    setPreviewRoleOverride('operator')
     vi.mocked(global.fetch).mockResolvedValueOnce(
       new Response(JSON.stringify({ ok: true }), { status: 200 })
     )
@@ -163,7 +166,7 @@ describe('authHeaders (via apiClient)', () => {
 
   it('omits X-Aegis-Role header in production mode', async () => {
     vi.stubEnv('DEV', false)
-    sessionStorage.setItem('aegis_role', 'admin')
+    setPreviewRoleOverride('admin')
     sessionStorage.setItem('aegis_access_token', 'fake-token')
     vi.mocked(global.fetch).mockResolvedValueOnce(
       new Response(JSON.stringify({ ok: true }), { status: 200 })

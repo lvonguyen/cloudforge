@@ -58,6 +58,9 @@ Both Okta and Entra ID can be active simultaneously.
 | Env Var | Required When | Description |
 |---------|---------------|-------------|
 | `SECRETS_PROVIDER` | always | Provider type |
+| `SECRETS_AWS_REGION` | `SECRETS_PROVIDER=aws` | AWS region for Secrets Manager (falls back to `AWS_REGION` if set) |
+| `SECRETS_AZURE_KEY_VAULT_URL` | `SECRETS_PROVIDER=azure` | Key Vault URL (for example `https://<vault>.vault.azure.net`) |
+| `SECRETS_GCP_PROJECT_ID` | `SECRETS_PROVIDER=gcp` | GCP project ID for Secret Manager |
 
 ## Example: Production `.env`
 

@@ -3,6 +3,7 @@ package adapters
 import (
 	"context"
 	"testing"
+	"time"
 )
 
 // --- Prowler adapter tests ---
@@ -74,6 +75,47 @@ func TestProwlerAdapter_MalformedJSON(t *testing.T) {
 	}
 	if pe.Adapter != "prowler" {
 		t.Errorf("expected adapter prowler, got %q", pe.Adapter)
+	}
+}
+
+func TestProwlerAdapter_MalformedTimestampUsesDeterministicFallback(t *testing.T) {
+	data := []byte(`[
+		{
+			"CheckID": "check_s3_public",
+			"Status": "FAIL",
+			"Severity": "HIGH",
+			"ServiceName": "s3",
+			"ResourceId": "arn:aws:s3:::my-bucket",
+			"ResourceType": "AwsS3Bucket",
+			"Region": "us-east-1",
+			"AccountId": "123456789012",
+			"Description": "S3 bucket is publicly accessible",
+			"Risk": "Data exposure",
+			"Timestamp": "definitely-not-rfc3339",
+			"Provider": "aws"
+		}
+	]`)
+
+	findings, err := NewProwlerAdapter().Parse(context.Background(), data)
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if len(findings) != 1 {
+		t.Fatalf("expected 1 finding, got %d", len(findings))
+	}
+
+	f := findings[0]
+	if !f.FoundAt.Equal(time.Unix(0, 0).UTC()) {
+		t.Fatalf("expected unix epoch fallback, got %s", f.FoundAt)
+	}
+	if f.RawData["timestamp_source"] != "fallback" {
+		t.Fatalf("expected fallback timestamp source, got %q", f.RawData["timestamp_source"])
+	}
+	if f.RawData["timestamp_raw_timestamp"] != "definitely-not-rfc3339" {
+		t.Fatalf("expected raw timestamp preserved, got %q", f.RawData["timestamp_raw_timestamp"])
+	}
+	if f.RawData["timestamp_parse_error_timestamp"] == "" {
+		t.Fatal("expected parse error metadata for malformed timestamp")
 	}
 }
 
@@ -216,6 +258,45 @@ func TestAWSConfigAdapter_MalformedJSON(t *testing.T) {
 	_, err := NewAWSConfigAdapter().Parse(context.Background(), []byte(`not json`))
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestAWSConfigAdapter_UsesOrderingTimestampAsFallbackSource(t *testing.T) {
+	data := []byte(`[
+		{
+			"ComplianceType": "NON_COMPLIANT",
+			"ConfigRuleName": "s3-bucket-public-read-prohibited",
+			"ResourceType": "AWS::S3::Bucket",
+			"ResourceId": "my-public-bucket",
+			"AccountId": "123456789012",
+			"AwsRegion": "us-east-1",
+			"Annotation": "Bucket allows public read",
+			"ResultRecordedTime": "invalid",
+			"OrderingTimestamp": "2026-03-02T15:04:05Z"
+		}
+	]`)
+
+	findings, err := NewAWSConfigAdapter().Parse(context.Background(), data)
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if len(findings) != 1 {
+		t.Fatalf("expected 1 finding, got %d", len(findings))
+	}
+
+	f := findings[0]
+	want := time.Date(2026, time.March, 2, 15, 4, 5, 0, time.UTC)
+	if !f.FoundAt.Equal(want) {
+		t.Fatalf("expected ordering timestamp fallback, got %s", f.FoundAt)
+	}
+	if f.RawData["timestamp_source"] != "ordering_timestamp" {
+		t.Fatalf("expected ordering timestamp source, got %q", f.RawData["timestamp_source"])
+	}
+	if f.RawData["timestamp_raw_result_recorded_time"] != "invalid" {
+		t.Fatalf("expected raw result recorded time preserved, got %q", f.RawData["timestamp_raw_result_recorded_time"])
+	}
+	if f.RawData["timestamp_parse_error_result_recorded_time"] == "" {
+		t.Fatal("expected parse error metadata for invalid result recorded time")
 	}
 }
 

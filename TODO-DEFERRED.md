@@ -84,30 +84,33 @@ Frontend: `Finding` type already has `ai_risk_score`, `ai_risk_rationale`, `ai_c
 
 ## D6: [SEC] localStorage Role Escalation (F-02, HIGH)
 
-**File:** `frontend/src/lib/auth.ts` lines 94-98, 118, 185-188
+**Status:** Fixed 2026-03-30.
 
-**Issue:** `userFromToken()` reads `savedRole` from `localStorage` and trusts it over the JWT groups claim. Any authenticated user can run `localStorage.setItem('cf_role', 'admin')` and reload to gain admin-tier UI access. The `RoleSwitcher` is DEV-gated, but `localStorage` persistence means a dev-mode role override can leak to a prod-like context.
+**Files:** `frontend/src/lib/auth.ts`, `frontend/src/lib/api.ts`, auth/route/layout auth tests
 
-**Fix:** Always derive role from the JWT groups claim in `userFromToken()`. Remove the `savedRole` fallback. The `RoleSwitcher` (DEV only) should set role transiently in React state, never persisting to `localStorage`.
+**Issue:** The original issue allowed a persisted client-side role override to survive reloads and influence JWT-backed UI access. That started as `localStorage`, then later `sessionStorage`, but the underlying problem was the same: a preview role could leak into authenticated flows.
 
-**Why deferred:** The file is outside the Command Center scope. Server-side RBAC on `/api/v1/*` endpoints is the real authorization gate — this is defense-in-depth.
+**Fix landed:** `userFromToken()` now always derives role from JWT groups. Preview role switching is in-memory only via React/module state, legacy persisted role keys are cleared on startup/logout, and dev-only `X-Aegis-Role` forwarding now reads the ephemeral preview override instead of storage.
 
-**Effort:** ~1 hour (auth.ts refactor + test)
+**Verification:** `npx vitest run src/lib/__tests__/auth.test.ts src/lib/__tests__/api.test.ts src/components/layout/__tests__/RoleSwitcher.test.tsx src/components/auth/__tests__/ProtectedRoute.test.tsx` and `npx tsc --noEmit`
+
+**Why it was previously deferred:** The file was outside the Command Center scope. Server-side RBAC on `/api/v1/*` endpoints remained the real authorization gate, so this was defense-in-depth until picked up.
+
+**Effort:** Completed in ~1 hour (auth.ts refactor + tests)
 
 ---
 
 ## D7: Centralize Severity Color Constants
 
-**Issue:** Severity colors (`#ef4444`, `#f97316`, `#eab308`, `#3b82f6`) are defined independently in 5 locations:
-1. `severity.ts` — Tailwind classes
-2. `FindingsSummaryChart.tsx` — `SEV_FILL` hex map
-3. `DataLayersPanel.tsx` — `SEVERITY_DOT` Tailwind classes
-4. `StatusBar.tsx` — inline Tailwind in JSX
-5. `CommandCenter.tsx` — `NODE_BORDER` hex map
+**Status:** Fixed 2026-03-30.
 
-**Fix:** Add `SEVERITY_HEX: Record<string, string>` to `severity.ts` and derive all other usages from it.
+**Files:** `frontend/src/lib/severity.ts`, `FindingsSummaryChart.tsx`, `FindingsTreemap.tsx`, `DataLayersPanel.tsx`, `StatusBar.tsx`, `CommandCenter.tsx`, `AttackPaths.tsx`, `AttackPathMiniGraph.tsx`
 
-**Effort:** ~30 minutes (create constant + update 4 files)
+**Fix landed:** Added `SEVERITY_HEX`, `SEVERITY_DOT_COLORS`, and `SEVERITY_NEUTRAL_HEX` to `severity.ts` and rewired the chart, graph, and panel views to import those shared constants instead of duplicating literal severity colors.
+
+**Verification:** `npx vitest run src/components/ops/__tests__/FindingsTreemap.test.tsx src/components/ops/__tests__/StatusBar.test.tsx src/pages/__tests__/OpsPages.test.tsx` and `npx tsc --noEmit`
+
+**Effort:** Completed in ~30 minutes
 
 ---
 
@@ -126,11 +129,15 @@ Frontend: `Finding` type already has `ai_risk_score`, `ai_risk_rationale`, `ai_c
 
 ## D9: Mock Fallback Production Guard (F-07, MEDIUM)
 
-**Issue:** `useRemediations` / `useFindings` mock fallback catches 5xx errors silently, masking real API failures in production.
+**Status:** Fixed 2026-03-30.
 
-**Fix:** Gate mock fallback on `import.meta.env.VITE_ENABLE_MOCK_FALLBACK`. Only enable for demo/dev environments.
+**Files:** `frontend/src/lib/api.ts`, `frontend/src/hooks/useFindings.ts`, `frontend/src/hooks/useRemediations.ts`
 
-**Effort:** ~30 minutes (env var + conditional in each hook)
+**Fix landed:** Mock fallback now only activates when `VITE_ENABLE_MOCK_FALLBACK=true` or `VITE_DEMO_MODE=true`. The shared API helper and the custom findings/remediations hooks now surface 5xx errors by default instead of silently masking them.
+
+**Verification:** `npx vitest run src/hooks/__tests__/useFindings.test.ts src/hooks/__tests__/useRemediations.test.ts src/pages/__tests__/OpsPages.test.tsx` and `npx tsc --noEmit`
+
+**Effort:** Completed in ~30 minutes
 
 ---
 
@@ -150,22 +157,29 @@ Frontend: `Finding` type already has `ai_risk_score`, `ai_risk_rationale`, `ai_c
 
 **File:** `vite.config.ts`
 
-Add `manualChunks` for large dependencies: `recharts`, `@xyflow/react`,
-`@tanstack/*`. Currently bundled into a single vendor chunk.
+**Status:** Fixed before 2026-03-30; verified during this sprint.
 
-**Effort:** ~30 minutes
+**Resolution:** `vite.config.ts` already defines `manualChunks` for `react`, `recharts`, `@xyflow/react`, and `@tanstack/*`, plus module preload filtering for the heavy lazy-route vendor chunks. No additional code change was needed in this pass.
+
+**Effort:** No new code change required
 
 ---
 
 ## D12: gzipResponseWriter Missing Interfaces
 
-**File:** `cmd/server/middleware.go`
+**Status:** Fixed before 2026-03-30; verified during this sprint.
 
-`gzipResponseWriter` wraps `http.ResponseWriter` but does not implement
-`http.Flusher` or `http.Hijacker`. SSE streams and WebSocket upgrades
-will fail when gzip middleware is active.
+**Files:** `cmd/server/middleware.go`, `cmd/server/middleware_test.go`
 
-**Effort:** ~1 hour Go
+**Resolution:** `gzipResponseWriter` already forwards `http.Flusher`
+and `http.Hijacker`, and gzip middleware still bypasses SSE/WebSocket
+requests entirely. Added regression tests for flush delegation,
+compressed-body preservation, hijack delegation, and the unsupported
+hijack error path so the wrapper cannot silently regress.
+
+**Verification:** `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestGzipMiddleware|TestGzipResponseWriter' -count=1`
+
+**Effort:** No runtime code change required; ~20 minutes test/docs cleanup
 
 ---
 

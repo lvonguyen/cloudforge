@@ -19,14 +19,7 @@ import { ArrowLeft, Shield, AlertTriangle, Zap, Target, Sparkles, ArrowRight } f
 import type { AttackPath } from '@/types/attack-path'
 import { ProviderIcon } from '@/components/ui/ProviderIcon'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
-import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS } from '@/lib/severity'
-
-const NODE_BORDER_COLORS: Record<string, string> = {
-  CRITICAL: '#ef4444',
-  HIGH: '#f97316',
-  MEDIUM: '#eab308',
-  LOW: '#3b82f6',
-}
+import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS, SEVERITY_HEX, SEVERITY_NEUTRAL_HEX } from '@/lib/severity'
 
 const CATEGORY_ICONS: Record<string, typeof Shield> = {
   NETWORK: Zap,
@@ -62,7 +55,7 @@ function pathToFlow(path: AttackPath, chokePointIds?: Set<string>): { nodes: Nod
     style: {
       border: chokePointIds?.has(n.resource_id)
         ? '3px dashed #f59e0b'
-        : `2px solid ${NODE_BORDER_COLORS[n.severity] ?? '#6b7280'}`,
+        : `2px solid ${SEVERITY_HEX[n.severity] ?? SEVERITY_NEUTRAL_HEX}`,
       borderRadius: '0px',
       background: 'var(--color-card)',
       padding: '4px',
@@ -429,7 +422,7 @@ export default function AttackPaths() {
             <div className="space-y-1.5">
               {chokePoints.map(([id, cp]) => (
                 <div key={id} className="flex items-center gap-2 text-xs">
-                  <span className="h-2 w-2 shrink-0" style={{ backgroundColor: NODE_BORDER_COLORS[cp.severity] ?? '#6b7280' }} />
+                  <span className="h-2 w-2 shrink-0" style={{ backgroundColor: SEVERITY_HEX[cp.severity] ?? SEVERITY_NEUTRAL_HEX }} />
                   <ProviderIcon provider={cp.provider} className="h-3.5 w-3.5 shrink-0" />
                   <span className="flex-1 truncate font-medium">{cp.resource_name}</span>
                   <span className="text-[10px] text-muted-foreground">{cp.resource_type}</span>

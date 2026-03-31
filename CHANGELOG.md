@@ -15,6 +15,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Sprint K**: DR-BC v2.1 — updated branding, deployment tier naming refresh
 - **Sprint K**: Diagrams README updated with architecture.mmd source reference
 - **Sprint K**: Runbook and component-rationale branding updates
+- Fuzz coverage for Postgres finding hydration, Trivy K8s parsing, secret scanning, terminal command validation, AI enrichment parsing, and attack-path prompt construction
+- Deterministic `extractIPsFromText` regression coverage for AI enrichment helpers
 
 ### Changed
 
@@ -43,6 +45,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - ViewBox regression test assertions added to ProviderBadge test suite
 - QA iteration 2: Vec capacity UB, edge_type passthrough, 64MB FFI input cap, serialization limit (Sprint I+4)
 - QA iteration 3: C.int truncation fix, staticlib for deployment, strip_prefix ID renumbering (Sprint I+4)
+- Attack-path prompt sanitization now NFKC-normalizes input, strips control/format characters, normalizes non-ASCII spaces, and sanitizes edge labels plus MITRE tactics before model prompt assembly
+- Added regression coverage for `gzipResponseWriter` flush/hijack delegation and documented that the deferred D12 note was stale
 
 ### Changed
 

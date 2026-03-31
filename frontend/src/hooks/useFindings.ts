@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient, ApiError, unwrapPaginated } from '@/lib/api'
+import { apiClient, ApiError, isMockFallbackEnabled, unwrapPaginated } from '@/lib/api'
 import type { Finding } from '@/types/compliance'
 
 const R2_FINDINGS_URL =
@@ -60,8 +60,7 @@ async function fetchFindings(filters?: { severity?: string; provider?: string; s
     return { data, usingMockData: false }
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
-    // In production builds, do not silently fall back to mock data (except DEMO_MODE)
-    if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'true') throw err
+    if (!isMockFallbackEnabled()) throw err
     console.warn('[useFindings] API unavailable, using mock data')
     const data = await fetchMockFindings()
     return { data, usingMockData: true }
@@ -144,7 +143,7 @@ export function useFindingsStats() {
         return await apiClient.get<FindingsStats>('/findings/stats')
       } catch (err) {
         if (err instanceof ApiError && err.status < 500) throw err
-        if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'true') throw err
+        if (!isMockFallbackEnabled()) throw err
         return null
       }
     },
@@ -164,7 +163,7 @@ export function useFinding(id: string) {
         return await apiClient.get<Finding>(`/findings/${id}`)
       } catch (err) {
         if (err instanceof ApiError && err.status < 500) throw err
-        if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'true') throw err
+        if (!isMockFallbackEnabled()) throw err
         console.warn('[useFinding] API unavailable, using mock data')
         const findings = await fetchMockFindings()
         return findings.find((f) => f.id === id) ?? null

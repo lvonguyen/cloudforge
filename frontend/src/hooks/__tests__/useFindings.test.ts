@@ -24,6 +24,8 @@ vi.mock('@/lib/api', () => {
   return {
     ApiError: MockApiError,
     apiClient: client,
+    isMockFallbackEnabled: () =>
+      import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.VITE_ENABLE_MOCK_FALLBACK === 'true',
     unwrapPaginated: <T>(response: T[] | { data: T[] }): T[] => {
       if (Array.isArray(response)) return response
       return response.data
@@ -92,6 +94,7 @@ describe('useFindings', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllEnvs()
   })
 
   it('returns loading state initially', () => {
@@ -131,6 +134,7 @@ describe('useFindings', () => {
   })
 
   it('falls back to mock data when API returns 500', async () => {
+    vi.stubEnv('VITE_ENABLE_MOCK_FALLBACK', 'true')
     vi.mocked(apiClient.get).mockRejectedValue(new ApiError(500, 'Server Error'))
 
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -144,6 +148,15 @@ describe('useFindings', () => {
 
     expect(result.current.data).toBeDefined()
     warnSpy.mockRestore()
+  })
+
+  it('surfaces 500 errors when mock fallback is not enabled', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(new ApiError(500, 'Server Error'))
+
+    const { result } = renderHook(() => useFindings(), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isError).toBe(true))
+
+    expect((result.current.error as ApiError).status).toBe(500)
   })
 
   it('does not suppress 4xx ApiErrors (rethrows them)', async () => {

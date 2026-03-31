@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"compress/gzip"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -105,6 +107,94 @@ func TestGzipMiddleware_NoAcceptEncoding(t *testing.T) {
 	}
 	if rr.Body.String() != echoBody {
 		t.Errorf("body = %q, want %q", rr.Body.String(), echoBody)
+	}
+}
+
+type flushingRecorder struct {
+	*httptest.ResponseRecorder
+	flushed bool
+}
+
+func (r *flushingRecorder) Flush() {
+	r.flushed = true
+}
+
+func TestGzipResponseWriter_FlushDelegates(t *testing.T) {
+	rr := &flushingRecorder{ResponseRecorder: httptest.NewRecorder()}
+	gz := gzip.NewWriter(rr)
+	w := &gzipResponseWriter{ResponseWriter: rr, gw: gz}
+
+	if _, err := w.Write([]byte("stream chunk")); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+
+	w.Flush()
+	if !rr.flushed {
+		t.Fatal("expected underlying ResponseWriter Flush to be called")
+	}
+
+	if err := gz.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+
+	gr, err := gzip.NewReader(rr.Body)
+	if err != nil {
+		t.Fatalf("gzip.NewReader: %v", err)
+	}
+	defer gr.Close()
+
+	body, err := io.ReadAll(gr)
+	if err != nil {
+		t.Fatalf("reading decompressed body: %v", err)
+	}
+	if string(body) != "stream chunk" {
+		t.Fatalf("decompressed body = %q, want %q", string(body), "stream chunk")
+	}
+}
+
+type hijackableRecorder struct {
+	*httptest.ResponseRecorder
+	conn     net.Conn
+	rw       *bufio.ReadWriter
+	hijacked bool
+}
+
+func (r *hijackableRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	r.hijacked = true
+	return r.conn, r.rw, nil
+}
+
+func TestGzipResponseWriter_HijackDelegates(t *testing.T) {
+	client, server := net.Pipe()
+	defer client.Close()
+	defer server.Close()
+
+	rr := &hijackableRecorder{
+		ResponseRecorder: httptest.NewRecorder(),
+		conn:             client,
+		rw:               bufio.NewReadWriter(bufio.NewReader(server), bufio.NewWriter(server)),
+	}
+
+	w := &gzipResponseWriter{ResponseWriter: rr}
+	conn, rw, err := w.Hijack()
+	if err != nil {
+		t.Fatalf("Hijack: %v", err)
+	}
+	if !rr.hijacked {
+		t.Fatal("expected underlying ResponseWriter Hijack to be called")
+	}
+	if conn != client {
+		t.Fatal("Hijack returned unexpected net.Conn")
+	}
+	if rw != rr.rw {
+		t.Fatal("Hijack returned unexpected ReadWriter")
+	}
+}
+
+func TestGzipResponseWriter_HijackUnsupported(t *testing.T) {
+	w := &gzipResponseWriter{ResponseWriter: httptest.NewRecorder()}
+	if _, _, err := w.Hijack(); err == nil {
+		t.Fatal("expected Hijack to fail when the underlying ResponseWriter is not hijackable")
 	}
 }
 

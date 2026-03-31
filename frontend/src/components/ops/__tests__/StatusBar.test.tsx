@@ -36,6 +36,13 @@ describe('StatusBar', () => {
     expect(screen.getByText('2 toxic combos')).toBeInTheDocument()
   })
 
+  it('exposes the summary as an accessible status region', () => {
+    renderWithProviders(<StatusBar {...baseProps} />)
+    expect(
+      screen.getByRole('status', { name: 'Command center status summary' }),
+    ).toBeInTheDocument()
+  })
+
   it('renders date inputs when onDateRangeChange provided', () => {
     const onChange = vi.fn()
     renderWithProviders(
