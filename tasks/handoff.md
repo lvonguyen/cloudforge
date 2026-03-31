@@ -361,10 +361,10 @@ Use this file as the shared climbing board for all security-graph work. Before s
 
 ### GitHub CI Watch (refreshed 2026-03-31)
 
-- Last completed failed GitHub Actions `CI` run on `origin/main` was commit `757d046d0ed85ee5a32a3b1052bdf1e384f603b1` (run `23779386815`, 2026-03-31T03:43:18Z).
-  - `Lint` failed with 7 repo-wide issues across `internal/secgraph/materialize.go`, `cmd/server/handlers_attackpath.go`, `internal/secgraph/issue_queries.go`, `internal/secgraph/store.go`, `internal/secgraph/queries.go`, and `cmd/server/handlers_issues.go`.
-  - `Frontend Checks` failed in Playwright smoke on the viewer role switcher, waiting for stale label text `Demo Viewer — All Modules`.
-- Local verification on the current branch: `frontend/e2e/role-switcher.spec.ts` passes against `Viewer — Read-Only Ops`, so the prior Playwright failure is stale relative to the current role-switcher copy.
+- Latest completed failed GitHub Actions `CI` run on `origin/main` is commit `ac8205a30427c2631f084ffce28d244419388016` (run `23779521389`, 2026-03-31T03:49:09Z).
+  - `Lint` failed again with the repo-wide lint backlog (same buckets as the prior run: `exhaustive`, `goconst`, `gosec`, `ineffassign`, `revive`; see `internal/secgraph/materialize.go`, `cmd/server/handlers_attackpath.go`, `internal/secgraph/issue_queries.go`, `internal/secgraph/store.go`, `internal/secgraph/queries.go`, and `cmd/server/handlers_issues.go`).
+  - `Frontend Checks` failed in Playwright smoke on the viewer role switcher, timing out while waiting for stale label text `Demo Viewer — All Modules`.
+- Local verification against the current worktree: `npx playwright test e2e/role-switcher.spec.ts --reporter=line` passes against `Viewer — Read-Only Ops`, so the current remote Playwright failure is stale relative to the in-flight role-switcher spec update.
 
 ### Provisional Recommendation
 
