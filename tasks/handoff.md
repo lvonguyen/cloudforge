@@ -456,6 +456,9 @@ Session 32 was a security hardening + QA sprint:
 
 ### Imported Deferred Backlog (migrated from `TODO-DEFERRED.md` on 2026-03-30)
 
+- Exit gate for the high-value deferred track:
+  - after the high-value items are implemented, run `/qa-visual` against production and click through the completed surfaces end to end to verify polish, interaction quality, and functional correctness before closing the track
+
 - [ ] `D1` Center-pane topology view
   - `frontend/src/pages/ops/CommandCenter.tsx` already ships the treemap half of the original treemap/topology ask; the remaining gap is a true topology view and cleaned-up view switching.
 - [ ] `D2` Temporal scrubber + playback controls
@@ -475,8 +478,8 @@ Session 32 was a security hardening + QA sprint:
   - `frontend/src/pages/portal/Request.tsx` is still large and worth decomposing; the `PolicyDetail.tsx` portion of the old note is stale because the current file is `frontend/src/pages/admin/PolicyDetail.tsx` at a much smaller size.
 - [x] `D11` Vite manual chunks
 - [x] `D12` `gzipResponseWriter` interface forwarding
-- [ ] `D13` Extract `pathToFlow` JSX from `useMemo`
-  - Still open in `frontend/src/pages/ops/CommandCenter.tsx`.
+- [x] `D13` Extract `pathToFlow` JSX from `useMemo`
+  - Fixed 2026-03-30 via `frontend/src/components/ops/AttackPathFlow.tsx` + `frontend/src/pages/ops/CommandCenter.tsx`; conversion logic now lives in a dedicated helper/component file with no behavior change.
 - [x] `D14` Attack-path O(1) lookup
   - Shipped via `PathsByID` in `cmd/server/handlers_attackpath.go`.
 - [x] `D15` OPA fail-open to fail-closed
@@ -484,6 +487,36 @@ Session 32 was a security hardening + QA sprint:
 - [ ] `D17` OPA string literal cleanup in `cmd/server/handlers_api.go`
 - [ ] `D18` Global light/dark/auto theme follow-up
   - Partially superseded: the app already has a global `ThemeToggle`, and Attack Paths already has its local Auto/Light/Dark canvas tone control. The remaining work is global Auto-mode behavior plus a full light-mode readability audit across the app.
+- [ ] `D19` Seed full findings corpus into Fly.io Postgres
+  - Context: the Fly Postgres addon and seed pipeline exist (`scripts/aegis-seed.mjs` + `scripts/seed-postgres.mjs`), but the full corpus has not yet been streamed into Fly Postgres and switched live via `FINDINGS_SOURCE=postgres`.
+  - Expected steps:
+    - get the Fly Postgres connection string for `cloudforge-db`
+    - generate the full seed locally with `node scripts/aegis-seed.mjs --full`
+    - stream it into Fly Postgres with `node scripts/seed-postgres.mjs`
+    - set `FINDINGS_SOURCE=postgres` on the Fly app
+    - validate API health, startup graph backfill, and attack-path/secgraph behavior against the Fly-hosted dataset
+  - Guardrail: check Fly Postgres sizing first; 300K findings plus `graph_edges` backfill may require capacity tuning.
+- [ ] `D20` Wiz-parity investigation + remediation polish
+  - Context: WG-E readability shipped a lighter canvas and local tone control, but the broader analyst-facing investigation/remediation experience is still behind the reviewed Wiz demo.
+  - Investigation Board / graph UX scope:
+    - richer node/icon treatment and denser path context
+    - stronger analyst-oriented detail rail / path explanation
+    - clearer blast-radius, entry-point, and target emphasis
+    - hierarchical / analyst-friendly layout and visual hierarchy closer to the reviewed demo
+    - cleaner directional edge labels and grouping where appropriate
+  - Finding / remediation detail scope:
+    - inline “part of N attack paths” and timeline context
+    - structured remediation step rendering
+    - better compliance-mapping presentation
+    - stronger SLA / due-date visualization
+  - Guardrail: preserve Cloudforge branding and avoid copying vendor UI verbatim.
+  - Likely touchpoints:
+    - `frontend/src/pages/ops/AttackPaths.tsx`
+    - `frontend/src/pages/ops/Investigations.tsx`
+    - `frontend/src/pages/ops/FindingDetail.tsx`
+    - `frontend/src/components/attack-path/AttackPathMiniGraph.tsx`
+    - `frontend/src/components/ops/EntityDetailPanel.tsx`
+    - `frontend/src/components/ops/BaseGraphView.tsx`
 
 ### ACCEPT (no fix needed)
 

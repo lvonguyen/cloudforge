@@ -5,9 +5,6 @@ import {
   Controls,
   MiniMap,
   type Node,
-  type Edge,
-  Position,
-  MarkerType,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import {
@@ -22,6 +19,7 @@ import { StatusBar } from '@/components/ops/StatusBar'
 import { FindingsSummaryChart } from '@/components/ops/FindingsSummaryChart'
 import { FindingsTreemap } from '@/components/ops/FindingsTreemap'
 import { ShortcutOverlay } from '@/components/ops/ShortcutOverlay'
+import { pathToFlow } from '@/components/ops/AttackPathFlow'
 import { useFindings } from '@/hooks/useFindings'
 import { useAttackPaths, useAttackPathStats } from '@/hooks/useAttackPaths'
 import { useRemediations } from '@/hooks/useRemediations'
@@ -36,60 +34,6 @@ import {
 } from 'lucide-react'
 import type { AttackPath } from '@/types/attack-path'
 import type { Finding } from '@/types/compliance'
-
-// ---------------------------------------------------------------------------
-// Attack path → ReactFlow conversion
-// ---------------------------------------------------------------------------
-
-function pathToFlow(path: AttackPath): { nodes: Node[]; edges: Edge[] } {
-  const nodes: Node[] = path.nodes.map((n, i) => ({
-    id: n.id,
-    position: { x: i * 340, y: 0 },
-    data: {
-      label: (
-        <div className="text-left px-2 py-1">
-          <div className="flex items-center gap-1 mb-0.5">
-            <span className={`text-[10px] font-bold px-1 py-0 ${SEVERITY_COLORS[n.severity] ?? ''}`}>
-              {n.severity}
-            </span>
-            <span className="text-[10px] text-gray-500">{n.category}</span>
-          </div>
-          <div className="text-xs font-medium text-gray-200 truncate max-w-[180px]">
-            {n.resource_name}
-          </div>
-          <div className="text-[11px] text-gray-500">{n.resource_type} · {n.region}</div>
-        </div>
-      ),
-      severity: n.severity,
-      findingId: n.finding_id,
-    },
-    sourcePosition: Position.Right,
-    targetPosition: Position.Left,
-    style: {
-      border: `2px solid ${SEVERITY_HEX[n.severity] ?? SEVERITY_NEUTRAL_HEX}`,
-      borderRadius: '0px',
-      background: '#111318',
-      padding: '4px',
-      width: 220,
-      cursor: 'pointer',
-    },
-  }))
-
-  const edges: Edge[] = path.edges.map(e => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    label: e.label,
-    type: 'default',
-    markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-    style: { strokeWidth: 2, stroke: '#374151' },
-    labelStyle: { fontSize: 9, fill: '#6b7280' },
-    labelBgStyle: { fill: '#0a0a0f', fillOpacity: 0.9 },
-    labelBgPadding: [3, 5] as [number, number],
-  }))
-
-  return { nodes, edges }
-}
 
 // ---------------------------------------------------------------------------
 // Compact attack path card (for the grid view)
