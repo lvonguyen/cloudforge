@@ -1,9 +1,9 @@
 # Session Handoff
 
-**Generated:** 2026-03-31T04:50:00Z
+**Generated:** 2026-03-31T05:35:00Z
 **Repo:** cloudforge (Cloud Aegis)
 **Branch:** main
-**Last commit:** `81aaacd8` feat: add finding detail investigation workspaces
+**Recent code commits:** `2c2e363f` remediation provider controls, `6d38c8e1` webhook ticket refresh, `c3d987db` Fly runbook refresh, `f0bf363f` secgraph godoc + D19 preflight
 
 > Coordination note: this file is still the shared climbing board. Before replacing it with a compressed session summary, preserve the deferred / workstream detail from `8e38ca17` and `0ea823f5` (`D19`, `D20`, `D21`, the `/qa-visual -e ensemble` prod exit gate, and the follow-up `docs-audit` gate), or merge those sections back in after the docs session lands.
 
@@ -17,14 +17,18 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - **Docs P0s fixed:** ADR count 19-20, package count 34-45, test count 1474-2146, secgraph added to README + CODEBASE_INDEX, migrations 001-008, stale cicd removed
 - **Codex partial-commit gaps fixed:** Pushed 5 unstaged local commits with missing symbol definitions
 - **Bug found via lint:** Neighborhood CTE unbounded BFS — hops never passed to query. Fixed with WHERE n.depth < $3.
+- **D10 + issues OpenAPI landed:** `e53357b0` split portal request flow into subcomponents and added issues endpoints to `docs/api/openapi.yaml`
+- **Runbook refresh landed:** `c3d987db` updated deployment and teardown docs for the current Fly.io + CF Pages topology
+- **D21 ticket parity slices landed:** `6d38c8e1` refreshes cached remediation tickets from provider webhooks and `2c2e363f` adds frontend provider selection / assignee controls
+- **D19 preflight landed:** `f0bf363f` added `scripts/fly-findings-seed-preflight.mjs` plus secgraph godoc coverage
 
 ## Current State
 
 - **Build:** Go clean, lint 0 issues
 - **Tests:** Go 45 pkg / 2,146 tests pass. Frontend 452/452 vitest.
-- **CI:** 6/6 GREEN on `729ecc2f`. Run on `81aaacd8` in progress.
+- **CI:** other session reported 6/6 GREEN after the latest CI repair sweep
 - **Fly.io:** v59 healthy (sjc)
-- **Uncommitted:** `tasks/handoff.md` only
+- **Uncommitted:** `frontend/src/pages/__tests__/FindingDetail.investigation.test.tsx` only (other session / in-flight finding-detail work)
 - **Stash:** `stash@{0}` — mixed D10/D20 WIP. Has 4 TS errors. Do NOT pop blindly. Recover one file at a time, verify tsc after each.
 - **Open PRs:** None
 
@@ -36,17 +40,18 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - `cmd/server/secgraph_sync.go` — Startup sync: seed controls, materialize issues, reconcile
 - `cmd/server/handlers_issues.go` — Issues CRUD API (tenant-scoped)
 - `cmd/server/handlers_attackpath.go` — Attack path computation
+- `cmd/server/handlers_integration.go` — Remediation ticket create/get/sync/webhook flows
 - `docs/core/diagrams/architecture.mmd` — Light-theme architecture (uses ~~~ for horizontal layout)
-- `frontend/src/pages/portal/Request.tsx` — 836 lines, flagged for D10 decomposition
+- `frontend/src/hooks/useIntegrations.ts` — Frontend ticket flows, cache semantics, demo fallback behavior
+- `scripts/fly-findings-seed-preflight.mjs` — D19 operator preflight for Fly/Postgres findings seed
 
 ## Pending Work
 
 ### P1 — Should Fix
 
-- [ ] `D10` Split `Request.tsx` (836 lines) into subcomponents
-- [ ] Add issues API to OpenAPI spec (`docs/api/openapi.yaml`)
-- [ ] Update deployment runbook — still references torn-down ECS/RDS
-- [ ] Add godoc to 5 secgraph source files
+- [ ] `D19` Seed findings into Fly Postgres
+- [ ] `D20` Wiz-parity polish: findings-nested attack paths, east/west analyst layout, lighter theme, icons/indicators, richer remediation/CVE context
+- [ ] `D21` Complete integration parity beyond Jira/Asana provider controls and webhook refresh
 - [ ] CHANGELOG catch-up (17+ sessions behind)
 
 ### P2 — Backlog
@@ -54,25 +59,21 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - [ ] `D1` Topology view in CommandCenter
 - [ ] `D2` Temporal scrubber + playback
 - [ ] `D8` Accessibility sweep
-- [ ] `D19` Seed findings into Fly Postgres
-- [ ] `D20` Wiz-parity polish (stash has partial WIP)
 - [ ] PuppyGraph multi-hop benchmarks
-- [ ] `WG-D Phase 3` Graph-native attack path traversal
 
 ### Parallel Candidate Claims (2026-03-31)
 
-- In-flight elsewhere right now: `docs/api/openapi.yaml`, `frontend/src/components/ops/EntityDetailPanel.tsx`, `frontend/src/pages/portal/Request.tsx`, `internal/secgraph/materialize.go`, `frontend/src/components/portal/request/*`, `frontend/src/pages/__tests__/FindingDetail.investigation.test.tsx`, and this handoff file. Do not claim a parallel slice that edits those paths unless you are explicitly taking over that workstream.
+- In-flight elsewhere right now: `frontend/src/pages/__tests__/FindingDetail.investigation.test.tsx`, the mixed `stash@{0}` D20 WIP, and this handoff file. Do not claim a parallel slice that edits those paths unless you are explicitly taking over that workstream.
 - Live assignments kicked off 2026-03-31:
-  - `Dirac` -> `P1-docs-runbook`
-  - `Gauss` -> `P1-secgraph-godoc`
-  - `Nash` -> `D21-frontend-provider-controls`
-  - `Herschel` -> `D19-preflight` (read-only)
-  - `Mendel` -> `D21-backend-webhook-parity`
-- Safe parallel slice `P1-docs-runbook`: refresh deployment/runbook docs that still reference torn-down ECS/RDS or stale pre-Fly topology. Keep ownership to docs-only files outside `tasks/handoff.md` and `docs/api/openapi.yaml`.
-- Safe parallel slice `P1-secgraph-godoc`: add package/function godoc coverage to `internal/secgraph/queries.go`, `adjacency.go`, `backfill.go`, `issue_queries.go`, and `store.go`. Avoid `materialize.go` because another session is already editing it.
-- Safe parallel slice `D21-backend-webhook-parity`: continue Jira/Asana backend parity in `cmd/server/handlers_integration.go`, `cmd/server/routes.go`, and `cmd/server/handlers_integration_test.go` only. Focus on webhook/event processing and durable sync semantics; do not expand into frontend remediation UI in the same claim.
-- Safe parallel slice `D21-frontend-provider-controls`: own `frontend/src/hooks/useIntegrations.ts` plus `frontend/src/components/remediation/*` only. Focus on provider selection, assignee input, and removing unconditional demo fallthrough for real ticket flows where safe.
-- Safe parallel slice `D19-preflight`: read-only or script-only prep for Fly/Postgres full findings seed. Good candidates are preflight validation scripts, migration/extension checks, and exact runbook updates. Do not use 1Password/Fly secrets or deploy live as part of this slice without an explicit handoff note.
+  - `Dirac` -> `P1-docs-runbook` -> landed in `c3d987db`
+  - `Gauss` -> `P1-secgraph-godoc` -> landed in `f0bf363f`
+  - `Nash` -> `D21-frontend-provider-controls` -> landed in `2c2e363f`
+  - `Herschel` -> `D19-preflight` (read-only) -> landed in `f0bf363f`
+  - `Mendel` -> `D21-backend-webhook-parity` -> landed in `6d38c8e1`
+  - `Zeno` -> `D20-attackpath-gap-audit` -> in progress / waiting on read-only audit
+- Safe next parallel slice `D19-live-seed-execution`: operator-only runbook / checklist work based on `scripts/fly-findings-seed-preflight.mjs`. Do not use 1Password or live Fly secrets without an explicit handoff note and a clean operator window.
+- Safe next parallel slice `D20-attackpath-visuals`: own `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/*`, and dedicated attack-path tests only. Focus on east/west layout, icons, hop indicators, lighter readability, and embedded remediation/finding context.
+- Safe next parallel slice `D20-finding-detail-shell`: only after explicit takeover of the in-flight finding-detail work. Target `frontend/src/pages/ops/FindingDetail.tsx` plus `frontend/src/components/ops/finding-detail/*` to nest attack path + security graph workspaces under finding detail.
 - Deferred-track closeout gates that must remain on the board:
   - after the high-value deferred items are implemented, run `/qa-visual -e ensemble` against production and click through the completed surfaces end to end before closing the track
   - after the docs / diagrams session lands and the render outputs are stable, run `docs-audit` again before closing the track
@@ -95,6 +96,10 @@ gh run list --limit 1
 # D10: split Request.tsx
 wc -l frontend/src/pages/portal/Request.tsx
 
-# Or: OpenAPI update
-# GET /api/v1/issues, GET /api/v1/issues/{id}, PATCH /api/v1/issues/{id}, GET /api/v1/issues/stats
+# D19 preflight
+node scripts/fly-findings-seed-preflight.mjs --json
+
+# Deferred-track exit gates
+# /qa-visual -e ensemble
+# docs-audit
 ```
