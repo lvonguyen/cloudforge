@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient, ApiError } from '@/lib/api'
+import { apiClient, ApiError, isMockFallbackEnabled } from '@/lib/api'
 import { useToast } from '@/hooks/useToast'
 import type { TicketComment, TicketSyncResult } from '@/types/remediation'
 
@@ -31,6 +31,14 @@ interface RemediateResponse {
   workflow_id?: string
 }
 
+interface RemediateFindingInput {
+  findingId: string
+  severity?: string
+  isChokePoint?: boolean
+  assignee?: string
+  provider?: string
+}
+
 const MOCK_TICKET: Ticket = {
   id: 'tkt-mock-001',
   external_id: 'MOCK-a1b2c3d4',
@@ -45,29 +53,69 @@ const MOCK_TICKET: Ticket = {
   updated_at: '2026-03-18T10:00:00Z',
 }
 
+function normalizeProvider(provider?: string): string | undefined {
+  const normalized = provider?.trim().toLowerCase()
+  return normalized ? normalized : undefined
+}
+
+function mockExternalId(provider: string): string {
+  const suffix = Math.random().toString(36).slice(2, 8).toUpperCase()
+  switch (provider) {
+    case 'jira':
+      return `JIRA-${suffix}`
+    case 'asana':
+      return `ASANA-${suffix}`
+    case 'servicenow':
+      return `SNOW-${suffix}`
+    case 'ado':
+      return `ADO-${suffix}`
+    default:
+      return `MOCK-${suffix}`
+  }
+}
+
 export function useRemediateFinding() {
   const qc = useQueryClient()
   const { toast } = useToast()
   return useMutation({
-    mutationFn: async ({ findingId, severity, isChokePoint }: {
-      findingId: string
-      severity: string
-      isChokePoint?: boolean
-    }) => {
+    mutationFn: async ({ findingId, severity, isChokePoint, assignee, provider }: RemediateFindingInput) => {
+      const cachedFinding = qc.getQueryData<{ severity?: string } | null>(['findings', findingId])
+      const normalizedProvider = normalizeProvider(provider)
+      const effectiveSeverity = severity ?? cachedFinding?.severity ?? 'MEDIUM'
+
       if (import.meta.env.VITE_DEMO_MODE === 'true') {
+        const ticketProvider = normalizedProvider ?? 'mock'
         return {
-          ticket: { ...MOCK_TICKET, finding_id: findingId, title: `Remediate ${findingId}` },
-          routing: { priority: severity === 'CRITICAL' ? 'P1' : 'P2', team: 'security-ops', sla_hours: severity === 'CRITICAL' ? 4 : 24, reason: 'Auto-routed' },
+          ticket: {
+            ...MOCK_TICKET,
+            external_id: mockExternalId(ticketProvider),
+            provider: ticketProvider,
+            finding_id: findingId,
+            title: `Remediate ${findingId}`,
+            assignee: assignee?.trim() || MOCK_TICKET.assignee,
+            metadata: {
+              requested_provider: ticketProvider,
+              requested_assignee: assignee?.trim() || '',
+            },
+          },
+          routing: {
+            priority: effectiveSeverity === 'CRITICAL' ? 'P1' : 'P2',
+            team: 'security-ops',
+            sla_hours: effectiveSeverity === 'CRITICAL' ? 4 : 24,
+            reason: normalizedProvider ? `Auto-routed to ${normalizedProvider}` : 'Auto-routed',
+          },
         } as RemediateResponse
       }
       return apiClient.post<RemediateResponse>(`/findings/${findingId}/remediate`, {
-        severity,
+        severity: effectiveSeverity,
         is_choke_point: isChokePoint ?? false,
+        assignee: assignee?.trim() || undefined,
+        provider: normalizedProvider,
       })
     },
     onSuccess: (data, variables) => {
       void qc.invalidateQueries({ queryKey: ['findings', variables.findingId] })
-      void qc.invalidateQueries({ queryKey: ['ticket', variables.findingId] })
+      qc.setQueryData(['ticket', variables.findingId], data.ticket)
       const url = data.ticket.url
       toast(url ? `Ticket created: ${data.ticket.external_id}` : 'Ticket created', 'success')
     },
@@ -85,6 +133,9 @@ export function useFindingTicket(findingId: string) {
   return useQuery({
     queryKey: ['ticket', findingId],
     queryFn: async () => {
+      if (import.meta.env.VITE_DEMO_MODE === 'true') {
+        return { ...MOCK_TICKET, finding_id: findingId } as Ticket
+      }
       try {
         return await apiClient.get<Ticket>(`/findings/${findingId}/ticket`)
       } catch (err) {
@@ -119,10 +170,14 @@ export function useTicketComments(findingId: string) {
   return useQuery({
     queryKey: ['ticket-comments', findingId],
     queryFn: async () => {
+      if (import.meta.env.VITE_DEMO_MODE === 'true') {
+        return MOCK_COMMENTS
+      }
       try {
         return await apiClient.get<TicketComment[]>(`/findings/${findingId}/ticket/comments`)
       } catch (err) {
         if (err instanceof ApiError && err.status < 500) throw err
+        if (!isMockFallbackEnabled()) return []
         console.warn('[useTicketComments] API unavailable, using mock data')
         return MOCK_COMMENTS
       }
@@ -149,8 +204,11 @@ export function useAddTicketComment(findingId: string) {
       }
       return apiClient.post<TicketComment>(`/findings/${findingId}/ticket/comments`, { body })
     },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['ticket-comments', findingId] })
+    onSuccess: (comment) => {
+      qc.setQueryData<TicketComment[]>(['ticket-comments', findingId], (current) => {
+        const existing = current ?? []
+        return [...existing, comment]
+      })
     },
     onError: (err: Error) => {
       if (err instanceof ApiError && err.status === 403) {
@@ -176,8 +234,15 @@ export function useSyncTicketStatus(findingId: string) {
       }
       return apiClient.post<TicketSyncResult>(`/findings/${findingId}/ticket/sync`, {})
     },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['ticket', findingId] })
+    onSuccess: (result) => {
+      qc.setQueryData<Ticket | null>(['ticket', findingId], (current) => {
+        if (!current) return current
+        return {
+          ...current,
+          status: result.status,
+          updated_at: result.synced_at,
+        }
+      })
       toast('Ticket status synced')
     },
     onError: (err: Error) => {

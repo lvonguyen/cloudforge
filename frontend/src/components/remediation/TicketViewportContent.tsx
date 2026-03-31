@@ -88,6 +88,8 @@ export function TicketViewportContent({ findingId, className }: TicketViewportCo
   const [commentBody, setCommentBody] = useState('')
 
   const sla = ticket ? computeSlaCountdown(ticket.created_at, ticket.priority) : null
+  const requestedAssignee = ticket?.metadata?.requested_assignee?.trim() || undefined
+  const displayAssignee = ticket?.assignee ?? requestedAssignee ?? 'Unassigned'
 
   return (
     <div className={className}>
@@ -140,8 +142,13 @@ export function TicketViewportContent({ findingId, className }: TicketViewportCo
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Assignee</p>
                   <div className="flex items-center gap-1 mt-0.5">
                     <User className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-sm font-medium">{ticket.assignee ?? 'Unassigned'}</span>
+                    <span className="text-sm font-medium">{displayAssignee}</span>
                   </div>
+                  {!ticket.assignee && requestedAssignee && (
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      Requested during ticket creation
+                    </p>
+                  )}
                 </div>
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide">External ID</p>
