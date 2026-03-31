@@ -91,6 +91,7 @@ These variables control which provider implementation each subsystem uses. All d
 | Variable | Default | Required | Description |
 |----------|---------|----------|-------------|
 | `PUPPYGRAPH_URL` | *(empty)* | No | PuppyGraph endpoint URL. Enables graph query proxy |
+| `SECGRAPH_AUTO_TICKETS` | `false` | No | Automatically create routed tickets for newly materialized secgraph issues during startup sync when PostgreSQL is enabled |
 
 ## WebSocket / SSE
 

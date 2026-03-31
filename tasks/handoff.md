@@ -161,18 +161,27 @@ Use this file as the shared climbing board for all security-graph work. Before s
     - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestPostgresFindingRow|TestParseFindingEnrichment|TestAttackPaths_|TestSyncSecurityGraphWithStore|TestToComplianceFinding' -count=1`
     - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph ./internal/compliance -count=1`
 
+- `WG-C Phase 2: Issue ticket dispatch integration` — completed 2026-03-31 (codex)
+  - Scope completed: preserve existing secgraph issue ticket metadata during startup rematerialization, optionally auto-create tickets for unticketed issues through the existing integrations provider/router path, and persist ticket metadata with the issue rows
+  - Output files:
+    - `cmd/server/secgraph_sync.go`
+    - `cmd/server/secgraph_sync_test.go`
+    - `cmd/server/main.go`
+    - `docs/core/configuration-reference.md`
+  - Guardrail: automatic ticket creation is gated behind `SECGRAPH_AUTO_TICKETS=true`; existing ticket metadata is still hydrated even when auto-dispatch is disabled
+  - Verification:
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestSyncSecurityGraphWithStore|TestSyncSecurityGraphWithStoreAndDispatcher|TestSecgraphTicketDispatcher|TestSecgraphAutoTicketsEnabled|TestToComplianceFinding|TestRemediateFinding|TestGetFindingTicket' -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph ./internal/compliance ./internal/integrations -count=1`
+
 ### In Flight
 
-- `WG-C Phase 2: Issue ticket dispatch integration` — in progress 2026-03-31 (codex)
-  - Scope claimed: preserve existing secgraph issue ticket metadata during startup rematerialization and dispatch tickets for unticketed issues using the existing integrations provider/router path
-  - Write scope: `cmd/server/secgraph_sync.go`, `cmd/server/secgraph_sync_test.go`, `cmd/server/main.go`, `tasks/handoff.md`
-  - Coordination: avoiding frontend and live graph API files; this slice stays in startup/secgraph/integrations glue only
+(none currently)
 
 ### Pending
 
 - `WG-C Phase 2: Control evaluation + Issue pipeline`
-  - Ticket dispatch integration
   - Optional follow-up: promote startup sync into incremental ingestion-time writes instead of startup-only materialization
+  - Optional follow-up: broaden auto-dispatch policy beyond startup and add issue-level read/write APIs if secgraph issues become a first-class operator surface
   - Likely touchpoints: `internal/secgraph/`, `internal/compliance/`, `cmd/server/handlers_*.go`
 
 - `WG-D: Live graph query/API path`

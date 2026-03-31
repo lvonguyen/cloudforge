@@ -302,6 +302,18 @@ func TestSecgraphTicketDispatcher_CreatesTicketForUnticketedIssue(t *testing.T) 
 	}
 }
 
+func TestSecgraphAutoTicketsEnabled(t *testing.T) {
+	t.Setenv("SECGRAPH_AUTO_TICKETS", "true")
+	if !secgraphAutoTicketsEnabled() {
+		t.Fatal("expected SECGRAPH_AUTO_TICKETS=true to enable auto ticket dispatch")
+	}
+
+	t.Setenv("SECGRAPH_AUTO_TICKETS", "false")
+	if secgraphAutoTicketsEnabled() {
+		t.Fatal("expected SECGRAPH_AUTO_TICKETS=false to disable auto ticket dispatch")
+	}
+}
+
 func TestToComplianceFinding_ParsesOptionalFields(t *testing.T) {
 	now := time.Date(2026, 3, 31, 15, 0, 0, 0, time.UTC)
 	cvss := 9.8
