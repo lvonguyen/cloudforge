@@ -12,11 +12,17 @@ import (
 )
 
 type stubIssueQuerier struct {
-	listFunc    func(ctx context.Context, params secgraph.IssueListParams) (*secgraph.IssueListResult, error)
-	getFunc     func(ctx context.Context, tenantID, issueID string) (*secgraph.IssueDetail, error)
-	listParams  secgraph.IssueListParams
-	getTenantID string
-	getIssueID  string
+	listFunc       func(ctx context.Context, params secgraph.IssueListParams) (*secgraph.IssueListResult, error)
+	getFunc        func(ctx context.Context, tenantID, issueID string) (*secgraph.IssueDetail, error)
+	updateFunc     func(ctx context.Context, tenantID, issueID string, update secgraph.IssueUpdate) (*secgraph.Issue, error)
+	issueStatsFunc func(ctx context.Context, tenantID string) (*secgraph.IssueStats, error)
+	listParams     secgraph.IssueListParams
+	getTenantID    string
+	getIssueID     string
+	updateTenantID string
+	updateIssueID  string
+	updateBody     secgraph.IssueUpdate
+	statsTenantID  string
 }
 
 func (s *stubIssueQuerier) ListIssues(ctx context.Context, params secgraph.IssueListParams) (*secgraph.IssueListResult, error) {
@@ -36,8 +42,14 @@ func (s *stubIssueQuerier) GetIssue(ctx context.Context, tenantID, issueID strin
 	return s.getFunc(ctx, tenantID, issueID)
 }
 
-func (s *stubIssueQuerier) UpdateIssue(_ context.Context, _ string, _ secgraph.IssueUpdate) (*secgraph.Issue, error) {
-	return nil, nil
+func (s *stubIssueQuerier) UpdateIssue(ctx context.Context, tenantID, issueID string, update secgraph.IssueUpdate) (*secgraph.Issue, error) {
+	s.updateTenantID = tenantID
+	s.updateIssueID = issueID
+	s.updateBody = update
+	if s.updateFunc == nil {
+		return nil, nil
+	}
+	return s.updateFunc(ctx, tenantID, issueID, update)
 }
 
 func (s *stubIssueQuerier) Neighborhood(_ context.Context, _ secgraph.NodeType, _ string, _ int, _ int) (*secgraph.GraphQueryResult, error) {
@@ -48,8 +60,12 @@ func (s *stubIssueQuerier) Stats(_ context.Context) (*secgraph.GraphStats, error
 	return &secgraph.GraphStats{}, nil
 }
 
-func (s *stubIssueQuerier) IssueStats(_ context.Context) (*secgraph.IssueStats, error) {
-	return &secgraph.IssueStats{}, nil
+func (s *stubIssueQuerier) IssueStats(ctx context.Context, tenantID string) (*secgraph.IssueStats, error) {
+	s.statsTenantID = tenantID
+	if s.issueStatsFunc == nil {
+		return &secgraph.IssueStats{}, nil
+	}
+	return s.issueStatsFunc(ctx, tenantID)
 }
 
 func TestIssuesEndpointsRequireAuth(t *testing.T) {
@@ -282,4 +298,84 @@ func TestGetIssueReturnsDetail(t *testing.T) {
 	if detail.Issue.ID != "iss-3" || detail.Issue.ControlTitle == "" || len(detail.FindingIDs) != 2 {
 		t.Fatalf("unexpected issue detail: %+v", detail)
 	}
+}
+
+func TestUpdateIssuePropagatesTenant(t *testing.T) {
+	srv, router := testServer(t)
+	srv.graphQuerier = &stubIssueQuerier{
+		updateFunc: func(_ context.Context, tenantID, issueID string, update secgraph.IssueUpdate) (*secgraph.Issue, error) {
+			if tenantID != defaultSecgraphTenantID {
+				t.Fatalf("tenant_id = %q, want %q", tenantID, defaultSecgraphTenantID)
+			}
+			if issueID != "iss-4" {
+				t.Fatalf("issue_id = %q, want iss-4", issueID)
+			}
+			if update.Status == nil || *update.Status != secgraph.IssueResolved {
+				t.Fatalf("status = %+v, want RESOLVED", update.Status)
+			}
+			return &secgraph.Issue{
+				ID:       issueID,
+				Status:   secgraph.IssueResolved,
+				TenantID: tenantID,
+			}, nil
+		},
+	}
+
+	rr := doRequest(t, router, "PATCH", "/api/v1/issues/iss-4", `{"status":"RESOLVED"}`, operatorJWT(t))
+	assertStatus(t, rr, http.StatusOK)
+
+	querier := srv.graphQuerier.(*stubIssueQuerier)
+	if querier.updateTenantID != defaultSecgraphTenantID {
+		t.Fatalf("captured tenant_id = %q, want %q", querier.updateTenantID, defaultSecgraphTenantID)
+	}
+	if querier.updateIssueID != "iss-4" {
+		t.Fatalf("captured issue_id = %q, want iss-4", querier.updateIssueID)
+	}
+	if querier.updateBody.Status == nil || *querier.updateBody.Status != secgraph.IssueResolved {
+		t.Fatalf("captured update = %+v, want RESOLVED status", querier.updateBody)
+	}
+}
+
+func TestIssueStatsPropagatesTenant(t *testing.T) {
+	srv, router := testServer(t)
+	srv.graphQuerier = &stubIssueQuerier{
+		issueStatsFunc: func(_ context.Context, tenantID string) (*secgraph.IssueStats, error) {
+			if tenantID != defaultSecgraphTenantID {
+				t.Fatalf("tenant_id = %q, want %q", tenantID, defaultSecgraphTenantID)
+			}
+			return &secgraph.IssueStats{
+				BySeverity: map[string]int{"CRITICAL": 2},
+				ByStatus:   map[string]int{"OPEN": 2},
+				ByProvider: map[string]int{"aws": 2},
+				Total:      2,
+				OpenCount:  2,
+			}, nil
+		},
+	}
+
+	rr := doRequest(t, router, "GET", "/api/v1/issues/stats", "", viewerJWT(t))
+	assertStatus(t, rr, http.StatusOK)
+
+	querier := srv.graphQuerier.(*stubIssueQuerier)
+	if querier.statsTenantID != defaultSecgraphTenantID {
+		t.Fatalf("captured tenant_id = %q, want %q", querier.statsTenantID, defaultSecgraphTenantID)
+	}
+}
+
+func TestIssueStatsScopedUserForbidden(t *testing.T) {
+	srv, router := testServer(t)
+	srv.graphQuerier = &stubIssueQuerier{}
+
+	jwt := makeJWT(t, api.Claims{
+		Subject: "scoped-viewer",
+		Email:   "viewer@contoso.dev",
+		Groups:  []string{"aegis-viewer"},
+		Scope:   "viewer",
+		ResourceScope: &api.ResourceScope{
+			AccountIDs: []string{"acc-1"},
+		},
+	})
+
+	rr := doRequest(t, router, "GET", "/api/v1/issues/stats", "", jwt)
+	assertStatus(t, rr, http.StatusForbidden)
 }

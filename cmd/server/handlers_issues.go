@@ -146,9 +146,12 @@ func (s *Server) handleUpdateIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	span.SetAttributes(attribute.String("issues.id", id))
+	span.SetAttributes(
+		attribute.String("issues.id", id),
+		attribute.String("tenant.id", issueTenantID(r)),
+	)
 
-	updated, err := iq.UpdateIssue(ctx, id, update)
+	updated, err := iq.UpdateIssue(ctx, issueTenantID(r), id, update)
 	if err != nil {
 		s.logger.Warn("update issue failed", zap.String("id", id), zap.Error(err))
 		writeErrorResponse(w, "failed to update issue", http.StatusInternalServerError)
@@ -175,7 +178,9 @@ func (s *Server) handleIssueStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stats, err := iq.IssueStats(ctx)
+	span.SetAttributes(attribute.String("tenant.id", issueTenantID(r)))
+
+	stats, err := iq.IssueStats(ctx, issueTenantID(r))
 	if err != nil {
 		s.logger.Warn("issue stats failed", zap.Error(err))
 		writeErrorResponse(w, "failed to get issue stats", http.StatusInternalServerError)

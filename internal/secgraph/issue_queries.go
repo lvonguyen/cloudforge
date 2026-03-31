@@ -65,8 +65,8 @@ type IssueUpdate struct {
 type IssueQuerier interface {
 	ListIssues(ctx context.Context, params IssueListParams) (*IssueListResult, error)
 	GetIssue(ctx context.Context, tenantID, id string) (*IssueDetail, error)
-	UpdateIssue(ctx context.Context, id string, update IssueUpdate) (*Issue, error)
-	IssueStats(ctx context.Context) (*IssueStats, error)
+	UpdateIssue(ctx context.Context, tenantID, id string, update IssueUpdate) (*Issue, error)
+	IssueStats(ctx context.Context, tenantID string) (*IssueStats, error)
 }
 
 // Ensure PostgresQuerier implements IssueQuerier.
@@ -129,7 +129,7 @@ func (q *PostgresQuerier) GetIssue(ctx context.Context, tenantID, id string) (*I
 }
 
 // UpdateIssue applies partial updates to an issue and returns the updated row.
-func (q *PostgresQuerier) UpdateIssue(ctx context.Context, id string, update IssueUpdate) (*Issue, error) {
+func (q *PostgresQuerier) UpdateIssue(ctx context.Context, tenantID, id string, update IssueUpdate) (*Issue, error) {
 	var setClauses []string
 	var args []interface{}
 	argN := 1
@@ -170,9 +170,12 @@ func (q *PostgresQuerier) UpdateIssue(ctx context.Context, id string, update Iss
 	args = append(args, time.Now().UTC())
 	argN++
 
-	args = append(args, id)
-	query := fmt.Sprintf("UPDATE issues SET %s WHERE id = $%d RETURNING id, title, description, severity, risk_score, blast_radius, status, COALESCE(control_id,''), COALESCE(resource_id,''), COALESCE(account_id,''), COALESCE(provider,''), COALESCE(assignee_id,''), COALESCE(ticket_id,''), COALESCE(ticket_url,''), sla_breach_at, exposure_paths, tenant_id, created_at, updated_at, resolved_at",
-		strings.Join(setClauses, ", "), argN)
+	if tenantID == "" {
+		tenantID = "default"
+	}
+	args = append(args, id, tenantID)
+	query := fmt.Sprintf("UPDATE issues SET %s WHERE id = $%d AND tenant_id = $%d RETURNING id, title, description, severity, risk_score, blast_radius, status, COALESCE(control_id,''), COALESCE(resource_id,''), COALESCE(account_id,''), COALESCE(provider,''), COALESCE(assignee_id,''), COALESCE(ticket_id,''), COALESCE(ticket_url,''), sla_breach_at, exposure_paths, tenant_id, created_at, updated_at, resolved_at",
+		strings.Join(setClauses, ", "), argN, argN+1)
 
 	var iss Issue
 	err := q.db.QueryRowContext(ctx, query, args...).Scan(
@@ -193,7 +196,10 @@ func (q *PostgresQuerier) UpdateIssue(ctx context.Context, id string, update Iss
 }
 
 // IssueStats returns aggregate counts by severity, status, and provider.
-func (q *PostgresQuerier) IssueStats(ctx context.Context) (*IssueStats, error) {
+func (q *PostgresQuerier) IssueStats(ctx context.Context, tenantID string) (*IssueStats, error) {
+	if tenantID == "" {
+		tenantID = "default"
+	}
 	stats := &IssueStats{
 		BySeverity: make(map[string]int),
 		ByStatus:   make(map[string]int),
@@ -202,7 +208,7 @@ func (q *PostgresQuerier) IssueStats(ctx context.Context) (*IssueStats, error) {
 
 	// Severity counts
 	sevRows, err := q.db.QueryContext(ctx,
-		`SELECT severity, COUNT(*) FROM issues GROUP BY severity`)
+		`SELECT severity, COUNT(*) FROM issues WHERE tenant_id = $1 GROUP BY severity`, tenantID)
 	if err != nil {
 		return stats, nil
 	}
@@ -218,7 +224,7 @@ func (q *PostgresQuerier) IssueStats(ctx context.Context) (*IssueStats, error) {
 
 	// Status counts
 	statRows, err := q.db.QueryContext(ctx,
-		`SELECT status, COUNT(*) FROM issues GROUP BY status`)
+		`SELECT status, COUNT(*) FROM issues WHERE tenant_id = $1 GROUP BY status`, tenantID)
 	if err != nil {
 		return stats, nil
 	}
@@ -236,7 +242,7 @@ func (q *PostgresQuerier) IssueStats(ctx context.Context) (*IssueStats, error) {
 
 	// Provider counts
 	provRows, err := q.db.QueryContext(ctx,
-		`SELECT COALESCE(provider,'unknown'), COUNT(*) FROM issues GROUP BY provider`)
+		`SELECT COALESCE(provider,'unknown'), COUNT(*) FROM issues WHERE tenant_id = $1 GROUP BY provider`, tenantID)
 	if err != nil {
 		return stats, nil
 	}
@@ -251,7 +257,7 @@ func (q *PostgresQuerier) IssueStats(ctx context.Context) (*IssueStats, error) {
 
 	// SLA breach count
 	_ = q.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM issues WHERE sla_breach_at IS NOT NULL AND sla_breach_at < NOW() AND status != 'RESOLVED'`).
+		`SELECT COUNT(*) FROM issues WHERE tenant_id = $1 AND sla_breach_at IS NOT NULL AND sla_breach_at < NOW() AND status != 'RESOLVED'`, tenantID).
 		Scan(&stats.SLABreachCount)
 
 	return stats, nil

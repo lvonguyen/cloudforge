@@ -199,6 +199,17 @@ Use this file as the shared climbing board for all security-graph work. Before s
     - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestIssuesEndpointsRequireAuth|TestIssuesEndpointsRequesterForbidden|TestListIssuesNotConfigured|TestListIssuesPropagatesFiltersAndScope|TestListIssuesRejectsInvalidTicketedFilter|TestGetIssueNotFound|TestGetIssueEnforcesScope|TestGetIssueReturnsDetail' -count=1`
     - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -count=1`
 
+- `WG-C Follow-up: Issue stats/update tenant hardening` — completed 2026-03-30 (codex)
+  - Scope completed: tenant-aware issue patch and aggregate stats operations so the secgraph issue surface is consistent beyond list/get, with focused route coverage for tenant propagation and scoped-user denial on aggregate stats
+  - Output files:
+    - `cmd/server/handlers_issues.go`
+    - `cmd/server/handlers_issues_test.go`
+    - `internal/secgraph/issue_queries.go`
+  - Guardrail: `/api/v1/issues/stats` still stays deny-by-default for scoped users because the aggregate path is tenant-aware but not resource-scope-aware
+  - Verification:
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestIssuesEndpointsRequireAuth|TestIssuesEndpointsRequesterForbidden|TestListIssuesNotConfigured|TestListIssuesPropagatesFiltersAndScope|TestListIssuesRejectsInvalidTicketedFilter|TestGetIssueNotFound|TestGetIssueEnforcesScope|TestGetIssueReturnsDetail|TestUpdateIssuePropagatesTenant|TestIssueStatsPropagatesTenant|TestIssueStatsScopedUserForbidden' -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -count=1`
+
 - `WG-E Follow-up: Attack-path readability + theme controls` — completed 2026-03-31 (codex)
   - Scope completed: lighter/whiter analyst-friendly attack-path detail canvas, clearer node/icon presentation, and an explicit local canvas tone control layered on top of the existing app theme without changing backend graph contracts
   - Output files:
@@ -217,11 +228,6 @@ Use this file as the shared climbing board for all security-graph work. Before s
   - Scope claimed: Wire SecurityGraph page to backend neighborhood API, add issue/control node rendering, improve graph layout with type-lane clustering, add graph stats panel
   - Write scope: `frontend/src/pages/ops/SecurityGraph.tsx`, `frontend/src/types/security-graph.ts`, `frontend/src/hooks/useGraphQuery.ts` (new), `frontend/src/components/ops/BaseGraphView.tsx`
   - Coordination: backend graph API (WG-D) is done and committed
-
-- `WG-C Follow-up: Issue stats/update tenant hardening` — in progress 2026-03-30 (codex)
-  - Scope claimed: make issue stats and issue patch operations honor tenant context and add focused server/query tests so the issue surface is consistent beyond list/get
-  - Write scope: `cmd/server/handlers_issues.go`, `cmd/server/handlers_issues_test.go`, `cmd/server/routes.go`, `internal/secgraph/issue_queries.go`, `internal/secgraph/issue_queries_test.go`
-  - Coordination: backend-only; avoids `WG-E` graph UI files
 
 ### Pending
 
