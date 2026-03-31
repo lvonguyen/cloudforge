@@ -1,3 +1,4 @@
+import { useEffect, useId, useRef } from 'react'
 import { X } from 'lucide-react'
 import { useCommandCenter } from '@/contexts/CommandCenterContext'
 
@@ -12,25 +13,43 @@ const SHORTCUTS = [
 
 export function ShortcutOverlay() {
   const { dispatch } = useCommandCenter()
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const titleId = useId()
 
   const close = () => dispatch({ type: 'TOGGLE_SHORTCUT_OVERLAY' })
+
+  useEffect(() => {
+    closeButtonRef.current?.focus()
+  }, [])
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
       onClick={close}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.stopPropagation()
+          close()
+        }
+      }}
       data-testid="shortcut-overlay"
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         className="bg-[#0d0d14] border border-[#1e2330] w-80 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2330]">
-          <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+          <h2 id={titleId} className="text-xs font-semibold uppercase tracking-widest text-gray-400">
             Keyboard Shortcuts
-          </span>
+          </h2>
           <button
+            ref={closeButtonRef}
+            type="button"
             onClick={close}
             className="text-gray-500 hover:text-gray-300 transition-colors"
             aria-label="Close shortcuts"
@@ -40,16 +59,16 @@ export function ShortcutOverlay() {
         </div>
 
         {/* Shortcut list */}
-        <div className="px-4 py-3 space-y-2">
+        <ul className="px-4 py-3 space-y-2" aria-label="Command center keyboard shortcuts">
           {SHORTCUTS.map(({ key, description }) => (
-            <div key={key} className="flex items-center justify-between text-xs">
+            <li key={key} className="flex items-center justify-between text-xs">
               <kbd className="bg-[#161b22] border border-[#1e2330] text-gray-300 px-2 py-0.5 font-mono text-[10px] min-w-[28px] text-center">
                 {key}
               </kbd>
               <span className="text-gray-500">{description}</span>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </div>
   )

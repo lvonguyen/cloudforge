@@ -5,7 +5,7 @@ import { BaseGraphView } from '@/components/ops/BaseGraphView'
 import { useFindings } from '@/hooks/useFindings'
 import { Badge } from '@/components/ui/badge'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Search, X, Shield, Server, Database, Key, Globe, ChevronRight } from 'lucide-react'
+import { Search, X, Shield, Server, Database, Key, Globe, ChevronRight, CalendarClock, UserRound, Route } from 'lucide-react'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS } from '@/lib/severity'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import type { InvestigationEntityType } from '@/types/investigation'
@@ -37,12 +37,19 @@ const SEVERITY_BORDER_WEIGHT: Record<string, number> = {
 }
 
 const ENTITY_COLORS: Record<InvestigationEntityType, { bg: string; border: string; text: string }> = {
-  finding:            { bg: '#1e1e2e', border: '#ef4444', text: '#fca5a5' },
-  assignee:           { bg: '#1e1e2e', border: '#3b82f6', text: '#93c5fd' },
-  technical_contact:  { bg: '#1e1e2e', border: '#8b5cf6', text: '#c4b5fd' },
-  resource:           { bg: '#1e1e2e', border: '#f59e0b', text: '#fcd34d' },
-  compliance_mapping: { bg: '#1e1e2e', border: '#22c55e', text: '#86efac' },
-  impacted_resource:  { bg: '#1e1e2e', border: '#f97316', text: '#fdba74' },
+  finding:            { bg: '#fff1f2', border: '#dc2626', text: '#991b1b' },
+  assignee:           { bg: '#eff6ff', border: '#2563eb', text: '#1d4ed8' },
+  technical_contact:  { bg: '#f5f3ff', border: '#7c3aed', text: '#6d28d9' },
+  resource:           { bg: '#fffbeb', border: '#d97706', text: '#b45309' },
+  compliance_mapping: { bg: '#f0fdf4', border: '#16a34a', text: '#15803d' },
+  impacted_resource:  { bg: '#fff7ed', border: '#ea580c', text: '#c2410c' },
+}
+
+function formatDateLabel(value?: string) {
+  if (!value) return 'Not set'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
 export default function Investigations() {
@@ -69,6 +76,10 @@ export default function Investigations() {
       f.id.toLowerCase().includes(q)
     ).slice(0, 50)
   }, [findings, searchQuery])
+  const selectedFinding = useMemo(
+    () => findings.find(f => f.id === selectedFindingId) ?? null,
+    [findings, selectedFindingId],
+  )
 
   const { graphNodes, graphEdges } = useMemo(() => {
     const finding = findings.find(f => f.id === selectedFindingId)
@@ -77,15 +88,14 @@ export default function Investigations() {
     const findingId = finding.id
     const nodes: Node[] = []
     const edges: Edge[] = []
-    let entityIndex = 0
-
-    // Count total entities to compute radius
-    let totalEntities = 1 // resource is always present
-    totalEntities++ // assignee (real or placeholder)
-    if (finding.technical_contact) totalEntities++
-    totalEntities += Math.max(1, Math.min(finding.compliance_mappings?.length ?? 0, 3)) // at least 1 (inferred fallback)
-    totalEntities += Math.min(finding.impacted_resources?.length ?? 0, 3)
-    const radius = Math.max(180, 140 + totalEntities * 20)
+    const laneIndex: Record<InvestigationEntityType, number> = {
+      finding: 0,
+      assignee: 0,
+      technical_contact: 0,
+      resource: 0,
+      compliance_mapping: 0,
+      impacted_resource: 0,
+    }
     const borderWeight = SEVERITY_BORDER_WEIGHT[finding.severity] ?? 1
 
     // Finding-type icon
@@ -94,39 +104,57 @@ export default function Investigations() {
     // Central finding node
     nodes.push({
       id: findingId,
-      position: { x: 400, y: 300 },
+      position: { x: 120, y: 220 },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       data: {
         label: (
-          <div className="px-3 py-2 min-w-[180px]" style={{ background: '#1e1e2e', border: `${borderWeight}px solid #ef4444` }}>
+          <div className="px-3 py-2 min-w-[220px]" style={{ background: '#fff1f2', border: `${borderWeight}px solid #dc2626` }}>
             <div className="flex items-center gap-1.5 mb-0.5">
-              <TypeIcon className="h-3 w-3" style={{ color: '#fca5a5' }} />
-              <span className="text-[10px] text-red-300 font-medium truncate flex-1">{finding.title}</span>
+              <TypeIcon className="h-3 w-3" style={{ color: '#991b1b' }} />
+              <span className="text-[10px] text-red-900 font-medium truncate flex-1">{finding.title}</span>
             </div>
-            <div className="text-[9px] text-gray-400">{finding.severity} · {finding.category} · {finding.cloud_provider.toUpperCase()}</div>
+            <div className="text-[9px] text-red-800/80">{finding.severity} · {finding.category} · {finding.cloud_provider.toUpperCase()}</div>
           </div>
         ),
         entityType: 'finding' as InvestigationEntityType,
-        entityData: {
-          id: finding.id,
-          title: finding.title,
-          severity: finding.severity,
-          category: finding.category,
-          cloud_provider: finding.cloud_provider,
-          resource_name: finding.resource_name,
-          resource_type: finding.resource_type,
-          recommendation: finding.remediation?.slice(0, 200),
+          entityData: {
+            id: finding.id,
+            title: finding.title,
+            severity: finding.severity,
+            category: finding.category,
+            cloud_provider: finding.cloud_provider,
+            resource_name: finding.resource_name,
+            resource_type: finding.resource_type,
+            recommendation: finding.remediation?.slice(0, 200),
+            status: finding.status,
+            workflow_status: finding.workflow_status,
+            first_found_at: finding.first_found_at,
+            last_seen_at: finding.last_seen_at,
+            due_date: finding.due_date,
+            impacted_resources_count: finding.impacted_resources?.length ?? 0,
+            compliance_count: finding.compliance_mappings?.length ?? 0,
+            assignee: finding.assignee?.user_name,
+          },
         },
-      },
-      style: { padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
+        style: { padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
     })
 
     function addEntity(type: InvestigationEntityType, id: string, label: string, sublabel?: string, entityData?: Record<string, unknown>) {
-      const angle = (entityIndex / totalEntities) * 2 * Math.PI - Math.PI / 2
-      const x = 400 + radius * Math.cos(angle)
-      const y = 300 + radius * Math.sin(angle)
-      entityIndex++
+      const slot = laneIndex[type]
+      laneIndex[type]++
+
+      const laneConfig: Record<InvestigationEntityType, { x: number; y: number; step: number }> = {
+        finding: { x: 120, y: 220, step: 0 },
+        assignee: { x: 430, y: 160, step: 120 },
+        technical_contact: { x: 430, y: 340, step: 120 },
+        resource: { x: 430, y: 40, step: 120 },
+        compliance_mapping: { x: 760, y: 40, step: 104 },
+        impacted_resource: { x: 760, y: 260, step: 104 },
+      }
+      const config = laneConfig[type]
+      const x = config.x
+      const y = config.y + slot * config.step
 
       const colors = ENTITY_COLORS[type]
       nodes.push({
@@ -134,10 +162,10 @@ export default function Investigations() {
         position: { x, y },
         data: {
           label: (
-            <div className="px-2 py-1.5 min-w-[120px]" style={{ background: colors.bg, border: `1px solid ${colors.border}` }}>
+            <div className="px-2 py-1.5 min-w-[150px]" style={{ background: colors.bg, border: `1px solid ${colors.border}` }}>
               <div className="text-[9px] uppercase tracking-wide" style={{ color: colors.text }}>{type.replace('_', ' ')}</div>
-              <div className="text-[10px] text-gray-300 font-medium truncate">{label}</div>
-              {sublabel && <div className="text-[9px] text-gray-500 truncate">{sublabel}</div>}
+              <div className="text-[10px] text-slate-900 font-medium truncate">{label}</div>
+              {sublabel && <div className="text-[9px] text-slate-500 truncate">{sublabel}</div>}
             </div>
           ),
           entityType: type,
@@ -154,8 +182,8 @@ export default function Investigations() {
         label: edgeLabel || undefined,
         animated: true,
         style: { stroke: colors.border, strokeWidth: 1 },
-        labelStyle: edgeLabel ? { fontSize: 8, fill: '#6b7280' } : undefined,
-        labelBgStyle: edgeLabel ? { fill: '#0a0a0f', fillOpacity: 0.9 } : undefined,
+        labelStyle: edgeLabel ? { fontSize: 8, fill: '#475569' } : undefined,
+        labelBgStyle: edgeLabel ? { fill: '#ffffff', fillOpacity: 0.92 } : undefined,
         labelBgPadding: edgeLabel ? [2, 4] as [number, number] : undefined,
         markerEnd: { type: MarkerType.ArrowClosed, color: colors.border, width: 10, height: 10 },
       })
@@ -258,6 +286,14 @@ export default function Investigations() {
             {field('Provider', data.cloud_provider)}
             {field('Resource', data.resource_name)}
             {field('Resource Type', data.resource_type)}
+            {field('Status', data.status)}
+            {field('Workflow', data.workflow_status)}
+            {field('Assignee', data.assignee)}
+            {field('First Seen', data.first_found_at)}
+            {field('Last Seen', data.last_seen_at)}
+            {field('Due Date', data.due_date)}
+            {field('Impacted Resources', data.impacted_resources_count)}
+            {field('Compliance Links', data.compliance_count)}
             {data.recommendation ? (
               <div>
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Recommendation</p>
@@ -337,6 +373,15 @@ export default function Investigations() {
       <div className="w-80 border-r border-border bg-background flex flex-col shrink-0">
         <div className="p-4 border-b border-border space-y-3">
           <h1 className="text-sm font-semibold">Investigation Board</h1>
+          <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+            <span>{filteredFindings.length} findings in focus</span>
+            {selectedFinding && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="font-mono">{selectedFinding.id.slice(0, 12)}</span>
+              </>
+            )}
+          </div>
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <input
@@ -347,7 +392,7 @@ export default function Investigations() {
               className="w-full pl-7 pr-2 py-1.5 text-xs bg-muted/50 border border-border outline-none"
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2">
+              <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2">
                 <X className="h-3 w-3 text-muted-foreground" />
               </button>
             )}
@@ -357,8 +402,10 @@ export default function Investigations() {
           {filteredFindings.map(f => (
             <button
               key={f.id}
+              type="button"
               onClick={() => { setSelectedFindingId(f.id); setSelectedNodeId(null) }}
               onDoubleClick={() => navigate(`/ops/findings/${f.id}`)}
+              aria-pressed={selectedFindingId === f.id}
               className={`w-full text-left px-4 py-2.5 border-b border-border hover:bg-muted/30 transition-colors group/item ${selectedFindingId === f.id ? 'bg-muted/50 border-l-2 border-l-primary' : ''}`}
             >
               <div className="flex items-center gap-1.5 mb-0.5">
@@ -392,7 +439,48 @@ export default function Investigations() {
       {/* Graph area */}
       <div className="flex-1 relative">
         {selectedFindingId ? (
-          <BaseGraphView nodes={graphNodes} edges={graphEdges} onNodeClick={handleNodeClick} height="h-full" />
+          <>
+            {selectedFinding && (
+              <div className="pointer-events-none absolute left-4 top-4 z-10 max-w-md rounded-[24px] border border-border/80 bg-background/95 p-4 shadow-[0_18px_48px_rgba(15,23,42,0.12)] backdrop-blur-sm">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${SEVERITY_COLORS[selectedFinding.severity] ?? ''}`}>
+                    {selectedFinding.severity}
+                  </Badge>
+                  <ProviderBadge provider={selectedFinding.cloud_provider} />
+                  <span className="text-[10px] font-mono text-muted-foreground">{selectedFinding.id}</span>
+                </div>
+                <p className="mt-2 text-sm font-semibold leading-snug">{selectedFinding.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{selectedFinding.resource_name} · {selectedFinding.resource_type}</p>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-[10px]">
+                  <div className="rounded-xl border border-border/70 bg-muted/30 px-2.5 py-2">
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <UserRound className="h-3 w-3" />Owner
+                    </div>
+                    <p className="mt-1 text-xs font-medium text-foreground">{selectedFinding.assignee?.user_name ?? 'Unassigned'}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/70 bg-muted/30 px-2.5 py-2">
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <CalendarClock className="h-3 w-3" />Due
+                    </div>
+                    <p className="mt-1 text-xs font-medium text-foreground">{formatDateLabel(selectedFinding.due_date)}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/70 bg-muted/30 px-2.5 py-2">
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Route className="h-3 w-3" />Impacted
+                    </div>
+                    <p className="mt-1 text-xs font-medium text-foreground">{selectedFinding.impacted_resources?.length ?? 0} linked resources</p>
+                  </div>
+                  <div className="rounded-xl border border-border/70 bg-muted/30 px-2.5 py-2">
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Shield className="h-3 w-3" />Compliance
+                    </div>
+                    <p className="mt-1 text-xs font-medium text-foreground">{selectedFinding.compliance_mappings?.length ?? 0} mapped controls</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <BaseGraphView nodes={graphNodes} edges={graphEdges} onNodeClick={handleNodeClick} height="h-full" />
+          </>
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             <div className="text-center">
@@ -409,9 +497,12 @@ export default function Investigations() {
         <div className="w-72 border-l border-border bg-background p-4 space-y-3 shrink-0 overflow-y-auto">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-semibold">{selectedNodeData.entityType.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())} Detail</h3>
-            <button onClick={() => setSelectedNodeId(null)} className="p-0.5 hover:bg-muted">
+            <button type="button" onClick={() => setSelectedNodeId(null)} className="p-0.5 hover:bg-muted">
               <X className="h-3.5 w-3.5" />
             </button>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-muted/20 px-3 py-2 text-[10px] text-muted-foreground">
+            Use this rail to confirm ownership, control mappings, and downstream impact before opening the full finding page.
           </div>
           {renderNodeDetail(selectedNodeData.entityType, selectedNodeData.entityData)}
         </div>

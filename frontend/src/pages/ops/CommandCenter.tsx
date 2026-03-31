@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback } from 'react'
+import { useEffect, useMemo, useCallback, useId, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import {
   ReactFlow,
   Background,
@@ -48,8 +48,10 @@ function PathCard({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="w-full text-left border border-[#1e2330] bg-[#0d0d14] p-3 hover:bg-[#161b22]/60 transition-colors"
+      aria-label={`${path.title}, ${path.severity.toLowerCase()} severity, ${path.hop_count} hops`}
     >
       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
         <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${SEVERITY_COLORS[path.severity] ?? ''}`}>
@@ -88,6 +90,11 @@ function CenterPane({
 }) {
   const { state, dispatch } = useCommandCenter()
   const { selectedPathId } = state
+  const centerViewId = useId()
+  const chartsTabId = `${centerViewId}-charts-tab`
+  const treemapTabId = `${centerViewId}-treemap-tab`
+  const chartsPanelId = `${centerViewId}-charts-panel`
+  const treemapPanelId = `${centerViewId}-treemap-panel`
 
   const selectedPath = useMemo(
     () => attackPaths.find(p => p.id === selectedPathId) ?? null,
@@ -131,6 +138,34 @@ function CenterPane({
     [dispatch],
   )
 
+  const handleViewTabKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLButtonElement>, currentView: 'charts' | 'treemap') => {
+      const advanceKeys = ['ArrowRight', 'ArrowDown']
+      const retreatKeys = ['ArrowLeft', 'ArrowUp']
+
+      if (!advanceKeys.includes(event.key) && !retreatKeys.includes(event.key) && event.key !== 'Home' && event.key !== 'End') {
+        return
+      }
+
+      event.preventDefault()
+
+      if (event.key === 'Home') {
+        dispatch({ type: 'SET_CENTER_VIEW', payload: 'charts' })
+        return
+      }
+      if (event.key === 'End') {
+        dispatch({ type: 'SET_CENTER_VIEW', payload: 'treemap' })
+        return
+      }
+
+      dispatch({
+        type: 'SET_CENTER_VIEW',
+        payload: currentView === 'charts' ? 'treemap' : 'charts',
+      })
+    },
+    [dispatch],
+  )
+
   return (
     <div className="flex flex-col h-full bg-[#0a0a0f]">
       {/* Context bar */}
@@ -138,8 +173,10 @@ function CenterPane({
         {selectedPath ? (
           <>
             <button
+              type="button"
               onClick={goBack}
               className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-200 transition-colors"
+              aria-label="Return to all attack paths"
             >
               <ArrowLeft className="h-3 w-3" /> All Paths
             </button>
@@ -164,11 +201,22 @@ function CenterPane({
                 : `${filteredFindings.length} of ${allFindings.length} findings`}
             </span>
             {/* Segmented center view control */}
-            <div className="ml-auto flex border border-[#1e2330]">
+            <div
+              className="ml-auto flex border border-[#1e2330]"
+              role="tablist"
+              aria-label="Command center visualization view"
+            >
               {(['charts', 'treemap'] as const).map((view, i) => (
                 <button
                   key={view}
+                  type="button"
+                  id={view === 'charts' ? chartsTabId : treemapTabId}
+                  role="tab"
+                  aria-selected={state.centerView === view}
+                  aria-controls={view === 'charts' ? chartsPanelId : treemapPanelId}
+                  tabIndex={state.centerView === view ? 0 : -1}
                   onClick={() => dispatch({ type: 'SET_CENTER_VIEW', payload: view })}
+                  onKeyDown={(event) => handleViewTabKeyDown(event, view)}
                   className={`text-[10px] font-mono uppercase px-2 py-0.5 transition-colors ${
                     state.centerView === view
                       ? 'bg-[#1e2330] text-gray-200'
@@ -187,33 +235,47 @@ function CenterPane({
       <div className="flex-1 overflow-hidden">
         {selectedPath ? (
           /* Graph view */
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodeClick={onNodeClick}
-            fitView
-            fitViewOptions={{ padding: 0.3 }}
-            proOptions={{ hideAttribution: true }}
-            nodesDraggable={false}
-            nodesConnectable={false}
-            elementsSelectable={false}
-            minZoom={0.3}
-            maxZoom={1.5}
-          >
-            <Background gap={20} size={1} color="#1a1e26" />
-            <Controls showInteractive={false} />
-            <MiniMap
-              nodeColor={(n) => SEVERITY_HEX[(n.data?.severity as string) ?? ''] ?? SEVERITY_NEUTRAL_HEX}
-              style={{ background: '#0d1117' }}
-              maskColor="rgba(0,0,0,0.6)"
-            />
-          </ReactFlow>
+          <div role="region" aria-label={`Attack path graph for ${selectedPath.title}`} className="h-full">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodeClick={onNodeClick}
+              fitView
+              fitViewOptions={{ padding: 0.3 }}
+              proOptions={{ hideAttribution: true }}
+              nodesDraggable={false}
+              nodesConnectable={false}
+              elementsSelectable={false}
+              minZoom={0.3}
+              maxZoom={1.5}
+            >
+              <Background gap={20} size={1} color="#1a1e26" />
+              <Controls showInteractive={false} />
+              <MiniMap
+                nodeColor={(n) => SEVERITY_HEX[(n.data?.severity as string) ?? ''] ?? SEVERITY_NEUTRAL_HEX}
+                style={{ background: '#0d1117' }}
+                maskColor="rgba(0,0,0,0.6)"
+              />
+            </ReactFlow>
+          </div>
         ) : state.centerView === 'treemap' ? (
           /* Treemap heatmap view */
-          <FindingsTreemap findings={filteredFindings} onSelect={onSelectFinding} />
+          <div
+            id={treemapPanelId}
+            role="tabpanel"
+            aria-labelledby={treemapTabId}
+            className="h-full"
+          >
+            <FindingsTreemap findings={filteredFindings} onSelect={onSelectFinding} />
+          </div>
         ) : attackPaths.length > 0 ? (
           /* Card grid with findings summary */
-          <div className="overflow-y-auto h-full">
+          <div
+            id={chartsPanelId}
+            role="tabpanel"
+            aria-labelledby={chartsTabId}
+            className="overflow-y-auto h-full"
+          >
             <FindingsSummaryChart findings={filteredFindings} />
             <div className="px-4 pb-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2">
@@ -225,7 +287,12 @@ function CenterPane({
           </div>
         ) : (
           /* Findings summary when no attack paths */
-          <div className="overflow-y-auto h-full">
+          <div
+            id={chartsPanelId}
+            role="tabpanel"
+            aria-labelledby={chartsTabId}
+            className="overflow-y-auto h-full"
+          >
             <FindingsSummaryChart findings={filteredFindings} />
           </div>
         )}
@@ -381,6 +448,7 @@ function CommandCenterShell() {
         <aside
           className="shrink-0 overflow-y-auto border-r border-[#1e2330] transition-all duration-200"
           style={{ width: state.leftPanelOpen ? 240 : 0 }}
+          aria-label="Data layer filters"
         >
           {state.leftPanelOpen && (
             <DataLayersPanel findings={allFindings} attackPaths={attackPaths} />
@@ -392,6 +460,7 @@ function CommandCenterShell() {
           {/* Left panel toggle in center area */}
           {!state.leftPanelOpen && (
             <button
+              type="button"
               onClick={() => dispatch({ type: 'TOGGLE_LEFT_PANEL' })}
               className="absolute z-10 left-1 top-1 p-1.5 bg-[#0d0d14] border border-[#1e2330] text-gray-400 hover:text-gray-200 transition-colors"
               aria-label="Show data layers"
@@ -412,6 +481,7 @@ function CommandCenterShell() {
         <aside
           className="shrink-0 overflow-y-auto border-l border-[#1e2330] transition-all duration-200"
           style={{ width: showDetailPanel ? 340 : 0 }}
+          aria-label="Selected entity details"
         >
           {showDetailPanel && (
             <EntityDetailPanel

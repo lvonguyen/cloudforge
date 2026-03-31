@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useId } from 'react'
 import { Search, X, Sparkles, Code2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { apiClient } from '@/lib/api'
@@ -26,6 +26,17 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
   const [appliedFilters, setAppliedFilters] = useState<NLQFilters | null>(null)
   const [mode, setMode] = useState<QueryMode>('nlq')
   const inputRef = useRef<HTMLInputElement>(null)
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null)
+  const dialogId = useId()
+  const dialogTitleId = useId()
+  const dialogDescriptionId = useId()
+  const nlqTabId = useId()
+  const rqlTabId = useId()
+  const nlqPanelId = useId()
+  const rqlPanelId = useId()
+  const inputId = useId()
+
+  const closeOverlay = useCallback(() => setOpen(false), [])
 
   // Cmd+K / Ctrl+K shortcut
   useEffect(() => {
@@ -48,7 +59,17 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
 
   // Auto-focus input when opened
   useEffect(() => {
-    if (open) inputRef.current?.focus()
+    if (open) {
+      previouslyFocusedRef.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null
+      inputRef.current?.focus()
+      return
+    }
+
+    if (previouslyFocusedRef.current) {
+      previouslyFocusedRef.current.focus()
+      previouslyFocusedRef.current = null
+    }
   }, [open])
 
   const handleSubmit = useCallback(async () => {
@@ -138,8 +159,12 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
     <>
       {/* Trigger bar */}
       <button
+        type="button"
         onClick={() => setOpen(true)}
         className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground border border-border hover:bg-muted/30 transition-colors w-full max-w-md"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls={dialogId}
       >
         <Sparkles className="h-3.5 w-3.5 text-violet-500" />
         <span className="flex-1 text-left">Ask a question about findings...</span>
@@ -168,7 +193,11 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
           {appliedFilters.text && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 rounded-none">"{appliedFilters.text}"</Badge>
           )}
-          <button onClick={clearFilters} className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline ml-1">
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline ml-1"
+          >
             Clear
           </button>
         </div>
@@ -176,28 +205,63 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
 
       {/* Overlay input */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]" onClick={() => setOpen(false)}>
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
-          <div className="relative w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
-            <div className="border border-border bg-background shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]" onClick={closeOverlay}>
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" aria-hidden="true" />
+          <div
+            id={dialogId}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={dialogTitleId}
+            aria-describedby={dialogDescriptionId}
+            className="relative w-full max-w-lg mx-4 border border-border bg-background shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 id={dialogTitleId} className="sr-only">Findings query assistant</h2>
+            <p id={dialogDescriptionId} className="sr-only">
+              Search findings with natural language or structured RQL filters.
+            </p>
+
+            {/* Mode toggle */}
+            <div className="flex items-center gap-1 px-4 pt-3 pb-1" role="tablist" aria-label="Query mode">
               {/* Mode toggle */}
-              <div className="flex items-center gap-1 px-4 pt-3 pb-1">
-                <button
-                  className={`text-[10px] font-medium px-2 py-0.5 transition-colors ${mode === 'nlq' ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' : 'text-muted-foreground hover:text-foreground'}`}
-                  onClick={() => setMode('nlq')}
-                >
-                  <Sparkles className="h-3 w-3 inline mr-1" />NLQ
-                </button>
-                <button
-                  className={`text-[10px] font-medium px-2 py-0.5 transition-colors ${mode === 'rql' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'text-muted-foreground hover:text-foreground'}`}
-                  onClick={() => setMode('rql')}
-                >
-                  <Code2 className="h-3 w-3 inline mr-1" />RQL
-                </button>
-              </div>
+              <button
+                type="button"
+                id={nlqTabId}
+                role="tab"
+                aria-selected={mode === 'nlq'}
+                aria-controls={nlqPanelId}
+                tabIndex={mode === 'nlq' ? 0 : -1}
+                className={`text-[10px] font-medium px-2 py-0.5 transition-colors ${mode === 'nlq' ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => setMode('nlq')}
+              >
+                <Sparkles className="h-3 w-3 inline mr-1" aria-hidden="true" />
+                NLQ
+              </button>
+              <button
+                type="button"
+                id={rqlTabId}
+                role="tab"
+                aria-selected={mode === 'rql'}
+                aria-controls={rqlPanelId}
+                tabIndex={mode === 'rql' ? 0 : -1}
+                className={`text-[10px] font-medium px-2 py-0.5 transition-colors ${mode === 'rql' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => setMode('rql')}
+              >
+                <Code2 className="h-3 w-3 inline mr-1" aria-hidden="true" />
+                RQL
+              </button>
+            </div>
+
+            <div
+              id={mode === 'nlq' ? nlqPanelId : rqlPanelId}
+              role="tabpanel"
+              aria-labelledby={mode === 'nlq' ? nlqTabId : rqlTabId}
+            >
               <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
                 <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+                <label htmlFor={inputId} className="sr-only">Findings query</label>
                 <input
+                  id={inputId}
                   ref={inputRef}
                   type="text"
                   value={query}
@@ -206,9 +270,14 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
                   placeholder={mode === 'rql' ? 'severity=CRITICAL AND provider=aws' : 'e.g. critical AWS misconfigs in production'}
                   className="flex-1 text-sm bg-transparent border-none outline-none font-mono text-foreground placeholder:text-muted-foreground"
                   disabled={loading}
+                  aria-label="Findings query"
                 />
-                {loading && <span className="text-[10px] text-muted-foreground animate-pulse">Analyzing...</span>}
-                <button onClick={() => setOpen(false)} className="p-1 hover:bg-muted" aria-label="Close">
+                {loading && (
+                  <span className="text-[10px] text-muted-foreground animate-pulse" role="status" aria-live="polite">
+                    Analyzing...
+                  </span>
+                )}
+                <button type="button" onClick={closeOverlay} className="p-1 hover:bg-muted" aria-label="Close">
                   <X className="h-4 w-4" />
                 </button>
               </div>
