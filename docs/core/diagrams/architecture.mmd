@@ -1,73 +1,131 @@
-%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#3b82f6', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '13px', 'primaryColor': '#3b82f6', 'primaryTextColor': '#1e293b', 'primaryBorderColor': '#cbd5e1', 'lineColor': '#94a3b8'}}}%%
 
-flowchart LR
+flowchart TD
+    %% ── Portal tier ─────────────────────────────────────────────────────────
     subgraph Portal["Portal — React 19 / Vite 7"]
-        style Portal fill:#3b82f6,stroke:#1e3a8a,color:#fff
-        A1["fa:fa-th-list Self-Service<br/>Catalog"]
-        A2["fa:fa-shield-alt Findings &<br/>Attack Paths"]
-        A3["fa:fa-check-circle Compliance<br/>Dashboard"]
-        A4["fa:fa-dollar-sign Cost &<br/>Spend Mgmt"]
+        A1["fa:fa-th-list Self-Service\nCatalog"]
+        A2["fa:fa-shield-alt Findings &\nAttack Paths"]
+        A3["fa:fa-check-circle Compliance\nDashboard"]
+        A4["fa:fa-dollar-sign Cost & Spend\nMgmt"]
+        A1 ~~~ A2 ~~~ A3 ~~~ A4
     end
 
+    %% ── API tier ────────────────────────────────────────────────────────────
     subgraph API["API Server — Go 1.25"]
-        style API fill:#1e40af,stroke:#1e3a8a,color:#fff
-        B1["fa:fa-lock JWT Auth<br/>+ RBAC"]
-        B2["fa:fa-tachometer-alt Rate Limiting<br/>+ CORS"]
-        B3["fa:fa-code REST Handlers<br/>(30+ endpoints)"]
-        B4["fa:fa-heartbeat Health &<br/>Observability"]
-        B5["fa:fa-database Audit Logger<br/>(Postgres)"]
+        B1["fa:fa-lock JWT Auth\n+ RBAC"]
+        B2["fa:fa-tachometer-alt Rate Limit\n+ CORS"]
+        B3["fa:fa-code Handlers\n65+ endpoints"]
+        B4["fa:fa-heartbeat Health &\nObs"]
+        B5["fa:fa-database Audit Log\nPostgres"]
+        B1 ~~~ B2 ~~~ B3 ~~~ B4 ~~~ B5
     end
 
+    %% ── Core tier ───────────────────────────────────────────────────────────
     subgraph Core["Core Engines"]
-        style Core fill:#7c3aed,stroke:#4c1d95,color:#fff
-        C1["fa:fa-exclamation-triangle CSPM Risk<br/>Scorer"]
-        C2["fa:fa-wrench Remediation<br/>Dispatcher"]
-        C3["fa:fa-project-diagram Attack Path<br/>BFS Engine"]
-        C4["fa:fa-robot AI Governance<br/>OPA Engine"]
-        C5["fa:fa-project-diagram Graph Query<br/>Engine"]
-        C6["fa:fa-search ASM<br/>Scanner"]
+        C1["fa:fa-exclamation-triangle CSPM Risk\nScorer"]
+        C2["fa:fa-wrench Remediation\nDispatcher"]
+        C3["fa:fa-project-diagram Attack Path\nBFS"]
+        C4["fa:fa-robot AI Gov\nOPA"]
+        C5["fa:fa-project-diagram Security\nGraph"]
+        C6["fa:fa-search ASM\nScanner"]
+        C1 ~~~ C2 ~~~ C3 ~~~ C4 ~~~ C5 ~~~ C6
     end
 
+    %% ── Intelligence tier ───────────────────────────────────────────────────
     subgraph Intel["Risk Intelligence"]
-        style Intel fill:#dc2626,stroke:#991b1b,color:#fff
-        D1["fa:fa-bug EPSS +<br/>CISA KEV"]
-        D2["fa:fa-network-wired GreyNoise<br/>IP Intel"]
-        D3["fa:fa-exclamation-circle Toxic Combo<br/>Detection"]
-        D4["fa:fa-bullseye Blast Radius<br/>Computation"]
-        D5["fa:fa-satellite-dish OTX Pulse<br/>Intel"]
-        D6["fa:fa-user-secret HIBP Breach<br/>Lookup"]
+        D1["fa:fa-bug EPSS +\nCISA KEV"]
+        D2["fa:fa-network-wired GreyNoise\nIP Intel"]
+        D3["fa:fa-exclamation-circle Toxic Combo\nDetection"]
+        D4["fa:fa-bullseye Blast Radius\nCompute"]
+        D5["fa:fa-satellite-dish OTX\nPulse"]
+        D6["fa:fa-user-secret HIBP\nBreach"]
+        D1 ~~~ D2 ~~~ D3 ~~~ D4 ~~~ D5 ~~~ D6
     end
 
+    %% ── Policy tier ─────────────────────────────────────────────────────────
     subgraph Policy["Policy — OPA / Rego"]
-        style Policy fill:#f59e0b,stroke:#b45309,color:#fff
-        E1["fa:fa-globe Region &<br/>Cost Policies"]
-        E2["fa:fa-network-wired Network &<br/>Exception Rules"]
-        E3["fa:fa-robot AI Agent<br/>Guardrails"]
-        E4["fa:fa-file-code IaC Validation<br/>(conftest)"]
+        E1["fa:fa-globe Region &\nCost"]
+        E2["fa:fa-network-wired Network &\nExceptions"]
+        E3["fa:fa-robot AI Agent\nGuardrails"]
+        E4["fa:fa-file-code IaC\nValidation"]
+        E1 ~~~ E2 ~~~ E3 ~~~ E4
     end
 
+    %% ── FinOps tier ─────────────────────────────────────────────────────────
     subgraph FinOps["FinOps Platform"]
-        style FinOps fill:#22c55e,stroke:#166534,color:#fff
-        F1["fa:fa-cloud Multi-Cloud<br/>Cost Aggregator"]
-        F2["fa:fa-chart-line Anomaly<br/>Detection"]
-        F3["fa:fa-file-invoice-dollar Chargeback<br/>Engine"]
-        F4["fa:fa-bell Budget Alerts<br/>Slack/PagerDuty"]
+        F1["fa:fa-cloud Multi-Cloud\nCost Agg"]
+        F2["fa:fa-chart-line Anomaly\nDetect"]
+        F3["fa:fa-file-invoice-dollar Chargeback\nEngine"]
+        F4["fa:fa-bell Budget\nAlerts"]
+        F1 ~~~ F2 ~~~ F3 ~~~ F4
     end
 
+    %% ── Infrastructure tier ─────────────────────────────────────────────────
     subgraph Infra["Infrastructure"]
-        style Infra fill:#64748b,stroke:#334155,color:#fff
-        G1["fa:fa-cogs Terraform<br/>Modules"]
-        G2["fa:fa-clock Temporal<br/>Workflows"]
-        G3["fa:fa-database PostgreSQL<br/>+ Redis"]
-        G4["fa:fa-cloud AWS / Azure<br/>/ GCP APIs"]
-        G5["fa:fa-plug Webhook<br/>Engine"]
-        G6["fa:fa-download Ingestion<br/>Pipeline"]
+        G1["fa:fa-layer-group Terraform\nModules"]
+        G2["fa:fa-clock Temporal\nWorkflows"]
+        G3["fa:fa-database PostgreSQL\n+ Redis"]
+        G4["fa:fa-cloud AWS / Azure\n/ GCP"]
+        G5["fa:fa-plug Webhook\nEngine"]
+        G6["fa:fa-download Ingestion\nPipeline"]
+        G1 ~~~ G2 ~~~ G3 ~~~ G4 ~~~ G5 ~~~ G6
     end
 
-    Portal --> API
-    API --> Core
+    %% ── Integrations tier ───────────────────────────────────────────────────
+    subgraph Integrations["Integrations"]
+        H1["fa:fa-ticket-alt Asana"]
+        H2["fa:fa-ticket-alt Jira"]
+        H3["fa:fa-code-branch Azure\nDevOps"]
+        H1 ~~~ H2 ~~~ H3
+    end
+
+    %% ── Graph tier ──────────────────────────────────────────────────────────
+    subgraph Graph["Graph & Data Layer"]
+        I1["fa:fa-project-diagram PuppyGraph"]
+        I2["fa:fa-database PostgreSQL"]
+        I3["fa:fa-memory Redis /\nCache"]
+        I4["fa:fa-balance-scale ALB"]
+        I1 ~~~ I2 ~~~ I3 ~~~ I4
+    end
+
+    %% ── Connections ─────────────────────────────────────────────────────────
+    Portal --> API --> Core
     Core --> Intel
     Core --> Policy
     Core --> FinOps
     Policy --> Infra
     FinOps --> Infra
+    Core --> Integrations
+    Core --> Graph
+
+    %% ── Node styling ────────────────────────────────────────────────────────
+    classDef portalNode   fill:#3b82f6,color:#fff,stroke:#1d4ed8,stroke-width:1px
+    classDef apiNode      fill:#1e40af,color:#fff,stroke:#1e3a8a,stroke-width:1px
+    classDef coreNode     fill:#7c3aed,color:#fff,stroke:#5b21b6,stroke-width:1px
+    classDef intelNode    fill:#dc2626,color:#fff,stroke:#991b1b,stroke-width:1px
+    classDef policyNode   fill:#f59e0b,color:#fff,stroke:#b45309,stroke-width:1px
+    classDef finopsNode   fill:#22c55e,color:#fff,stroke:#166534,stroke-width:1px
+    classDef infraNode    fill:#64748b,color:#fff,stroke:#334155,stroke-width:1px
+    classDef integNode    fill:#0ea5e9,color:#fff,stroke:#0369a1,stroke-width:1px
+    classDef graphNode    fill:#8b5cf6,color:#fff,stroke:#6d28d9,stroke-width:1px
+
+    class A1,A2,A3,A4 portalNode
+    class B1,B2,B3,B4,B5 apiNode
+    class C1,C2,C3,C4,C5,C6 coreNode
+    class D1,D2,D3,D4,D5,D6 intelNode
+    class E1,E2,E3,E4 policyNode
+    class F1,F2,F3,F4 finopsNode
+    class G1,G2,G3,G4,G5,G6 infraNode
+    class H1,H2,H3 integNode
+    class I1,I2,I3,I4 graphNode
+
+    %% ── Subgraph styling (light containers) ─────────────────────────────────
+    style Portal fill:#eff6ff,stroke:#3b82f6,stroke-width:2px,color:#1e3a8a
+    style API fill:#eef2ff,stroke:#1e40af,stroke-width:2px,color:#1e3a8a
+    style Core fill:#f5f3ff,stroke:#7c3aed,stroke-width:2px,color:#4c1d95
+    style Intel fill:#fef2f2,stroke:#dc2626,stroke-width:2px,color:#991b1b
+    style Policy fill:#fffbeb,stroke:#f59e0b,stroke-width:2px,color:#b45309
+    style FinOps fill:#f0fdf4,stroke:#22c55e,stroke-width:2px,color:#166534
+    style Infra fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#334155
+    style Integrations fill:#f0f9ff,stroke:#0ea5e9,stroke-width:2px,color:#0369a1
+    style Graph fill:#faf5ff,stroke:#8b5cf6,stroke-width:2px,color:#6d28d9

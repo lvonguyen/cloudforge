@@ -1,63 +1,62 @@
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '13px', 'primaryColor': '#3b82f6', 'primaryTextColor': '#1e293b', 'primaryBorderColor': '#cbd5e1', 'lineColor': '#94a3b8'}}}%%
+
 flowchart LR
     %% dual-opa-architecture.mmd
-    %% Cloud Aegis operates two OPA integration paths:
-    %%   LEFT  — HTTP REST path: policy.Evaluator sends JSON to an external OPA server
-    %%            over HTTP POST /v1/data/aegis/provisioning|exception (30 s timeout).
-    %%   RIGHT — Embedded path: ai-governance/opa.Engine runs OPA in-process via the
-    %%            OPA Go SDK (no network hop). Evaluates Rego namespace aegis.ai.*
-    %%   BOTTOM — Both paths load policies from the shared Rego bundle.
+    %% LEFT  — HTTP: policy.Evaluator → external OPA server (30s timeout)
+    %% RIGHT — Embedded: opa.Engine runs OPA in-process via Go SDK
+    %% BOTTOM — Both paths load from the shared Rego bundle
 
-    %% ── Cloud Provisioning Path (Blue) ────────────────────────────────────────
-    subgraph PROV["Cloud Provisioning Path"]
+    subgraph PROV["CLOUD PROVISIONING PATH"]
         direction TB
-        CP["fa:fa-cloud Cloud Provisioning\nRequest\n(PolicyInput)"]
-        EVL["fa:fa-cog policy.Evaluator\ninternal/policy/evaluator.go\nHTTP client · 30 s timeout"]
-        OPA_SRV["fa:fa-server OPA Server\nPOST /v1/data/aegis/\nprovisioning · exception"]
-        PD["fa:fa-check-circle Policy Decision\nPolicyResult\nallow · deny · warn"]
-        TF["fa:fa-cogs Terraform / Cloud APIs\nAWS · Azure · GCP\nResource provisioned or blocked"]
+        CP["fa:fa-cloud Cloud Provisioning Request\nPolicyInput — application, resource, region, tags, requested_by"]
+        EVL["fa:fa-cog policy.Evaluator\ninternal/policy/evaluator.go — HTTP client, 30s timeout"]
+        OPA_SRV["fa:fa-server OPA Server (External)\nPOST /v1/data/aegis/provisioning | exception"]
+        PD["fa:fa-check-circle Policy Decision\nPolicyResult — allow | deny | warn"]
+        TF["fa:fa-layer-group Terraform / Cloud APIs\nAWS | Azure | GCP — resource provisioned or blocked"]
     end
 
-    %% ── AI Governance Path (Purple) ──────────────────────────────────────────
-    subgraph AI["AI Governance Path"]
+    subgraph AI["AI GOVERNANCE PATH"]
         direction TB
-        AR["fa:fa-robot AI Agent Request\n(EvaluationInput)\nagent · tool · data · request"]
-        ENG["fa:fa-microchip ai-governance/opa.Engine\ninternal/ai-governance/opa/engine.go\nOPA Go SDK · PreparedEvalQuery · sync.RWMutex"]
-        INPROC["fa:fa-bolt In-Process Evaluation\ndata.aegis.ai.*\ntool_access · data_flow\nno network hop"]
-        DEC["fa:fa-shield-alt Agent Decision\nDecision\nallow · reasons · violations · eval_time_us"]
-        REG["fa:fa-list-alt Agent Registry\nallow tool / block tool\nredact PII · rate-limit\nenforce data-flow policy"]
+        AR["fa:fa-robot AI Agent Request\nEvaluationInput — agent, tool, data, request context"]
+        ENG["fa:fa-microchip opa.Engine (Go SDK)\ninternal/ai-governance/opa/engine.go — PreparedEvalQuery, sync.RWMutex"]
+        INPROC["fa:fa-bolt In-Process Evaluation\ndata.aegis.ai.* — tool_access | data_flow — no network hop"]
+        DEC["fa:fa-shield-alt Agent Decision\nDecision — allow | reasons | violations | eval_time_us"]
+        REG["fa:fa-list-alt Agent Registry\nallow tool | block tool | redact PII | rate-limit | enforce data-flow"]
     end
 
-    %% ── Shared Policy Store (Green) ──────────────────────────────────────────
-    subgraph STORE["Shared Rego Policy Bundle"]
+    subgraph STORE["SHARED REGO POLICY BUNDLE"]
         direction LR
-        PROV_POL["fa:fa-file-code aegis.provisioning\naegis.exception\n(cloud resource rules)"]
-        AI_POL["fa:fa-file-code aegis.ai.tool_access\naegis.ai.data_flow\n(agent security rules)"]
+        PROV_POL["fa:fa-file-code aegis.provisioning | aegis.exception\nCloud resource rules — loaded by OPA server"]
+        AI_POL["fa:fa-file-code aegis.ai.tool_access | aegis.ai.data_flow\nAgent security rules — LoadPolicies() / LoadPolicyBundle()"]
     end
 
-    %% ── Provisioning flow ────────────────────────────────────────────────────
-    CP  -->|"POST JSON\napplication · resource · region\ntags · requested_by"| EVL
-    EVL -->|"HTTP POST\n/v1/data/aegis/provisioning"| OPA_SRV
-    OPA_SRV -->|"OPAResponse\nallow · deny[] · warn[]"| PD
-    PD  -->|"allowed=true\nproceed"| TF
+    %% Provisioning flow — short labels
+    CP  -->|"POST JSON"| EVL
+    EVL -->|"HTTP POST"| OPA_SRV
+    OPA_SRV -->|"OPAResponse"| PD
+    PD  -->|"allowed=true"| TF
 
-    %% ── AI governance flow ───────────────────────────────────────────────────
-    AR  -->|"AgentContext\nToolContext / DataContext"| ENG
-    ENG -->|"pq.Eval(ctx, input)\nin-process"| INPROC
-    INPROC -->|"Decision struct\nresult map"| DEC
-    DEC -->|"allow=true\ntool invoked"| REG
+    %% AI governance flow — short labels
+    AR  -->|"AgentContext"| ENG
+    ENG -->|"pq.Eval(ctx)"| INPROC
+    INPROC -->|"Decision"| DEC
+    DEC -->|"allowed=true"| REG
 
-    %% ── Policy bundle feeds both paths ───────────────────────────────────────
-    PROV_POL -->|"loaded by\nOPA server"| OPA_SRV
-    AI_POL   -->|"LoadPolicies()\nLoadPolicyBundle()"| ENG
+    %% Policy bundle feeds both paths — dotted, short labels
+    PROV_POL -.->|"bundle load"| OPA_SRV
+    AI_POL   -.->|"Go import"| ENG
 
-    %% ── Styling ──────────────────────────────────────────────────────────────
+    %% Styling
     classDef provBlue  fill:#3b82f6,color:#fff,stroke:#1d4ed8,stroke-width:1px
     classDef opaServer fill:#1e40af,color:#fff,stroke:#1e3a8a,stroke-width:2px
     classDef aiPurple  fill:#7c3aed,color:#fff,stroke:#5b21b6,stroke-width:1px
     classDef shared    fill:#22c55e,color:#fff,stroke:#15803d,stroke-width:1px
-    classDef subBg     fill:#f8fafc,stroke:#cbd5e1,stroke-width:1px,color:#1e293b
 
     class CP,EVL,PD,TF provBlue
     class OPA_SRV opaServer
     class AR,ENG,INPROC,DEC,REG aiPurple
     class PROV_POL,AI_POL shared
+
+    style PROV fill:#eff6ff,stroke:#3b82f6,stroke-width:2px,color:#1e3a8a
+    style AI fill:#f5f3ff,stroke:#7c3aed,stroke-width:2px,color:#4c1d95
+    style STORE fill:#f0fdf4,stroke:#22c55e,stroke-width:2px,color:#166534
