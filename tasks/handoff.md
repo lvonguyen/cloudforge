@@ -457,7 +457,7 @@ Session 32 was a security hardening + QA sprint:
 ### Imported Deferred Backlog (migrated from `TODO-DEFERRED.md` on 2026-03-30)
 
 - Exit gate for the high-value deferred track:
-  - after the high-value items are implemented, run `/qa-visual` against production and click through the completed surfaces end to end to verify polish, interaction quality, and functional correctness before closing the track
+  - after the high-value items are implemented, run `/qa-visual -e ensemble` against production and click through the completed surfaces end to end to verify polish, interaction quality, and functional correctness before closing the track
 
 - [ ] `D1` Center-pane topology view
   - `frontend/src/pages/ops/CommandCenter.tsx` already ships the treemap half of the original treemap/topology ask; the remaining gap is a true topology view and cleaned-up view switching.
