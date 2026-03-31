@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   ReactFlow,
   Background,
@@ -11,6 +11,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useAttackPaths, useAttackPathStats } from '@/hooks/useAttackPaths'
+import { useFindingsByIds } from '@/hooks/useFindings'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -30,11 +31,22 @@ import {
   Route,
   Radar,
   Clock3,
+  ExternalLink,
 } from 'lucide-react'
 import type { AttackPath } from '@/types/attack-path'
+import type { Finding } from '@/types/compliance'
 import { ProviderIcon } from '@/components/ui/ProviderIcon'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS, SEVERITY_HEX, SEVERITY_NEUTRAL_HEX } from '@/lib/severity'
+import {
+  formatAttackPathResourceType,
+  getAttackPathEdgeSemantic,
+  getAttackPathResourceIcon,
+  getCrownJewelLabel,
+  isCrownJewelNode,
+  isPrivilegeEscalationEdge,
+  Crown,
+} from '@/components/attack-path/visuals'
 
 const CATEGORY_ICONS: Record<string, typeof Shield> = {
   NETWORK: Zap,
@@ -171,6 +183,12 @@ function formatStageSummary(path: AttackPath): string {
   return `${pivots} pivot steps before target access`
 }
 
+function formatFindingContextSource(finding: Finding) {
+  if (finding.cves && finding.cves.length > 0) return `${finding.cves.length} linked CVE${finding.cves.length === 1 ? '' : 's'}`
+  if (finding.toxic_combo_details) return `Toxic combo: ${finding.toxic_combo_details.combo_type}`
+  return finding.category.replaceAll('_', ' ')
+}
+
 function CanvasToneToggle({
   value,
   resolvedTone,
@@ -233,9 +251,17 @@ function pathToFlow(
         <div className={`text-left px-3 py-3 ${canvasTheme.nodeTextClass}`}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-2.5">
-              <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${canvasTheme.iconWrapClass}`}>
-                <ProviderIcon provider={n.provider} className="h-4 w-4" />
-              </div>
+              {(() => {
+                const ResourceIcon = getAttackPathResourceIcon(n)
+                return (
+                  <div className={`relative mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${canvasTheme.iconWrapClass}`}>
+                    <ResourceIcon className="h-5 w-5" />
+                    <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-white/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                      <ProviderIcon provider={n.provider} className="h-3 w-3" />
+                    </div>
+                  </div>
+                )
+              })()}
               <div className="min-w-0">
                 <div className="mb-1 flex items-center gap-1.5">
                   <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${canvasTheme.roleClass}`}>
@@ -246,11 +272,17 @@ function pathToFlow(
                       Choke
                     </span>
                   )}
+                  {isCrownJewelNode(n) && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-violet-300 bg-violet-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-200">
+                      <Crown className="h-2.5 w-2.5" />
+                      Crown jewel
+                    </span>
+                  )}
                 </div>
                 <div className="truncate text-sm font-semibold">{n.resource_name}</div>
                 <div className={`mt-1 flex items-center gap-1.5 text-[10px] font-medium ${canvasTheme.mutedTextClass}`}>
                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 ${canvasTheme.chipClass}`}>
-                    {n.resource_type}
+                    {formatAttackPathResourceType(n.resource_type)}
                   </span>
                   <span>{n.region}</span>
                 </div>
@@ -266,10 +298,13 @@ function pathToFlow(
             <span className={`inline-flex items-center rounded-full px-2 py-0.5 ${canvasTheme.chipClass}`}>
               {n.category}
             </span>
-            <span className="font-mono uppercase">{n.provider}</span>
+            <span className="inline-flex items-center gap-1 font-mono uppercase">
+              <ProviderIcon provider={n.provider} className="h-3 w-3" />
+              {n.provider}
+            </span>
           </div>
           <div className={`mt-2 text-[10px] ${canvasTheme.mutedTextClass}`}>
-            {path.nodes.length} resources in path
+            {isCrownJewelNode(n) ? getCrownJewelLabel(n) : `${path.nodes.length} resources in path`}
           </div>
         </div>
       ),
@@ -288,18 +323,21 @@ function pathToFlow(
     },
   }))
 
-  const edges: Edge[] = path.edges.map(e => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    label: e.label,
-    type: 'smoothstep',
-    markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-    style: { strokeWidth: 2.25, stroke: canvasTheme.edgeColor },
-    labelStyle: { fontSize: 10, fill: canvasTheme.edgeLabelColor, fontWeight: 600 },
-    labelBgStyle: { fill: canvasTheme.edgeLabelBackground, fillOpacity: 0.98 },
-    labelBgPadding: [4, 6] as [number, number],
-  }))
+  const edges: Edge[] = path.edges.map(e => {
+    const semantic = getAttackPathEdgeSemantic(e)
+    return {
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      label: semantic.badge,
+      type: 'smoothstep',
+      markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
+      style: { strokeWidth: isPrivilegeEscalationEdge(e) ? 2.75 : 2.25, stroke: semantic.color ?? canvasTheme.edgeColor },
+      labelStyle: { fontSize: 10, fill: semantic.color ?? canvasTheme.edgeLabelColor, fontWeight: 700 },
+      labelBgStyle: { fill: canvasTheme.edgeLabelBackground, fillOpacity: 0.98 },
+      labelBgPadding: [4, 6] as [number, number],
+    }
+  })
 
   return { nodes, edges }
 }
@@ -307,6 +345,8 @@ function pathToFlow(
 function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) {
   const Icon = CATEGORY_ICONS[path.entry_point?.category] ?? AlertTriangle
   const actionItems = extractActionItems(path)
+  const crownJewelCount = path.nodes.filter(isCrownJewelNode).length
+  const privilegeEscalationCount = path.edges.filter(isPrivilegeEscalationEdge).length
   return (
     <button type="button" onClick={onClick} className="w-full text-left">
       <Card className="overflow-hidden rounded-[28px] border border-border/80 bg-card/95 shadow-[0_18px_48px_rgba(15,23,42,0.06)] transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_24px_60px_rgba(15,23,42,0.1)] dark:hover:border-slate-700">
@@ -343,6 +383,17 @@ function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) 
                     path.ai_likelihood === 'medium' ? 'text-orange-600 dark:text-orange-400' :
                     'text-blue-600 dark:text-blue-400'
                   }`}>{path.ai_likelihood.toUpperCase()} likelihood</span>
+                )}
+                {privilegeEscalationCount > 0 && (
+                  <Badge variant="outline" className="text-[10px] gap-1 rounded-full border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-900/40 dark:bg-orange-950/20 dark:text-orange-300">
+                    PrivEsc x{privilegeEscalationCount}
+                  </Badge>
+                )}
+                {crownJewelCount > 0 && (
+                  <Badge variant="outline" className="text-[10px] gap-1 rounded-full border-violet-300 bg-violet-50 text-violet-700 dark:border-violet-900/40 dark:bg-violet-950/20 dark:text-violet-300">
+                    <Crown className="h-2.5 w-2.5" />
+                    Crown jewel x{crownJewelCount}
+                  </Badge>
                 )}
               </div>
               <p className="text-sm font-medium leading-snug">{path.title}</p>
@@ -395,6 +446,7 @@ function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) 
 
 function PathGraphView({
   path,
+  relatedFindings,
   onBack,
   chokePointIds,
   canvasTone,
@@ -402,6 +454,7 @@ function PathGraphView({
   onCanvasToneChange,
 }: {
   path: AttackPath
+  relatedFindings: Finding[]
   onBack: () => void
   chokePointIds?: Set<string>
   canvasTone: CanvasTone
@@ -411,6 +464,8 @@ function PathGraphView({
   const canvasTheme = CANVAS_THEME[resolvedCanvasTone]
   const actionItems = useMemo(() => extractActionItems(path), [path])
   const pathStory = useMemo(() => buildPathStory(path), [path])
+  const crownJewelCount = useMemo(() => path.nodes.filter(isCrownJewelNode).length, [path])
+  const privilegeEscalationCount = useMemo(() => path.edges.filter(isPrivilegeEscalationEdge).length, [path])
   const { nodes, edges } = useMemo(
     () => pathToFlow(path, resolvedCanvasTone, chokePointIds),
     [path, resolvedCanvasTone, chokePointIds],
@@ -457,7 +512,10 @@ function PathGraphView({
               <Route className="h-3.5 w-3.5" />Path Shape
             </div>
             <p className="mt-2 text-sm font-semibold">{path.nodes.length} resources · {path.hop_count} hops</p>
-            <p className="mt-1 text-xs text-muted-foreground">{formatStageSummary(path)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {formatStageSummary(path)}
+              {privilegeEscalationCount > 0 ? ` · ${privilegeEscalationCount} privilege hop${privilegeEscalationCount === 1 ? '' : 's'}` : ''}
+            </p>
           </CardContent>
         </Card>
         <Card className="rounded-[24px] border border-border/80">
@@ -466,7 +524,10 @@ function PathGraphView({
               <Clock3 className="h-3.5 w-3.5" />Immediate Action
             </div>
             <p className="mt-2 text-sm font-semibold">{actionItems[0]}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Prioritize the first break in the chain before deeper cleanup.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Prioritize the first break in the chain before deeper cleanup.
+              {crownJewelCount > 0 ? ` ${crownJewelCount} crown jewel${crownJewelCount === 1 ? '' : 's'} exposed.` : ''}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -512,7 +573,14 @@ function PathGraphView({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-[10px]">
-        {['Entry node', 'Pivot step', 'Target node', 'Choke point = reused across paths'].map(label => (
+        {[
+          'Entry node',
+          'Pivot step',
+          'Target node',
+          'Privilege escalation hop',
+          'Crown jewel',
+          'Choke point = reused across paths',
+        ].map(label => (
           <span key={label} className="rounded-full border border-border/80 bg-muted/50 px-2 py-1 text-muted-foreground">
             {label}
           </span>
@@ -549,6 +617,96 @@ function PathGraphView({
         </div>
       )}
 
+      {relatedFindings.length > 0 && (
+        <Card className="rounded-none">
+          <CardHeader className="pb-2 pt-3 px-4">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Finding Context</span>
+          </CardHeader>
+          <CardContent className="space-y-3 px-4 pb-4">
+            {relatedFindings.slice(0, 4).map(finding => (
+              <div key={finding.id} className="rounded-2xl border border-border/80 bg-muted/15 p-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        to={`/ops/findings/${finding.id}`}
+                        className="text-sm font-semibold hover:text-primary underline-offset-4 hover:underline"
+                      >
+                        {finding.title}
+                      </Link>
+                      <Badge variant="outline" className={`text-[10px] rounded-full ${SEVERITY_COLORS[finding.severity] ?? ''}`}>
+                        {finding.severity}
+                      </Badge>
+                      <ProviderBadge provider={finding.cloud_provider} />
+                      {finding.cves?.[0] && (
+                        <a
+                          href={finding.cves[0].nvd_url || finding.cves[0].url || finding.cves[0].mitre_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-500 dark:text-blue-400"
+                        >
+                          {finding.cves[0].id}
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                      {finding.ticket_url && (
+                        <a
+                          href={finding.ticket_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-500 dark:text-blue-400"
+                        >
+                          Ticket
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {finding.resource_name} · {formatAttackPathResourceType(finding.resource_type)} · {formatFindingContextSource(finding)}
+                    </p>
+                  </div>
+                  <div className="text-right text-[10px] text-muted-foreground">
+                    <div>{finding.workflow_status.replaceAll('_', ' ')}</div>
+                    {finding.due_date && <div>Due {new Date(finding.due_date).toLocaleDateString()}</div>}
+                  </div>
+                </div>
+                {finding.toxic_combo_details && (
+                  <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-[11px] text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100">
+                    {finding.toxic_combo_details.description}
+                  </div>
+                )}
+                {finding.cves && finding.cves.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {finding.cves.slice(0, 3).map(cve => (
+                      <a
+                        key={cve.id}
+                        href={cve.nvd_url || cve.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-mono text-red-700 hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300"
+                      >
+                        {cve.id}
+                      </a>
+                    ))}
+                  </div>
+                )}
+                {(finding.remediation_steps?.length ?? 0) > 0 ? (
+                  <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground">
+                    {finding.remediation_steps!.slice(0, 2).map(step => (
+                      <li key={`${finding.id}-${step.order}`}>
+                        {step.order}. {step.title}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-[11px] text-muted-foreground">{finding.remediation}</p>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Resource Chain */}
       <Card className="rounded-none">
         <CardHeader className="pb-2 pt-3 px-4">
@@ -556,13 +714,26 @@ function PathGraphView({
         </CardHeader>
         <CardContent className="px-4 pb-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {path.nodes.map(n => (
-              <div key={n.id} className="border border-border p-3 space-y-1">
+            {path.nodes.map(n => {
+              const ResourceIcon = getAttackPathResourceIcon(n)
+              return (
+              <div key={n.id} className="border border-border p-3 space-y-1 rounded-2xl bg-background/70">
                 <div className="flex items-center gap-2">
-                  <ProviderIcon provider={n.provider} className="h-4 w-4 shrink-0" />
+                  <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-border/80 bg-muted/30">
+                    <ResourceIcon className="h-4 w-4" />
+                    <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-white shadow-sm dark:border-slate-900 dark:bg-slate-950">
+                      <ProviderIcon provider={n.provider} className="h-2.5 w-2.5" />
+                    </div>
+                  </div>
                   <span className="text-xs font-semibold truncate">{n.resource_name}</span>
+                  {isCrownJewelNode(n) && (
+                    <Badge variant="outline" className="ml-auto rounded-full border-violet-300 bg-violet-50 text-[9px] text-violet-700 dark:border-violet-900/40 dark:bg-violet-950/20 dark:text-violet-300">
+                      <Crown className="mr-1 h-2.5 w-2.5" />
+                      Crown jewel
+                    </Badge>
+                  )}
                 </div>
-                <div className="text-[10px] text-muted-foreground">{n.resource_type} · {n.region}</div>
+                <div className="text-[10px] text-muted-foreground">{formatAttackPathResourceType(n.resource_type)} · {n.region}</div>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge variant="outline" className={`text-[9px] px-1.5 py-0 rounded-none ${SEVERITY_COLORS[n.severity] ?? ''}`}>
                     {n.severity}
@@ -577,7 +748,7 @@ function PathGraphView({
                   )}
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </CardContent>
       </Card>
@@ -664,10 +835,12 @@ function PathGraphView({
 
 export default function AttackPaths() {
   const [page, setPage] = useState(1)
+  const [searchParams] = useSearchParams()
   const { data: response, isLoading, isError } = useAttackPaths(page, 20)
   const { data: stats } = useAttackPathStats()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [canvasTone, setCanvasTone] = useState<CanvasTone>(getInitialCanvasTone)
+  const focusFindingId = searchParams.get('findingId')
 
   const paths = response?.data ?? []
   const totalPages = response?.total_pages ?? 1
@@ -678,10 +851,17 @@ export default function AttackPaths() {
     getCanvasToneStorage()?.setItem(CANVAS_TONE_STORAGE_KEY, canvasTone)
   }, [canvasTone])
 
+  useEffect(() => {
+    if (!focusFindingId || selectedId || paths.length === 0) return
+    const matchingPath = paths.find(path => path.finding_ids.includes(focusFindingId))
+    if (matchingPath) setSelectedId(matchingPath.id)
+  }, [focusFindingId, paths, selectedId])
+
   const selectedPath = useMemo(
     () => paths.find(p => p.id === selectedId) ?? null,
     [paths, selectedId]
   )
+  const { data: selectedPathFindings = [] } = useFindingsByIds(selectedPath?.finding_ids ?? [], Boolean(selectedPath))
   const selectedIndex = useMemo(
     () => paths.findIndex(path => path.id === selectedId),
     [paths, selectedId],
@@ -788,6 +968,7 @@ export default function AttackPaths() {
       <div className="max-w-5xl p-6">
         <PathGraphView
           path={selectedPath}
+          relatedFindings={selectedPathFindings}
           onBack={handleBack}
           chokePointIds={chokePointIds}
           canvasTone={canvasTone}

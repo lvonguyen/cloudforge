@@ -112,6 +112,8 @@ describe('AttackPathMiniGraph', () => {
     expect(screen.getByText('Attack Path')).toBeInTheDocument()
     expect(screen.getAllByText('public-api').length).toBeGreaterThan(0)
     expect(screen.getAllByText('prod-orders-db').length).toBeGreaterThan(0)
+    expect(screen.getByText(/1 privilege hop/i)).toBeInTheDocument()
+    expect(screen.getByText(/1 crown jewel/i)).toBeInTheDocument()
     expect(document.querySelector('[data-canvas-tone="light"]')).toBeTruthy()
   })
 

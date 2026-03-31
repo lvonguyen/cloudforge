@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueries, useQueryClient } from '@tanstack/react-query'
 import { apiClient, ApiError, isMockFallbackEnabled, unwrapPaginated } from '@/lib/api'
 import type { Finding } from '@/types/compliance'
 
@@ -64,6 +64,22 @@ async function fetchFindings(filters?: { severity?: string; provider?: string; s
     console.warn('[useFindings] API unavailable, using mock data')
     const data = await fetchMockFindings()
     return { data, usingMockData: true }
+  }
+}
+
+async function fetchFindingById(id: string): Promise<Finding | null> {
+  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+    const findings = await fetchMockFindings()
+    return findings.find((f) => f.id === id) ?? null
+  }
+  try {
+    return await apiClient.get<Finding>(`/findings/${id}`)
+  } catch (err) {
+    if (err instanceof ApiError && err.status < 500) throw err
+    if (!isMockFallbackEnabled()) throw err
+    console.warn('[useFinding] API unavailable, using mock data')
+    const findings = await fetchMockFindings()
+    return findings.find((f) => f.id === id) ?? null
   }
 }
 
@@ -154,21 +170,28 @@ export function useFindingsStats() {
 export function useFinding(id: string) {
   return useQuery({
     queryKey: ['findings', id],
-    queryFn: async () => {
-      if (import.meta.env.VITE_DEMO_MODE === 'true') {
-        const findings = await fetchMockFindings()
-        return findings.find((f) => f.id === id) ?? null
-      }
-      try {
-        return await apiClient.get<Finding>(`/findings/${id}`)
-      } catch (err) {
-        if (err instanceof ApiError && err.status < 500) throw err
-        if (!isMockFallbackEnabled()) throw err
-        console.warn('[useFinding] API unavailable, using mock data')
-        const findings = await fetchMockFindings()
-        return findings.find((f) => f.id === id) ?? null
-      }
-    },
+    queryFn: () => fetchFindingById(id),
     enabled: Boolean(id),
   })
+}
+
+export function useFindingsByIds(ids: string[], enabled = true) {
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)))
+  const queries = useQueries({
+    queries: uniqueIds.map((id) => ({
+      queryKey: ['findings', id],
+      queryFn: () => fetchFindingById(id),
+      enabled: enabled && Boolean(id),
+      staleTime: 5 * 60 * 1000,
+    })),
+  })
+
+  return {
+    queries,
+    data: queries
+      .map((query) => query.data)
+      .filter((finding): finding is Finding => Boolean(finding)),
+    isLoading: queries.some((query) => query.isLoading),
+    isError: queries.some((query) => query.isError),
+  }
 }

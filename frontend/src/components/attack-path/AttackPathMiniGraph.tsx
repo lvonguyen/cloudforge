@@ -16,20 +16,20 @@ import '@xyflow/react/dist/style.css'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Network, AlertTriangle, Maximize2, Minimize2, X, Shield, Zap } from 'lucide-react'
+import { ArrowRight, Network, AlertTriangle, Maximize2, Minimize2, X } from 'lucide-react'
 import type { AttackPath, AttackPathNode } from '@/types/attack-path'
 import { ProviderIcon } from '@/components/ui/ProviderIcon'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS, SEVERITY_HEX, SEVERITY_NEUTRAL_HEX } from '@/lib/severity'
+import {
+  formatResourceTypeLabel,
+  getAttackPathEdgeMeta,
+  getAttackPathResourceIcon,
+  getCrownJewelLabel,
+  getCrownJewelIcon,
+  isCrownJewelNode,
+} from '@/components/attack-path/visuals'
 
 type ResolvedCanvasTone = 'light' | 'dark'
-
-const CATEGORY_ICONS: Record<string, typeof Shield> = {
-  NETWORK: Zap,
-  VULNERABILITY: AlertTriangle,
-  IDENTITY: Shield,
-  MISCONFIGURATION: AlertTriangle,
-  COMPLIANCE: Shield,
-}
 
 const MINI_CANVAS_THEME: Record<ResolvedCanvasTone, {
   frameClass: string
@@ -97,6 +97,14 @@ function useDocumentCanvasTone(): ResolvedCanvasTone {
   return dark ? 'dark' : 'light'
 }
 
+const EDGE_TONE_STYLES = {
+  amber: { stroke: '#f59e0b', labelBg: '#fffbeb', labelText: '#b45309' },
+  rose: { stroke: '#ef4444', labelBg: '#fff1f2', labelText: '#be123c' },
+  sky: { stroke: '#0ea5e9', labelBg: '#f0f9ff', labelText: '#0369a1' },
+  violet: { stroke: '#8b5cf6', labelBg: '#f5f3ff', labelText: '#6d28d9' },
+  slate: { stroke: '#64748b', labelBg: '#f8fafc', labelText: '#475569' },
+} as const
+
 function pathToFlowNodes(path: AttackPath, resolvedTone: ResolvedCanvasTone): { nodes: Node[]; edges: Edge[] } {
   const canvasTheme = MINI_CANVAS_THEME[resolvedTone]
   const nodes: Node[] = path.nodes.map((n, i) => ({
@@ -106,8 +114,14 @@ function pathToFlowNodes(path: AttackPath, resolvedTone: ResolvedCanvasTone): { 
       label: (
         <div className={`text-left px-3 py-3 ${canvasTheme.nodeTextClass}`}>
           <div className="flex items-start gap-2.5">
-            <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl ${canvasTheme.iconWrapClass}`}>
-              <ProviderIcon provider={n.provider} className="h-4 w-4" />
+            <div className={`relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl ${canvasTheme.iconWrapClass}`}>
+              {(() => {
+                const ResourceIcon = getAttackPathResourceIcon(n)
+                return <ResourceIcon className="h-4 w-4" />
+              })()}
+              <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-white shadow-sm dark:border-slate-900 dark:bg-slate-900">
+                <ProviderIcon provider={n.provider} className="h-2.5 w-2.5" />
+              </span>
             </div>
             <div className="min-w-0">
               <div className="mb-1 flex items-center gap-1.5">
@@ -117,16 +131,21 @@ function pathToFlowNodes(path: AttackPath, resolvedTone: ResolvedCanvasTone): { 
                 <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium ${canvasTheme.chipClass}`}>
                   {i === 0 ? 'Entry' : i === path.nodes.length - 1 ? 'Target' : 'Pivot'}
                 </span>
+                {isCrownJewelNode(n) && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                    {(() => {
+                      const CrownIcon = getCrownJewelIcon()
+                      return <CrownIcon className="h-2.5 w-2.5" />
+                    })()}
+                    Crown
+                  </span>
+                )}
               </div>
               <div className="truncate text-xs font-semibold max-w-[180px]">{n.resource_name}</div>
               <div className={`mt-1 flex items-center gap-1.5 text-[10px] ${canvasTheme.mutedTextClass}`}>
-                {(() => {
-                  const Icon = CATEGORY_ICONS[n.category] ?? AlertTriangle
-                  return <Icon className="h-3 w-3" />
-                })()}
-                <span>{n.category}</span>
+                <span>{formatResourceTypeLabel(n.resource_type)}</span>
                 <span>&middot;</span>
-                <span>{n.resource_type}</span>
+                <span>{n.category}</span>
               </div>
             </div>
           </div>
@@ -146,18 +165,35 @@ function pathToFlowNodes(path: AttackPath, resolvedTone: ResolvedCanvasTone): { 
     },
   }))
 
-  const edges: Edge[] = path.edges.map(e => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    label: e.label,
-    type: 'smoothstep',
-    markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-    style: { strokeWidth: 2, cursor: 'pointer', stroke: canvasTheme.edgeColor },
-    labelStyle: { fontSize: 10, fill: canvasTheme.edgeLabelColor, cursor: 'pointer', fontWeight: 600 },
-    labelBgStyle: { fill: canvasTheme.edgeLabelBackground, fillOpacity: 0.95 },
-    labelBgPadding: [4, 6] as [number, number],
-  }))
+  const edges: Edge[] = path.edges.map(e => {
+    const edgeMeta = getAttackPathEdgeMeta(e)
+    const tone = EDGE_TONE_STYLES[edgeMeta.tone]
+    return {
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      label: edgeMeta.label,
+      type: 'smoothstep',
+      animated: edgeMeta.emphasize,
+      markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
+      style: {
+        strokeWidth: edgeMeta.emphasize ? 2.6 : 2,
+        cursor: 'pointer',
+        stroke: resolvedTone === 'dark' && edgeMeta.tone === 'slate' ? canvasTheme.edgeColor : tone.stroke,
+      },
+      labelStyle: {
+        fontSize: 10,
+        fill: resolvedTone === 'dark' && edgeMeta.tone === 'slate' ? canvasTheme.edgeLabelColor : tone.labelText,
+        cursor: 'pointer',
+        fontWeight: 700,
+      },
+      labelBgStyle: {
+        fill: resolvedTone === 'dark' && edgeMeta.tone === 'slate' ? canvasTheme.edgeLabelBackground : tone.labelBg,
+        fillOpacity: 0.96,
+      },
+      labelBgPadding: [4, 6] as [number, number],
+    }
+  })
 
   return { nodes, edges }
 }
@@ -175,6 +211,8 @@ export function AttackPathMiniGraph({ paths, resourceId }: AttackPathMiniGraphPr
   const canvasTheme = MINI_CANVAS_THEME[resolvedCanvasTone]
 
   const primaryPath = paths[selectedPathIndex] ?? paths[0]
+  const privilegeHopCount = primaryPath?.edges.filter(edge => getAttackPathEdgeMeta(edge).label === 'Privilege escalation').length ?? 0
+  const crownJewelCount = primaryPath?.nodes.filter(node => isCrownJewelNode(node)).length ?? 0
 
   const { nodes, edges } = useMemo(
     () => (primaryPath ? pathToFlowNodes(primaryPath, resolvedCanvasTone) : { nodes: [], edges: [] }),
@@ -242,6 +280,16 @@ export function AttackPathMiniGraph({ paths, resourceId }: AttackPathMiniGraphPr
           <Badge variant="secondary" className="text-[10px]">
             Score: {primaryPath.score}
           </Badge>
+          {privilegeHopCount > 0 && (
+            <Badge variant="secondary" className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+              {privilegeHopCount} privilege hop{privilegeHopCount > 1 ? 's' : ''}
+            </Badge>
+          )}
+          {crownJewelCount > 0 && (
+            <Badge variant="secondary" className="text-[10px] bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300">
+              {crownJewelCount} crown jewel{crownJewelCount > 1 ? 's' : ''}
+            </Badge>
+          )}
           {primaryPath.ai_enriched && (
             <Badge variant="secondary" className="text-[10px] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
               AI Validated
@@ -296,9 +344,18 @@ export function AttackPathMiniGraph({ paths, resourceId }: AttackPathMiniGraphPr
                 <Badge variant="outline" className={`text-[9px] ${SEVERITY_COLORS[nodeDetail.severity] ?? ''}`}>
                   {nodeDetail.severity}
                 </Badge>
+                {isCrownJewelNode(nodeDetail) && (
+                  <Badge variant="outline" className="text-[9px] border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                    Crown jewel
+                  </Badge>
+                )}
                 <p className="text-xs font-medium">{nodeDetail.resource_name}</p>
-                <p className="text-[10px] text-muted-foreground">{nodeDetail.resource_type}</p>
+                <p className="text-[10px] text-muted-foreground">{formatResourceTypeLabel(nodeDetail.resource_type)}</p>
+                <p className="text-[10px] text-muted-foreground">{nodeDetail.category}</p>
                 <p className="text-[10px] text-muted-foreground">{nodeDetail.region}</p>
+                {isCrownJewelNode(nodeDetail) && (
+                  <p className="text-[10px] text-amber-700 dark:text-amber-200">{getCrownJewelLabel(nodeDetail)}</p>
+                )}
                 {nodeDetail.finding_id && (
                   <p className="text-[10px] font-mono text-muted-foreground truncate">{nodeDetail.finding_id}</p>
                 )}
@@ -309,7 +366,11 @@ export function AttackPathMiniGraph({ paths, resourceId }: AttackPathMiniGraphPr
 
         {/* Link to security graph (attack-paths route removed in Sprint G) */}
         {resourceId && (
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+              <span className="rounded-full border border-border/80 bg-muted/40 px-2 py-1">Privilege escalation hop</span>
+              <span className="rounded-full border border-border/80 bg-muted/40 px-2 py-1">Crown jewel</span>
+            </div>
             <Button variant="ghost" size="sm" className="text-xs gap-1 text-muted-foreground">
               Resource: {resourceId.length > 30 ? resourceId.slice(0, 30) + '\u2026' : resourceId}
             </Button>

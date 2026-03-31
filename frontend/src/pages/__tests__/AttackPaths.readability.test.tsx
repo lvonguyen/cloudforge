@@ -187,6 +187,8 @@ describe('AttackPaths readability controls', () => {
     fireEvent.keyDown(document, { key: 'j' })
 
     expect(await screen.findByText('Finding References')).toBeInTheDocument()
+    expect(screen.getAllByText(/privilege escalation/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/crown jewel/i).length).toBeGreaterThan(0)
 
     fireEvent.keyDown(document, { key: 'Escape' })
 
