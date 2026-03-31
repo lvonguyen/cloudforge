@@ -37,6 +37,11 @@ type secgraphIssueTicketState struct {
 	SLABreachAt *time.Time
 }
 
+type secgraphIssueAssignmentCandidate struct {
+	assigneeID string
+	priority   int
+}
+
 type secgraphIssueTicketLoader interface {
 	LoadIssueTicketState(ctx context.Context, issueID string) (secgraphIssueTicketState, error)
 }
@@ -206,6 +211,7 @@ func syncSecurityGraphWithStoreAndDispatcherMode(ctx context.Context, store secg
 
 	materializedFindings := 0
 	materialized := secgraph.MaterializationResult{}
+	assignmentCandidates := make(map[string]secgraphIssueAssignmentCandidate)
 	for _, finding := range findings {
 		complianceFinding := toComplianceFinding(finding)
 		if len(complianceFinding.ComplianceMappings) == 0 {
@@ -234,11 +240,19 @@ func syncSecurityGraphWithStoreAndDispatcherMode(ctx context.Context, store secg
 				return fmt.Errorf("seed materialized controls for finding %s: %w", finding.ID, err)
 			}
 		}
+		if candidate := deriveIssueAssignmentCandidate(&complianceFinding); candidate.assigneeID != "" {
+			for _, issue := range result.Issues {
+				assignmentCandidates[issue.ID] = betterIssueAssignmentCandidate(assignmentCandidates[issue.ID], candidate)
+			}
+		}
 		materialized = secgraph.MergeMaterializationResults(materialized, result)
 		materializedFindings++
 	}
 
 	for idx := range materialized.Issues {
+		if candidate := assignmentCandidates[materialized.Issues[idx].ID]; candidate.assigneeID != "" && strings.TrimSpace(materialized.Issues[idx].AssigneeID) == "" {
+			materialized.Issues[idx].AssigneeID = candidate.assigneeID
+		}
 		if dispatcher == nil {
 			continue
 		}
@@ -324,7 +338,7 @@ func mergeIssueTicketState(issue *secgraph.Issue, state secgraphIssueTicketState
 	if issue.TicketURL == "" {
 		issue.TicketURL = state.TicketURL
 	}
-	if issue.AssigneeID == "" {
+	if state.AssigneeID != "" {
 		issue.AssigneeID = state.AssigneeID
 	}
 	if issue.SLABreachAt == nil && state.SLABreachAt != nil {
@@ -371,8 +385,12 @@ func toComplianceFinding(f Finding) compliance.Finding {
 		Category:            compliance.FindingCategory(strings.TrimSpace(strings.ToUpper(f.Category))),
 		Status:              f.Status,
 		WorkflowStatus:      compliance.WorkflowStatus(strings.TrimSpace(strings.ToLower(f.WorkflowStatus))),
+		Assignee:            toComplianceAssignee(f.Assignee),
+		TechnicalContact:    toComplianceContact(f.TechnicalContact),
+		BusinessOwner:       toComplianceContact(f.BusinessOwner),
 		ServiceName:         f.ServiceName,
 		LineOfBusiness:      f.LineOfBusiness,
+		Team:                f.Team,
 		FirstFoundAt:        parseRFC3339OrZero(f.FirstFoundAt),
 		LastSeenAt:          parseRFC3339OrZero(f.LastSeenAt),
 		DeduplicationKey:    f.DeduplicationKey,
@@ -393,6 +411,98 @@ func toComplianceFinding(f Finding) compliance.Finding {
 	}
 
 	return converted
+}
+
+func toComplianceAssignee(assignee *FindingAssignee) *compliance.AssigneeInfo {
+	if assignee == nil {
+		return nil
+	}
+
+	converted := &compliance.AssigneeInfo{
+		UserID:      strings.TrimSpace(assignee.UserID),
+		UserEmail:   strings.TrimSpace(assignee.UserEmail),
+		UserName:    strings.TrimSpace(assignee.UserName),
+		Team:        strings.TrimSpace(assignee.Team),
+		AssignedAt:  parseRFC3339OrZero(assignee.AssignedAt),
+		AssignedBy:  strings.TrimSpace(assignee.AssignedBy),
+		Escalated:   assignee.Escalated,
+		EscalatedTo: strings.TrimSpace(assignee.EscalatedTo),
+	}
+	if dueDate := parseRFC3339Ptr(assignee.DueDate); dueDate != nil {
+		converted.DueDate = dueDate
+	}
+	if escalatedAt := parseRFC3339Ptr(assignee.EscalatedAt); escalatedAt != nil {
+		converted.EscalatedAt = escalatedAt
+	}
+	if converted.UserID == "" && converted.UserEmail == "" && converted.UserName == "" &&
+		converted.Team == "" && converted.AssignedAt.IsZero() && converted.AssignedBy == "" &&
+		converted.DueDate == nil && !converted.Escalated && converted.EscalatedTo == "" && converted.EscalatedAt == nil {
+		return nil
+	}
+	return converted
+}
+
+func toComplianceContact(contact *FindingContact) *compliance.Contact {
+	if contact == nil {
+		return nil
+	}
+	converted := &compliance.Contact{
+		Name:      strings.TrimSpace(contact.Name),
+		Email:     strings.TrimSpace(contact.Email),
+		Team:      strings.TrimSpace(contact.Team),
+		Phone:     strings.TrimSpace(contact.Phone),
+		SlackID:   strings.TrimSpace(contact.SlackID),
+		OnCallURL: strings.TrimSpace(contact.OnCallURL),
+	}
+	if converted.Name == "" && converted.Email == "" && converted.Team == "" &&
+		converted.Phone == "" && converted.SlackID == "" && converted.OnCallURL == "" {
+		return nil
+	}
+	return converted
+}
+
+func deriveIssueAssignmentCandidate(finding *compliance.Finding) secgraphIssueAssignmentCandidate {
+	if finding == nil {
+		return secgraphIssueAssignmentCandidate{}
+	}
+	if finding.Assignee != nil {
+		if userID := strings.TrimSpace(finding.Assignee.UserID); userID != "" {
+			return secgraphIssueAssignmentCandidate{assigneeID: userID, priority: 4}
+		}
+		if userEmail := strings.TrimSpace(finding.Assignee.UserEmail); userEmail != "" {
+			return secgraphIssueAssignmentCandidate{assigneeID: userEmail, priority: 3}
+		}
+	}
+	if finding.TechnicalContact != nil {
+		if email := strings.TrimSpace(finding.TechnicalContact.Email); email != "" {
+			return secgraphIssueAssignmentCandidate{assigneeID: email, priority: 2}
+		}
+	}
+	if finding.BusinessOwner != nil {
+		if email := strings.TrimSpace(finding.BusinessOwner.Email); email != "" {
+			return secgraphIssueAssignmentCandidate{assigneeID: email, priority: 1}
+		}
+	}
+	return secgraphIssueAssignmentCandidate{}
+}
+
+func betterIssueAssignmentCandidate(existing, incoming secgraphIssueAssignmentCandidate) secgraphIssueAssignmentCandidate {
+	if incoming.assigneeID == "" {
+		return existing
+	}
+	if existing.assigneeID == "" {
+		return incoming
+	}
+	if incoming.priority > existing.priority {
+		return incoming
+	}
+	if incoming.priority < existing.priority {
+		return existing
+	}
+	if incoming.assigneeID < existing.assigneeID {
+		return incoming
+	}
+	return existing
 }
 
 func toComplianceMappings(mappings []ComplianceMapping) []compliance.ComplianceMapping {

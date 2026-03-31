@@ -46,9 +46,13 @@ type postgresFindingRow struct {
 	Category            sql.NullString
 	Status              string
 	WorkflowStatus      sql.NullString
+	AssigneeRaw         []byte
 	Suppressed          bool
+	TechnicalContactRaw []byte
+	BusinessOwnerRaw    []byte
 	ServiceName         sql.NullString
 	LineOfBusiness      sql.NullString
+	Team                sql.NullString
 	FirstFoundAt        time.Time
 	LastSeenAt          sql.NullTime
 	SLABreachDate       sql.NullTime
@@ -95,9 +99,13 @@ func loadFindingsFromPostgres(ctx context.Context, db *sql.DB) ([]Finding, error
 			category,
 			status,
 			workflow_status,
+			COALESCE(assignee, 'null'::jsonb) AS assignee,
 			COALESCE(suppressed, FALSE) AS suppressed,
+			COALESCE(technical_contact, 'null'::jsonb) AS technical_contact,
+			COALESCE(business_owner, 'null'::jsonb) AS business_owner,
 			service_name,
 			line_of_business,
+			team,
 			first_found_at,
 			last_seen_at,
 			sla_breach_date,
@@ -153,9 +161,13 @@ func loadFindingsFromPostgres(ctx context.Context, db *sql.DB) ([]Finding, error
 			&row.Category,
 			&row.Status,
 			&row.WorkflowStatus,
+			&row.AssigneeRaw,
 			&row.Suppressed,
+			&row.TechnicalContactRaw,
+			&row.BusinessOwnerRaw,
 			&row.ServiceName,
 			&row.LineOfBusiness,
+			&row.Team,
 			&row.FirstFoundAt,
 			&row.LastSeenAt,
 			&row.SLABreachDate,
@@ -195,6 +207,19 @@ func (r postgresFindingRow) toFinding() (Finding, error) {
 		}
 	}
 
+	assignee, err := decodeFindingAssignee(r.ID, r.AssigneeRaw)
+	if err != nil {
+		return Finding{}, err
+	}
+	technicalContact, err := decodeFindingContact(r.ID, "technical_contact", r.TechnicalContactRaw)
+	if err != nil {
+		return Finding{}, err
+	}
+	businessOwner, err := decodeFindingContact(r.ID, "business_owner", r.BusinessOwnerRaw)
+	if err != nil {
+		return Finding{}, err
+	}
+
 	finding := Finding{
 		ID:                  r.ID,
 		Source:              r.Source,
@@ -228,9 +253,13 @@ func (r postgresFindingRow) toFinding() (Finding, error) {
 		Category:            nullString(r.Category),
 		Status:              r.Status,
 		WorkflowStatus:      nullString(r.WorkflowStatus),
+		Assignee:            assignee,
 		Suppressed:          r.Suppressed,
+		TechnicalContact:    technicalContact,
+		BusinessOwner:       businessOwner,
 		ServiceName:         nullString(r.ServiceName),
 		LineOfBusiness:      nullString(r.LineOfBusiness),
+		Team:                nullString(r.Team),
 		FirstFoundAt:        r.FirstFoundAt.UTC().Format(time.RFC3339),
 		LastSeenAt:          formatNullTime(r.LastSeenAt),
 		SLABreachDate:       formatNullTime(r.SLABreachDate),
@@ -274,4 +303,34 @@ func formatNullTime(nt sql.NullTime) string {
 		return nt.Time.UTC().Format(time.RFC3339)
 	}
 	return ""
+}
+
+func decodeFindingAssignee(findingID string, raw []byte) (*FindingAssignee, error) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil, nil
+	}
+
+	var assignee FindingAssignee
+	if err := json.Unmarshal(raw, &assignee); err != nil {
+		return nil, fmt.Errorf("decode assignee for finding %s: %w", findingID, err)
+	}
+	if assignee == (FindingAssignee{}) {
+		return nil, nil
+	}
+	return &assignee, nil
+}
+
+func decodeFindingContact(findingID, field string, raw []byte) (*FindingContact, error) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil, nil
+	}
+
+	var contact FindingContact
+	if err := json.Unmarshal(raw, &contact); err != nil {
+		return nil, fmt.Errorf("decode %s for finding %s: %w", field, findingID, err)
+	}
+	if contact == (FindingContact{}) {
+		return nil, nil
+	}
+	return &contact, nil
 }

@@ -49,9 +49,13 @@ func TestPostgresFindingRow_ToFinding(t *testing.T) {
 		Category:            sql.NullString{String: "VULNERABILITY", Valid: true},
 		Status:              "open",
 		WorkflowStatus:      sql.NullString{String: "assigned", Valid: true},
+		AssigneeRaw:         []byte(`{"user_id":"user-123","user_email":"alice@example.com","team":"payments"}`),
 		Suppressed:          false,
+		TechnicalContactRaw: []byte(`{"name":"Alice Owner","email":"owner@example.com","team":"payments"}`),
+		BusinessOwnerRaw:    []byte(`{"name":"Bob Exec","email":"bob@example.com","team":"finance"}`),
 		ServiceName:         sql.NullString{String: "Payments API", Valid: true},
 		LineOfBusiness:      sql.NullString{String: "finance", Valid: true},
+		Team:                sql.NullString{String: "payments", Valid: true},
 		FirstFoundAt:        firstFound,
 		LastSeenAt:          sql.NullTime{Time: lastSeen, Valid: true},
 		DueDate:             sql.NullTime{Time: due, Valid: true},
@@ -93,6 +97,18 @@ func TestPostgresFindingRow_ToFinding(t *testing.T) {
 	}
 	if finding.IntegrityHash == "" {
 		t.Fatal("expected integrity hash to be computed")
+	}
+	if finding.Assignee == nil || finding.Assignee.UserID != "user-123" {
+		t.Fatalf("expected assignee to be decoded, got %#v", finding.Assignee)
+	}
+	if finding.TechnicalContact == nil || finding.TechnicalContact.Email != "owner@example.com" {
+		t.Fatalf("expected technical contact to be decoded, got %#v", finding.TechnicalContact)
+	}
+	if finding.BusinessOwner == nil || finding.BusinessOwner.Email != "bob@example.com" {
+		t.Fatalf("expected business owner to be decoded, got %#v", finding.BusinessOwner)
+	}
+	if finding.Team != "payments" {
+		t.Fatalf("expected team %q, got %q", "payments", finding.Team)
 	}
 }
 

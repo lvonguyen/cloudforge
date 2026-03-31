@@ -306,6 +306,60 @@ func TestSyncSecurityGraphWithStore_MergesSharedIssueAcrossFindings(t *testing.T
 	}
 }
 
+func TestSyncSecurityGraphWithStore_PicksBestIssueAssigneeFromFindingMetadata(t *testing.T) {
+	manager := compliance.NewManager(zap.NewNop())
+	store := &recordingSecgraphStore{}
+	now := time.Date(2026, 3, 31, 13, 50, 0, 0, time.UTC)
+
+	findings := []Finding{
+		{
+			ID:           "finding-owner-fallback",
+			Title:        "Shared issue from ownership fallback",
+			ResourceType: "database",
+			ResourceID:   "db-shared-owner",
+			ResourceName: "db-shared-owner",
+			Type:         "misconfiguration",
+			Severity:     "medium",
+			AccountID:    "acct-1",
+			Category:     "COMPLIANCE",
+			BusinessOwner: &FindingContact{
+				Email: "owner@example.com",
+			},
+			ComplianceMappings: []ComplianceMapping{
+				{FrameworkID: "custom-fw", FrameworkName: "Custom Framework", ControlID: "CTRL-ASSIGNEE", ControlTitle: "Assignment control", Severity: "MEDIUM"},
+			},
+		},
+		{
+			ID:           "finding-explicit-assignee",
+			Title:        "Shared issue from explicit assignee",
+			ResourceType: "database",
+			ResourceID:   "db-shared-owner",
+			ResourceName: "db-shared-owner",
+			Type:         "misconfiguration",
+			Severity:     "high",
+			AccountID:    "acct-1",
+			Category:     "COMPLIANCE",
+			Assignee: &FindingAssignee{
+				UserID: "user-123",
+			},
+			ComplianceMappings: []ComplianceMapping{
+				{FrameworkID: "custom-fw", FrameworkName: "Custom Framework", ControlID: "CTRL-ASSIGNEE", ControlTitle: "Assignment control", Severity: "HIGH"},
+			},
+		},
+	}
+
+	if err := syncSecurityGraphWithStore(context.Background(), store, manager, findings, "tenant-a", now, zap.NewNop()); err != nil {
+		t.Fatalf("syncSecurityGraphWithStore() error = %v", err)
+	}
+
+	if len(store.materializationCalls) != 1 || len(store.materializationCalls[0].Issues) != 1 {
+		t.Fatal("expected one aggregated issue")
+	}
+	if got := store.materializationCalls[0].Issues[0].AssigneeID; got != "user-123" {
+		t.Fatalf("assignee_id = %q, want user-123", got)
+	}
+}
+
 func TestSyncSecurityGraphWithStoreAndDispatcher_DoesNotReconcileIncrementalBatch(t *testing.T) {
 	manager := compliance.NewManager(zap.NewNop())
 	store := &recordingSecgraphStore{}
@@ -422,6 +476,7 @@ func TestSecgraphTicketDispatcher_PreservesExistingTicketState(t *testing.T) {
 		Severity:   "HIGH",
 		ControlID:  "ctrl-1",
 		ResourceID: "res-1",
+		AssigneeID: "owner@example.com",
 		TenantID:   "tenant-a",
 	}
 
@@ -463,6 +518,7 @@ func TestSecgraphTicketDispatcher_CreatesTicketForUnticketedIssue(t *testing.T) 
 		ResourceID:    "db-1",
 		AccountID:     "acct-1",
 		Provider:      "aws",
+		AssigneeID:    "user-123",
 		TenantID:      "tenant-a",
 	}
 
@@ -483,6 +539,9 @@ func TestSecgraphTicketDispatcher_CreatesTicketForUnticketedIssue(t *testing.T) 
 	if ticket.Priority != integrations.PriorityUrgent {
 		t.Fatalf("ticket priority = %q, want %q", ticket.Priority, integrations.PriorityUrgent)
 	}
+	if ticket.Assignee != "user-123" {
+		t.Fatalf("ticket assignee = %q, want user-123", ticket.Assignee)
+	}
 }
 
 func TestSecgraphAutoTicketsEnabled(t *testing.T) {
@@ -501,6 +560,7 @@ func TestToComplianceFinding_ParsesOptionalFields(t *testing.T) {
 	now := time.Date(2026, 3, 31, 15, 0, 0, 0, time.UTC)
 	cvss := 9.8
 	epss := 0.91
+	assigneeDue := now.Add(12 * time.Hour)
 	finding := Finding{
 		ID:              "finding-4",
 		Type:            "vulnerability",
@@ -509,10 +569,25 @@ func TestToComplianceFinding_ParsesOptionalFields(t *testing.T) {
 		EnvironmentType: "production",
 		Category:        "THREAT",
 		WorkflowStatus:  "in_progress",
-		CVSS:            &cvss,
-		EPSS:            &epss,
-		FirstFoundAt:    now.Format(time.RFC3339),
-		DueDate:         now.Add(24 * time.Hour).Format(time.RFC3339),
+		Assignee: &FindingAssignee{
+			UserID:     "user-42",
+			UserEmail:  "user-42@example.com",
+			AssignedAt: now.Format(time.RFC3339),
+			DueDate:    assigneeDue.Format(time.RFC3339),
+		},
+		TechnicalContact: &FindingContact{
+			Name:  "Tech Owner",
+			Email: "tech-owner@example.com",
+		},
+		BusinessOwner: &FindingContact{
+			Name:  "Biz Owner",
+			Email: "biz-owner@example.com",
+		},
+		Team:         "platform-security",
+		CVSS:         &cvss,
+		EPSS:         &epss,
+		FirstFoundAt: now.Format(time.RFC3339),
+		DueDate:      now.Add(24 * time.Hour).Format(time.RFC3339),
 		CVEs: []CVE{
 			{
 				ID:                 "CVE-2026-0001",
@@ -554,5 +629,20 @@ func TestToComplianceFinding_ParsesOptionalFields(t *testing.T) {
 	}
 	if len(converted.CVEs) != 1 || converted.CVEs[0].ID != "CVE-2026-0001" {
 		t.Fatal("expected CVE references to be converted")
+	}
+	if converted.Assignee == nil || converted.Assignee.UserID != "user-42" {
+		t.Fatalf("assignee = %+v, want propagated user-42", converted.Assignee)
+	}
+	if converted.Assignee.DueDate == nil || !converted.Assignee.DueDate.Equal(assigneeDue) {
+		t.Fatalf("assignee due date = %v, want %v", converted.Assignee.DueDate, assigneeDue)
+	}
+	if converted.TechnicalContact == nil || converted.TechnicalContact.Email != "tech-owner@example.com" {
+		t.Fatalf("technical_contact = %+v, want propagated email", converted.TechnicalContact)
+	}
+	if converted.BusinessOwner == nil || converted.BusinessOwner.Email != "biz-owner@example.com" {
+		t.Fatalf("business_owner = %+v, want propagated email", converted.BusinessOwner)
+	}
+	if converted.Team != "platform-security" {
+		t.Fatalf("team = %q, want platform-security", converted.Team)
 	}
 }
