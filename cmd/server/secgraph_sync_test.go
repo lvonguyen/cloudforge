@@ -152,6 +152,64 @@ func TestSyncSecurityGraphWithStore_SeedsExtraControlsForPreMappedFindings(t *te
 	}
 }
 
+func TestSyncSecurityGraphWithStore_DerivesIssueLifecycleFromFindingWorkflow(t *testing.T) {
+	manager := compliance.NewManager(zap.NewNop())
+	store := &recordingSecgraphStore{}
+	now := time.Date(2026, 3, 31, 13, 30, 0, 0, time.UTC)
+	lastSeenAt := now.Add(-45 * time.Minute)
+	slaBreachAt := now.Add(-90 * time.Minute)
+
+	finding := Finding{
+		ID:             "finding-lifecycle",
+		Title:          "Suppressed inherited finding",
+		Description:    "Already accepted upstream and should not rematerialize as open",
+		ResourceType:   "database",
+		ResourceID:     "db-accepted",
+		ResourceName:   "db-accepted",
+		Type:           "misconfiguration",
+		Severity:       "medium",
+		AccountID:      "acct-1",
+		Category:       "COMPLIANCE",
+		Status:         "suppressed",
+		WorkflowStatus: "risk_accepted",
+		Suppressed:     true,
+		LastSeenAt:     lastSeenAt.Format(time.RFC3339),
+		SLABreachDate:  slaBreachAt.Format(time.RFC3339),
+		ComplianceMappings: []ComplianceMapping{
+			{
+				FrameworkID:   "custom-fw",
+				FrameworkName: "Custom Framework",
+				ControlID:     "CTRL-LIFECYCLE",
+				ControlTitle:  "Lifecycle fidelity control",
+				Severity:      "MEDIUM",
+			},
+		},
+	}
+
+	if err := syncSecurityGraphWithStore(context.Background(), store, manager, []Finding{finding}, "tenant-a", now, zap.NewNop()); err != nil {
+		t.Fatalf("syncSecurityGraphWithStore() error = %v", err)
+	}
+
+	if len(store.materializationCalls) != 1 || len(store.materializationCalls[0].Issues) != 1 {
+		t.Fatal("expected one materialized issue")
+	}
+
+	result := store.materializationCalls[0]
+	issue := result.Issues[0]
+	if issue.Status != secgraph.IssueSuppressed {
+		t.Fatalf("issue status = %q, want %q", issue.Status, secgraph.IssueSuppressed)
+	}
+	if issue.ResolvedAt == nil || !issue.ResolvedAt.Equal(lastSeenAt) {
+		t.Fatalf("resolved_at = %v, want %v", issue.ResolvedAt, lastSeenAt)
+	}
+	if issue.SLABreachAt == nil || !issue.SLABreachAt.Equal(slaBreachAt) {
+		t.Fatalf("sla_breach_at = %v, want %v", issue.SLABreachAt, slaBreachAt)
+	}
+	if len(result.Evaluations) != 1 || result.Evaluations[0].Status != secgraph.EvalNotApplicable {
+		t.Fatalf("evaluation status = %+v, want %q", result.Evaluations, secgraph.EvalNotApplicable)
+	}
+}
+
 func TestSyncSecurityGraphWithStore_PropagatesStoreErrors(t *testing.T) {
 	manager := compliance.NewManager(zap.NewNop())
 	now := time.Date(2026, 3, 31, 14, 0, 0, 0, time.UTC)

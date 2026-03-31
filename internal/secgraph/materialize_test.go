@@ -122,3 +122,83 @@ func TestMaterializeFindingDeduplicatesDuplicateMappings(t *testing.T) {
 		t.Fatalf("evaluations = %d, want 1", len(result.Evaluations))
 	}
 }
+
+func TestMaterializeFindingDerivesResolvedLifecycle(t *testing.T) {
+	now := time.Date(2026, time.March, 31, 5, 0, 0, 0, time.UTC)
+	resolvedAt := now.Add(-2 * time.Hour)
+	slaBreachAt := now.Add(-4 * time.Hour)
+	finding := &compliance.Finding{
+		ID:             "F-003",
+		Title:          "Resolved vulnerability",
+		ResourceID:     "i-12345",
+		ResourceName:   "i-12345",
+		ResourceType:   compliance.ResourceTypeCompute,
+		CloudProvider:  compliance.CloudProviderAWS,
+		AccountID:      "123456789012",
+		Severity:       "HIGH",
+		Status:         "resolved",
+		WorkflowStatus: compliance.StatusRemediated,
+		LastSeenAt:     resolvedAt,
+		ResolvedAt:     &resolvedAt,
+		SLABreachDate:  &slaBreachAt,
+		ComplianceMappings: []compliance.ComplianceMapping{
+			{FrameworkID: "nist-csf", FrameworkName: "NIST CSF", ControlID: "PR.1", ControlTitle: "Patch critical vulnerabilities", Severity: "HIGH"},
+		},
+	}
+
+	result := MaterializeFinding(finding, "tenant-a", now)
+	if len(result.Issues) != 1 || len(result.Evaluations) != 1 {
+		t.Fatalf("unexpected materialization sizes: %+v", result)
+	}
+
+	issue := result.Issues[0]
+	if issue.Status != IssueResolved {
+		t.Fatalf("issue status = %q, want %q", issue.Status, IssueResolved)
+	}
+	if issue.ResolvedAt == nil || !issue.ResolvedAt.Equal(resolvedAt) {
+		t.Fatalf("resolved_at = %v, want %v", issue.ResolvedAt, resolvedAt)
+	}
+	if issue.SLABreachAt == nil || !issue.SLABreachAt.Equal(slaBreachAt) {
+		t.Fatalf("sla_breach_at = %v, want %v", issue.SLABreachAt, slaBreachAt)
+	}
+	if result.Evaluations[0].Status != EvalPass {
+		t.Fatalf("evaluation status = %q, want %q", result.Evaluations[0].Status, EvalPass)
+	}
+}
+
+func TestMaterializeFindingDerivesSuppressedLifecycle(t *testing.T) {
+	now := time.Date(2026, time.March, 31, 6, 0, 0, 0, time.UTC)
+	lastSeenAt := now.Add(-30 * time.Minute)
+	finding := &compliance.Finding{
+		ID:             "F-004",
+		Title:          "Accepted misconfiguration",
+		ResourceID:     "db-456",
+		ResourceName:   "db-456",
+		ResourceType:   compliance.ResourceTypeDatabase,
+		CloudProvider:  compliance.CloudProviderAWS,
+		AccountID:      "123456789012",
+		Severity:       "MEDIUM",
+		Suppressed:     true,
+		WorkflowStatus: compliance.StatusRiskAccepted,
+		LastSeenAt:     lastSeenAt,
+		ComplianceMappings: []compliance.ComplianceMapping{
+			{FrameworkID: "pci-dss", FrameworkName: "PCI-DSS", ControlID: "REQ.6", ControlTitle: "Review accepted risk", Severity: "MEDIUM"},
+		},
+	}
+
+	result := MaterializeFinding(finding, "tenant-a", now)
+	if len(result.Issues) != 1 || len(result.Evaluations) != 1 {
+		t.Fatalf("unexpected materialization sizes: %+v", result)
+	}
+
+	issue := result.Issues[0]
+	if issue.Status != IssueSuppressed {
+		t.Fatalf("issue status = %q, want %q", issue.Status, IssueSuppressed)
+	}
+	if issue.ResolvedAt == nil || !issue.ResolvedAt.Equal(lastSeenAt) {
+		t.Fatalf("resolved_at = %v, want %v", issue.ResolvedAt, lastSeenAt)
+	}
+	if result.Evaluations[0].Status != EvalNotApplicable {
+		t.Fatalf("evaluation status = %q, want %q", result.Evaluations[0].Status, EvalNotApplicable)
+	}
+}

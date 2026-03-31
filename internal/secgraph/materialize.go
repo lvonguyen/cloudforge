@@ -111,11 +111,13 @@ func MaterializeFinding(finding *compliance.Finding, tenantID string, evaluatedA
 		}
 
 		result.Controls = append(result.Controls, control)
+		evaluationStatus := deriveEvaluationStatus(finding)
+		issueStatus := deriveIssueStatus(finding)
 		result.Evaluations = append(result.Evaluations, ControlEvaluation{
 			ID:          evaluationID,
 			ControlID:   controlID,
 			ResourceID:  finding.ResourceID,
-			Status:      EvalFail,
+			Status:      evaluationStatus,
 			Evidence:    []string{finding.ID},
 			EvaluatedAt: now,
 			TenantID:    tenantID,
@@ -127,15 +129,17 @@ func MaterializeFinding(finding *compliance.Finding, tenantID string, evaluatedA
 			Severity:      severity,
 			RiskScore:     score,
 			BlastRadius:   len(finding.ImpactedResources),
-			Status:        IssueOpen,
+			Status:        issueStatus,
 			ControlID:     controlID,
 			ResourceID:    finding.ResourceID,
 			AccountID:     finding.AccountID,
 			Provider:      string(finding.CloudProvider),
+			SLABreachAt:   cloneTimePtr(finding.SLABreachDate),
 			ExposurePaths: exposurePathCount(finding),
 			TenantID:      tenantID,
 			CreatedAt:     now,
 			UpdatedAt:     now,
+			ResolvedAt:    deriveIssueResolvedAt(finding, issueStatus, now),
 		})
 		result.IssueFindings = append(result.IssueFindings, IssueFindingLink{
 			IssueID:   issueID,
@@ -300,6 +304,79 @@ func exposurePathCount(finding *compliance.Finding) int {
 		count++
 	}
 	return count
+}
+
+func deriveEvaluationStatus(finding *compliance.Finding) EvalStatus {
+	switch deriveIssueStatus(finding) {
+	case IssueResolved:
+		return EvalPass
+	case IssueSuppressed:
+		return EvalNotApplicable
+	default:
+		return EvalFail
+	}
+}
+
+func deriveIssueStatus(finding *compliance.Finding) IssueStatus {
+	if finding == nil {
+		return IssueOpen
+	}
+
+	status := strings.ToLower(strings.TrimSpace(finding.Status))
+	workflow := strings.ToLower(strings.TrimSpace(string(finding.WorkflowStatus)))
+
+	switch {
+	case finding.Suppressed,
+		status == "suppressed",
+		workflow == string(compliance.StatusSuppressed),
+		workflow == string(compliance.StatusFalsePositive),
+		workflow == string(compliance.StatusRiskAccepted),
+		workflow == string(compliance.StatusWontFix):
+		return IssueSuppressed
+	case status == "resolved",
+		status == "closed",
+		workflow == string(compliance.StatusRemediated),
+		workflow == string(compliance.StatusVerified),
+		workflow == string(compliance.StatusClosed):
+		return IssueResolved
+	case status == "in_progress",
+		workflow == string(compliance.StatusInProgress):
+		return IssueInProgress
+	case status == "acknowledged",
+		workflow == string(compliance.StatusTriaged),
+		workflow == string(compliance.StatusAssigned),
+		workflow == string(compliance.StatusPendingInfo),
+		workflow == string(compliance.StatusPendingApproval):
+		return IssueAcknowledged
+	default:
+		return IssueOpen
+	}
+}
+
+func deriveIssueResolvedAt(finding *compliance.Finding, status IssueStatus, fallback time.Time) *time.Time {
+	if finding == nil {
+		return nil
+	}
+	if status != IssueResolved && status != IssueSuppressed {
+		return nil
+	}
+	if finding.ResolvedAt != nil {
+		return cloneTimePtr(finding.ResolvedAt)
+	}
+	if !finding.LastSeenAt.IsZero() {
+		resolvedAt := finding.LastSeenAt.UTC()
+		return &resolvedAt
+	}
+	resolvedAt := fallback.UTC()
+	return &resolvedAt
+}
+
+func cloneTimePtr(value *time.Time) *time.Time {
+	if value == nil {
+		return nil
+	}
+	copied := value.UTC()
+	return &copied
 }
 
 func minInt(a, b int) int {

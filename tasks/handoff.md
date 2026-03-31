@@ -210,6 +210,17 @@ Use this file as the shared climbing board for all security-graph work. Before s
     - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestIssuesEndpointsRequireAuth|TestIssuesEndpointsRequesterForbidden|TestListIssuesNotConfigured|TestListIssuesPropagatesFiltersAndScope|TestListIssuesRejectsInvalidTicketedFilter|TestGetIssueNotFound|TestGetIssueEnforcesScope|TestGetIssueReturnsDetail|TestUpdateIssuePropagatesTenant|TestIssueStatsPropagatesTenant|TestIssueStatsScopedUserForbidden' -count=1`
     - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -count=1`
 
+- `WG-C Follow-up: Issue lifecycle fidelity from finding workflow` — completed 2026-03-30 (codex)
+  - Scope completed: derive secgraph issue/evaluation lifecycle fields from finding status, workflow, suppression, and SLA timestamps so startup/ingest sync no longer rematerializes every mapped finding as an open active failure
+  - Output files:
+    - `internal/secgraph/materialize.go`
+    - `internal/secgraph/materialize_test.go`
+    - `cmd/server/secgraph_sync_test.go`
+  - Guardrail: lifecycle mapping is intentionally conservative; it upgrades fidelity for resolved/suppressed/in-progress states without yet attempting graph-native blast-radius recomputation or issue retirement for disappeared findings
+  - Verification:
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestSyncSecurityGraphWithStore_|TestSyncSecurityGraphWithStoreAndDispatcher|TestSecgraphTicketDispatcher|TestSecgraphAutoTicketsEnabled|TestToComplianceFinding' -count=1`
+
 - `WG-E Follow-up: Attack-path readability + theme controls` — completed 2026-03-31 (codex)
   - Scope completed: lighter/whiter analyst-friendly attack-path detail canvas, clearer node/icon presentation, and an explicit local canvas tone control layered on top of the existing app theme without changing backend graph contracts
   - Output files:
