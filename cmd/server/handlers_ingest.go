@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	"aegis/internal/ingestion"
 
@@ -97,6 +100,17 @@ func (s *Server) ingestFinding(w http.ResponseWriter, r *http.Request) {
 	)
 	s.logAuditEvent(r, "finding.ingest", "finding", findingID, "accepted")
 
+	if s.secgraphSync != nil {
+		syncCtx, syncCancel := context.WithTimeout(ctx, 5*time.Second)
+		if err := s.secgraphSync(syncCtx, req.toFinding(findingID, time.Now().UTC())); err != nil {
+			s.logger.Warn("incremental secgraph sync failed after finding ingest",
+				zap.String("finding_id", findingID),
+				zap.Error(err),
+			)
+		}
+		syncCancel()
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(ingestResponse{
@@ -104,4 +118,75 @@ func (s *Server) ingestFinding(w http.ResponseWriter, r *http.Request) {
 		FindingID: findingID,
 		DedupKey:  key,
 	})
+}
+
+func (r ingestRequest) toFinding(findingID string, now time.Time) Finding {
+	return Finding{
+		ID:              findingID,
+		Source:          r.Source,
+		SourceFindingID: r.SourceFindingID,
+		Type:            strings.TrimSpace(r.FindingType),
+		Title:           r.Title,
+		Description:     r.Description,
+		ResourceType:    inferIngestResourceType(r.ResourceID),
+		ResourceID:      r.ResourceID,
+		ResourceName:    r.ResourceID,
+		CloudProvider:   inferIngestCloudProvider(r.Source, r.ResourceID),
+		AccountID:       r.AccountID,
+		StaticSeverity:  strings.ToUpper(strings.TrimSpace(r.Severity)),
+		Severity:        strings.ToUpper(strings.TrimSpace(r.Severity)),
+		Category:        inferIngestCategory(r.FindingType, r.Title),
+		Status:          "open",
+		FirstFoundAt:    now.Format(time.RFC3339),
+	}
+}
+
+func inferIngestCloudProvider(source, resourceID string) string {
+	lower := strings.ToLower(strings.TrimSpace(source + " " + resourceID))
+	switch {
+	case strings.Contains(lower, "aws"), strings.Contains(strings.ToLower(resourceID), "arn:aws:"):
+		return "aws"
+	case strings.Contains(lower, "azure"), strings.Contains(lower, "/subscriptions/"):
+		return "azure"
+	case strings.Contains(lower, "gcp"), strings.Contains(lower, "projects/"):
+		return "gcp"
+	default:
+		return ""
+	}
+}
+
+func inferIngestResourceType(resourceID string) string {
+	lower := strings.ToLower(strings.TrimSpace(resourceID))
+	switch {
+	case strings.Contains(lower, ":s3:"), strings.Contains(lower, "bucket"):
+		return "storage"
+	case strings.Contains(lower, ":rds:"), strings.Contains(lower, ":db:"), strings.Contains(lower, "database"):
+		return "database"
+	case strings.Contains(lower, ":iam:"), strings.Contains(lower, "role"), strings.Contains(lower, "user"):
+		return "identity"
+	case strings.Contains(lower, ":ec2:"), strings.Contains(lower, "instance"):
+		return "compute"
+	case strings.Contains(lower, ":lambda:"), strings.Contains(lower, "function"):
+		return "serverless"
+	case strings.Contains(lower, ":ecr:"), strings.Contains(lower, "image"), strings.Contains(lower, "container"):
+		return "container"
+	default:
+		return "other"
+	}
+}
+
+func inferIngestCategory(findingType, title string) string {
+	lower := strings.ToLower(strings.TrimSpace(findingType + " " + title))
+	switch {
+	case strings.Contains(lower, "cve"), strings.Contains(lower, "vuln"):
+		return "VULNERABILITY"
+	case strings.Contains(lower, "iam"), strings.Contains(lower, "role"), strings.Contains(lower, "credential"):
+		return "IDENTITY"
+	case strings.Contains(lower, "public"), strings.Contains(lower, "network"), strings.Contains(lower, "exposed"):
+		return "NETWORK"
+	case strings.Contains(lower, "compliance"):
+		return "COMPLIANCE"
+	default:
+		return "MISCONFIGURATION"
+	}
 }
