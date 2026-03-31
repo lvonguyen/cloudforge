@@ -28,6 +28,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - **D20 finding-detail shell landed:** `27774cf9` nests the attack-path and security-graph workspaces under finding detail so investigation stays in-context
 - **CHANGELOG catch-up landed:** `1aa11cd1` updates `CHANGELOG.md` for the recent D19/D20/D21/theme/readability slices
 - **Prod-safe status check (2026-03-31):** `GET /health` is healthy, but `GET /api/v1/providers` on `api.cloudforge-demo.lvonguyen.com` still returns the older shape and reports `grc=memory`, so the latest provider-readiness work is not live there yet
+- **Fly runtime probe (2026-03-31):** `fly status -a cloudforge-api` shows app version `63` healthy, but `fly secrets list -a cloudforge-api` only shows JWT/JWKS/CORS secrets. `AEGIS_DATABASE_URL`, `FINDINGS_SOURCE`, `ASANA_PAT`, `JIRA_URL`, and related D19/D21 runtime config are not deployed there yet
 
 ## Current State
 
@@ -36,6 +37,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - **CI:** other session reported 6/6 GREEN after the latest CI repair sweep
 - **Fly.io:** v59 healthy (sjc)
 - **Prod read-only probe (2026-03-31 05:51Z):** `https://api.cloudforge-demo.lvonguyen.com/health` is healthy, but `/api/v1/providers` still returns the older schema without the new `integrations` block, so `95ad7f80` is not visible on the public demo API yet
+- **Fly secrets probe (2026-03-31 05:53Z):** live `cloudforge-api` currently has only `AEGIS_JWT_SECRET`, `AEGIS_JWKS_URL`, `CLOUDFORGE_JWKS_URL`, and `CORS_ALLOWED_ORIGINS` deployed
 - **Uncommitted:** `frontend/src/pages/ops/AttackPaths.tsx` (other session / in-flight D20 visual work) and `frontend/src/pages/__tests__/FindingDetail.investigation.test.tsx` (other session / in-flight finding-detail work)
 - **Stash:** `stash@{0}` — mixed D10/D20 WIP. Has 4 TS errors. Do NOT pop blindly. Recover one file at a time, verify tsc after each.
 - **Open PRs:** None
@@ -90,10 +92,12 @@ Session 34 — CI repair, documentation refresh, diagram polish:
   - `6489f888` landed Jira comment readback parity for finding-linked tickets
   - `95ad7f80` landed operator visibility into active ticket providers / readiness via `/api/v1/providers`
   - prod-safe check on 2026-03-31 shows the public API is still serving the older provider-status shape and `grc=memory`
+  - live Fly runtime does not yet have `ASANA_PAT`, `JIRA_URL`, or related ticket-provider envs deployed
   - highest-value remaining D21 slice is real env validation with 1Password-backed credentials during an explicit operator window, followed by any provider-specific gaps that show up in that exercise
 - `D19` progress snapshot:
   - `f0bf363f` landed the local preflight script for the Fly/Postgres seed path
   - local follow-up docs/Makefile slice aligns the runbook with the real `aegis-seed` -> `seed-postgres` -> `seed-resources` -> secgraph-backfill flow
+  - live Fly runtime does not yet have `AEGIS_DATABASE_URL` or `FINDINGS_SOURCE` deployed
   - remaining D19 blockers are operator-only: Fly secrets/env cutover, live Postgres load, and startup headroom validation on the current Fly machine/grace-period budget
 - Safe next parallel slice `D19-live-seed-execution`: operator-only runbook / checklist work based on `scripts/fly-findings-seed-preflight.mjs`. Do not use 1Password or live Fly secrets without an explicit handoff note and a clean operator window.
 - Safe next parallel slice `D20-attackpath-visuals`: own `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/*`, and dedicated attack-path tests only. Focus on icons, hop indicators, crown-jewel cues, and embedded remediation/finding context. The standalone east/west readability pass is already done for `SecurityGraph`.
