@@ -184,6 +184,18 @@ Use this file as the shared climbing board for all security-graph work. Before s
     - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestIngestFinding|TestSyncSecurityGraphWithStore|TestSyncSecurityGraphWithStoreAndDispatcher|TestSecgraphTicketDispatcher|TestSecgraphAutoTicketsEnabled' -count=1`
     - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph ./internal/compliance ./internal/integrations -count=1`
 
+- `WG-E Follow-up: Attack-path readability + theme controls` — completed 2026-03-31 (codex)
+  - Scope completed: lighter/whiter analyst-friendly attack-path detail canvas, clearer node/icon presentation, and an explicit local canvas tone control layered on top of the existing app theme without changing backend graph contracts
+  - Output files:
+    - `frontend/src/pages/ops/AttackPaths.tsx`
+    - `frontend/src/components/attack-path/AttackPathMiniGraph.tsx`
+    - `frontend/src/pages/__tests__/AttackPaths.readability.test.tsx`
+  - Coordination: presentation-only and intentionally avoided `frontend/src/components/ops/BaseGraphView.tsx` because that file is owned by the broader `WG-E` graph modernization slice
+  - Verification:
+    - `npm run test -- src/pages/__tests__/AttackPaths.readability.test.tsx`
+    - `npm run test -- src/pages/__tests__/OpsPages.test.tsx`
+    - `npx tsc --noEmit`
+
 ### In Flight
 
 - `WG-E: Graph UX modernization` — in progress 2026-03-31 (session 33, lead)
@@ -191,20 +203,11 @@ Use this file as the shared climbing board for all security-graph work. Before s
   - Write scope: `frontend/src/pages/ops/SecurityGraph.tsx`, `frontend/src/types/security-graph.ts`, `frontend/src/hooks/useGraphQuery.ts` (new), `frontend/src/components/ops/BaseGraphView.tsx`
   - Coordination: backend graph API (WG-D) is done and committed
 
-- `WG-E Follow-up: Attack-path readability + theme controls` — in progress 2026-03-31 (codex)
-  - Scope claimed: lighter/whiter readable attack-path analysis surface, clearer node/icon presentation, and an explicit local canvas tone control layered on top of the existing app theme
-  - Write scope: `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/AttackPathMiniGraph.tsx`, attack-path page tests only
-  - Coordination: presentation-only and intentionally avoids `frontend/src/components/ops/BaseGraphView.tsx` because that file is already claimed by `WG-E`
-
 ### Pending
 
 - `WG-C Phase 2: Control evaluation + Issue pipeline`
   - Optional follow-up: broaden auto-dispatch policy beyond startup and add issue-level read/write APIs if secgraph issues become a first-class operator surface
   - Likely touchpoints: `internal/secgraph/`, `internal/compliance/`, `cmd/server/handlers_*.go`
-
-- `WG-E Follow-up: Attack-path readability + theme controls`
-  - Goal: lighter/whiter, more readable attack-path analysis view with clearer icons and an explicit dark/light option
-  - Likely touchpoints: `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/AttackPathMiniGraph.tsx`, attack-path page tests
 
 ### Current Architecture Facts
 

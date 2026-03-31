@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ReactFlow,
@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, Shield, AlertTriangle, Zap, Target, Sparkles, ArrowRight } from 'lucide-react'
+import { ArrowLeft, Shield, AlertTriangle, Zap, Target, Sparkles, ArrowRight, Monitor, MoonStar, SunMedium } from 'lucide-react'
 import type { AttackPath } from '@/types/attack-path'
 import { ProviderIcon } from '@/components/ui/ProviderIcon'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
@@ -31,22 +31,199 @@ const CATEGORY_ICONS: Record<string, typeof Shield> = {
 
 const SEVERITY_PRIORITY: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
 
-function pathToFlow(path: AttackPath, chokePointIds?: Set<string>): { nodes: Node[]; edges: Edge[] } {
+type CanvasTone = 'auto' | 'light' | 'dark'
+type ResolvedCanvasTone = Exclude<CanvasTone, 'auto'>
+
+const CANVAS_TONE_STORAGE_KEY = 'attack-path-canvas-tone'
+
+function getCanvasToneStorage(): Pick<Storage, 'getItem' | 'setItem'> | null {
+  if (typeof window === 'undefined') return null
+  const storage = window.localStorage
+  if (!storage || typeof storage.getItem !== 'function' || typeof storage.setItem !== 'function') return null
+  return storage
+}
+
+const CANVAS_THEME: Record<ResolvedCanvasTone, {
+  frameClass: string
+  graphBackground: string
+  gridColor: string
+  nodeBackground: string
+  nodeShadow: string
+  nodeTextClass: string
+  mutedTextClass: string
+  chipClass: string
+  iconWrapClass: string
+  roleClass: string
+  controlClass: string
+  edgeColor: string
+  edgeLabelColor: string
+  edgeLabelBackground: string
+}> = {
+  light: {
+    frameClass: 'border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.98),_rgba(241,245,249,0.95))] shadow-[0_24px_60px_rgba(15,23,42,0.08)]',
+    graphBackground: '#f8fafc',
+    gridColor: '#cbd5e1',
+    nodeBackground: '#ffffff',
+    nodeShadow: '0 18px 42px rgba(15, 23, 42, 0.12)',
+    nodeTextClass: 'text-slate-950',
+    mutedTextClass: 'text-slate-500',
+    chipClass: 'border border-slate-200 bg-slate-50 text-slate-700',
+    iconWrapClass: 'border border-slate-200 bg-slate-50 text-slate-700',
+    roleClass: 'border border-cyan-200 bg-cyan-50 text-cyan-700',
+    controlClass: '[&_button]:rounded-xl [&_button]:border-slate-200 [&_button]:bg-white [&_button]:text-slate-500 [&_button:hover]:bg-slate-50 [&_button:hover]:text-slate-900',
+    edgeColor: '#64748b',
+    edgeLabelColor: '#475569',
+    edgeLabelBackground: '#ffffff',
+  },
+  dark: {
+    frameClass: 'border-slate-800 bg-[radial-gradient(circle_at_top,_rgba(30,41,59,0.98),_rgba(2,6,23,0.96))] shadow-[0_26px_60px_rgba(2,6,23,0.45)]',
+    graphBackground: '#020617',
+    gridColor: '#334155',
+    nodeBackground: '#0f172a',
+    nodeShadow: '0 24px 56px rgba(2, 6, 23, 0.45)',
+    nodeTextClass: 'text-slate-50',
+    mutedTextClass: 'text-slate-400',
+    chipClass: 'border border-slate-700 bg-slate-800 text-slate-200',
+    iconWrapClass: 'border border-slate-700 bg-slate-800 text-slate-100',
+    roleClass: 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-100',
+    controlClass: '[&_button]:rounded-xl [&_button]:border-slate-700 [&_button]:bg-slate-900/90 [&_button]:text-slate-400 [&_button:hover]:bg-slate-800 [&_button:hover]:text-slate-100',
+    edgeColor: '#94a3b8',
+    edgeLabelColor: '#cbd5e1',
+    edgeLabelBackground: '#0f172a',
+  },
+}
+
+function getInitialCanvasTone(): CanvasTone {
+  const stored = getCanvasToneStorage()?.getItem(CANVAS_TONE_STORAGE_KEY)
+  if (stored === 'auto' || stored === 'light' || stored === 'dark') return stored
+  return 'auto'
+}
+
+function useResolvedCanvasTone(canvasTone: CanvasTone): ResolvedCanvasTone {
+  const [documentDark, setDocumentDark] = useState(() =>
+    typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
+  )
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const root = document.documentElement
+    const sync = () => setDocumentDark(root.classList.contains('dark'))
+    sync()
+    if (typeof MutationObserver === 'undefined') return
+    const observer = new MutationObserver(sync)
+    observer.observe(root, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
+
+  return canvasTone === 'auto' ? (documentDark ? 'dark' : 'light') : canvasTone
+}
+
+function nodeRoleLabel(index: number, total: number) {
+  if (index === 0) return 'Entry'
+  if (index === total - 1) return 'Target'
+  return 'Pivot'
+}
+
+function CanvasToneToggle({
+  value,
+  resolvedTone,
+  onChange,
+}: {
+  value: CanvasTone
+  resolvedTone: ResolvedCanvasTone
+  onChange: (value: CanvasTone) => void
+}) {
+  const options: Array<{ value: CanvasTone; label: string; icon: typeof Monitor }> = [
+    { value: 'auto', label: 'Auto', icon: Monitor },
+    { value: 'light', label: 'Light', icon: SunMedium },
+    { value: 'dark', label: 'Dark', icon: MoonStar },
+  ]
+
+  return (
+    <div className="flex items-center gap-2" aria-label="Attack path canvas tone">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Canvas</span>
+      <div className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-card/80 p-1">
+        {options.map(({ value: optionValue, label, icon: Icon }) => {
+          const active = value === optionValue
+          return (
+            <Button
+              key={optionValue}
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-pressed={active}
+              aria-label={`${label} canvas`}
+              onClick={() => onChange(optionValue)}
+              className={`h-7 rounded-full px-2.5 text-[11px] ${
+                active
+                  ? resolvedTone === 'dark'
+                    ? 'bg-slate-900 text-slate-50 hover:bg-slate-900'
+                    : 'bg-white text-slate-900 shadow-sm hover:bg-white'
+                  : 'text-muted-foreground'
+              }`}
+            >
+              <Icon className="mr-1 h-3.5 w-3.5" />
+              {label}
+            </Button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function pathToFlow(
+  path: AttackPath,
+  resolvedTone: ResolvedCanvasTone,
+  chokePointIds?: Set<string>,
+): { nodes: Node[]; edges: Edge[] } {
+  const canvasTheme = CANVAS_THEME[resolvedTone]
   const nodes: Node[] = path.nodes.map((n, i) => ({
     id: n.id,
     position: { x: i * 360, y: 0 },
     data: {
       label: (
-        <div className="text-left px-2 py-1">
-          <div className="flex items-center gap-1 mb-1">
-            <span className={`text-[9px] font-bold px-1.5 py-0 rounded ${SEVERITY_COLORS[n.severity] ?? ''}`}>
-              {n.severity}
-            </span>
-            <span className="text-[9px] text-muted-foreground">{n.category}</span>
+        <div className={`text-left px-3 py-3 ${canvasTheme.nodeTextClass}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-2.5">
+              <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${canvasTheme.iconWrapClass}`}>
+                <ProviderIcon provider={n.provider} className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="mb-1 flex items-center gap-1.5">
+                  <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${canvasTheme.roleClass}`}>
+                    {nodeRoleLabel(i, path.nodes.length)}
+                  </span>
+                  {chokePointIds?.has(n.resource_id) && (
+                    <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                      Choke
+                    </span>
+                  )}
+                </div>
+                <div className="truncate text-sm font-semibold">{n.resource_name}</div>
+                <div className={`mt-1 flex items-center gap-1.5 text-[10px] font-medium ${canvasTheme.mutedTextClass}`}>
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 ${canvasTheme.chipClass}`}>
+                    {n.resource_type}
+                  </span>
+                  <span>{n.region}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${SEVERITY_COLORS[n.severity] ?? ''}`}>
+                {n.severity}
+              </span>
+            </div>
           </div>
-          <div className="text-xs font-medium truncate max-w-[200px]">{n.resource_name}</div>
-          <div className="text-[10px] text-muted-foreground">{n.resource_type} · {n.region}</div>
-          <div className="text-[9px] text-muted-foreground mt-0.5">{path.nodes.length} resources in path</div>
+          <div className={`mt-2 flex items-center gap-1.5 text-[10px] ${canvasTheme.mutedTextClass}`}>
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 ${canvasTheme.chipClass}`}>
+              {n.category}
+            </span>
+            <span className="font-mono uppercase">{n.provider}</span>
+          </div>
+          <div className={`mt-2 text-[10px] ${canvasTheme.mutedTextClass}`}>
+            {path.nodes.length} resources in path
+          </div>
         </div>
       ),
     },
@@ -56,10 +233,11 @@ function pathToFlow(path: AttackPath, chokePointIds?: Set<string>): { nodes: Nod
       border: chokePointIds?.has(n.resource_id)
         ? '3px dashed #f59e0b'
         : `2px solid ${SEVERITY_HEX[n.severity] ?? SEVERITY_NEUTRAL_HEX}`,
-      borderRadius: '0px',
-      background: 'var(--color-card)',
-      padding: '4px',
-      width: 240,
+      borderRadius: '22px',
+      background: canvasTheme.nodeBackground,
+      padding: '0px',
+      width: 280,
+      boxShadow: canvasTheme.nodeShadow,
     },
   }))
 
@@ -68,11 +246,11 @@ function pathToFlow(path: AttackPath, chokePointIds?: Set<string>): { nodes: Nod
     source: e.source,
     target: e.target,
     label: e.label,
-    type: 'default',
+    type: 'smoothstep',
     markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-    style: { strokeWidth: 2 },
-    labelStyle: { fontSize: 10, fill: 'var(--color-muted-foreground)' },
-    labelBgStyle: { fill: 'var(--color-background)', fillOpacity: 0.9 },
+    style: { strokeWidth: 2.25, stroke: canvasTheme.edgeColor },
+    labelStyle: { fontSize: 10, fill: canvasTheme.edgeLabelColor, fontWeight: 600 },
+    labelBgStyle: { fill: canvasTheme.edgeLabelBackground, fillOpacity: 0.98 },
     labelBgPadding: [4, 6] as [number, number],
   }))
 
@@ -82,19 +260,19 @@ function pathToFlow(path: AttackPath, chokePointIds?: Set<string>): { nodes: Nod
 function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) {
   const Icon = CATEGORY_ICONS[path.entry_point?.category] ?? AlertTriangle
   return (
-    <Card className="cursor-pointer hover:bg-muted/30 transition-colors" onClick={onClick}>
+    <Card className="cursor-pointer overflow-hidden rounded-[28px] border border-border/80 bg-card/95 shadow-[0_18px_48px_rgba(15,23,42,0.06)] transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_24px_60px_rgba(15,23,42,0.1)] dark:hover:border-slate-700" onClick={onClick}>
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
-          <div className="h-8 w-8 rounded-none bg-muted flex items-center justify-center shrink-0">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
             <Icon className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${SEVERITY_COLORS[path.severity] ?? ''}`}>
+              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-full ${SEVERITY_COLORS[path.severity] ?? ''}`}>
                 {path.severity}
               </Badge>
               <span className="text-[10px] text-muted-foreground">{path.hop_count} hop{path.hop_count !== 1 ? 's' : ''}</span>
-              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${
+              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-full ${
                 path.nodes.length > 10 ? 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800' :
                 path.nodes.length >= 5 ? 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800' :
                 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800'
@@ -106,7 +284,7 @@ function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) 
                 <ProviderBadge provider={path.nodes[0].provider} />
               )}
               {path.ai_enriched && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 rounded-none bg-violet-100 text-violet-700 border-violet-300 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800 gap-0.5">
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 rounded-full bg-violet-100 text-violet-700 border-violet-300 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800 gap-0.5">
                   <Sparkles className="h-2.5 w-2.5" />AI
                 </Badge>
               )}
@@ -120,9 +298,20 @@ function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) 
             </div>
             <p className="text-sm font-medium leading-snug">{path.title}</p>
             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{path.ai_description ?? path.description}</p>
-            <div className="flex items-center gap-1 mt-2">
+            <div className="mt-3 flex items-center gap-2 rounded-2xl border border-border/70 bg-muted/40 px-3 py-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Entry</div>
+                <div className="truncate text-xs font-medium">{path.entry_point.resource_name}</div>
+              </div>
+              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <div className="min-w-0 flex-1 text-right">
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Target</div>
+                <div className="truncate text-xs font-medium">{path.target.resource_name}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 mt-3">
               {path.finding_ids.map(fid => (
-                <span key={fid} className="text-[9px] font-mono bg-muted px-1 py-0 rounded">{fid}</span>
+                <span key={fid} className="text-[9px] font-mono bg-muted px-1.5 py-0.5 rounded-full">{fid}</span>
               ))}
             </div>
           </div>
@@ -135,19 +324,40 @@ function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) 
   )
 }
 
-function PathGraphView({ path, onBack, chokePointIds }: { path: AttackPath; onBack: () => void; chokePointIds?: Set<string> }) {
-  const { nodes, edges } = useMemo(() => pathToFlow(path, chokePointIds), [path, chokePointIds])
+function PathGraphView({
+  path,
+  onBack,
+  chokePointIds,
+  canvasTone,
+  resolvedCanvasTone,
+  onCanvasToneChange,
+}: {
+  path: AttackPath
+  onBack: () => void
+  chokePointIds?: Set<string>
+  canvasTone: CanvasTone
+  resolvedCanvasTone: ResolvedCanvasTone
+  onCanvasToneChange: (value: CanvasTone) => void
+}) {
+  const canvasTheme = CANVAS_THEME[resolvedCanvasTone]
+  const { nodes, edges } = useMemo(
+    () => pathToFlow(path, resolvedCanvasTone, chokePointIds),
+    [path, resolvedCanvasTone, chokePointIds],
+  )
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" className="gap-1.5 -ml-2" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4" />All Paths
-        </Button>
-        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${SEVERITY_COLORS[path.severity] ?? ''}`}>
-          {path.severity}
-        </Badge>
-        <span className="text-sm font-medium">{path.title}</span>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" className="gap-1.5 -ml-2" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" />All Paths
+          </Button>
+          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-full ${SEVERITY_COLORS[path.severity] ?? ''}`}>
+            {path.severity}
+          </Badge>
+          <span className="text-sm font-medium">{path.title}</span>
+        </div>
+        <CanvasToneToggle value={canvasTone} resolvedTone={resolvedCanvasTone} onChange={onCanvasToneChange} />
       </div>
       <p className="text-xs text-muted-foreground">{path.ai_description ?? path.description}</p>
 
@@ -168,7 +378,11 @@ function PathGraphView({ path, onBack, chokePointIds }: { path: AttackPath; onBa
         </div>
       )}
 
-      <div className="h-[400px] border border-border rounded-none bg-background">
+      <div
+        data-testid="attack-path-canvas"
+        data-canvas-tone={resolvedCanvasTone}
+        className={`h-[440px] overflow-hidden rounded-[30px] border ${canvasTheme.frameClass}`}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -180,10 +394,19 @@ function PathGraphView({ path, onBack, chokePointIds }: { path: AttackPath; onBa
           elementsSelectable={false}
           minZoom={0.5}
           maxZoom={1.5}
+          style={{ background: canvasTheme.graphBackground }}
         >
-          <Background gap={16} size={1} />
-          <Controls showInteractive={false} />
+          <Background gap={18} size={1} color={canvasTheme.gridColor} />
+          <Controls showInteractive={false} className={canvasTheme.controlClass} />
         </ReactFlow>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 text-[10px]">
+        {['Entry node', 'Pivot step', 'Target node', 'Choke point = reused across paths'].map(label => (
+          <span key={label} className="rounded-full border border-border/80 bg-muted/50 px-2 py-1 text-muted-foreground">
+            {label}
+          </span>
+        ))}
       </div>
 
       {path.mitre_tactics.length > 0 && (
@@ -313,10 +536,16 @@ export default function AttackPaths() {
   const { data: response, isLoading, isError } = useAttackPaths(page, 20)
   const { data: stats } = useAttackPathStats()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [canvasTone, setCanvasTone] = useState<CanvasTone>(getInitialCanvasTone)
 
   const paths = response?.data ?? []
   const totalPages = response?.total_pages ?? 1
   const total = response?.total ?? 0
+  const resolvedCanvasTone = useResolvedCanvasTone(canvasTone)
+
+  useEffect(() => {
+    getCanvasToneStorage()?.setItem(CANVAS_TONE_STORAGE_KEY, canvasTone)
+  }, [canvasTone])
 
   const selectedPath = useMemo(
     () => paths.find(p => p.id === selectedId) ?? null,
@@ -374,19 +603,29 @@ export default function AttackPaths() {
   if (selectedPath) {
     return (
       <div className="max-w-5xl p-6">
-        <PathGraphView path={selectedPath} onBack={handleBack} chokePointIds={chokePointIds} />
+        <PathGraphView
+          path={selectedPath}
+          onBack={handleBack}
+          chokePointIds={chokePointIds}
+          canvasTone={canvasTone}
+          resolvedCanvasTone={resolvedCanvasTone}
+          onCanvasToneChange={setCanvasTone}
+        />
       </div>
     )
   }
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-xl font-semibold">Attack Paths</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {total} paths · {stats?.total_findings ?? 0} findings analyzed
-          {stats ? ` · ${stats.coverage_percent.toFixed(0)}% coverage · ${stats.isolated_findings} isolated` : ''}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold">Attack Paths</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {total} paths · {stats?.total_findings ?? 0} findings analyzed
+            {stats ? ` · ${stats.coverage_percent.toFixed(0)}% coverage · ${stats.isolated_findings} isolated` : ''}
+          </p>
+        </div>
+        <CanvasToneToggle value={canvasTone} resolvedTone={resolvedCanvasTone} onChange={setCanvasTone} />
       </div>
 
       {/* Stats bar */}

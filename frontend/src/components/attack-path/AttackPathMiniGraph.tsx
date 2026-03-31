@@ -2,7 +2,7 @@
  * Compact attack path graph for embedding in finding detail Investigation tab.
  * Supports expand/collapse, path selector, node click detail, and edge tooltips.
  */
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
   ReactFlow,
   Background,
@@ -16,25 +16,120 @@ import '@xyflow/react/dist/style.css'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Network, AlertTriangle, Maximize2, Minimize2, X } from 'lucide-react'
+import { ArrowRight, Network, AlertTriangle, Maximize2, Minimize2, X, Shield, Zap } from 'lucide-react'
 import type { AttackPath, AttackPathNode } from '@/types/attack-path'
+import { ProviderIcon } from '@/components/ui/ProviderIcon'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS, SEVERITY_HEX, SEVERITY_NEUTRAL_HEX } from '@/lib/severity'
 
-function pathToFlowNodes(path: AttackPath): { nodes: Node[]; edges: Edge[] } {
+type ResolvedCanvasTone = 'light' | 'dark'
+
+const CATEGORY_ICONS: Record<string, typeof Shield> = {
+  NETWORK: Zap,
+  VULNERABILITY: AlertTriangle,
+  IDENTITY: Shield,
+  MISCONFIGURATION: AlertTriangle,
+  COMPLIANCE: Shield,
+}
+
+const MINI_CANVAS_THEME: Record<ResolvedCanvasTone, {
+  frameClass: string
+  graphBackground: string
+  gridColor: string
+  nodeBackground: string
+  nodeShadow: string
+  nodeTextClass: string
+  mutedTextClass: string
+  chipClass: string
+  iconWrapClass: string
+  controlClass: string
+  edgeColor: string
+  edgeLabelColor: string
+  edgeLabelBackground: string
+}> = {
+  light: {
+    frameClass: 'border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.98),_rgba(241,245,249,0.95))]',
+    graphBackground: '#f8fafc',
+    gridColor: '#cbd5e1',
+    nodeBackground: '#ffffff',
+    nodeShadow: '0 14px 32px rgba(15, 23, 42, 0.12)',
+    nodeTextClass: 'text-slate-950',
+    mutedTextClass: 'text-slate-500',
+    chipClass: 'border border-slate-200 bg-slate-50 text-slate-700',
+    iconWrapClass: 'border border-slate-200 bg-slate-50 text-slate-700',
+    controlClass: '[&_button]:rounded-xl [&_button]:border-slate-200 [&_button]:bg-white [&_button]:text-slate-500 [&_button:hover]:bg-slate-50 [&_button:hover]:text-slate-900',
+    edgeColor: '#64748b',
+    edgeLabelColor: '#475569',
+    edgeLabelBackground: '#ffffff',
+  },
+  dark: {
+    frameClass: 'border-slate-800 bg-[radial-gradient(circle_at_top,_rgba(30,41,59,0.96),_rgba(2,6,23,0.95))]',
+    graphBackground: '#020617',
+    gridColor: '#334155',
+    nodeBackground: '#0f172a',
+    nodeShadow: '0 18px 42px rgba(2, 6, 23, 0.45)',
+    nodeTextClass: 'text-slate-50',
+    mutedTextClass: 'text-slate-400',
+    chipClass: 'border border-slate-700 bg-slate-800 text-slate-200',
+    iconWrapClass: 'border border-slate-700 bg-slate-800 text-slate-100',
+    controlClass: '[&_button]:rounded-xl [&_button]:border-slate-700 [&_button]:bg-slate-900/90 [&_button]:text-slate-400 [&_button:hover]:bg-slate-800 [&_button:hover]:text-slate-100',
+    edgeColor: '#94a3b8',
+    edgeLabelColor: '#cbd5e1',
+    edgeLabelBackground: '#0f172a',
+  },
+}
+
+function useDocumentCanvasTone(): ResolvedCanvasTone {
+  const [dark, setDark] = useState(() =>
+    typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
+  )
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const root = document.documentElement
+    const sync = () => setDark(root.classList.contains('dark'))
+    sync()
+    if (typeof MutationObserver === 'undefined') return
+    const observer = new MutationObserver(sync)
+    observer.observe(root, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
+
+  return dark ? 'dark' : 'light'
+}
+
+function pathToFlowNodes(path: AttackPath, resolvedTone: ResolvedCanvasTone): { nodes: Node[]; edges: Edge[] } {
+  const canvasTheme = MINI_CANVAS_THEME[resolvedTone]
   const nodes: Node[] = path.nodes.map((n, i) => ({
     id: n.id,
     position: { x: i * 280, y: 0 },
     data: {
       label: (
-        <div className="text-left px-2 py-1">
-          <div className="flex items-center gap-1 mb-1">
-            <span className={`text-[9px] font-bold px-1.5 py-0 rounded ${SEVERITY_COLORS[n.severity] ?? ''}`}>
-              {n.severity}
-            </span>
-            <span className="text-[9px] text-muted-foreground">{n.category}</span>
+        <div className={`text-left px-3 py-3 ${canvasTheme.nodeTextClass}`}>
+          <div className="flex items-start gap-2.5">
+            <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl ${canvasTheme.iconWrapClass}`}>
+              <ProviderIcon provider={n.provider} className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="mb-1 flex items-center gap-1.5">
+                <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${SEVERITY_COLORS[n.severity] ?? ''}`}>
+                  {n.severity}
+                </span>
+                <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium ${canvasTheme.chipClass}`}>
+                  {i === 0 ? 'Entry' : i === path.nodes.length - 1 ? 'Target' : 'Pivot'}
+                </span>
+              </div>
+              <div className="truncate text-xs font-semibold max-w-[180px]">{n.resource_name}</div>
+              <div className={`mt-1 flex items-center gap-1.5 text-[10px] ${canvasTheme.mutedTextClass}`}>
+                {(() => {
+                  const Icon = CATEGORY_ICONS[n.category] ?? AlertTriangle
+                  return <Icon className="h-3 w-3" />
+                })()}
+                <span>{n.category}</span>
+                <span>&middot;</span>
+                <span>{n.resource_type}</span>
+              </div>
+            </div>
           </div>
-          <div className="text-xs font-medium truncate max-w-[180px]">{n.resource_name}</div>
-          <div className="text-[10px] text-muted-foreground">{n.resource_type}</div>
         </div>
       ),
     },
@@ -42,10 +137,11 @@ function pathToFlowNodes(path: AttackPath): { nodes: Node[]; edges: Edge[] } {
     targetPosition: Position.Left,
     style: {
       border: `2px solid ${SEVERITY_HEX[n.severity] ?? SEVERITY_NEUTRAL_HEX}`,
-      borderRadius: '0px',
-      background: 'var(--color-card)',
-      padding: '4px',
-      width: 200,
+      borderRadius: '20px',
+      background: canvasTheme.nodeBackground,
+      padding: '0px',
+      width: 220,
+      boxShadow: canvasTheme.nodeShadow,
       cursor: 'pointer',
     },
   }))
@@ -55,11 +151,11 @@ function pathToFlowNodes(path: AttackPath): { nodes: Node[]; edges: Edge[] } {
     source: e.source,
     target: e.target,
     label: e.label,
-    type: 'default',
+    type: 'smoothstep',
     markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-    style: { strokeWidth: 2, cursor: 'pointer' },
-    labelStyle: { fontSize: 10, fill: 'var(--color-muted-foreground)', cursor: 'pointer' },
-    labelBgStyle: { fill: 'var(--color-background)', fillOpacity: 0.95 },
+    style: { strokeWidth: 2, cursor: 'pointer', stroke: canvasTheme.edgeColor },
+    labelStyle: { fontSize: 10, fill: canvasTheme.edgeLabelColor, cursor: 'pointer', fontWeight: 600 },
+    labelBgStyle: { fill: canvasTheme.edgeLabelBackground, fillOpacity: 0.95 },
     labelBgPadding: [4, 6] as [number, number],
   }))
 
@@ -75,12 +171,14 @@ export function AttackPathMiniGraph({ paths, resourceId }: AttackPathMiniGraphPr
   const [expanded, setExpanded] = useState(false)
   const [selectedPathIndex, setSelectedPathIndex] = useState(0)
   const [nodeDetail, setNodeDetail] = useState<AttackPathNode | null>(null)
+  const resolvedCanvasTone = useDocumentCanvasTone()
+  const canvasTheme = MINI_CANVAS_THEME[resolvedCanvasTone]
 
   const primaryPath = paths[selectedPathIndex] ?? paths[0]
 
   const { nodes, edges } = useMemo(
-    () => (primaryPath ? pathToFlowNodes(primaryPath) : { nodes: [], edges: [] }),
-    [primaryPath],
+    () => (primaryPath ? pathToFlowNodes(primaryPath, resolvedCanvasTone) : { nodes: [], edges: [] }),
+    [primaryPath, resolvedCanvasTone],
   )
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
@@ -164,7 +262,10 @@ export function AttackPathMiniGraph({ paths, resourceId }: AttackPathMiniGraphPr
         )}
 
         {/* Graph */}
-        <div className={`${expanded ? 'h-[400px]' : 'h-48'} border rounded-md overflow-hidden relative transition-all duration-200`}>
+        <div
+          data-canvas-tone={resolvedCanvasTone}
+          className={`${expanded ? 'h-[400px]' : 'h-48'} relative overflow-hidden rounded-[24px] border transition-all duration-200 ${canvasTheme.frameClass}`}
+        >
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -179,9 +280,10 @@ export function AttackPathMiniGraph({ paths, resourceId }: AttackPathMiniGraphPr
             zoomOnScroll={expanded}
             minZoom={0.3}
             maxZoom={expanded ? 2 : 1}
+            style={{ background: canvasTheme.graphBackground }}
           >
-            <Background gap={16} size={1} />
-            <Controls showInteractive={false} showZoom={expanded} />
+            <Background gap={16} size={1} color={canvasTheme.gridColor} />
+            <Controls showInteractive={false} showZoom={expanded} className={canvasTheme.controlClass} />
           </ReactFlow>
 
           {/* Node detail overlay */}
