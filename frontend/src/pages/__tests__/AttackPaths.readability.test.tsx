@@ -168,7 +168,7 @@ describe('AttackPaths readability controls', () => {
   it('applies and persists a local dark canvas selection in the detail view', async () => {
     renderWithProviders(<AttackPaths />)
 
-    fireEvent.click(screen.getByText(SAMPLE_PATH.title))
+    fireEvent.keyDown(document, { key: 'j' })
 
     const canvas = await screen.findByTestId('attack-path-canvas')
     expect(canvas).toHaveAttribute('data-canvas-tone', 'light')
@@ -177,5 +177,21 @@ describe('AttackPaths readability controls', () => {
 
     await waitFor(() => expect(canvas).toHaveAttribute('data-canvas-tone', 'dark'))
     expect(window.localStorage.getItem('attack-path-canvas-tone')).toBe('dark')
+  })
+
+  it('supports keyboard navigation through paths and escape back to the overview', async () => {
+    renderWithProviders(<AttackPaths />)
+
+    expect(screen.queryByText('Finding References')).not.toBeInTheDocument()
+
+    fireEvent.keyDown(document, { key: 'j' })
+
+    expect(await screen.findByText('Finding References')).toBeInTheDocument()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    await waitFor(() => {
+      expect(screen.queryByText('Finding References')).not.toBeInTheDocument()
+    })
   })
 })

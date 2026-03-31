@@ -15,7 +15,22 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, Shield, AlertTriangle, Zap, Target, Sparkles, ArrowRight, Monitor, MoonStar, SunMedium } from 'lucide-react'
+import {
+  ArrowLeft,
+  Shield,
+  AlertTriangle,
+  Zap,
+  Target,
+  Sparkles,
+  ArrowRight,
+  Monitor,
+  MoonStar,
+  SunMedium,
+  ListChecks,
+  Route,
+  Radar,
+  Clock3,
+} from 'lucide-react'
 import type { AttackPath } from '@/types/attack-path'
 import { ProviderIcon } from '@/components/ui/ProviderIcon'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
@@ -99,6 +114,12 @@ function getInitialCanvasTone(): CanvasTone {
   return 'auto'
 }
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  if (target.isContentEditable) return true
+  return Boolean(target.closest('input, textarea, select, [role="textbox"]'))
+}
+
 function useResolvedCanvasTone(canvasTone: CanvasTone): ResolvedCanvasTone {
   const [documentDark, setDocumentDark] = useState(() =>
     typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
@@ -122,6 +143,32 @@ function nodeRoleLabel(index: number, total: number) {
   if (index === 0) return 'Entry'
   if (index === total - 1) return 'Target'
   return 'Pivot'
+}
+
+function extractActionItems(path: AttackPath): string[] {
+  const source = path.ai_remediation || path.ai_risk_narrative || path.description
+  const actions = source
+    .split(/\r?\n|[.;]/)
+    .map(part => part.trim())
+    .filter(Boolean)
+    .slice(0, 3)
+  if (actions.length > 0) return actions
+  return [
+    `Reduce exposure on ${path.entry_point.resource_name}`,
+    `Break pivot access across ${Math.max(path.nodes.length - 2, 1)} intermediate step${path.nodes.length - 2 === 1 ? '' : 's'}`,
+    `Harden ${path.target.resource_name} and review dependent identities`,
+  ]
+}
+
+function buildPathStory(path: AttackPath): string {
+  return path.nodes.map(node => node.resource_name).join(' -> ')
+}
+
+function formatStageSummary(path: AttackPath): string {
+  const pivots = Math.max(path.nodes.length - 2, 0)
+  if (pivots === 0) return 'Direct path from foothold to target'
+  if (pivots === 1) return 'Single pivot before target access'
+  return `${pivots} pivot steps before target access`
 }
 
 function CanvasToneToggle({
@@ -259,68 +306,90 @@ function pathToFlow(
 
 function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) {
   const Icon = CATEGORY_ICONS[path.entry_point?.category] ?? AlertTriangle
+  const actionItems = extractActionItems(path)
   return (
-    <Card className="cursor-pointer overflow-hidden rounded-[28px] border border-border/80 bg-card/95 shadow-[0_18px_48px_rgba(15,23,42,0.06)] transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_24px_60px_rgba(15,23,42,0.1)] dark:hover:border-slate-700" onClick={onClick}>
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
-            <Icon className="h-4 w-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-full ${SEVERITY_COLORS[path.severity] ?? ''}`}>
-                {path.severity}
-              </Badge>
-              <span className="text-[10px] text-muted-foreground">{path.hop_count} hop{path.hop_count !== 1 ? 's' : ''}</span>
-              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-full ${
-                path.nodes.length > 10 ? 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800' :
-                path.nodes.length >= 5 ? 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800' :
-                'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800'
-              }`}>
-                Blast: {path.nodes.length} resources
-              </Badge>
-              <span className="text-[10px] text-muted-foreground">Score: {path.score.toFixed(0)}</span>
-              {path.nodes.length > 0 && (
-                <ProviderBadge provider={path.nodes[0].provider} />
-              )}
-              {path.ai_enriched && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 rounded-full bg-violet-100 text-violet-700 border-violet-300 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800 gap-0.5">
-                  <Sparkles className="h-2.5 w-2.5" />AI
+    <button type="button" onClick={onClick} className="w-full text-left">
+      <Card className="overflow-hidden rounded-[28px] border border-border/80 bg-card/95 shadow-[0_18px_48px_rgba(15,23,42,0.06)] transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_24px_60px_rgba(15,23,42,0.1)] dark:hover:border-slate-700">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+              <Icon className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-full ${SEVERITY_COLORS[path.severity] ?? ''}`}>
+                  {path.severity}
                 </Badge>
-              )}
-              {path.ai_likelihood && (
-                <span className={`text-[10px] font-mono ${
-                  path.ai_likelihood === 'high' ? 'text-red-600 dark:text-red-400' :
-                  path.ai_likelihood === 'medium' ? 'text-orange-600 dark:text-orange-400' :
-                  'text-blue-600 dark:text-blue-400'
-                }`}>{path.ai_likelihood.toUpperCase()} likelihood</span>
-              )}
-            </div>
-            <p className="text-sm font-medium leading-snug">{path.title}</p>
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{path.ai_description ?? path.description}</p>
-            <div className="mt-3 flex items-center gap-2 rounded-2xl border border-border/70 bg-muted/40 px-3 py-2">
-              <div className="min-w-0 flex-1">
-                <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Entry</div>
-                <div className="truncate text-xs font-medium">{path.entry_point.resource_name}</div>
+                <span className="text-[10px] text-muted-foreground">{path.hop_count} hop{path.hop_count !== 1 ? 's' : ''}</span>
+                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-full ${
+                  path.nodes.length > 10 ? 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800' :
+                  path.nodes.length >= 5 ? 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800' :
+                  'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800'
+                }`}>
+                  Blast: {path.nodes.length} resources
+                </Badge>
+                <span className="text-[10px] text-muted-foreground">Score: {path.score.toFixed(0)}</span>
+                {path.nodes.length > 0 && (
+                  <ProviderBadge provider={path.nodes[0].provider} />
+                )}
+                {path.ai_enriched && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 rounded-full bg-violet-100 text-violet-700 border-violet-300 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800 gap-0.5">
+                    <Sparkles className="h-2.5 w-2.5" />AI
+                  </Badge>
+                )}
+                {path.ai_likelihood && (
+                  <span className={`text-[10px] font-mono ${
+                    path.ai_likelihood === 'high' ? 'text-red-600 dark:text-red-400' :
+                    path.ai_likelihood === 'medium' ? 'text-orange-600 dark:text-orange-400' :
+                    'text-blue-600 dark:text-blue-400'
+                  }`}>{path.ai_likelihood.toUpperCase()} likelihood</span>
+                )}
               </div>
-              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <div className="min-w-0 flex-1 text-right">
-                <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Target</div>
-                <div className="truncate text-xs font-medium">{path.target.resource_name}</div>
+              <p className="text-sm font-medium leading-snug">{path.title}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{path.ai_description ?? path.description}</p>
+              <div className="mt-3 rounded-2xl border border-border/70 bg-muted/20 px-3 py-2">
+                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <Route className="h-3 w-3" />Path Story
+                </div>
+                <p className="mt-1 text-xs font-medium">{buildPathStory(path)}</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">{formatStageSummary(path)}</p>
+              </div>
+              <div className="mt-3 flex items-center gap-2 rounded-2xl border border-border/70 bg-muted/40 px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Entry</div>
+                  <div className="truncate text-xs font-medium">{path.entry_point.resource_name}</div>
+                </div>
+                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1 text-right">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Target</div>
+                  <div className="truncate text-xs font-medium">{path.target.resource_name}</div>
+                </div>
+              </div>
+              <div className="mt-3 rounded-2xl border border-border/70 bg-background/80 px-3 py-2">
+                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <ListChecks className="h-3 w-3" />Immediate Actions
+                </div>
+                <ul className="mt-1.5 space-y-1">
+                  {actionItems.slice(0, 2).map(item => (
+                    <li key={item} className="text-[11px] text-muted-foreground">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="flex items-center gap-1 mt-3">
+                {path.finding_ids.map(fid => (
+                  <span key={fid} className="text-[9px] font-mono bg-muted px-1.5 py-0.5 rounded-full">{fid}</span>
+                ))}
               </div>
             </div>
-            <div className="flex items-center gap-1 mt-3">
-              {path.finding_ids.map(fid => (
-                <span key={fid} className="text-[9px] font-mono bg-muted px-1.5 py-0.5 rounded-full">{fid}</span>
-              ))}
+            <div className="shrink-0">
+              <Target className="h-4 w-4 text-muted-foreground" />
             </div>
           </div>
-          <div className="shrink-0">
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </button>
   )
 }
 
@@ -340,6 +409,8 @@ function PathGraphView({
   onCanvasToneChange: (value: CanvasTone) => void
 }) {
   const canvasTheme = CANVAS_THEME[resolvedCanvasTone]
+  const actionItems = useMemo(() => extractActionItems(path), [path])
+  const pathStory = useMemo(() => buildPathStory(path), [path])
   const { nodes, edges } = useMemo(
     () => pathToFlow(path, resolvedCanvasTone, chokePointIds),
     [path, resolvedCanvasTone, chokePointIds],
@@ -360,6 +431,45 @@ function PathGraphView({
         <CanvasToneToggle value={canvasTone} resolvedTone={resolvedCanvasTone} onChange={onCanvasToneChange} />
       </div>
       <p className="text-xs text-muted-foreground">{path.ai_description ?? path.description}</p>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <Card className="rounded-[24px] border border-border/80">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <Radar className="h-3.5 w-3.5" />Entry Signal
+            </div>
+            <p className="mt-2 text-sm font-semibold">{path.entry_point.resource_name}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{path.entry_point.category} on {path.entry_point.resource_type}</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-[24px] border border-border/80">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <Target className="h-3.5 w-3.5" />Target At Risk
+            </div>
+            <p className="mt-2 text-sm font-semibold">{path.target.resource_name}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{path.target.resource_type} in {path.target.region}</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-[24px] border border-border/80">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <Route className="h-3.5 w-3.5" />Path Shape
+            </div>
+            <p className="mt-2 text-sm font-semibold">{path.nodes.length} resources · {path.hop_count} hops</p>
+            <p className="mt-1 text-xs text-muted-foreground">{formatStageSummary(path)}</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-[24px] border border-border/80">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <Clock3 className="h-3.5 w-3.5" />Immediate Action
+            </div>
+            <p className="mt-2 text-sm font-semibold">{actionItems[0]}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Prioritize the first break in the chain before deeper cleanup.</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {path.ai_enriched && path.ai_remediation && (
         <div className="border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 p-3 space-y-1">
@@ -408,6 +518,27 @@ function PathGraphView({
           </span>
         ))}
       </div>
+
+      <Card className="rounded-none">
+        <CardHeader className="pb-2 pt-3 px-4">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Analyst Narrative</span>
+        </CardHeader>
+        <CardContent className="px-4 pb-4 space-y-3">
+          <p className="text-xs text-muted-foreground">{path.ai_risk_narrative ?? path.description}</p>
+          <div className="rounded-none border border-border bg-muted/20 p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Sequence</div>
+            <p className="mt-1 text-xs font-medium">{pathStory}</p>
+          </div>
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Immediate actions</div>
+            <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+              {actionItems.map(item => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
 
       {path.mitre_tactics.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
@@ -551,6 +682,10 @@ export default function AttackPaths() {
     () => paths.find(p => p.id === selectedId) ?? null,
     [paths, selectedId]
   )
+  const selectedIndex = useMemo(
+    () => paths.findIndex(path => path.id === selectedId),
+    [paths, selectedId],
+  )
 
   // Full dataset for choke point analysis
   const { data: fullResponse } = useAttackPaths(1, 100)
@@ -590,8 +725,56 @@ export default function AttackPaths() {
     () => new Set(chokePoints.map(([id]) => id)),
     [chokePoints],
   )
+  const highestRiskPath = paths[0] ?? null
+  const mostSharedResource = chokePoints[0] ?? null
 
   const handleBack = useCallback(() => setSelectedId(null), [])
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (isEditableTarget(event.target)) return
+
+      if (event.key === '[') {
+        if (page > 1) {
+          event.preventDefault()
+          setPage(current => Math.max(1, current - 1))
+        }
+        return
+      }
+
+      if (event.key === ']') {
+        if (page < totalPages) {
+          event.preventDefault()
+          setPage(current => Math.min(totalPages, current + 1))
+        }
+        return
+      }
+
+      if (event.key === 'Escape') {
+        if (selectedId) {
+          event.preventDefault()
+          setSelectedId(null)
+        }
+        return
+      }
+
+      const wantsNext = event.key === 'j' || event.key === 'ArrowDown'
+      const wantsPrev = event.key === 'k' || event.key === 'ArrowUp'
+      if (!wantsNext && !wantsPrev) return
+      if (paths.length === 0) return
+
+      event.preventDefault()
+      const fallbackIndex = wantsNext ? 0 : paths.length - 1
+      const currentIndex = selectedIndex >= 0 ? selectedIndex : fallbackIndex
+      const nextIndex = wantsNext
+        ? Math.min(paths.length - 1, currentIndex + (selectedIndex >= 0 ? 1 : 0))
+        : Math.max(0, currentIndex - (selectedIndex >= 0 ? 1 : 0))
+      setSelectedId(paths[nextIndex]?.id ?? null)
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [page, paths, selectedId, selectedIndex, totalPages])
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground p-6">Computing attack paths...</div>
@@ -624,9 +807,68 @@ export default function AttackPaths() {
             {total} paths · {stats?.total_findings ?? 0} findings analyzed
             {stats ? ` · ${stats.coverage_percent.toFixed(0)}% coverage · ${stats.isolated_findings} isolated` : ''}
           </p>
+          <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
+            J/K browse paths · Esc return · [ ] change page
+          </p>
         </div>
         <CanvasToneToggle value={canvasTone} resolvedTone={resolvedCanvasTone} onChange={setCanvasTone} />
       </div>
+
+      {(highestRiskPath || mostSharedResource) && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          {highestRiskPath && (
+            <Card className="rounded-[30px] border border-border/80 bg-card/95">
+              <CardContent className="p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-full ${SEVERITY_COLORS[highestRiskPath.severity] ?? ''}`}>
+                    Highest risk
+                  </Badge>
+                  <span className="text-[10px] font-mono text-muted-foreground">Score {highestRiskPath.score.toFixed(0)}</span>
+                </div>
+                <div>
+                  <p className="text-lg font-semibold leading-tight">{highestRiskPath.title}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{highestRiskPath.ai_description ?? highestRiskPath.description}</p>
+                </div>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <div className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Entry</div>
+                    <p className="mt-1 text-sm font-medium">{highestRiskPath.entry_point.resource_name}</p>
+                  </div>
+                  <div className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Target</div>
+                    <p className="mt-1 text-sm font-medium">{highestRiskPath.target.resource_name}</p>
+                  </div>
+                  <div className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Shape</div>
+                    <p className="mt-1 text-sm font-medium">{highestRiskPath.nodes.length} resources · {highestRiskPath.hop_count} hops</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {mostSharedResource && (
+            <Card className="rounded-[30px] border border-amber-200 bg-amber-50/60 dark:border-amber-900/40 dark:bg-amber-950/10">
+              <CardContent className="p-5 space-y-3">
+                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+                  <Target className="h-4 w-4" />
+                  <span className="text-xs font-semibold uppercase tracking-wide">Analyst Focus</span>
+                </div>
+                <div>
+                  <p className="text-lg font-semibold">{mostSharedResource[1].resource_name}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">This resource appears across {mostSharedResource[1].pathCount} attack paths and is likely the best choke point to break first.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <ProviderBadge provider={mostSharedResource[1].provider} />
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-full ${SEVERITY_COLORS[mostSharedResource[1].severity] ?? ''}`}>
+                    {mostSharedResource[1].severity}
+                  </Badge>
+                  <span className="text-[10px] font-mono text-muted-foreground">{mostSharedResource[1].resource_type}</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Stats bar */}
       {stats && (

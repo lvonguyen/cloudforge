@@ -463,8 +463,8 @@ Session 32 was a security hardening + QA sprint:
   - `frontend/src/pages/ops/CommandCenter.tsx` already ships the treemap half of the original treemap/topology ask; the remaining gap is a true topology view and cleaned-up view switching.
 - [ ] `D2` Temporal scrubber + playback controls
   - Still needs backend histogram/indexing support plus the frontend playback UI.
-- [ ] `D3` Full keyboard shortcut pass
-  - Existing shortcuts are no longer zero-to-one (`Escape`, `L`, `?`, `Cmd/Ctrl+K`, and Command Center center-view toggles exist), but the deferred attack-path and temporal-navigation shortcuts are still open.
+- [x] `D3` Full keyboard shortcut pass
+  - Updated 2026-03-30: attack-path list/detail navigation now supports `J/K`, `ArrowUp/ArrowDown`, `Escape`, and `[ / ]` pagination in `frontend/src/pages/ops/AttackPaths.tsx`. The only remaining temporal-navigation shortcut work is coupled to `D2` because the scrubber/playback UI does not exist yet.
 - [x] `D4` Frontend `/enrich` API call
   - Shipped via `frontend/src/hooks/useFindings.ts` and the `EnrichButton` in `frontend/src/components/ops/EntityDetailPanel.tsx`; the old note tied it to `FindingDetail.tsx`, but the user-facing capability now exists.
 - [ ] `D5` Activate Bedrock in deployed environments
