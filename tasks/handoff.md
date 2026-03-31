@@ -501,6 +501,7 @@ Session 32 was a security hardening + QA sprint:
   - Guardrail: check Fly Postgres sizing first; 300K findings plus `graph_edges` backfill may require capacity tuning.
 - [ ] `D20` Wiz-parity investigation + remediation polish
   - Context: WG-E readability shipped a lighter canvas and local tone control, but the broader analyst-facing investigation/remediation experience is still behind the reviewed Wiz demo.
+  - Progress 2026-03-30: finding-detail summary cards, richer compliance mapping presentation, and structured remediation plans shipped via `frontend/src/pages/ops/FindingDetail.tsx` and `frontend/src/components/ops/finding-detail/*`.
   - Investigation Board / graph UX scope:
     - richer node/icon treatment and denser path context
     - stronger analyst-oriented detail rail / path explanation
