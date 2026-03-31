@@ -22,6 +22,10 @@ import { RemediationSheet } from '@/components/remediation/RemediationSheet'
 import { IntegrationViewport } from '@/components/remediation/IntegrationViewport'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
+import { FindingOverviewCards } from '@/components/ops/finding-detail/FindingOverviewCards'
+import { FindingComplianceList } from '@/components/ops/finding-detail/FindingComplianceList'
+import { FindingRemediationPlan } from '@/components/ops/finding-detail/FindingRemediationPlan'
+import { formatDate, formatWorkflowStatus } from '@/components/ops/finding-detail/helpers'
 
 interface FindingDetailProps {
   mode?: 'page' | 'inline'
@@ -146,6 +150,13 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
           <p className="text-sm text-muted-foreground mt-1">{finding.description}</p>
         </div>
       </div>
+
+      <FindingOverviewCards
+        finding={finding}
+        relatedPaths={relatedPaths}
+        remediation={undefined}
+        hasTicket={Boolean(ticket)}
+      />
 
       {/* Risk Factors (toxic combo visualization) */}
       {finding.toxic_combo_details && (
@@ -276,11 +287,11 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
+                  {[
                   { label: 'Service', value: finding.service_name },
                   { label: 'Line of Business', value: finding.line_of_business },
-                  { label: 'Workflow Status', value: finding.workflow_status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) },
-                  { label: 'Due Date', value: finding.due_date ? new Date(finding.due_date).toLocaleDateString() : 'N/A' },
+                  { label: 'Workflow Status', value: formatWorkflowStatus(finding.workflow_status) },
+                  { label: 'Due Date', value: formatDate(finding.due_date) },
                 ].map(({ label, value }) => (
                   <div key={label}>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>
@@ -424,22 +435,7 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
           )}
 
           {finding.compliance_mappings && finding.compliance_mappings.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <div className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5" />Compliance Mappings</div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-1.5">
-                  {finding.compliance_mappings.map(m => (
-                    <div key={`${m.framework_id}-${m.control_id}`} className="text-[10px] font-mono border rounded px-2 py-0.5 bg-muted">
-                      {m.framework_name} {m.control_id}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <FindingComplianceList mappings={finding.compliance_mappings} />
           )}
 
           {/* Evidence — Attack Path Visualization (Wiz parity: inline on Overview) */}
@@ -692,63 +688,7 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
             </Card>
           )}
 
-          {finding.remediation_steps && finding.remediation_steps.length > 0 ? (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <div className="flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5" />Remediation Steps</div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {finding.remediation_steps.map(step => (
-                  <div key={step.order} className="flex gap-3">
-                    <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                      {step.order}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{step.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
-                      {step.command && (
-                        <code className="block mt-1.5 text-[10px] font-mono bg-muted rounded px-2 py-1.5">{step.command}</code>
-                      )}
-                      <div className="flex items-center gap-2 mt-1">
-                        {step.automated && <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">Automated</Badge>}
-                        {step.platform && <span className="text-[10px] text-muted-foreground">{step.platform}</span>}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="p-4 space-y-3">
-                <p className="text-sm text-muted-foreground">{finding.remediation}</p>
-                {(() => {
-                  const guidance: Record<string, { title: string; steps: string[] }> = {
-                    compute: { title: 'Compute Remediation', steps: ['Review instance security groups and restrict inbound rules', 'Enable IMDSv2 and disable legacy metadata endpoints', 'Apply latest AMI/image patches via deployment pipeline', 'Rotate compromised credentials and revoke unused IAM roles'] },
-                    storage: { title: 'Storage Remediation', steps: ['Enable server-side encryption (SSE-S3/SSE-KMS/CMK)', 'Block public access at bucket/account level', 'Enable access logging and versioning', 'Review and tighten bucket policies and ACLs'] },
-                    database: { title: 'Database Remediation', steps: ['Enable encryption at rest and in transit (TLS)', 'Restrict network access to private subnets only', 'Enable automated backups and audit logging', 'Rotate master credentials and enforce IAM authentication'] },
-                    network: { title: 'Network Remediation', steps: ['Restrict security group/NSG rules to specific CIDR ranges', 'Remove 0.0.0.0/0 inbound rules on sensitive ports', 'Enable VPC Flow Logs / NSG Flow Logs for monitoring', 'Implement network segmentation with private subnets'] },
-                    identity: { title: 'Identity & Access Remediation', steps: ['Remove unused IAM users/roles and access keys', 'Enforce MFA on all privileged accounts', 'Apply least-privilege policies and review permissions', 'Enable CloudTrail/Activity Log for authentication events'] },
-                    container: { title: 'Container Remediation', steps: ['Scan images for known CVEs and rebuild from patched base', 'Enforce pod security standards (restricted profile)', 'Enable runtime protection and network policies', 'Rotate secrets and use external secret managers'] },
-                    serverless: { title: 'Serverless Remediation', steps: ['Restrict function execution role to minimum permissions', 'Enable VPC attachment for functions accessing private resources', 'Review and limit environment variables containing secrets', 'Enable X-Ray/distributed tracing for execution monitoring'] },
-                  }
-                  const g = guidance[finding.resource_type] ?? guidance.compute
-                  return (
-                    <div className="mt-3 border-t border-border pt-3">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">{g.title}</p>
-                      <ol className="list-decimal list-inside space-y-1.5">
-                        {g.steps.map((step, i) => (
-                          <li key={i} className="text-xs text-muted-foreground">{step}</li>
-                        ))}
-                      </ol>
-                    </div>
-                  )
-                })()}
-              </CardContent>
-            </Card>
-          )}
+          <FindingRemediationPlan finding={finding} />
         </TabsContent>
 
         {/* ── Investigation Tab ── */}
@@ -852,7 +792,7 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Current Status</p>
-                  <p className="text-xs font-medium mt-0.5">{finding.workflow_status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</p>
+                  <p className="text-xs font-medium mt-0.5">{formatWorkflowStatus(finding.workflow_status)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Source</p>

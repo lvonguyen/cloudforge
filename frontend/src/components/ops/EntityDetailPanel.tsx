@@ -8,6 +8,12 @@ import { useEnrichFinding } from '@/hooks/useFindings'
 import type { Finding } from '@/types/compliance'
 import type { AttackPath } from '@/types/attack-path'
 import type { RemediationRecord } from '@/types/remediation'
+import {
+  formatDate,
+  formatDateTime,
+  formatWorkflowStatus,
+  getFindingSlaState,
+} from '@/components/ops/finding-detail/helpers'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -98,13 +104,16 @@ function FindingDetail({
     <>
       {/* Overview */}
       <Section label="Overview">
-        <KV label="Status" value={finding.workflow_status.replace(/_/g, ' ')} />
+        <KV label="Status" value={formatWorkflowStatus(finding.workflow_status)} />
         <KV label="CSP" value={finding.cloud_provider.toUpperCase()} />
         <KV label="Account" value={finding.account_id} mono />
         <KV label="Region" value={finding.region} mono />
         <KV label="Resource" value={finding.resource_name} mono />
         <KV label="Type" value={finding.category} />
         <KV label="First Seen" value={new Date(finding.first_found_at).toLocaleDateString()} />
+        <KV label="Due" value={formatDate(finding.due_date)} />
+        <KV label="SLA" value={getFindingSlaState(finding).label} />
+        <KV label="Owner" value={finding.assignee?.user_name ?? 'Unassigned'} />
         <KV
           label="Risk Score"
           value={<span className={scoreColor}>{finding.ai_risk_score.toFixed(1)}</span>}
@@ -176,6 +185,13 @@ function FindingDetail({
         </Section>
       )}
 
+      <Section label="Signals" defaultOpen={false}>
+        <KV label="Attack Paths" value={relatedPaths.length > 0 ? `${relatedPaths.length} linked` : 'None'} />
+        <KV label="Remediation" value={remediation ? formatWorkflowStatus(remediation.status) : 'Not started'} />
+        <KV label="Handler" value={remediation?.handler ?? (finding.auto_remediatable ? 'Auto available' : 'Manual')} mono={Boolean(remediation?.handler)} />
+        <KV label="Workflow" value={formatWorkflowStatus(finding.workflow_status)} />
+      </Section>
+
       {/* Remediation */}
       <Section label="Remediation" defaultOpen={remediation !== undefined}>
         {remediation ? (
@@ -201,10 +217,14 @@ function FindingDetail({
       {finding.compliance_mappings && finding.compliance_mappings.length > 0 && (
         <Section label="Compliance" count={finding.compliance_mappings.length} defaultOpen={false}>
           {finding.compliance_mappings.slice(0, 6).map(m => (
-            <div key={`${m.framework_id}-${m.control_id}`} className="flex items-center gap-2 text-xs py-0.5">
-              <span className="text-red-500">✕</span>
-              <span className="text-gray-400">{m.framework_name}</span>
-              <span className="font-mono text-[10px] text-gray-500">{m.control_id}</span>
+            <div key={`${m.framework_id}-${m.control_id}`} className="space-y-1 rounded border border-[#1e2330] bg-[#111318] px-2 py-2">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-red-500">✕</span>
+                <span className="text-gray-300">{m.framework_name}</span>
+                <span className="font-mono text-[10px] text-gray-500">{m.control_id}</span>
+                <span className="ml-auto text-[10px] uppercase tracking-wide text-gray-500">{m.severity}</span>
+              </div>
+              <p className="text-[11px] text-gray-400 leading-relaxed">{m.control_title}</p>
             </div>
           ))}
           {finding.compliance_mappings.length > 6 && (
@@ -241,13 +261,13 @@ function FindingDetail({
 }
 
 function TimelineEntry({ date, label, filled }: { date?: string; label: string; filled: boolean }) {
-  return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className={`h-2 w-2 shrink-0 border ${filled ? 'bg-gray-400 border-gray-400' : 'border-gray-600 bg-transparent'}`} />
-      {date && <span className="text-[10px] font-mono text-gray-600 shrink-0">{new Date(date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })}</span>}
-      <span className="text-gray-400">{label}</span>
-    </div>
-  )
+      return (
+        <div className="flex items-center gap-2 text-xs">
+          <span className={`h-2 w-2 shrink-0 border ${filled ? 'bg-gray-400 border-gray-400' : 'border-gray-600 bg-transparent'}`} />
+      {date && <span className="text-[10px] font-mono text-gray-600 shrink-0">{formatDateTime(date)}</span>}
+          <span className="text-gray-400">{label}</span>
+        </div>
+      )
 }
 
 // ---------------------------------------------------------------------------

@@ -512,6 +512,7 @@ Session 32 was a security hardening + QA sprint:
     - structured remediation step rendering
     - better compliance-mapping presentation
     - stronger SLA / due-date visualization
+    - 2026-03-31 progress: `frontend/src/pages/ops/FindingDetail.tsx` and `frontend/src/components/ops/EntityDetailPanel.tsx` now surface SLA/ownership/path summary cards plus structured compliance and remediation rendering; the remaining gap is the broader investigation-board / graph UX layer.
   - Guardrail: preserve Cloudforge branding and avoid copying vendor UI verbatim.
   - Likely touchpoints:
     - `frontend/src/pages/ops/AttackPaths.tsx`
