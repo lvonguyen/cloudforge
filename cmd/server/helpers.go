@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -230,10 +231,42 @@ func (s *Server) handleProviderStatus(w http.ResponseWriter, _ *http.Request) {
 			idNames = append(idNames, name)
 		}
 	}
+	sort.Strings(idNames)
+
+	integrationNames := make([]string, 0)
+	integrationDefault := "mock"
+	integrationStore := "memory"
+	asanaWebhook := "disabled"
+	if s.integrationHandler != nil {
+		if s.integrationHandler.provider != nil {
+			integrationDefault = s.integrationHandler.provider.Name()
+		}
+		if s.integrationHandler.providers != nil {
+			for name := range s.integrationHandler.providers {
+				integrationNames = append(integrationNames, name)
+			}
+		}
+		if len(integrationNames) == 0 && integrationDefault != "" {
+			integrationNames = append(integrationNames, integrationDefault)
+		}
+		if s.integrationHandler.ticketRepo != nil {
+			integrationStore = "durable"
+		}
+		if strings.TrimSpace(s.integrationHandler.asanaWebhookToken) != "" {
+			asanaWebhook = "configured"
+		}
+	}
+	sort.Strings(integrationNames)
 
 	status := map[string]interface{}{
-		"grc":       os.Getenv("GRC_PROVIDER"),
-		"identity":  idNames,
+		"grc":      os.Getenv("GRC_PROVIDER"),
+		"identity": idNames,
+		"integrations": map[string]interface{}{
+			"default":       integrationDefault,
+			"enabled":       integrationNames,
+			"ticket_store":  integrationStore,
+			"asana_webhook": asanaWebhook,
+		},
 		"finops":    getEnv("FINOPS_PROVIDER", "memory"),
 		"container": getEnv("CONTAINER_SCANNER", "memory"),
 		"workflow":  getEnv("WORKFLOW_ENGINE", "memory"),

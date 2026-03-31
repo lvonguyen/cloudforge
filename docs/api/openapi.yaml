@@ -146,6 +146,25 @@ paths:
                     type: array
                     items:
                       type: string
+                  integrations:
+                    type: object
+                    properties:
+                      default:
+                        type: string
+                        description: Default ticket provider used when no explicit provider override is supplied.
+                      enabled:
+                        type: array
+                        items:
+                          type: string
+                        description: Ticket providers currently registered in the integration handler.
+                      ticket_store:
+                        type: string
+                        enum: [memory, durable]
+                        description: Whether finding-ticket mappings are cached only in memory or persisted to Postgres.
+                      asana_webhook:
+                        type: string
+                        enum: [disabled, configured]
+                        description: Whether the Asana webhook handshake token is configured for secure callback setup.
                   finops:
                     type: string
                   container:
