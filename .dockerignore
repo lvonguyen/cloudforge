@@ -20,9 +20,14 @@ node_modules
 .claude
 shared
 tasks
+.github-org
+.playwright-mcp
+.wrangler
+tmp
 
 # Documentation (not needed at runtime)
 docs
+docs-site
 *.md
 !README.md
 LICENSE
@@ -32,6 +37,10 @@ HANDOFF.md
 
 # Test data and configs
 testdata
+data
+deploy
+rust
+server
 **/*_test.go
 frontend/src/test
 
