@@ -33,6 +33,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - **Tests:** Go 45 pkg / 2,146 tests pass. Frontend 452/452 vitest.
 - **CI:** other session reported 6/6 GREEN after the latest CI repair sweep
 - **Fly.io:** v59 healthy (sjc)
+- **Prod read-only probe (2026-03-31 05:51Z):** `https://api.cloudforge-demo.lvonguyen.com/health` is healthy, but `/api/v1/providers` still returns the older schema without the new `integrations` block, so `95ad7f80` is not visible on the public demo API yet
 - **Uncommitted:** `frontend/src/pages/ops/AttackPaths.tsx` (other session / in-flight D20 visual work) and `frontend/src/pages/__tests__/FindingDetail.investigation.test.tsx` (other session / in-flight finding-detail work)
 - **Stash:** `stash@{0}` — mixed D10/D20 WIP. Has 4 TS errors. Do NOT pop blindly. Recover one file at a time, verify tsc after each.
 - **Open PRs:** None
