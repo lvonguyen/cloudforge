@@ -28,6 +28,8 @@ tags:
     description: Health checks, metrics, provider status, and configuration
   - name: Findings
     description: Security findings from CSPM scanners with filtering, search, and RQL query
+  - name: Issues
+    description: Materialized security issues aggregating findings by control and resource
   - name: Compliance
     description: Compliance frameworks, posture scoring, and control mapping
   - name: Agents
@@ -462,6 +464,167 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------------
+  # Issues (ADR-020 — graph-native materialized issues)
+  # ---------------------------------------------------------------------------
+  /api/v1/issues:
+    get:
+      operationId: listIssues
+      summary: List security issues
+      description: "RBAC: viewer, operator, admin. Scope-filtered by JWT claims. Requires AEGIS_DATABASE_URL."
+      tags: [Issues]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/severity"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [OPEN, ACKNOWLEDGED, IN_PROGRESS, RESOLVED, SUPPRESSED]
+        - $ref: "#/components/parameters/provider"
+        - name: control_id
+          in: query
+          description: Filter by control ID
+          schema:
+            type: string
+        - name: account_id
+          in: query
+          description: Filter by account ID
+          schema:
+            type: string
+        - name: resource_id
+          in: query
+          description: Filter by resource ID
+          schema:
+            type: string
+        - name: ticketed
+          in: query
+          description: Filter by ticket presence (true = has ticket, false = no ticket)
+          schema:
+            type: boolean
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [severity, risk_score, blast_radius, created_at, updated_at]
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/perPage"
+      responses:
+        "200":
+          description: Paginated issues
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedIssues"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "501":
+          description: Issue queries not configured (AEGIS_DATABASE_URL not set)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/issues/stats:
+    get:
+      operationId: getIssueStats
+      summary: Issue aggregate statistics
+      description: "RBAC: viewer, operator, admin. Returns counts by severity, status, and provider."
+      tags: [Issues]
+      x-rbac: [viewer, operator, admin]
+      responses:
+        "200":
+          description: Aggregate issue statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IssueStats"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "501":
+          description: Issue queries not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/issues/{id}:
+    get:
+      operationId: getIssue
+      summary: Get a single issue
+      description: "RBAC: viewer, operator, admin. Scope-enforced. Returns issue detail with related finding IDs."
+      tags: [Issues]
+      x-rbac: [viewer, operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/issueId"
+      responses:
+        "200":
+          description: Issue detail with related finding IDs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IssueDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "501":
+          description: Issue queries not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      operationId: updateIssue
+      summary: Update an issue
+      description: "RBAC: operator, admin. Scope-enforced. Partial update of mutable fields (status, assignee, ticket)."
+      tags: [Issues]
+      x-rbac: [operator, admin]
+      parameters:
+        - $ref: "#/components/parameters/issueId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssueUpdate"
+      responses:
+        "200":
+          description: Updated issue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Issue"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "501":
+          description: Issue queries not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   # ---------------------------------------------------------------------------
   # Compliance
@@ -2518,6 +2681,13 @@ components:
       description: Finding ID
       schema:
         type: string
+    issueId:
+      name: id
+      in: path
+      required: true
+      description: Issue ID
+      schema:
+        type: string
     page:
       name: page
       in: query
@@ -3450,3 +3620,136 @@ components:
           type: array
           items:
             type: string
+
+    Issue:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+          enum: [CRITICAL, HIGH, MEDIUM, LOW]
+        risk_score:
+          type: number
+          format: double
+        blast_radius:
+          type: integer
+        status:
+          type: string
+          enum: [OPEN, ACKNOWLEDGED, IN_PROGRESS, RESOLVED, SUPPRESSED]
+        control_id:
+          type: string
+        resource_id:
+          type: string
+        account_id:
+          type: string
+        provider:
+          type: string
+          enum: [aws, azure, gcp]
+        assignee_id:
+          type: string
+        ticket_id:
+          type: string
+        ticket_url:
+          type: string
+        sla_breach_at:
+          type: string
+          format: date-time
+        exposure_paths:
+          type: integer
+        tenant_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        resolved_at:
+          type: string
+          format: date-time
+
+    IssueSummary:
+      description: Enriched issue view returned by list queries with control/resource metadata.
+      allOf:
+        - $ref: "#/components/schemas/Issue"
+        - type: object
+          properties:
+            control_title:
+              type: string
+            resource_name:
+              type: string
+            region:
+              type: string
+            environment_type:
+              type: string
+            line_of_business:
+              type: string
+            finding_count:
+              type: integer
+
+    IssueDetail:
+      type: object
+      properties:
+        issue:
+          $ref: "#/components/schemas/IssueSummary"
+        finding_ids:
+          type: array
+          items:
+            type: string
+
+    IssueUpdate:
+      type: object
+      description: Partial update payload for mutable issue fields. At least one field must be provided.
+      properties:
+        status:
+          type: string
+          enum: [OPEN, ACKNOWLEDGED, IN_PROGRESS, RESOLVED, SUPPRESSED]
+        assignee_id:
+          type: string
+        ticket_id:
+          type: string
+        ticket_url:
+          type: string
+
+    IssueStats:
+      type: object
+      properties:
+        by_severity:
+          type: object
+          additionalProperties:
+            type: integer
+        by_status:
+          type: object
+          additionalProperties:
+            type: integer
+        by_provider:
+          type: object
+          additionalProperties:
+            type: integer
+        total:
+          type: integer
+        open_count:
+          type: integer
+        sla_breach_count:
+          type: integer
+
+    PaginatedIssues:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/IssueSummary"
+        page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer

@@ -1,3 +1,6 @@
+// Package secgraph materializes security findings into a typed graph of
+// controls, evaluations, issues, and edges suitable for risk scoring,
+// blast-radius analysis, and compliance reporting.
 package secgraph
 
 import (

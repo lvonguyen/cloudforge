@@ -189,7 +189,7 @@ function FindingDetail({
                 <span className="text-gray-700">/</span>
                 <span>{primaryPath.score.toFixed(0)} score</span>
               </div>
-              <p className="mt-1 text-xs text-gray-300">{primaryPath.entry_point.resource_name} -> {primaryPath.target.resource_name}</p>
+              <p className="mt-1 text-xs text-gray-300">{primaryPath.entry_point.resource_name} {'->'} {primaryPath.target.resource_name}</p>
             </div>
           )}
           {relatedPaths.map(p => (
