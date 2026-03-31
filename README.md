@@ -11,7 +11,7 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 
 > **[Live Demo](https://cloudaegis-demo.lvonguyen.com)** | **[API](https://api.cloudforge-demo.lvonguyen.com/health)**
 
-> **About this project** — Cloud Aegis demonstrates enterprise security patterns designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains. The approach is project-based: assess current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — working systems backed by threat models and ADRs (the [19 ADRs](docs/core/architecture/adr/) capture the decision-making process used to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. The core discipline is security-focused systems design, with agentic coding workflows (Claude Code) as a force multiplier for delivery.
+> **About this project** — Cloud Aegis demonstrates enterprise security patterns designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains. The approach is project-based: assess current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — working systems backed by threat models and ADRs (the [20 ADRs](docs/core/architecture/adr/) capture the decision-making process used to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. The core discipline is security-focused systems design, with agentic coding workflows (Claude Code) as a force multiplier for delivery.
 >
 > **Development rigor** — Code quality is enforced through a layered toolchain: `golangci-lint` with `gosec`/`gocritic`/`revive` in CI, shared coding standards governing Go patterns, error handling, and security rules across all repos, pre-commit hooks blocking credential leaks, and systematic multi-pass QA reviews (quality, security, bug discovery) before merge. The emphasis is on elegant, maintainable code paired with comprehensive documentation and detailed architecture diagrams — minimizing tech debt throughout the SDLC rather than accruing it for later.
 
@@ -95,7 +95,7 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 | CISA KEV catalog | Done | In-memory catalog with auto-refresh from CISA feed |
 | GreyNoise integration | Done | HTTP client with 12h cache, classification enrichment |
 | **Testing** | | |
-| Unit tests | 1920+ passing | 34 Go packages (1,474 tests), 447+ frontend tests (52 test files), 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
+| Unit tests | 2600+ passing | 45 Go packages (2,146 tests), 452+ frontend tests (54 test files), 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
 | Integration tests | Done | 12-step server lifecycle + 34-subtest RBAC authorization matrix (`go test -tags=integration`) |
 
 ### Package Maturity
@@ -119,7 +119,7 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 | `internal/tenant` | Production | Multi-tenant context and isolation |
 | `internal/terminal` | Production | Server-side terminal with RBAC and audit |
 | `pkg/remediation` | Production | Executor engine, 17 handlers, rollback |
-| `internal/cicd` | Interface only | SAST/VCS interfaces defined, not imported by server |
+| `internal/secgraph` | Production | Security Graph engine — controls, issues, evaluations, edge materialization, adjacency BFS, issue lifecycle (ADR-020) |
 | `internal/finops` | Production | Cost aggregation (AWS Cost Explorer wirable via FINOPS_PROVIDER=aws), anomaly detection, chargeback |
 | `internal/container` | Production | K8s topology (Trivy parser wirable via TRIVY_OUTPUT_PATH), image scan interface |
 | `internal/secrets` | Interface + Mock | Vault integration interface, mock provider |
@@ -133,9 +133,9 @@ Cloud Aegis is a reference architecture and implementation for an Internal Devel
 
 | Metric | Value |
 | ------ | ----- |
-| Go packages | 34 (all passing with `-race`) |
-| Go tests | 1,474 |
-| Frontend tests | 447+ (52 test files) |
+| Go packages | 45 (all passing with `-race`) |
+| Go tests | 2,146 |
+| Frontend tests | 452+ (54 test files) |
 | Benchmarks | 8 |
 | CI checks | 8 (lint, gosec, Trivy, vitest, npm audit, integration, Codecov, Lighthouse) |
 | Coverage thresholds | v8 lines: 70%, functions: 75%, branches: 65% (configured in frontend Vitest) |
@@ -218,6 +218,7 @@ cloudforge/
 │   │   ├── secrets/               # Exposed secret rotation guidance
 │   │   ├── security_services/     # GuardDuty, Azure Defender
 │   │   └── storage/               # S3 public access blocking
+│   ├── secgraph/                  # Security Graph — controls, issues, evaluations, edges (ADR-020)
 │   ├── waf/                       # WAF golden templates and compliance scanner
 │   └── workflow/                  # Temporal workflow definitions
 ├── pkg/
@@ -252,7 +253,7 @@ cloudforge/
 ├── docs/
 │   ├── core/
 │   │   ├── architecture/          # HLD, DDD, DR-BC, data models
-│   │   │   └── adr/               # Architecture Decision Records (19 ADRs)
+│   │   │   └── adr/               # Architecture Decision Records (20 ADRs)
 │   │   ├── diagrams/              # Architecture diagrams (SVG + Mermaid + Figma)
 │   │   └── runbooks/              # Operational procedures (9 runbooks)
 │   ├── api/                       # OpenAPI 3.1 specification (82 operations)
@@ -449,7 +450,7 @@ workflow:
 | [Remediation Dispatcher](docs/core/diagrams/remediation-dispatcher-flow.svg) | Automated remediation routing |
 | [Risk Intelligence Pipeline](docs/core/diagrams/risk-pipeline-figma.png) | Risk scoring data pipeline |
 
-### Architecture Decision Records (19 ADRs)
+### Architecture Decision Records (20 ADRs)
 
 | ADR | Decision |
 | --- | -------- |
@@ -599,7 +600,7 @@ Built-in support for 20+ frameworks:
 | **Phase 4: Frontend + QA Hardening** | Self-service portal (React 19 + Vite 7, 36 routes, 3 role views, dark mode), Cloudflare Pages deploy, investigation board, DSPM classification, kanban remediation pipeline, NLQ bar, demo mode hardening. Multi-pass QA reviews (quality 4.5+, security 4.5+, bugs 4.3+) |
 | **Phase 3: IaC + Security** | Multi-cloud Terraform modules (compute, database, redis, IAM, monitoring, secrets), 5 Rego policies (27 rules), policy gate script, resource-scoped RBAC, integrity hashing, audit logging, rollback encryption (AES-256-GCM), CI enforcement (gosec, Trivy, Codecov) |
 | **Phase 2: Remediation + AI Governance** | 10 remediation handlers across 8 domains, batch executor with dry-run + 48h rollback, AI governance module (embedded OPA, agent registry, STRIDE/ATLAS threat models), JWT auth (HS256/RS256 + JWKS), RBAC middleware, security fixes SEC-001 through SEC-012 |
-| **Phase 1: Core Platform** | API server, GRC provider abstraction (Archer, ServiceNow, PostgreSQL), 20+ compliance frameworks, OPA/Rego policy engine, AI provider abstraction (Claude/OpenAI), identity module (Okta + Entra ID), container security, structured logging (zap), PostgreSQL migrations, architecture docs (HLD, DDD, 19 ADRs, DR/BC, 9 runbooks) |
+| **Phase 1: Core Platform** | API server, GRC provider abstraction (Archer, ServiceNow, PostgreSQL), 20+ compliance frameworks, OPA/Rego policy engine, AI provider abstraction (Claude/OpenAI), identity module (Okta + Entra ID), container security, structured logging (zap), PostgreSQL migrations, architecture docs (HLD, DDD, 20 ADRs, DR/BC, 9 runbooks) |
 
 ---
 

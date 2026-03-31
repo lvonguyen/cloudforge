@@ -10,7 +10,7 @@
 | [component-rationale.md](core/architecture/adr/component-rationale.md) | Technology selection and cost analysis |
 | [performance-baseline.md](core/performance-baseline.md) | Go vs Rust benchmark comparison |
 
-## Architecture Decision Records (19 ADRs)
+## Architecture Decision Records (20 ADRs)
 
 | ADR | Decision | Status |
 |-----|----------|--------|
@@ -73,4 +73,4 @@ See [cspm/](cspm/) -- Cross-Cloud CSPM Aggregator documentation (separate projec
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | January 2026 | Liem Vo-Nguyen | Initial docs README |
-| 2.0 | March 20, 2026 | Liem Vo-Nguyen | Full reorg: core/archive/research structure, 19 ADRs, updated cross-references |
+| 2.0 | March 20, 2026 | Liem Vo-Nguyen | Full reorg: core/archive/research structure, 20 ADRs, updated cross-references |

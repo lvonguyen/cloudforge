@@ -18,7 +18,6 @@ cloudforge/
       gateway/        # Rate limiter (Redis + local fallback)
     asm/              # Attack Surface Management: domain scanning, asset discovery
     audit/            # AuditLogger interface (Memory + Zap implementations)
-    cicd/             # CI/CD + VCS provider abstraction
     compliance/       # Compliance framework mapping
     container/        # Container image scanner
     cspm/             # CSPM modules: scoring, normalizer, contextual, threatintel
@@ -35,6 +34,7 @@ cloudforge/
     policy/           # OPA evaluation bridge
     remediation/      # Remediation types + state store (AES-256-GCM encrypted)
     rql/              # Resource Query Language: field op value, AND/OR parser
+    secgraph/         # Security Graph: controls, issues, evaluations, edges, adjacency BFS (ADR-020)
     secrets/          # Secrets management (memory provider + manager)
     tenant/           # Multi-tenant: Store, MemoryStore, middleware, context helpers
     terminal/         # Integrated terminal: xterm.js WS handler, command whitelist, RBAC
@@ -68,7 +68,7 @@ cloudforge/
       types/          # compliance, attack-path, remediation, catalog, dashboard, deploy,
                       # dspm, finops, grc, investigation, policy, security-graph, ai-governance
     public/           # Static assets, mock data (trimmed 500 findings)
-  migrations/         # SQL migration files (001-006)
+  migrations/         # SQL migration files (001-008, incl. security graph + assignment context)
   policies/           # OPA .rego policy files
   docs/               # ADRs, architecture, threat models, QA codex, sprint docs
     api/              # OpenAPI 3.1 specification

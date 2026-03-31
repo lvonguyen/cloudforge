@@ -6,7 +6,7 @@ slug: /adr
 
 # Architecture Decision Records
 
-Cloud Aegis maintains 19 ADRs documenting key technical decisions. Each record captures the context, decision, and consequences of an architectural choice.
+Cloud Aegis maintains 20 ADRs documenting key technical decisions. Each record captures the context, decision, and consequences of an architectural choice.
 
 | ADR | Title | Status |
 |-----|-------|--------|

@@ -16,7 +16,7 @@
 | [Component Rationale](./adr/component-rationale.md) | Technology selection with cost analysis |
 | [DR/BC Plan](./DR-BC.md) | Disaster Recovery and Business Continuity |
 | [Pitch Deck](../../archive/pitch-deck.md) | Executive presentation |
-| [ADRs](./adr/) | Architecture Decision Records (ADR-001 through ADR-019) |
+| [ADRs](./adr/) | Architecture Decision Records (ADR-001 through ADR-020) |
 | [Runbooks](../runbooks/README.md) | Operational procedures (9 runbooks) |
 
 ---
