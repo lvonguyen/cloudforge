@@ -3,6 +3,8 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import AttackPaths from '@/pages/ops/AttackPaths'
 import { renderWithProviders } from '@/test/utils'
 import { useAttackPaths, useAttackPathStats } from '@/hooks/useAttackPaths'
+import { useFindingsByIds } from '@/hooks/useFindings'
+import type { Finding } from '@/types/compliance'
 import type { AttackPath, AttackPathStats, PaginatedResponse } from '@/types/attack-path'
 
 vi.mock('@/hooks/useAttackPaths', () => ({
@@ -10,8 +12,13 @@ vi.mock('@/hooks/useAttackPaths', () => ({
   useAttackPathStats: vi.fn(),
 }))
 
+vi.mock('@/hooks/useFindings', () => ({
+  useFindingsByIds: vi.fn(),
+}))
+
 const mockUseAttackPaths = vi.mocked(useAttackPaths)
 const mockUseAttackPathStats = vi.mocked(useAttackPathStats)
+const mockUseFindingsByIds = vi.mocked(useFindingsByIds)
 
 const SAMPLE_PATH: AttackPath = {
   id: 'path-1',
@@ -122,6 +129,84 @@ const SAMPLE_STATS: AttackPathStats = {
   by_provider: { aws: 1 },
 }
 
+const SAMPLE_FINDING: Finding = {
+  id: 'f-001',
+  source: 'wiz',
+  source_finding_id: 'wiz-123',
+  type: 'vulnerability',
+  title: 'Public workload can reach sensitive orders database',
+  description: 'A public-facing workload can pivot into a production database through an over-privileged role.',
+  resource_type: 'database',
+  resource_id: 'res-db-1',
+  resource_name: 'prod-orders-db',
+  platform: 'aws',
+  cloud_provider: 'aws',
+  region: 'us-east-1',
+  account_id: '111111111111',
+  account_name: 'production',
+  environment_type: 'production',
+  static_severity: 'HIGH',
+  severity: 'HIGH',
+  ai_risk_score: 8.7,
+  ai_risk_level: 'high',
+  ai_risk_rationale: 'Public exposure plus privilege pivot creates a credible lateral path into regulated data.',
+  ai_contextual_factors: ['public entry', 'privilege escalation', 'sensitive data'],
+  exploit_available: true,
+  remediation: 'Remove public reachability and tighten trust policy on the intermediate role.',
+  remediation_steps: [
+    {
+      order: 1,
+      title: 'Remove public ingress',
+      description: 'Restrict inbound access to approved CIDRs and private paths.',
+      automated: false,
+    },
+    {
+      order: 2,
+      title: 'Reduce IAM trust',
+      description: 'Limit the role trust policy and remove broad sts:AssumeRole permissions.',
+      automated: false,
+    },
+  ],
+  auto_remediatable: false,
+  category: 'DATABASE',
+  status: 'open',
+  workflow_status: 'assigned',
+  suppressed: false,
+  service_name: 'orders',
+  line_of_business: 'commerce',
+  first_found_at: '2026-03-29T01:00:00Z',
+  last_seen_at: '2026-03-30T02:00:00Z',
+  due_date: '2026-04-05T00:00:00Z',
+  deduplication_key: 'ddb-key',
+  canonical_rule_id: 'db-public-access',
+  cves: [
+    {
+      id: 'CVE-2026-0001',
+      url: 'https://example.com/cve-2026-0001',
+      nvd_url: 'https://nvd.nist.gov/vuln/detail/CVE-2026-0001',
+      mitre_url: 'https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-0001',
+      description: 'Remote issue in supporting workload',
+      cvss: 9.1,
+      cvss_vector: 'AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H',
+      cvss_version: '3.1',
+      epss: 0.91,
+      cisa_known_exploited: true,
+      published: '2026-03-01T00:00:00Z',
+      modified: '2026-03-05T00:00:00Z',
+    },
+  ],
+  toxic_combo_details: {
+    combo_type: 'public_db_chain',
+    description: 'Internet exposure plus privilege pivot reaches sensitive data.',
+    related_findings: ['f-001', 'f-002'],
+    attack_vector: 'network',
+    attack_path: ['public-api', 'orders-role', 'prod-orders-db'],
+    exploit_potential: 'high',
+    blast_radius: 'high',
+    mitre_techniques: ['T1190'],
+  },
+} as Finding
+
 beforeAll(() => {
   global.ResizeObserver = class {
     observe() {}
@@ -153,6 +238,13 @@ beforeEach(() => {
   mockUseAttackPathStats.mockReturnValue(({
     data: SAMPLE_STATS,
   }) as ReturnType<typeof useAttackPathStats>)
+
+  mockUseFindingsByIds.mockReturnValue(({
+    queries: [],
+    data: [SAMPLE_FINDING],
+    isLoading: false,
+    isError: false,
+  }) as ReturnType<typeof useFindingsByIds>)
 })
 
 describe('AttackPaths readability controls', () => {
@@ -195,5 +287,27 @@ describe('AttackPaths readability controls', () => {
     await waitFor(() => {
       expect(screen.queryByText('Finding References')).not.toBeInTheDocument()
     })
+  })
+
+  it('surfaces analyst detail cues for remediation and finding context', async () => {
+    renderWithProviders(<AttackPaths />)
+
+    fireEvent.keyDown(document, { key: 'j' })
+
+    expect(await screen.findByLabelText(/score 96 out of 100/i)).toBeInTheDocument()
+    expect(screen.getByText(/ai remediation/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/remove internet ingress and tighten the role trust policy/i).length).toBeGreaterThan(0)
+    expect(screen.getByText(/1 privesc hop/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/crown jewel/i).length).toBeGreaterThan(0)
+
+    expect(screen.getByText('Finding Context')).toBeInTheDocument()
+    expect(screen.getByText(/public workload can reach sensitive orders database/i)).toBeInTheDocument()
+    expect(
+      screen
+        .getAllByRole('link', { name: /cve-2026-0001/i })
+        .some(link => link.getAttribute('href') === 'https://nvd.nist.gov/vuln/detail/CVE-2026-0001'),
+    ).toBe(true)
+    expect(screen.getByText(/internet exposure plus privilege pivot reaches sensitive data/i)).toBeInTheDocument()
+    expect(screen.getByText(/1\. remove public ingress/i)).toBeInTheDocument()
   })
 })

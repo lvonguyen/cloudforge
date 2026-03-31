@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { Fragment, useState, useMemo, useCallback, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   ReactFlow,
@@ -30,7 +30,6 @@ import {
   ListChecks,
   Route,
   Radar,
-  Clock3,
   ExternalLink,
 } from 'lucide-react'
 import type { AttackPath } from '@/types/attack-path'
@@ -149,6 +148,33 @@ function useResolvedCanvasTone(canvasTone: CanvasTone): ResolvedCanvasTone {
   }, [])
 
   return canvasTone === 'auto' ? (documentDark ? 'dark' : 'light') : canvasTone
+}
+
+function ScoreRing({ score, severity, size = 32 }: { score: number; severity: string; size?: number }) {
+  const radius = (size - 4) / 2
+  const circumference = 2 * Math.PI * radius
+  const progress = Math.min(score, 100) / 100
+  const strokeColor = SEVERITY_HEX[severity] ?? SEVERITY_NEUTRAL_HEX
+  return (
+    <svg width={size} height={size} className="shrink-0" aria-label={`Score ${score.toFixed(0)} out of 100`}>
+      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="currentColor" strokeWidth={2} className="text-muted-foreground/20" />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={circumference * (1 - progress)}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+      />
+      <text x={size / 2} y={size / 2} textAnchor="middle" dominantBaseline="central" fill={strokeColor} fontSize={size * 0.3} fontWeight={700}>
+        {score.toFixed(0)}
+      </text>
+    </svg>
+  )
 }
 
 function nodeRoleLabel(index: number, total: number) {
@@ -314,12 +340,16 @@ function pathToFlow(
     style: {
       border: chokePointIds?.has(n.resource_id)
         ? '3px dashed #f59e0b'
-        : `2px solid ${SEVERITY_HEX[n.severity] ?? SEVERITY_NEUTRAL_HEX}`,
+        : isCrownJewelNode(n)
+          ? '2px solid #8b5cf6'
+          : `2px solid ${SEVERITY_HEX[n.severity] ?? SEVERITY_NEUTRAL_HEX}`,
       borderRadius: '22px',
       background: canvasTheme.nodeBackground,
       padding: '0px',
       width: 280,
-      boxShadow: canvasTheme.nodeShadow,
+      boxShadow: isCrownJewelNode(n)
+        ? `${canvasTheme.nodeShadow}, 0 0 18px rgba(139, 92, 246, 0.25)`
+        : canvasTheme.nodeShadow,
     },
   }))
 
@@ -444,6 +474,55 @@ function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) 
   )
 }
 
+function HopSequence({ path }: { path: AttackPath }) {
+  return (
+    <div className="flex items-center gap-1.5 overflow-x-auto rounded-2xl border border-border/80 bg-muted/20 px-3 py-2.5">
+      {path.nodes.map((node, i) => {
+        const ResourceIcon = getAttackPathResourceIcon(node)
+        const role = nodeRoleLabel(i, path.nodes.length)
+        const edge = i < path.edges.length ? path.edges[i] : null
+        const isPrivEsc = edge ? isPrivilegeEscalationEdge(edge) : false
+        return (
+          <Fragment key={node.id}>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span
+                className="flex h-6 w-6 items-center justify-center rounded-full border-2 text-[10px] font-bold"
+                style={{ borderColor: SEVERITY_HEX[node.severity] ?? SEVERITY_NEUTRAL_HEX }}
+              >
+                {i + 1}
+              </span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1">
+                  <ResourceIcon className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs font-medium truncate max-w-[120px]">{node.resource_name}</span>
+                </div>
+                <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                  <span className={`rounded-full px-1 py-0 font-bold ${SEVERITY_COLORS[node.severity] ?? ''}`}>
+                    {node.severity}
+                  </span>
+                  <span>{role}</span>
+                </div>
+              </div>
+            </div>
+            {i < path.nodes.length - 1 && (() => {
+              const edgeSemantic = edge ? getAttackPathEdgeSemantic(edge) : null
+              const EdgeIcon = edgeSemantic?.icon ?? ArrowRight
+              return (
+                <div className="flex shrink-0 flex-col items-center gap-0.5">
+                  <EdgeIcon className="h-3.5 w-3.5" style={{ color: edgeSemantic?.color ?? undefined }} />
+                  {edgeSemantic && isPrivEsc && (
+                    <span className="text-[7px] font-bold uppercase tracking-wider text-amber-500">esc</span>
+                  )}
+                </div>
+              )
+            })()}
+          </Fragment>
+        )
+      })}
+    </div>
+  )
+}
+
 function PathGraphView({
   path,
   relatedFindings,
@@ -471,364 +550,403 @@ function PathGraphView({
     [path, resolvedCanvasTone, chokePointIds],
   )
 
+  const uniqueProviders = useMemo(() => [...new Set(path.nodes.map(n => n.provider))], [path])
+  const uniqueRegions = useMemo(() => [...new Set(path.nodes.map(n => n.region))], [path])
+  const uniqueAccounts = useMemo(() => [...new Set(path.nodes.map(n => n.account_id))], [path])
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-5rem)] gap-0">
+      {/* ── WEST: Analyst context panel ── */}
+      <div className="w-full lg:w-80 shrink-0 border-b lg:border-b-0 lg:border-r overflow-y-auto p-4 space-y-4">
+        <div className="space-y-3">
           <Button variant="ghost" size="sm" className="gap-1.5 -ml-2" onClick={onBack}>
             <ArrowLeft className="h-4 w-4" />All Paths
           </Button>
-          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-full ${SEVERITY_COLORS[path.severity] ?? ''}`}>
-            {path.severity}
-          </Badge>
-          <span className="text-sm font-medium">{path.title}</span>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <ScoreRing score={path.score} severity={path.severity} />
+            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-full ${SEVERITY_COLORS[path.severity] ?? ''}`}>
+              {path.severity}
+            </Badge>
+            {path.ai_enriched && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 rounded-full bg-violet-100 text-violet-700 border-violet-300 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800 gap-0.5">
+                <Sparkles className="h-2.5 w-2.5" />AI
+              </Badge>
+            )}
+          </div>
+          <p className="text-sm font-semibold leading-snug">{path.title}</p>
+          <p className="text-xs text-muted-foreground">{path.ai_description ?? path.description}</p>
         </div>
-        <CanvasToneToggle value={canvasTone} resolvedTone={resolvedCanvasTone} onChange={onCanvasToneChange} />
-      </div>
-      <p className="text-xs text-muted-foreground">{path.ai_description ?? path.description}</p>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="rounded-[24px] border border-border/80">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <Radar className="h-3.5 w-3.5" />Entry Signal
-            </div>
-            <p className="mt-2 text-sm font-semibold">{path.entry_point.resource_name}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{path.entry_point.category} on {path.entry_point.resource_type}</p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-[24px] border border-border/80">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <Target className="h-3.5 w-3.5" />Target At Risk
-            </div>
-            <p className="mt-2 text-sm font-semibold">{path.target.resource_name}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{path.target.resource_type} in {path.target.region}</p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-[24px] border border-border/80">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <Route className="h-3.5 w-3.5" />Path Shape
-            </div>
-            <p className="mt-2 text-sm font-semibold">{path.nodes.length} resources · {path.hop_count} hops</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {formatStageSummary(path)}
-              {privilegeEscalationCount > 0 ? ` · ${privilegeEscalationCount} privilege hop${privilegeEscalationCount === 1 ? '' : 's'}` : ''}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-[24px] border border-border/80">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <Clock3 className="h-3.5 w-3.5" />Immediate Action
-            </div>
-            <p className="mt-2 text-sm font-semibold">{actionItems[0]}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Prioritize the first break in the chain before deeper cleanup.
-              {crownJewelCount > 0 ? ` ${crownJewelCount} crown jewel${crownJewelCount === 1 ? '' : 's'} exposed.` : ''}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+        <Separator />
 
-      {path.ai_enriched && path.ai_remediation && (
-        <div className="border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 p-3 space-y-1">
-          <div className="flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
-            <span className="text-xs font-semibold text-violet-700 dark:text-violet-300 uppercase tracking-wide">AI Remediation</span>
+        {/* Entry → Target */}
+        <div className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-2.5 space-y-2">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+              <Radar className="h-3 w-3" />Entry
+            </div>
+            <p className="text-xs font-medium mt-0.5">{path.entry_point.resource_name}</p>
+            <p className="text-[10px] text-muted-foreground">{path.entry_point.category} · {formatAttackPathResourceType(path.entry_point.resource_type)}</p>
+          </div>
+          <ArrowRight className="h-3 w-3 mx-auto text-muted-foreground/50" />
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+              <Target className="h-3 w-3" />Target
+            </div>
+            <p className="text-xs font-medium mt-0.5">{path.target.resource_name}</p>
+            <p className="text-[10px] text-muted-foreground">{path.target.resource_type} · {path.target.region}</p>
+          </div>
+        </div>
+
+        {/* Path shape */}
+        <div className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-2.5">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+            <Route className="h-3 w-3" />Path Shape
+          </div>
+          <p className="text-xs font-medium mt-1">{path.nodes.length} resources · {path.hop_count} hops</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            {formatStageSummary(path)}
+          </p>
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            {privilegeEscalationCount > 0 && (
+              <Badge variant="outline" className="text-[9px] rounded-full border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
+                {privilegeEscalationCount} privesc hop{privilegeEscalationCount === 1 ? '' : 's'}
+              </Badge>
+            )}
+            {crownJewelCount > 0 && (
+              <Badge variant="outline" className="text-[9px] rounded-full border-violet-300 bg-violet-50 text-violet-700 dark:border-violet-900/40 dark:bg-violet-950/20 dark:text-violet-300">
+                <Crown className="mr-0.5 h-2.5 w-2.5" />{crownJewelCount} crown jewel{crownJewelCount === 1 ? '' : 's'}
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* AI Remediation */}
+        {path.ai_enriched && path.ai_remediation && (
+          <div className="rounded-2xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 px-3 py-2.5 space-y-1">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-3 w-3 text-violet-600 dark:text-violet-400" />
+              <span className="text-[10px] font-semibold text-violet-700 dark:text-violet-300 uppercase tracking-wide">AI Remediation</span>
+            </div>
             {path.ai_likelihood && (
-              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ml-auto ${
+              <Badge variant="outline" className={`text-[9px] px-1.5 py-0 rounded-full ${
                 path.ai_likelihood === 'high' ? 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300' :
                 path.ai_likelihood === 'medium' ? 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300' :
                 'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300'
               }`}>{path.ai_likelihood} likelihood</Badge>
             )}
+            <p className="text-[11px] text-muted-foreground whitespace-pre-line">{path.ai_remediation}</p>
           </div>
-          <p className="text-xs text-muted-foreground whitespace-pre-line">{path.ai_remediation}</p>
-        </div>
-      )}
+        )}
 
-      <div
-        data-testid="attack-path-canvas"
-        data-canvas-tone={resolvedCanvasTone}
-        className={`h-[440px] overflow-hidden rounded-[30px] border ${canvasTheme.frameClass}`}
-      >
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          fitView
-          fitViewOptions={{ padding: 0.3 }}
-          proOptions={{ hideAttribution: true }}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable={false}
-          minZoom={0.5}
-          maxZoom={1.5}
-          style={{ background: canvasTheme.graphBackground }}
-        >
-          <Background gap={18} size={1} color={canvasTheme.gridColor} />
-          <Controls showInteractive={false} className={canvasTheme.controlClass} />
-        </ReactFlow>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 text-[10px]">
-        {[
-          'Entry node',
-          'Pivot step',
-          'Target node',
-          'Privilege escalation hop',
-          'Crown jewel',
-          'Choke point = reused across paths',
-        ].map(label => (
-          <span key={label} className="rounded-full border border-border/80 bg-muted/50 px-2 py-1 text-muted-foreground">
-            {label}
-          </span>
-        ))}
-      </div>
-
-      <Card className="rounded-none">
-        <CardHeader className="pb-2 pt-3 px-4">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Analyst Narrative</span>
-        </CardHeader>
-        <CardContent className="px-4 pb-4 space-y-3">
-          <p className="text-xs text-muted-foreground">{path.ai_risk_narrative ?? path.description}</p>
-          <div className="rounded-none border border-border bg-muted/20 p-3">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Sequence</div>
-            <p className="mt-1 text-xs font-medium">{pathStory}</p>
+        {/* Immediate actions */}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <ListChecks className="h-3 w-3" />Immediate Actions
           </div>
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Immediate actions</div>
-            <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-              {actionItems.map(item => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-
-      {path.mitre_tactics.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">MITRE:</span>
-          {path.mitre_tactics.map(t => (
-            <span key={t} className="text-[10px] font-mono bg-muted px-1.5 py-0.5">{t}</span>
-          ))}
-        </div>
-      )}
-
-      {relatedFindings.length > 0 && (
-        <Card className="rounded-none">
-          <CardHeader className="pb-2 pt-3 px-4">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Finding Context</span>
-          </CardHeader>
-          <CardContent className="space-y-3 px-4 pb-4">
-            {relatedFindings.slice(0, 4).map(finding => (
-              <div key={finding.id} className="rounded-2xl border border-border/80 bg-muted/15 p-3">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        to={`/ops/findings/${finding.id}`}
-                        className="text-sm font-semibold hover:text-primary underline-offset-4 hover:underline"
-                      >
-                        {finding.title}
-                      </Link>
-                      <Badge variant="outline" className={`text-[10px] rounded-full ${SEVERITY_COLORS[finding.severity] ?? ''}`}>
-                        {finding.severity}
-                      </Badge>
-                      <ProviderBadge provider={finding.cloud_provider} />
-                      {finding.cves?.[0] && (
-                        <a
-                          href={finding.cves[0].nvd_url || finding.cves[0].url || finding.cves[0].mitre_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-500 dark:text-blue-400"
-                        >
-                          {finding.cves[0].id}
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                      {finding.ticket_url && (
-                        <a
-                          href={finding.ticket_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-500 dark:text-blue-400"
-                        >
-                          Ticket
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {finding.resource_name} · {formatAttackPathResourceType(finding.resource_type)} · {formatFindingContextSource(finding)}
-                    </p>
-                  </div>
-                  <div className="text-right text-[10px] text-muted-foreground">
-                    <div>{finding.workflow_status.replaceAll('_', ' ')}</div>
-                    {finding.due_date && <div>Due {new Date(finding.due_date).toLocaleDateString()}</div>}
-                  </div>
-                </div>
-                {finding.toxic_combo_details && (
-                  <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-[11px] text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100">
-                    {finding.toxic_combo_details.description}
-                  </div>
-                )}
-                {finding.cves && finding.cves.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {finding.cves.slice(0, 3).map(cve => (
-                      <a
-                        key={cve.id}
-                        href={cve.nvd_url || cve.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-mono text-red-700 hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300"
-                      >
-                        {cve.id}
-                      </a>
-                    ))}
-                  </div>
-                )}
-                {(finding.remediation_steps?.length ?? 0) > 0 ? (
-                  <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground">
-                    {finding.remediation_steps!.slice(0, 2).map(step => (
-                      <li key={`${finding.id}-${step.order}`}>
-                        {step.order}. {step.title}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-2 text-[11px] text-muted-foreground">{finding.remediation}</p>
-                )}
-              </div>
+          <ul className="space-y-1 text-[11px] text-muted-foreground">
+            {actionItems.map(item => (
+              <li key={item}>{item}</li>
             ))}
-          </CardContent>
-        </Card>
-      )}
+          </ul>
+        </div>
 
-      {/* Resource Chain */}
-      <Card className="rounded-none">
-        <CardHeader className="pb-2 pt-3 px-4">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resource Chain</span>
-        </CardHeader>
-        <CardContent className="px-4 pb-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {path.nodes.map(n => {
-              const ResourceIcon = getAttackPathResourceIcon(n)
-              return (
-              <div key={n.id} className="border border-border p-3 space-y-1 rounded-2xl bg-background/70">
-                <div className="flex items-center gap-2">
-                  <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-border/80 bg-muted/30">
-                    <ResourceIcon className="h-4 w-4" />
-                    <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-white shadow-sm dark:border-slate-900 dark:bg-slate-950">
-                      <ProviderIcon provider={n.provider} className="h-2.5 w-2.5" />
-                    </div>
-                  </div>
-                  <span className="text-xs font-semibold truncate">{n.resource_name}</span>
-                  {isCrownJewelNode(n) && (
-                    <Badge variant="outline" className="ml-auto rounded-full border-violet-300 bg-violet-50 text-[9px] text-violet-700 dark:border-violet-900/40 dark:bg-violet-950/20 dark:text-violet-300">
-                      <Crown className="mr-1 h-2.5 w-2.5" />
-                      Crown jewel
-                    </Badge>
-                  )}
-                </div>
-                <div className="text-[10px] text-muted-foreground">{formatAttackPathResourceType(n.resource_type)} · {n.region}</div>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 rounded-none ${SEVERITY_COLORS[n.severity] ?? ''}`}>
-                    {n.severity}
-                  </Badge>
-                  {n.finding_id && (
-                    <Link
-                      to={`/ops/findings/${n.finding_id}`}
-                      className="text-[9px] font-mono text-muted-foreground hover:text-foreground underline underline-offset-2"
-                    >
-                      {n.finding_id}
-                    </Link>
-                  )}
-                </div>
-              </div>
-            )})}
+        {/* Analyst narrative */}
+        <div className="space-y-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Narrative</span>
+          <p className="text-[11px] text-muted-foreground">{path.ai_risk_narrative ?? path.description}</p>
+          <div className="rounded-xl border border-border/60 bg-muted/20 px-2.5 py-2">
+            <div className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Sequence</div>
+            <p className="mt-0.5 text-[11px] font-medium">{pathStory}</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Attack Context */}
-      <Card className="rounded-none">
-        <CardHeader className="pb-2 pt-3 px-4">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Attack Context</span>
-        </CardHeader>
-        <CardContent className="px-4 pb-4">
-          {(() => {
-            const uniqueProviders = [...new Set(path.nodes.map(n => n.provider))]
-            const uniqueRegions = [...new Set(path.nodes.map(n => n.region))]
-            const uniqueAccounts = [...new Set(path.nodes.map(n => n.account_id))]
-            const scoreColor = path.severity === 'CRITICAL' ? 'text-red-600 dark:text-red-400'
-              : path.severity === 'HIGH' ? 'text-orange-600 dark:text-orange-400'
-              : path.severity === 'MEDIUM' ? 'text-yellow-600 dark:text-yellow-400'
-              : 'text-blue-600 dark:text-blue-400'
-            return (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-xs">
-                <div>
-                  <span className="text-muted-foreground">Entry Point: </span>
-                  <span className="font-medium">{path.entry_point.resource_name}</span>
-                  <span className="text-muted-foreground ml-1">({path.entry_point.category})</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Target: </span>
-                  <span className="font-medium">{path.target.resource_name}</span>
-                  <span className="text-muted-foreground ml-1">({path.target.resource_type})</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Providers: </span>
-                  {uniqueProviders.map(p => (
-                    <span key={p} className="flex items-center gap-1">
-                      <ProviderIcon provider={p} className="h-3.5 w-3.5" />
-                      <span className="font-mono uppercase text-[10px]">{p}</span>
-                    </span>
-                  ))}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Regions: </span>
-                  <span className="font-mono text-[10px]">{uniqueRegions.join(', ')}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Accounts: </span>
-                  <span className="font-mono text-[10px]">{uniqueAccounts.join(', ')}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Score: </span>
-                  <span className={`font-semibold ${scoreColor}`}>{path.score.toFixed(0)}</span>
-                  <span className="text-muted-foreground ml-1">({path.severity})</span>
-                </div>
-              </div>
-            )
-          })()}
-        </CardContent>
-      </Card>
+        {/* MITRE */}
+        {path.mitre_tactics.length > 0 && (
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">MITRE</span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {path.mitre_tactics.map(t => (
+                <span key={t} className="text-[9px] font-mono bg-muted rounded-full px-2 py-0.5">{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
 
-      {/* Finding References */}
-      {path.finding_ids.length > 0 && (
-        <Card className="rounded-none">
-          <CardHeader className="pb-2 pt-3 px-4">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Finding References</span>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className="flex flex-wrap gap-2">
+        {/* Finding references */}
+        {path.finding_ids.length > 0 && (
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Finding References</span>
+            <div className="flex flex-wrap gap-1.5">
               {path.finding_ids.map(fid => (
                 <Link
                   key={fid}
                   to={`/ops/findings/${fid}`}
-                  className="flex items-center gap-1 text-[10px] font-mono bg-muted px-2 py-1 hover:bg-muted/70 transition-colors"
+                  className="flex items-center gap-1 text-[9px] font-mono bg-muted rounded-full px-2 py-0.5 hover:bg-muted/70 transition-colors"
                 >
                   {fid}
-                  <ArrowRight className="h-2.5 w-2.5" />
+                  <ArrowRight className="h-2 w-2" />
                 </Link>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Providers / Regions */}
+        <div className="space-y-1 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {uniqueProviders.map(p => (
+              <span key={p} className="inline-flex items-center gap-1">
+                <ProviderIcon provider={p} className="h-3 w-3" />
+                <span className="font-mono uppercase">{p}</span>
+              </span>
+            ))}
+          </div>
+          <div className="font-mono">{uniqueRegions.join(', ')}</div>
+          <div className="font-mono truncate">{uniqueAccounts.join(', ')}</div>
+        </div>
+      </div>
+
+      {/* ── EAST: Graph + detail ── */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto p-4 space-y-4">
+        <div className="flex items-center justify-end">
+          <CanvasToneToggle value={canvasTone} resolvedTone={resolvedCanvasTone} onChange={onCanvasToneChange} />
+        </div>
+
+        {/* Graph canvas */}
+        <div
+          data-testid="attack-path-canvas"
+          data-canvas-tone={resolvedCanvasTone}
+          className={`h-[440px] overflow-hidden rounded-[30px] border ${canvasTheme.frameClass}`}
+        >
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            fitView
+            fitViewOptions={{ padding: 0.3 }}
+            proOptions={{ hideAttribution: true }}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable={false}
+            minZoom={0.5}
+            maxZoom={1.5}
+            style={{ background: canvasTheme.graphBackground }}
+          >
+            <Background gap={18} size={1} color={canvasTheme.gridColor} />
+            <Controls showInteractive={false} className={canvasTheme.controlClass} />
+          </ReactFlow>
+        </div>
+
+        {/* Hop sequence indicator */}
+        <HopSequence path={path} />
+
+        {/* Legend */}
+        <div className="flex flex-wrap items-center gap-2 text-[10px]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-muted/50 px-2.5 py-1 text-muted-foreground">
+            <span className="h-2.5 w-2.5 rounded-full border-2 border-cyan-500 bg-cyan-500/20" />Entry
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-muted/50 px-2.5 py-1 text-muted-foreground">
+            <span className="h-2.5 w-2.5 rounded-full border-2 border-slate-400 bg-slate-400/20" />Pivot
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-muted/50 px-2.5 py-1 text-muted-foreground">
+            <span className="h-2.5 w-2.5 rounded-full border-2 border-red-500 bg-red-500/20" />Target
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50/50 px-2.5 py-1 text-amber-700 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-300">
+            <Zap className="h-2.5 w-2.5" />Privilege escalation
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-300/60 bg-violet-50/50 px-2.5 py-1 text-violet-700 dark:border-violet-800/40 dark:bg-violet-950/20 dark:text-violet-300">
+            <Crown className="h-2.5 w-2.5" />Crown jewel
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-dashed border-amber-400 bg-muted/50 px-2.5 py-1 text-muted-foreground">
+            Choke point
+          </span>
+        </div>
+
+        {/* Resource chain */}
+        <Card className="rounded-2xl border border-border/80">
+          <CardHeader className="pb-2 pt-3 px-4">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resource Chain</span>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {path.nodes.map(n => {
+                const ResourceIcon = getAttackPathResourceIcon(n)
+                return (
+                  <div key={n.id} className="border border-border/80 p-3 space-y-1 rounded-2xl bg-background/70">
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-border/80 bg-muted/30">
+                        <ResourceIcon className="h-4 w-4" />
+                        <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-white shadow-sm dark:border-slate-900 dark:bg-slate-950">
+                          <ProviderIcon provider={n.provider} className="h-2.5 w-2.5" />
+                        </div>
+                      </div>
+                      <span className="text-xs font-semibold truncate">{n.resource_name}</span>
+                      {isCrownJewelNode(n) && (
+                        <Badge variant="outline" className="ml-auto rounded-full border-violet-300 bg-violet-50 text-[9px] text-violet-700 dark:border-violet-900/40 dark:bg-violet-950/20 dark:text-violet-300">
+                          <Crown className="mr-1 h-2.5 w-2.5" />Crown jewel
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">{formatAttackPathResourceType(n.resource_type)} · {n.region}</div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className={`text-[9px] px-1.5 py-0 rounded-full ${SEVERITY_COLORS[n.severity] ?? ''}`}>
+                        {n.severity}
+                      </Badge>
+                      {n.finding_id && (
+                        <Link
+                          to={`/ops/findings/${n.finding_id}`}
+                          className="text-[9px] font-mono text-muted-foreground hover:text-foreground underline underline-offset-2"
+                        >
+                          {n.finding_id}
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </CardContent>
         </Card>
-      )}
+
+        {/* Finding context */}
+        {relatedFindings.length > 0 && (
+          <Card className="rounded-2xl border border-border/80">
+            <CardHeader className="pb-2 pt-3 px-4">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Finding Context</span>
+            </CardHeader>
+            <CardContent className="space-y-3 px-4 pb-4">
+              {relatedFindings.slice(0, 4).map(finding => (
+                <div key={finding.id} className="rounded-2xl border border-border/80 bg-muted/15 p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                          to={`/ops/findings/${finding.id}`}
+                          className="text-sm font-semibold hover:text-primary underline-offset-4 hover:underline"
+                        >
+                          {finding.title}
+                        </Link>
+                        <Badge variant="outline" className={`text-[10px] rounded-full ${SEVERITY_COLORS[finding.severity] ?? ''}`}>
+                          {finding.severity}
+                        </Badge>
+                        <ProviderBadge provider={finding.cloud_provider} />
+                        {finding.cves?.[0] && (
+                          <a
+                            href={finding.cves[0].nvd_url || finding.cves[0].url || finding.cves[0].mitre_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-500 dark:text-blue-400"
+                          >
+                            {finding.cves[0].id}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                        {finding.ticket_url && (
+                          <a
+                            href={finding.ticket_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-500 dark:text-blue-400"
+                          >
+                            Ticket
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {finding.resource_name} · {formatAttackPathResourceType(finding.resource_type)} · {formatFindingContextSource(finding)}
+                      </p>
+                    </div>
+                    <div className="text-right text-[10px] text-muted-foreground">
+                      <div>{finding.workflow_status.replaceAll('_', ' ')}</div>
+                      {finding.due_date && <div>Due {new Date(finding.due_date).toLocaleDateString()}</div>}
+                    </div>
+                  </div>
+                  {finding.toxic_combo_details && (
+                    <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-[11px] text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100">
+                      {finding.toxic_combo_details.description}
+                    </div>
+                  )}
+                  {finding.cves && finding.cves.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {finding.cves.slice(0, 3).map(cve => (
+                        <a
+                          key={cve.id}
+                          href={cve.nvd_url || cve.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-mono text-red-700 hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300"
+                        >
+                          {cve.id}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  {(finding.remediation_steps?.length ?? 0) > 0 ? (
+                    <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground">
+                      {finding.remediation_steps!.slice(0, 2).map(step => (
+                        <li key={`${finding.id}-${step.order}`}>
+                          {step.order}. {step.title}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-[11px] text-muted-foreground">{finding.remediation}</p>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Attack context */}
+        <Card className="rounded-2xl border border-border/80">
+          <CardHeader className="pb-2 pt-3 px-4">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Attack Context</span>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-xs">
+              <div>
+                <span className="text-muted-foreground">Entry: </span>
+                <span className="font-medium">{path.entry_point.resource_name}</span>
+                <span className="text-muted-foreground ml-1">({path.entry_point.category})</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Target: </span>
+                <span className="font-medium">{path.target.resource_name}</span>
+                <span className="text-muted-foreground ml-1">({path.target.resource_type})</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Providers: </span>
+                {uniqueProviders.map(p => (
+                  <span key={p} className="flex items-center gap-1">
+                    <ProviderIcon provider={p} className="h-3.5 w-3.5" />
+                    <span className="font-mono uppercase text-[10px]">{p}</span>
+                  </span>
+                ))}
+              </div>
+              <div>
+                <span className="text-muted-foreground">Regions: </span>
+                <span className="font-mono text-[10px]">{uniqueRegions.join(', ')}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Accounts: </span>
+                <span className="font-mono text-[10px]">{uniqueAccounts.join(', ')}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Score: </span>
+                <span className={`font-semibold ${
+                  path.severity === 'CRITICAL' ? 'text-red-600 dark:text-red-400'
+                  : path.severity === 'HIGH' ? 'text-orange-600 dark:text-orange-400'
+                  : path.severity === 'MEDIUM' ? 'text-yellow-600 dark:text-yellow-400'
+                  : 'text-blue-600 dark:text-blue-400'
+                }`}>{path.score.toFixed(0)}</span>
+                <span className="text-muted-foreground ml-1">({path.severity})</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
@@ -1061,7 +1179,7 @@ export default function AttackPaths() {
             { label: 'Medium', value: stats.medium_paths },
             { label: 'Coverage', value: `${stats.coverage_percent.toFixed(0)}%` },
           ].map(({ label, value }) => (
-            <div key={label} className="border border-border p-3">
+            <div key={label} className="rounded-2xl border border-border/80 bg-card/80 p-3">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>
               <p className="text-lg font-semibold mt-0.5">{value}</p>
             </div>
@@ -1073,7 +1191,7 @@ export default function AttackPaths() {
 
       {/* Choke Points */}
       {chokePoints.length > 0 && (
-        <Card className="rounded-none border-amber-200 dark:border-amber-900/40">
+        <Card className="rounded-2xl border-amber-200 dark:border-amber-900/40">
           <CardHeader className="pb-2 pt-3 px-4">
             <span className="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
               <Target className="h-3.5 w-3.5" />Choke Points
@@ -1084,11 +1202,11 @@ export default function AttackPaths() {
             <div className="space-y-1.5">
               {chokePoints.map(([id, cp]) => (
                 <div key={id} className="flex items-center gap-2 text-xs">
-                  <span className="h-2 w-2 shrink-0" style={{ backgroundColor: SEVERITY_HEX[cp.severity] ?? SEVERITY_NEUTRAL_HEX }} />
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: SEVERITY_HEX[cp.severity] ?? SEVERITY_NEUTRAL_HEX }} />
                   <ProviderIcon provider={cp.provider} className="h-3.5 w-3.5 shrink-0" />
                   <span className="flex-1 truncate font-medium">{cp.resource_name}</span>
                   <span className="text-[10px] text-muted-foreground">{cp.resource_type}</span>
-                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${SEVERITY_COLORS[cp.severity] ?? ''}`}>
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-full ${SEVERITY_COLORS[cp.severity] ?? ''}`}>
                     in {cp.pathCount} paths
                   </Badge>
                 </div>

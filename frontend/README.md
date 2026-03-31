@@ -41,7 +41,7 @@ src/
 
 ## Deploy
 
-Hosted on Cloudflare Pages (`cloudaegis-demo` project).
+Hosted on Cloudflare Pages (`cloudforge-demo` project, custom domain `cloudaegis-demo.lvonguyen.com`).
 
 ```bash
 npm run deploy    # Uses wrangler@latest
