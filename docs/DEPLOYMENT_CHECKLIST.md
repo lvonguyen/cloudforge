@@ -8,7 +8,9 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 ## Pre-Deploy
 
 ### Credentials & Secrets
-- [ ] `aws sso login --profile <profile>` -- verify session active
+- [ ] `fly auth whoami` -- verify Fly.io session active
+- [ ] `wrangler whoami` -- verify Cloudflare session active for Pages checks
+- [ ] `aws sso login --profile <profile>` only if this deploy uses Bedrock, AWS integrations, or PuppyGraph experiments
 - [ ] Secrets Manager populated: JWT secret, Asana PAT, Jira API token
 - [ ] 1P stores signing KEYS, not pre-signed JWTs -- generate JWT at build time
 - [ ] VITE_STATIC_TOKEN must be a generated HS256 JWT, not the raw secret from 1P
@@ -30,16 +32,22 @@ Apply to both personal (lvn-personal) and HAEA production environments.
   ```
 
 ### Database
-- [ ] RDS instance sizing: db.t3.micro handles ~20K findings, db.t3.medium+ needed for 300K
-- [ ] Storage: gp3 (not gp2) -- better IOPS/$ at same capacity
-- [ ] Run migrations before deploying new app version (ECS one-shot task)
+- [ ] If `GRC_PROVIDER=postgres` or `FINDINGS_SOURCE=postgres`, verify `AEGIS_DATABASE_URL` is set and reachable
+- [ ] Run migrations before deploying a backend version that depends on new schema:
+  ```bash
+  for f in migrations/*.sql; do
+    echo "=== Running $f ==="
+    psql "$AEGIS_DATABASE_URL" -f "$f" || exit 1
+  done
+  ```
+- [ ] For containerized migration runs, `deploy/docker/Dockerfile.migrate` can apply the same migration set against `AEGIS_DATABASE_URL`
 
 ---
 
 ## Deploy
 
-### ECS Task Definition
-- [ ] Verify all env vars set on task def before force-redeploy
+### Fly.io API
+- [ ] Verify required Fly secrets before deploy: `fly secrets list -a cloudforge-api`
 - [ ] Integration env vars (all from Secrets Manager or 1P):
   ```
   ASANA_PAT, ASANA_WORKSPACE_GID, ASANA_DEFAULT_PROJECT_GID
@@ -51,10 +59,9 @@ Apply to both personal (lvn-personal) and HAEA production environments.
   - GREYNOISE_API_KEY, HIBP_API_KEY, OTX_API_KEY
   - JIRA_URL, ASANA_WEBHOOK_TOKEN, WS_SERVER_URL
   - RATE_LIMIT_ENABLED, Slack alerting, PagerDuty, Semantic search
-- [ ] Docker build MUST target `--platform linux/amd64` -- Mac M-series builds arm64 by default, ECS Fargate rejects it silently
-- [ ] Tag images per session (`session19-YYYYMMDD-HHMM`) -- don't overwrite `:latest` blindly
-- [ ] Force new deployment: `aws ecs update-service --force-new-deployment`
-- [ ] Wait 90s for task stabilization, then health check
+- [ ] Deploy with `fly deploy -a cloudforge-api`
+- [ ] Watch rollout with `fly status -a cloudforge-api` and `fly logs -a cloudforge-api`
+- [ ] Wait for health check to pass before validating frontend/API flows
 
 ### CF Pages
 - [ ] **cloudguard** (personal demo): auto-deploys from GH on push to `main`. Root: `frontend/`, build: `npx vite build`, output: `dist`
@@ -103,15 +110,15 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 - [ ] Login endpoint: `POST http://<ip>:8081/login` with `{"username":"puppygraph","password":"<PUPPYGRAPH_PASSWORD>"}`
 - [ ] Returns JWT token for subsequent API calls
 
-### Connection to RDS
-- [ ] AMI ships with demo data (modern + northwind graphs) -- NOT connected to app DB
-- [ ] PG_* env vars (PG_HOST, PG_PORT, PG_DATABASE, PG_USER, PG_PASSWORD) are passed but PuppyGraph auto-imports demo data first
-- [ ] Data source configuration happens via the UI/API AFTER boot -- env vars alone don't wire RDS
+### Connection to Postgres
+- [ ] Local compose points PuppyGraph at the local Postgres container unless you override the PG_* env vars
+- [ ] Marketplace AMI behavior is historical only -- the EC2-hosted PuppyGraph instance was terminated on 2026-03-28
+- [ ] Data source configuration still happens via the UI/API AFTER boot -- env vars alone do not fully wire the graph datasource
 - [ ] To reconfigure: stop container, recreate with correct env vars via SSM:
   ```bash
   aws ssm send-command --instance-ids <id> \
     --document-name "AWS-RunShellScript" \
-    --parameters '{"commands":["docker rm -f puppy","docker run -d --name puppy --restart unless-stopped -p 8081:8081 -p 8182:8182 -p 8184:8184 -e PUPPYGRAPH_PASSWORD=<pwd> -e PG_HOST=<rds> -e PG_PORT=5432 -e PG_DATABASE=aegis -e PG_USER=aegis_app -e PG_PASSWORD=<rds_pass> puppygraph/puppygraph:0.113","sleep 20","docker logs puppy 2>&1 | tail -5"]}'
+    --parameters '{"commands":["docker rm -f puppy","docker run -d --name puppy --restart unless-stopped -p 8081:8081 -p 8182:8182 -p 8184:8184 -e PUPPYGRAPH_PASSWORD=<pwd> -e PG_HOST=<postgres-host> -e PG_PORT=5432 -e PG_DATABASE=aegis -e PG_USER=aegis_app -e PG_PASSWORD=<postgres_pass> puppygraph/puppygraph:0.113","sleep 20","docker logs puppy 2>&1 | tail -5"]}'
   ```
 - [ ] Container takes ~20s after start before ready (Docker pull + backend connect)
 - [ ] Backend graph client needs WebSocket library for Gremlin (`gorilla/websocket`), not HTTP POST
@@ -135,7 +142,8 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 ### Cost & Teardown
 - [ ] r6i.2xlarge: ~$0.504/hr ($12/day, $363/mo)
 - [ ] For demo sprints: deploy for 48-72hr window only (~$24-36)
-- [ ] Teardown: `terraform destroy -target=module.puppygraph` + unset PUPPYGRAPH_URL from ECS
+- [ ] If using local compose, tear down with `docker compose -f docker-compose.puppygraph.yml down`
+- [ ] If using Fly.io only, remove graph config with `fly secrets unset PUPPYGRAPH_URL -a cloudforge-api`
 - [ ] Calendar reminder is your friend -- set teardown event immediately on deploy
 
 ---
@@ -209,7 +217,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 | Raw secret as JWT | "Redirecting to login..." loop | Generate JWT from secret at build time |
 | ADO push timeout | Post-commit hook hangs | Kill background task, commit still lands on GH/GL |
 | gorilla/mux preflight | CORS 405 on OPTIONS | Outer CORS handler chain before mux router |
-| Stale Fly.io hostname | 502 on aegis-api.fly.dev | Use cloudforge-api.fly.dev or custom domain |
+| Stale Fly.io hostname | 502 on aegis-api.fly.dev | Use `cloudforge-api.fly.dev` or `api.cloudforge-demo.lvonguyen.com` |
 | JWT secret mismatch | API 401 with valid JWT | Ensure SM secret matches 1P secret used at build |
 | PuppyGraph default creds | Login 401 | Set PUPPYGRAPH_PASSWORD env var, not default creds |
 | Gremlin HTTP POST | "Invalid WebSocket handshake" | Use WebSocket client on port 8182, not HTTP |
@@ -223,11 +231,11 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 
 ## Environment URLs
 
-### Personal Demo (AWS)
+### Personal Demo
 - Frontend: `https://cloudguard.lvonguyen.com` (CF Pages)
 - API: `https://api.cloudforge-demo.lvonguyen.com` (Fly.io)
 - PuppyGraph: `http://localhost:8081` (local Docker via `docker-compose.puppygraph.yml`; EC2 terminated 2026-03-28)
 
-### Portfolio Demo (Fly.io)
+### Portfolio Demo
 - Frontend: `https://cloudaegis-demo.lvonguyen.com` (CF Pages)
 - API: `https://api.cloudforge-demo.lvonguyen.com` (Fly.io)

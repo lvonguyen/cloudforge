@@ -1,9 +1,10 @@
 # 48-Hour Teardown Runbook
 
-**Target:** Personal demo infrastructure in `lvn-personal` (431330216246), us-east-1
-**Cost:** ~$88/mo (VPC+NAT+RDS+Redis+ECS+ALB) + ~$181/mo if PuppyGraph EC2 is running
-**Calendar reminder:** April 20, 2026
-**TF state:** LOCAL at `deploy/terraform/environments/personal/`
+**Target:** Current personal / portfolio demo stack
+**Primary services:** Cloudflare Pages frontend, Fly.io API (`cloudforge-api`), optional Fly Postgres (`cloudforge-db`), optional local PuppyGraph via Docker Compose
+**Calendar reminder:** Set at deploy time for every short-lived demo sprint
+
+The earlier AWS-heavy personal stack (ECS, RDS, ALB, NAT gateway, PuppyGraph EC2) has already been torn down. This runbook covers the active Fly.io-based topology only.
 
 ---
 
@@ -11,270 +12,155 @@
 
 ```bash
 # Authenticate
-aws sso login --profile lvn-personal
-export AWS_PROFILE=lvn-personal
+fly auth whoami
+wrangler whoami
 
-# Snapshot RDS (automated backups are OFF — this is the only copy)
-aws rds create-db-snapshot \
-  --db-instance-identifier aegis-personal \
-  --db-snapshot-identifier aegis-personal-final-$(date +%Y%m%d)
+# Inventory current Fly apps
+fly apps list | rg 'cloudforge-api|cloudforge-db'
 
-# Wait for snapshot to complete
-aws rds wait db-snapshot-available \
-  --db-snapshot-identifier aegis-personal-final-$(date +%Y%m%d)
+# Verify the API is still reachable before capture / backup
+curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq .
 
-# Export findings JSON from R2 (if not already local)
-# curl -o findings-backup.json https://r2-url/findings.json
+# Optional: verify PuppyGraph local stack state
+docker ps --format '{{.Names}}' | rg 'puppy|postgres'
 
-# Screenshot the live demo (browser or CLI)
-# open https://cloudguard.lvonguyen.com
+# Screenshot the live demo if needed for portfolio assets
+# open https://cloudaegis-demo.lvonguyen.com
 # open https://api.cloudforge-demo.lvonguyen.com/health
-
-# Verify TF state exists
-ls -la deploy/terraform/environments/personal/terraform.tfstate
 ```
 
 **Confirm before proceeding:**
-- [ ] RDS snapshot completed
-- [ ] Screenshots/GIFs captured for portfolio
-- [ ] Local copy of `terraform.tfstate` backed up (cp to ~/backups/)
-- [ ] `findings.json` archived locally or in R2
+- [ ] Portfolio screenshots or recordings captured
+- [ ] If Postgres is attached, a verified backup exists
+- [ ] Custom domain / DNS records to remove are known
+- [ ] No active demo or stakeholder review depends on the environment
 
 ---
 
-## 2. PuppyGraph Shutdown
+## 2. Database Backup (If Postgres Is In Use)
 
-PuppyGraph EC2: `i-096bba925c464985f` — **TERMINATED 2026-03-28**. Now running locally via `docker-compose.puppygraph.yml`.
+If the current deployment is still using in-memory findings/GRC, skip this section.
 
 ```bash
-# If PuppyGraph is currently deployed (check var.deploy_puppygraph):
+# Preferred: dump from the configured DSN
+pg_dump "$AEGIS_DATABASE_URL" > cloudforge-backup-$(date +%Y%m%d).sql
 
-# Option A: Stop container only (keeps EC2 for quick restart)
-aws ssm start-session --target i-096bba925c464985f
-# Inside SSM session:
-sudo docker stop puppy
-exit
-
-# Option B: Terminate EC2 via TF (preferred — saves ~$181/mo)
-cd deploy/terraform/environments/personal
-terraform plan -var="deploy_puppygraph=false" -out=teardown-puppy.tfplan
-terraform apply teardown-puppy.tfplan
+# Sanity check the dump file exists and is non-empty
+ls -lh cloudforge-backup-$(date +%Y%m%d).sql
 ```
 
-If PuppyGraph was already disabled (`deploy_puppygraph=false`), skip this step.
+If the database is a dedicated Fly Postgres app, keep the backup with the session artifacts before destroying the DB app.
 
 ---
 
-## 3. Terraform Destroy
+## 3. PuppyGraph Cleanup
+
+PuppyGraph is local-only unless explicitly reintroduced.
 
 ```bash
-cd deploy/terraform/environments/personal
-
-# Backup state before destroy
-cp terraform.tfstate terraform.tfstate.pre-destroy-$(date +%Y%m%d)
-
-# Plan destroy — review carefully
-terraform plan -destroy -out=teardown.tfplan
-
-# Verify the plan shows ~39 resources to destroy:
-#   - module.network (VPC, subnets, NAT, IGW, route tables)
-#   - module.database (RDS instance, subnet group, parameter group)
-#   - module.redis (ElastiCache cluster, subnet group)
-#   - module.secrets (6 Secrets Manager secrets)
-#   - module.aegis_api (ECS service, task def)
-#   - aws_ecs_cluster, aws_ecr_repository
-#   - aws_lb, aws_lb_target_group, aws_lb_listener
-#   - aws_security_group (alb, ecs), SG rules
-#   - aws_iam_role + policies
-#   - aws_cloudwatch_log_group
-
-# Execute
-terraform apply teardown.tfplan
+# Stop local PuppyGraph stack if it is running
+docker compose -f docker-compose.puppygraph.yml down
 ```
 
-**[!] If destroy fails on a resource:**
+If `PUPPYGRAPH_URL` was set on Fly.io for a temporary graph demo:
+
 ```bash
-# Common: ECR repo with images (force_delete=true should handle it)
-# Common: SG dependency cycles — destroy ALB first, then SGs
-# Fallback: terraform state rm <resource> then manual console delete
+fly secrets unset PUPPYGRAPH_URL -a cloudforge-api
 ```
 
 ---
 
-## 4. CF Pages / Fly.io Cleanup (Optional — Free Tier)
-
-These cost $0 but leave stale endpoints. Clean up if you want a pristine state.
+## 4. Fly.io API Teardown
 
 ```bash
-# CF Pages — delete projects (removes builds + custom domains)
-# cloudguard -> cloudguard.lvonguyen.com
-# cloudforge-demo -> cloudaegis-demo.lvonguyen.com
-# Use CF dashboard or API:
-# curl -X DELETE "https://api.cloudflare.com/client/v4/accounts/{account_id}/pages/projects/cloudguard" \
-#   -H "Authorization: Bearer {token}"
+# Inspect the current app one last time
+fly status -a cloudforge-api
+fly releases list -a cloudforge-api | head
 
-# Fly.io — delete app
+# Destroy the API app
 fly apps destroy cloudforge-api --yes
-# Removes: api.cloudforge-demo.lvonguyen.com backend
 ```
 
-**Recommendation:** Keep CF Pages (free, useful for portfolio). Only tear down if decommissioning entirely.
+This removes the `cloudforge-api.fly.dev` origin behind `api.cloudforge-demo.lvonguyen.com`.
 
 ---
 
-## 5. DNS Cleanup
+## 5. Fly Postgres Teardown (Optional)
 
-Cloudflare proxied records to remove after AWS teardown:
+Only do this if:
+- the Postgres app exists
+- a backup has already been taken
+- no other app is attached to it
 
 ```bash
-# These will 522/502 after ALB is destroyed — clean up in CF dashboard:
-# - api.cloudforge-demo.lvonguyen.com (CNAME -> ALB DNS name)
+# Confirm the Postgres app exists
+fly status -a cloudforge-db
 
-# If keeping CF Pages, these stay:
-# - cloudguard.lvonguyen.com (CF Pages auto-managed)
-# - cloudaegis-demo.lvonguyen.com (CF Pages auto-managed)
-
-# If Fly.io is destroyed:
-# - api.cloudforge-demo.lvonguyen.com (CNAME -> cloudforge-api.fly.dev)
+# Destroy the dedicated Fly Postgres app if it is no longer needed
+fly apps destroy cloudforge-db --yes
 ```
 
-Delete stale DNS records in the CF dashboard under the `lvonguyen.com` zone.
+If the app does not exist, or the API still runs in memory mode, skip this section.
 
 ---
 
-## 6. AWS Service Cleanup (Non-TF Managed)
+## 6. Cloudflare Pages / DNS Cleanup
 
-These were enabled manually or by other tooling — TF destroy will NOT remove them:
+Cloudflare Pages is free, so cleanup is optional unless you want a fully blank slate.
 
 ```bash
-# SecurityHub
-aws securityhub disable-security-hub
-
-# GuardDuty
-DETECTOR=$(aws guardduty list-detectors --query 'DetectorIds[0]' --output text)
-aws guardduty delete-detector --detector-id "$DETECTOR"
-
-# AWS Config
-aws configservice stop-configuration-recorder --configuration-recorder-name default
-aws configservice delete-configuration-recorder --configuration-recorder-name default
-aws configservice delete-delivery-channel --delivery-channel-name default
+# Review recent Pages deployments before removing anything
+wrangler pages deployment list --project-name cloudaegis-demo | head -5
+wrangler pages deployment list --project-name cloudguard | head -5
 ```
+
+DNS records to consider:
+- `api.cloudforge-demo.lvonguyen.com` -> `cloudforge-api.fly.dev`
+- `cloudaegis-demo.lvonguyen.com` -> Cloudflare Pages
+- `cloudguard.lvonguyen.com` -> Cloudflare Pages
+
+If decommissioning entirely:
+- remove the API CNAME after the Fly.io app is destroyed
+- optionally delete the Pages projects from the Cloudflare dashboard
 
 ---
 
 ## 7. Verification
 
 ```bash
-# Confirm no running resources
-aws ecs list-clusters --query 'clusterArns'
-aws rds describe-db-instances --query 'DBInstances[*].DBInstanceIdentifier'
-aws elasticache describe-cache-clusters --query 'CacheClusters[*].CacheClusterId'
-aws ec2 describe-instances --filters "Name=tag:project,Values=aegis" \
-  --query 'Reservations[*].Instances[*].[InstanceId,State.Name]'
-aws elbv2 describe-load-balancers --query 'LoadBalancers[*].LoadBalancerArn'
-aws ec2 describe-nat-gateways --filter "Name=state,Values=available" \
-  --query 'NatGateways[*].NatGatewayId'
+# Fly apps should no longer exist
+fly apps list | rg 'cloudforge-api|cloudforge-db'
 
-# Confirm endpoints are down
+# API endpoint should no longer respond successfully
 curl -s -o /dev/null -w "%{http_code}" https://api.cloudforge-demo.lvonguyen.com/health
-# Expected: 000 (connection refused) or 522 (CF can't reach origin)
 
-# Check Cost Explorer (next day — billing lags ~24h)
-aws ce get-cost-and-usage \
-  --time-period Start=$(date -v-1d +%Y-%m-%d),End=$(date +%Y-%m-%d) \
-  --granularity DAILY \
-  --metrics UnblendedCost \
-  --filter '{"Dimensions":{"Key":"LINKED_ACCOUNT","Values":["431330216246"]}}'
-
-# Verify RDS snapshot exists (for re-spin)
-aws rds describe-db-snapshots \
-  --db-snapshot-identifier aegis-personal-final-$(date +%Y%m%d)
+# PuppyGraph containers should be gone
+docker ps --format '{{.Names}}' | rg 'puppy|postgres'
 ```
 
-**Expected outcome:** All commands return empty arrays. Cost should drop to ~$0 within 48h (NAT gateway billing stops immediately, RDS/Redis within the hour).
+**Expected outcome:**
+- `cloudforge-api` is absent from `fly apps list`
+- `cloudforge-db` is absent if it was intentionally destroyed
+- `api.cloudforge-demo.lvonguyen.com` returns `000`, `404`, or a CDN/origin failure after DNS cleanup
+- no local PuppyGraph demo containers remain running
 
 ---
 
-## 8. Config Revert for Re-Spin (SMALL Tier)
-
-To bring the demo back up at minimal cost, edit `main.tf` before `terraform apply`:
-
-```hcl
-# database module — downgrade from STANDARD
-instance_tier  = "SMALL"    # was: "STANDARD" (db.t3.medium -> db.t3.micro)
-storage_gb     = 20         # keep same
-
-# redis module — already minimal, no change needed
-memory_size_gb = 1
-ha_enabled     = false
-
-# compute module — reduce Fargate
-cpu    = "256"              # was: "512"
-memory = "512"              # was: "1024"
-
-# Keep PuppyGraph OFF
-# variable "deploy_puppygraph" default = false
-```
-
-**Estimated re-spin cost (SMALL):** ~$45/mo
-
----
-
-## 9. Re-Spin Instructions
+## 8. Re-Spin Notes
 
 ```bash
-cd deploy/terraform/environments/personal
+# Recreate or redeploy the API
+fly deploy -a cloudforge-api
 
-# Restore state (if you kept the pre-destroy backup)
-# cp terraform.tfstate.pre-destroy-YYYYMMDD terraform.tfstate
-# [!] Only do this if resources still exist. For a clean re-spin, start fresh.
+# Reapply secrets
+fly secrets set AEGIS_JWT_SECRET=... -a cloudforge-api
+fly secrets set AEGIS_DATABASE_URL=... -a cloudforge-api
 
-# Apply with SMALL tier edits from section 8
-terraform init
-terraform plan -out=respin.tfplan
-terraform apply respin.tfplan
-
-# Restore RDS from snapshot (instead of empty DB)
-# 1. Let TF create the new RDS instance
-# 2. Then restore data:
-aws rds restore-db-instance-from-db-snapshot \
-  --db-instance-identifier aegis-personal-restored \
-  --db-snapshot-identifier aegis-personal-final-YYYYMMDD \
-  --db-instance-class db.t3.micro
-
-# Rebuild + push container image
-cd /path/to/cloudforge
-docker build -t aegis-api .
-aws ecr get-login-password --region us-east-1 | \
-  docker login --username AWS --password-stdin 431330216246.dkr.ecr.us-east-1.amazonaws.com
-docker tag aegis-api:latest 431330216246.dkr.ecr.us-east-1.amazonaws.com/aegis-personal-api:latest
-docker push 431330216246.dkr.ecr.us-east-1.amazonaws.com/aegis-personal-api:latest
-
-# Update container_image in main.tf back to :latest
-# Then: terraform apply
-
-# Re-populate secrets
-aws secretsmanager put-secret-value --secret-id aegis-personal-secrets/jwt-secret \
-  --secret-string "$(op read 'op://Development/aegis-personal-jwt-secret/credential')"
-
-# Restore DNS in CF dashboard
-# api.cloudforge-demo.lvonguyen.com -> new ALB DNS name (from TF output)
-
-# Verify
-curl https://api.cloudforge-demo.lvonguyen.com/health
+# If using Postgres, restore from backup before enabling postgres-backed modes
+psql "$AEGIS_DATABASE_URL" < cloudforge-backup-YYYYMMDD.sql
 ```
 
----
-
-## Quick Reference
-
-| Resource | Identifier | Cost/mo |
-|----------|-----------|---------|
-| RDS | aegis-personal (db.t3.medium) | ~$25 |
-| ElastiCache | aegis-personal (cache.t3.micro) | ~$12 |
-| NAT Gateway | aegis-personal VPC | ~$32 |
-| ECS Fargate | 0.5 vCPU / 1GB | ~$15 |
-| ALB | aegis-personal-alb | ~$16 |
-| PuppyGraph EC2 | i-096bba925c464985f (r6i.2xlarge) | ~$181 |
-| CF Pages | cloudguard, cloudforge-demo | $0 |
-| Fly.io | cloudforge-api | $0 |
+After redeploy:
+- restore the API DNS record if it was removed
+- verify `https://api.cloudforge-demo.lvonguyen.com/health`
+- verify frontend Pages builds still point at `/api/v1`

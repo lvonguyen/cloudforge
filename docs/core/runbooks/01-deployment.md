@@ -2,100 +2,100 @@
 
 ## Overview
 
-This runbook covers deploying Cloud Aegis to production, including:
-- Container image builds
-- Database migrations
-- Service rollout
-- Verification procedures
+This runbook covers the current production-style demo deployment path:
+- Backend API on Fly.io (`cloudforge-api`)
+- Frontend on Cloudflare Pages (`cloudguard` / `cloudaegis-demo`)
+- PostgreSQL via `AEGIS_DATABASE_URL` when Postgres-backed findings or GRC are enabled
+
+The earlier ECS/RDS rollout path has been retired. Do not use Kubernetes, ECS, or ALB procedures from older notes for the active demo environment.
 
 ## Prerequisites
 
-- [ ] Access to CI/CD pipeline (GitHub Actions)
-- [ ] kubectl access to production cluster
-- [ ] Database migration permissions
-- [ ] Approval from change management (if required)
+- [ ] GitHub access to the repo and Actions history
+- [ ] Fly.io CLI authenticated (`fly auth whoami`)
+- [ ] Cloudflare Pages access for the frontend projects
+- [ ] `psql` available locally if Postgres migrations are required
+- [ ] Change approval / stakeholder notice if this is a live demo environment
 
 ## Pre-Deployment Checklist
 
 ```bash
-# 1. Verify current service health
-kubectl get pods -n aegis
-kubectl top pods -n aegis
+# 1. Verify Fly.io app state
+fly status -a cloudforge-api
+fly releases list -a cloudforge-api | head
 
-# 2. Check pending database migrations
-./aegis migrate status
+# 2. Verify current health
+curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq .
 
-# 3. Verify ECS service status
-aws ecs describe-services --cluster aegis-personal --services aegis-personal-api \
-  --profile lvn-personal --region us-east-1 --query 'services[0].{Status:status,Running:runningCount}'
+# 3. Review runtime secrets and config
+fly secrets list -a cloudforge-api
 
-# 4. Check CF Pages deployment
-wrangler pages deployment list --project-name cloudguard | head -5
+# 4. If using postgres-backed findings or GRC, confirm DB connectivity
+psql "$AEGIS_DATABASE_URL" -c 'select 1;'
+
+# 5. Check the most recent Cloudflare Pages frontend deployment
+wrangler pages deployment list --project-name cloudaegis-demo | head -5
 ```
 
 ## Deployment Procedure
 
-### Option A: Fly.io Deployment (Primary)
+### Option A: Fly.io API Deployment (Primary)
 
 ```bash
-# 1. Deploy to Fly.io (uses fly.toml at repo root)
-fly deploy
+# 1. Deploy the backend
+fly deploy -a cloudforge-api
 
-# 2. Monitor deployment
+# 2. Monitor rollout
 fly status -a cloudforge-api
 fly logs -a cloudforge-api
 
-# 3. Verify health
-curl -s https://api.cloudforge-demo.lvonguyen.com/health | jq .
+# 3. Verify the machine is healthy
+curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq .
 ```
 
-### Option B: Standard CI/CD (Alternative — Kubernetes)
+### Option B: Frontend Deployment (Cloudflare Pages)
+
+Cloudflare Pages deploys automatically from GitHub on pushes to `main`.
 
 ```bash
-# 1. Create release tag
-git tag v1.2.3
-git push origin v1.2.3
+# Inspect recent frontend deployments
+wrangler pages deployment list --project-name cloudaegis-demo | head -10
 
-# 2. Monitor pipeline
-# GitHub Actions will:
-# - Run tests
-# - Build container image
-# - Push to registry
-# - Apply Kubernetes manifests
-# - Run smoke tests
-
-# 3. Verify deployment
-kubectl rollout status deployment/aegis-api -n aegis
+# Validate required build-time env vars in the Pages dashboard:
+# - VITE_API_URL=https://api.cloudforge-demo.lvonguyen.com/api/v1
+# - VITE_DEMO_MODE=true
+# - JWT_SECRET=<secret used to generate the static demo token>
 ```
 
-### Option C: Manual Deployment (Emergency — Kubernetes)
+### Runtime Secrets Update
+
+If backend configuration changed, update Fly.io secrets before or during deploy:
 
 ```bash
-# 1. Build and push image
-docker build -t aegis:v1.2.3 .
-docker tag aegis:v1.2.3 123456789.dkr.ecr.us-west-2.amazonaws.com/aegis:v1.2.3
-docker push 123456789.dkr.ecr.us-west-2.amazonaws.com/aegis:v1.2.3
-
-# 2. Update deployment
-kubectl set image deployment/aegis-api \
-  api=123456789.dkr.ecr.us-west-2.amazonaws.com/aegis:v1.2.3 \
-  -n aegis
-
-# 3. Wait for rollout
-kubectl rollout status deployment/aegis-api -n aegis --timeout=300s
+fly secrets set \
+  AEGIS_JWT_SECRET=... \
+  AEGIS_DATABASE_URL=... \
+  JIRA_URL=... \
+  JIRA_USERNAME=... \
+  JIRA_API_TOKEN=... \
+  ASANA_PAT=... \
+  -a cloudforge-api
 ```
 
 ### Database Migration
 
+Run migrations before shipping a backend version that depends on new schema:
+
 ```bash
-# 1. Run migrations in dry-run mode first
-./aegis migrate --dry-run
+# Option 1: direct psql from local workstation
+for f in migrations/*.sql; do
+  echo "=== Running $f ==="
+  psql "$AEGIS_DATABASE_URL" -f "$f" || exit 1
+done
 
-# 2. Apply migrations
-./aegis migrate up
-
-# 3. Verify migrations
-./aegis migrate status
+# Option 2: use the migration container entrypoint
+docker build -f deploy/docker/Dockerfile.migrate -t cloudforge-migrate .
+docker run --rm -e AEGIS_DATABASE_URL="$AEGIS_DATABASE_URL" cloudforge-migrate
 ```
 
 ## Verification
@@ -103,82 +103,79 @@ kubectl rollout status deployment/aegis-api -n aegis --timeout=300s
 ### API Health Check
 
 ```bash
-# Check health endpoint
-curl -s https://api.cloudforge-demo.lvonguyen.com/health | jq .
+curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq .
+```
 
-# Expected response:
-# {
-#   "status": "healthy",
-#   "version": "1.2.3",
-#   "components": { ... }
-# }
+Expected response shape:
+
+```json
+{
+  "status": "healthy"
+}
 ```
 
 ### Functional Verification
 
 ```bash
-# Test finding creation
-curl -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/findings \
-  -H "Authorization: Bearer $API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"title": "Test Finding", "severity": "low"}'
+# Authenticated findings request
+curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/findings?limit=5 \
+  -H "Authorization: Bearer $API_TOKEN" | jq '.items | length'
 
-# Verify in UI
-open https://app.aegis.io/findings
+# Frontend smoke
+open https://cloudaegis-demo.lvonguyen.com
 ```
 
-### Metrics Verification
+Check:
+- frontend loads without auth redirect loops
+- findings and issues views render
+- attack path and graph pages do not 5xx
+- integrations remain disabled unless the required secrets are set
+
+### Fly.io Release Verification
 
 ```bash
-# Check Prometheus targets
-curl -s http://prometheus:9090/api/v1/targets | jq '.data.activeTargets[] | select(.labels.job=="aegis")'
-
-# Check error rate
-curl -s 'http://prometheus:9090/api/v1/query?query=rate(aegis_http_requests_total{status=~"5.."}[5m])'
+fly releases list -a cloudforge-api | head
+fly status -a cloudforge-api
 ```
 
 ## Rollback Procedure
 
-### Automatic Rollback (Kubernetes)
+### Fly.io Release Rollback
 
 ```bash
-# Rollback to previous version
-kubectl rollout undo deployment/aegis-api -n aegis
+# Identify the last known-good release
+fly releases list -a cloudforge-api
 
-# Verify rollback
-kubectl rollout status deployment/aegis-api -n aegis
+# Roll back to a specific release version
+fly releases rollback <version> -a cloudforge-api
+
+# Verify health after rollback
+curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq .
 ```
 
 ### Database Rollback
 
-```bash
-# Rollback last migration
-./aegis migrate down 1
-
-# Rollback to specific version
-./aegis migrate goto 20260103120000
-```
+If a migration introduced an incompatible schema change, restore from backup or manually revert the relevant migration. There is no safe generic `down` path for every migration in this repo; treat DB rollback as an explicit operator action.
 
 ## Post-Deployment
 
-1. [ ] Verify all pods healthy
-2. [ ] Check error rate in Grafana
-3. [ ] Verify log shipping working
-4. [ ] Update deployment ticket
-5. [ ] Notify stakeholders
+1. [ ] Verify Fly.io health and recent logs
+2. [ ] Verify frontend loads from Cloudflare Pages
+3. [ ] Verify authenticated API calls against `/api/v1/findings`
+4. [ ] Verify optional Postgres-backed features if `AEGIS_DATABASE_URL` is enabled
+5. [ ] Notify stakeholders / update the deployment record
 
 ## Escalation
 
 | Condition | Action |
 |-----------|--------|
-| Deployment fails | Rollback, then investigate |
-| Error rate >1% | Rollback immediately |
-| Performance degradation >20% | Consider rollback |
-| Security vulnerability | Emergency rollback |
+| Fly.io deploy fails | Roll back to the last good release, then inspect `fly logs` |
+| Health check fails after deploy | Check Fly secrets, DB reachability, and release diff before retrying |
+| Frontend 404s or auth loops | Verify `VITE_API_URL`, `JWT_SECRET`, and Pages build env vars |
+| Postgres-backed endpoints 5xx | Confirm `AEGIS_DATABASE_URL`, migration state, and DB connectivity |
 
 ## Contact
 
 - On-Call: PagerDuty
-- Platform Team: #platform-support (Slack)
-- Security Team: #security-ops (Slack)
-
+- Platform Team: `#platform-support`
+- Security Team: `#security-ops`
