@@ -1,47 +1,111 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Sun, Moon } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Check, Monitor, Moon, Sun } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { applyTheme as applyPreset } from '@/lib/apply-theme'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  announceThemeModeChange,
+  getStoredThemeMode,
+  resolveThemeMode,
+  setStoredThemeMode,
+  subscribeToThemeModeChanges,
+  syncThemeModeClass,
+  type ThemeMode,
+  type ResolvedThemeMode,
+} from '@/lib/theme-utils'
 
-type ThemeMode = 'light' | 'dark'
+const THEME_OPTIONS: Array<{
+  value: ThemeMode
+  label: string
+  description: string
+  icon: typeof Monitor
+}> = [
+  { value: 'auto', label: 'Auto', description: 'Follow the system theme', icon: Monitor },
+  { value: 'light', label: 'Light', description: 'High-contrast daylight palette', icon: Sun },
+  { value: 'dark', label: 'Dark', description: 'Low-glare analyst palette', icon: Moon },
+]
 
-const STORAGE_KEY = 'theme'
-
-const LABEL: Record<ThemeMode, string> = {
-  light: 'Switch to dark theme',
-  dark: 'Switch to light theme',
+const RESOLVED_LABEL: Record<ResolvedThemeMode, string> = {
+  light: 'light system',
+  dark: 'dark system',
 }
 
-function getInitialMode(): ThemeMode {
-  const stored = localStorage.getItem(STORAGE_KEY) as ThemeMode | null
-  if (stored === 'light' || stored === 'dark') return stored
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+function triggerLabel(mode: ThemeMode, resolvedMode: ResolvedThemeMode): string {
+  if (mode === 'auto') return `Theme: Auto (${RESOLVED_LABEL[resolvedMode]})`
+  return `Theme: ${mode[0].toUpperCase()}${mode.slice(1)}`
 }
 
 export function ThemeToggle() {
-  const [mode, setMode] = useState<ThemeMode>(getInitialMode)
-
-  const applyTheme = useCallback((m: ThemeMode) => {
-    document.documentElement.classList.toggle('dark', m === 'dark')
-    // Re-apply active whitelabel preset so dark-mode palette overrides take effect
-    applyPreset()
-  }, [])
+  const [themeState, setThemeState] = useState(() => {
+    const mode = getStoredThemeMode()
+    return { mode, resolvedMode: resolveThemeMode(mode) }
+  })
+  const { mode, resolvedMode } = themeState
 
   useEffect(() => {
-    applyTheme(mode)
-  }, [mode, applyTheme])
+    const sync = () => {
+      const nextMode = getStoredThemeMode()
+      const nextResolved = syncThemeModeClass(nextMode)
+      setThemeState({ mode: nextMode, resolvedMode: nextResolved })
+    }
 
-  const toggle = () => {
-    const next: ThemeMode = mode === 'light' ? 'dark' : 'light'
-    setMode(next)
-    localStorage.setItem(STORAGE_KEY, next)
+    sync()
+    return subscribeToThemeModeChanges(sync)
+  }, [])
+
+  const setMode = (nextMode: ThemeMode) => {
+    setStoredThemeMode(nextMode)
+    announceThemeModeChange()
   }
 
-  const Icon = mode === 'light' ? Sun : Moon
+  const TriggerIcon = mode === 'auto'
+    ? Monitor
+    : resolvedMode === 'dark'
+      ? Moon
+      : Sun
+  const ariaLabel = useMemo(() => triggerLabel(mode, resolvedMode), [mode, resolvedMode])
 
   return (
-    <Button variant="ghost" size="icon" onClick={toggle} className="h-8 w-8" aria-label={LABEL[mode]}>
-      <Icon className="h-4 w-4" />
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          aria-label={ariaLabel}
+        >
+          <TriggerIcon className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Theme</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup value={mode} onValueChange={(value) => setMode(value as ThemeMode)}>
+          {THEME_OPTIONS.map(({ value, label, description, icon: Icon }) => (
+            <DropdownMenuRadioItem key={value} value={value} className="items-start">
+              <Icon className="mt-0.5 h-4 w-4" />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span className="flex items-center gap-1.5">
+                  {label}
+                  {mode === value ? <Check className="h-3.5 w-3.5 text-foreground" /> : null}
+                </span>
+                <span className="text-xs text-muted-foreground">{description}</span>
+              </div>
+              {value === 'auto' ? (
+                <DropdownMenuShortcut>{resolvedMode}</DropdownMenuShortcut>
+              ) : null}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

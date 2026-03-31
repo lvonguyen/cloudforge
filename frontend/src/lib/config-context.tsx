@@ -45,11 +45,22 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let active = true
+
     loadRuntimeConfig().then((cfg) => {
+      if (!active) return
       setConfig(cfg)
-      initTheme()
+      initTheme(undefined, cfg?.theme ? {
+        primary: cfg.theme.primaryColor,
+        secondary: cfg.theme.secondaryColor,
+        accent: cfg.theme.accentColor,
+      } : undefined)
       setLoading(false)
     })
+
+    return () => {
+      active = false
+    }
   }, [])
 
   const value = useMemo<ConfigContextValue>(

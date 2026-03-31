@@ -487,8 +487,9 @@ Session 32 was a security hardening + QA sprint:
   - Fixed 2026-03-30 by threading request metadata through the AI enrichment OPA gate via `internal/ai-governance/opa/engine.go` and `cmd/server/handlers_api.go`.
 - [x] `D17` OPA string literal cleanup in `cmd/server/handlers_api.go`
   - Fixed 2026-03-30 by promoting the enrichment OPA agent/tool identifiers and request header names to package-level constants and covering the request-context helper in `cmd/server/handlers_api_test.go`.
-- [ ] `D18` Global light/dark/auto theme follow-up
-  - Partially superseded: the app already has a global `ThemeToggle`, and Attack Paths already has its local Auto/Light/Dark canvas tone control. The remaining work is global Auto-mode behavior plus a full light-mode readability audit across the app.
+- [x] `D18` Global light/dark/auto theme follow-up
+  - Fixed 2026-03-31 by adding a true global Auto/Light/Dark theme selector in `frontend/src/components/layout/ThemeToggle.tsx`, synchronizing root theme mode in `frontend/src/lib/theme-utils.ts` + `frontend/src/lib/config-context.tsx`, and updating `frontend/index.html` so the boot shell honors light mode instead of flashing a dark-only skeleton.
+  - Residual page-by-page readability cleanup remains folded into `D8` and `D20`; `D18` itself is no longer an app-level theme-mode gap.
 - [ ] `D19` Seed full findings corpus into Fly.io Postgres
   - Context: the Fly Postgres addon and seed pipeline exist (`scripts/aegis-seed.mjs` + `scripts/seed-postgres.mjs`), but the full corpus has not yet been streamed into Fly Postgres and switched live via `FINDINGS_SOURCE=postgres`.
   - Expected steps:

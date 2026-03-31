@@ -9,13 +9,36 @@
     <meta property="og:description" content="Enterprise cloud security platform — policy-as-code provisioning, AI-powered risk scoring, and multi-cloud compliance." />
     <meta property="og:type" content="website" />
     <title>Cloud Aegis — Cloud Security Platform</title>
+    <style>
+      :root {
+        --boot-bg: #f8fafc;
+        --boot-card: #ffffff;
+        --boot-border: #dbe3ee;
+        --boot-muted: #cbd5e1;
+        --boot-text: #475569;
+        --boot-heading: #0f172a;
+      }
+
+      html.dark {
+        --boot-bg: #0a0a0a;
+        --boot-card: #111318;
+        --boot-border: #1e2330;
+        --boot-muted: #1e2330;
+        --boot-text: #a3a3a3;
+        --boot-heading: #e5e7eb;
+      }
+    </style>
     <script>
-      // Anti-flash: set dark class before render
+      // Anti-flash: resolve theme mode before render.
       (function() {
         var t = localStorage.getItem('theme');
-        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-          document.documentElement.classList.add('dark');
-        }
+        var mode = (t === 'light' || t === 'dark' || t === 'auto') ? t : 'auto';
+        var dark = mode === 'dark' || (mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var resolved = dark ? 'dark' : 'light';
+        document.documentElement.classList.toggle('dark', dark);
+        document.documentElement.setAttribute('data-theme-mode', mode);
+        document.documentElement.setAttribute('data-theme-resolved', resolved);
+        document.documentElement.style.colorScheme = resolved;
       })();
     </script>
   </head>
@@ -23,23 +46,23 @@
     <div id="root">
       <!-- App shell skeleton — renders before JS loads, becomes LCP element.
            React.createRoot replaces this entirely on hydration. -->
-      <div style="display:flex;height:100vh;background:#0a0a0a;color:#a3a3a3;font-family:system-ui,-apple-system,sans-serif;font-size:14px">
-        <nav style="width:220px;border-right:1px solid #1e2330;padding:16px;flex-shrink:0">
-          <div style="font-size:15px;font-weight:600;color:#e5e7eb;margin-bottom:24px">Cloud Aegis</div>
+      <div style="display:flex;height:100vh;background:var(--boot-bg);color:var(--boot-text);font-family:system-ui,-apple-system,sans-serif;font-size:14px">
+        <nav style="width:220px;border-right:1px solid var(--boot-border);padding:16px;flex-shrink:0">
+          <div style="font-size:15px;font-weight:600;color:var(--boot-heading);margin-bottom:24px">Cloud Aegis</div>
           <div style="display:flex;flex-direction:column;gap:8px">
-            <div style="height:10px;width:80%;background:#1e2330;border-radius:2px"></div>
-            <div style="height:10px;width:60%;background:#1e2330;border-radius:2px"></div>
-            <div style="height:10px;width:70%;background:#1e2330;border-radius:2px"></div>
-            <div style="height:10px;width:50%;background:#1e2330;border-radius:2px"></div>
+            <div style="height:10px;width:80%;background:var(--boot-muted);border-radius:2px"></div>
+            <div style="height:10px;width:60%;background:var(--boot-muted);border-radius:2px"></div>
+            <div style="height:10px;width:70%;background:var(--boot-muted);border-radius:2px"></div>
+            <div style="height:10px;width:50%;background:var(--boot-muted);border-radius:2px"></div>
           </div>
         </nav>
         <main style="flex:1;padding:24px">
-          <div style="height:14px;width:200px;background:#1e2330;border-radius:2px;margin-bottom:16px"></div>
+          <div style="height:14px;width:200px;background:var(--boot-muted);border-radius:2px;margin-bottom:16px"></div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
-            <div style="height:80px;background:#111318;border:1px solid #1e2330;border-radius:4px"></div>
-            <div style="height:80px;background:#111318;border:1px solid #1e2330;border-radius:4px"></div>
-            <div style="height:80px;background:#111318;border:1px solid #1e2330;border-radius:4px"></div>
-            <div style="height:80px;background:#111318;border:1px solid #1e2330;border-radius:4px"></div>
+            <div style="height:80px;background:var(--boot-card);border:1px solid var(--boot-border);border-radius:4px"></div>
+            <div style="height:80px;background:var(--boot-card);border:1px solid var(--boot-border);border-radius:4px"></div>
+            <div style="height:80px;background:var(--boot-card);border:1px solid var(--boot-border);border-radius:4px"></div>
+            <div style="height:80px;background:var(--boot-card);border:1px solid var(--boot-border);border-radius:4px"></div>
           </div>
         </main>
       </div>
