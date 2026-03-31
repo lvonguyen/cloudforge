@@ -259,6 +259,19 @@ Use this file as the shared climbing board for all security-graph work. Before s
     - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -count=1`
     - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestSyncSecurityGraphWithStore_|TestSyncSecurityGraphWithStoreAndDispatcher|TestSecgraphTicketDispatcher|TestSecgraphAutoTicketsEnabled|TestToComplianceFinding' -count=1`
 
+- `WG-C Follow-up: Issue assignment propagation` — completed 2026-03-30 (codex)
+  - Scope completed: carried finding assignment / ownership metadata through the `FINDINGS_SOURCE=postgres` path into secgraph sync, selected the best assignee candidate per materialized issue before dispatch, and kept existing issue/ticket assignees authoritative on rematerialization
+  - Output files:
+    - `migrations/008_findings_assignment_context.sql`
+    - `cmd/server/findings_postgres.go`
+    - `cmd/server/findings_postgres_test.go`
+    - `cmd/server/secgraph_sync.go`
+    - `cmd/server/secgraph_sync_test.go`
+  - Guardrail: explicit assignee IDs/emails still outrank ownership fallbacks, and any persisted issue/ticket assignee from the database still overrides freshly materialized candidates
+  - Verification:
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestPostgresFindingRow|TestSyncSecurityGraphWithStore_PicksBestIssueAssigneeFromFindingMetadata|TestSecgraphTicketDispatcher_PreservesExistingTicketState|TestSecgraphTicketDispatcher_CreatesTicketForUnticketedIssue|TestToComplianceFinding_ParsesOptionalFields' -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -run 'TestMaterializeFinding|TestMergeMaterializationResultsAggregatesSharedIssue' -count=1`
+
 - `WG-E Follow-up: Attack-path readability + theme controls` — completed 2026-03-31 (codex)
   - Scope completed: lighter/whiter analyst-friendly attack-path detail canvas, clearer node/icon presentation, and an explicit local canvas tone control layered on top of the existing app theme without changing backend graph contracts
   - Output files:
@@ -288,13 +301,7 @@ Use this file as the shared climbing board for all security-graph work. Before s
 
 ### In Flight
 
-- `WG-C Follow-up: Issue assignment propagation` — in flight 2026-03-30 (codex)
-  - Scope: carry finding assignment/ownership hints through the secgraph sync path so materialized issues can preserve explicit assignees and ownership-derived fallbacks before ticket dispatch
-  - Planned touchpoints:
-    - `cmd/server/types.go`
-    - `cmd/server/secgraph_sync.go`
-    - `cmd/server/secgraph_sync_test.go`
-  - Coordination: backend-only; does not change graph schema or graph UX contracts
+(none currently)
 
 ### Pending
 
