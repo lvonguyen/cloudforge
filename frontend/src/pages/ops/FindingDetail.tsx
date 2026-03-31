@@ -25,6 +25,8 @@ import { ToastStack } from '@/components/ui/ToastStack'
 import { FindingOverviewCards } from '@/components/ops/finding-detail/FindingOverviewCards'
 import { FindingComplianceList } from '@/components/ops/finding-detail/FindingComplianceList'
 import { FindingRemediationPlan } from '@/components/ops/finding-detail/FindingRemediationPlan'
+import { FindingAttackPathWorkspace } from '@/components/ops/finding-detail/FindingAttackPathWorkspace'
+import { FindingSecurityGraphWorkspace } from '@/components/ops/finding-detail/FindingSecurityGraphWorkspace'
 import { formatDate, formatWorkflowStatus } from '@/components/ops/finding-detail/helpers'
 
 interface FindingDetailProps {
@@ -47,6 +49,7 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
   const { toasts, toast, dismiss } = useToast()
   const [suppressed, setSuppressed] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
+  const [investigationView, setInvestigationView] = useState<'attack-path' | 'security-graph'>('attack-path')
   const [commentText, setCommentText] = useState('')
   const { data: comments = [] } = useComments(id ?? '')
   const addComment = useAddComment(id ?? '')
@@ -66,6 +69,23 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
       p.nodes.some(n => n.resource_id === finding.resource_id),
     )
   }, [attackPathsData, finding])
+  const investigationEnrichment = useMemo(() => {
+    if (!enrichment) return undefined
+    return {
+      root_cause: enrichment.root_cause,
+      impact: enrichment.impact,
+      remediation: enrichment.remediation,
+      related_controls: enrichment.related_controls,
+      threat_intel: enrichment.threat_intel,
+      enriched_at: enrichment.enriched_at,
+    }
+  }, [enrichment])
+
+  const openInvestigationView = (view: 'attack-path' | 'security-graph') => {
+    setActiveTab('investigation')
+    setInvestigationView(view)
+    if (!attackPathsRequested) setAttackPathsRequested(true)
+  }
 
   if (isLoading) {
     return (
@@ -139,12 +159,18 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
             )}
             {relatedPaths.length > 0 && (
               <button
-                onClick={() => navigate(`/ops/attack-paths?findingId=${finding.id}`)}
+                onClick={() => openInvestigationView('attack-path')}
                 className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 border rounded bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50"
               >
                 <Crosshair className="h-3 w-3" />{relatedPaths.length} Attack Path{relatedPaths.length > 1 ? 's' : ''}
               </button>
             )}
+            <button
+              onClick={() => openInvestigationView('security-graph')}
+              className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 border rounded bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800 hover:bg-sky-100 dark:hover:bg-sky-900/50"
+            >
+              <Clock className="h-3 w-3" />Security Graph View
+            </button>
           </div>
           <h1 className="text-xl font-semibold leading-snug">{finding.title}</h1>
           <p className="text-sm text-muted-foreground mt-1">{finding.description}</p>
@@ -459,8 +485,11 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
                     <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800">
                       Part of {relatedPaths.length} attack path{relatedPaths.length > 1 ? 's' : ''}
                     </Badge>
-                    <button onClick={() => navigate(`/ops/investigations?findingId=${finding.id}`)} className="text-[10px] text-blue-500 hover:text-blue-400 hover:underline">
-                      View on Investigation Board &rarr;
+                    <button
+                      onClick={() => openInvestigationView('attack-path')}
+                      className="text-[10px] text-blue-500 hover:text-blue-400 hover:underline"
+                    >
+                      Open in finding investigation &rarr;
                     </button>
                   </div>
                   <AttackPathMiniGraph paths={relatedPaths} resourceId={finding.resource_id} />
@@ -693,114 +722,40 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
 
         {/* ── Investigation Tab ── */}
         <TabsContent value="investigation" className="space-y-6 mt-4">
-          {/* Attack Path Visualization — Wiz-style finding-scoped graph */}
-          {relatedPaths.length > 0 && (
-            <AttackPathMiniGraph paths={relatedPaths} resourceId={finding.resource_id} />
-          )}
+          <Tabs value={investigationView} onValueChange={(value) => setInvestigationView(value as 'attack-path' | 'security-graph')}>
+            <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0">
+              <TabsTrigger value="attack-path" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs">
+                <Crosshair className="h-3 w-3" />Attack Path
+              </TabsTrigger>
+              <TabsTrigger value="security-graph" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs">
+                <Clock className="h-3 w-3" />Security Graph
+              </TabsTrigger>
+            </TabsList>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                <div className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" />Finding Lifecycle</div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-0">
-                {(() => {
-                  const events: { label: string; time: string; icon: typeof Clock; iconColor: string; dotColor: string; description: string; actor?: string }[] = [
-                    { label: 'First Detected', time: finding.first_found_at, icon: CircleDot, iconColor: 'text-blue-500', dotColor: 'bg-blue-500', description: `Detected by ${finding.source} scanner` },
-                    { label: 'Last Seen', time: finding.last_seen_at, icon: Search, iconColor: 'text-indigo-500', dotColor: 'bg-indigo-500', description: 'Latest scan confirmed finding still active' },
-                  ]
-                  // Synthetic events from workflow status
-                  if (finding.workflow_status !== 'new') {
-                    events.push({
-                      label: 'Triaged',
-                      time: finding.first_found_at, // approximate
-                      icon: CheckCircle2, iconColor: 'text-yellow-500', dotColor: 'bg-yellow-500',
-                      description: 'Finding triaged and severity confirmed',
-                    })
-                  }
-                  if (finding.assignee) {
-                    events.push({
-                      label: 'Assigned',
-                      time: finding.assignee.assigned_at,
-                      icon: UserCheck, iconColor: 'text-orange-500', dotColor: 'bg-orange-500',
-                      description: `Assigned to ${finding.assignee.team}`,
-                      actor: finding.assignee.user_name,
-                    })
-                  }
-                  if (finding.workflow_status === 'in_progress') {
-                    events.push({
-                      label: 'Remediation Started',
-                      time: finding.last_seen_at,
-                      icon: Wrench, iconColor: 'text-cyan-500', dotColor: 'bg-cyan-500',
-                      description: 'Active remediation in progress',
-                    })
-                  }
-                  if (finding.due_date) {
-                    events.push({
-                      label: 'SLA Due',
-                      time: finding.due_date,
-                      icon: Clock, iconColor: 'text-orange-500', dotColor: 'bg-orange-500',
-                      description: finding.sla_breach_date ? 'SLA breached — overdue' : 'Remediation deadline',
-                    })
-                  }
-                  if (finding.resolved_at) {
-                    events.push({
-                      label: 'Resolved',
-                      time: finding.resolved_at,
-                      icon: CheckCircle2, iconColor: 'text-green-500', dotColor: 'bg-green-500',
-                      description: 'Finding resolved and verified',
-                    })
-                  }
-                  if (finding.workflow_status === 'false_positive' || finding.workflow_status === 'risk_accepted') {
-                    events.push({
-                      label: finding.workflow_status === 'false_positive' ? 'Marked False Positive' : 'Risk Accepted',
-                      time: finding.last_seen_at,
-                      icon: XCircle, iconColor: 'text-gray-500', dotColor: 'bg-gray-500',
-                      description: finding.suppression_reason ?? 'Finding suppressed',
-                    })
-                  }
-                  // Sort by time
-                  events.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
-                  return events.map((event, i, arr) => {
-                    const Icon = event.icon
-                    return (
-                      <div key={event.label} className="flex gap-3 items-start">
-                        <div className="flex flex-col items-center">
-                          <div className={`h-6 w-6 rounded-full bg-muted flex items-center justify-center shrink-0 mt-0.5`}>
-                            <Icon className={`h-3 w-3 ${event.iconColor}`} />
-                          </div>
-                          {i < arr.length - 1 && <div className="w-px h-8 bg-border" />}
-                        </div>
-                        <div className="pb-4 flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs font-medium">{event.label}</p>
-                            {event.actor && (
-                              <span className="text-[10px] text-muted-foreground">by {event.actor}</span>
-                            )}
-                          </div>
-                          <p className="text-[10px] text-muted-foreground">{event.description}</p>
-                          <p className="text-[10px] text-muted-foreground/70 mt-0.5">{new Date(event.time).toLocaleString()}</p>
-                        </div>
-                      </div>
-                    )
-                  })
-                })()}
-              </div>
-              <Separator className="my-3" />
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Current Status</p>
-                  <p className="text-xs font-medium mt-0.5">{formatWorkflowStatus(finding.workflow_status)}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Source</p>
-                  <p className="text-xs font-medium mt-0.5">{finding.source} ({finding.source_finding_id})</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            <TabsContent value="attack-path" className="space-y-6 mt-4">
+              <FindingAttackPathWorkspace
+                finding={finding}
+                relatedPaths={relatedPaths}
+                attackPathsEnabled={attackPathsEnabled}
+                onLoadAttackPaths={() => setAttackPathsRequested(true)}
+                onOpenSecurityGraph={() => setInvestigationView('security-graph')}
+              />
+            </TabsContent>
+
+            <TabsContent value="security-graph" className="space-y-6 mt-4">
+              <FindingSecurityGraphWorkspace
+                finding={finding}
+                relatedPaths={relatedPaths}
+                enrichment={investigationEnrichment}
+                ticketLinked={Boolean(ticket)}
+                onOpenTimeline={() => openTimeline(`Timeline: ${finding.title}`, [])}
+                onOpenAttackPath={() => {
+                  if (!attackPathsRequested) setAttackPathsRequested(true)
+                  setInvestigationView('attack-path')
+                }}
+              />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         {/* ── Comments Tab ── */}

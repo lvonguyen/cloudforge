@@ -66,7 +66,7 @@ export function FindingSecurityGraphWorkspace({
           <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <GitBranch className="h-3.5 w-3.5" />
-              Security Graph
+              Security Graph Context
             </div>
           </CardTitle>
         </CardHeader>

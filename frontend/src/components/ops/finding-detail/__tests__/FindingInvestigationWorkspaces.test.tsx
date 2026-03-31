@@ -151,7 +151,7 @@ describe('Finding investigation workspaces', () => {
       />,
     )
 
-    expect(screen.getByText('Security Graph')).toBeInTheDocument()
+    expect(screen.getByText('Security Graph Context')).toBeInTheDocument()
     expect(screen.getByText('Timeline Context')).toBeInTheDocument()
     expect(screen.getByText('Attack path linked')).toBeInTheDocument()
     expect(screen.getByText('Graph Reasoning')).toBeInTheDocument()
