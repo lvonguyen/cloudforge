@@ -3,6 +3,8 @@ package main
 import (
 	"net/http"
 	"testing"
+
+	"aegis/internal/secgraph"
 )
 
 // paginatedPaths is a test helper for parsing paginated attack path responses.
@@ -44,6 +46,124 @@ func TestComputeAttackPaths_ProducesPaths(t *testing.T) {
 	}
 	if len(p.FindingIDs) < 2 {
 		t.Errorf("path should reference at least 2 findings, got %d", len(p.FindingIDs))
+	}
+}
+
+func TestComputeAttackPaths_UsesExplicitAdjacencyForMultiHopChain(t *testing.T) {
+	findings := []Finding{
+		{
+			ID:            "f-entry",
+			Title:         "Internet-exposed workload",
+			ResourceID:    "r-entry",
+			ResourceName:  "edge-workload",
+			ResourceType:  "compute",
+			CloudProvider: "aws",
+			AccountID:     "acct-1",
+			Region:        "us-east-1",
+			Severity:      "HIGH",
+			Category:      "NETWORK",
+		},
+		{
+			ID:            "f-mid-1",
+			Title:         "Role pivot",
+			ResourceID:    "r-mid-1",
+			ResourceName:  "pivot-role",
+			ResourceType:  "identity",
+			CloudProvider: "aws",
+			AccountID:     "acct-1",
+			Region:        "us-east-1",
+			Severity:      "HIGH",
+			Category:      "IDENTITY",
+		},
+		{
+			ID:            "f-mid-2",
+			Title:         "Internal relay",
+			ResourceID:    "r-mid-2",
+			ResourceName:  "relay-service",
+			ResourceType:  "container",
+			CloudProvider: "aws",
+			AccountID:     "acct-1",
+			Region:        "us-east-1",
+			Severity:      "MEDIUM",
+			Category:      "VULNERABILITY",
+		},
+		{
+			ID:            "f-target",
+			Title:         "Sensitive database",
+			ResourceID:    "r-target",
+			ResourceName:  "customer-db",
+			ResourceType:  "database",
+			CloudProvider: "aws",
+			AccountID:     "acct-1",
+			Region:        "us-east-1",
+			Severity:      "CRITICAL",
+			Category:      "DATA",
+		},
+	}
+
+	adjacency := secgraph.NewAdjacencySet()
+	adjacency.Add("r-entry", "r-mid-1", secgraph.EdgeSameRegion)
+	adjacency.Add("r-mid-1", "r-mid-2", secgraph.EdgeSameRegion)
+	adjacency.Add("r-mid-2", "r-target", secgraph.EdgeSameAccount)
+
+	paths, stats := computeAttackPaths(findings, adjacency)
+	if len(paths) == 0 {
+		t.Fatal("expected at least one attack path from explicit adjacency")
+	}
+	if stats.TotalPaths == 0 {
+		t.Fatal("expected attack path stats to record at least one path")
+	}
+
+	path := paths[0]
+	if path.HopCount != 3 {
+		t.Fatalf("hop count = %d, want 3", path.HopCount)
+	}
+	wantFindingIDs := []string{"f-entry", "f-mid-1", "f-mid-2", "f-target"}
+	for i, want := range wantFindingIDs {
+		if path.FindingIDs[i] != want {
+			t.Fatalf("finding_ids[%d] = %q, want %q", i, path.FindingIDs[i], want)
+		}
+	}
+	if got := path.Edges[0].EdgeType; got != string(secgraph.EdgeSameRegion) {
+		t.Fatalf("edge 0 type = %q, want %q", got, secgraph.EdgeSameRegion)
+	}
+	if got := path.Edges[2].EdgeType; got != string(secgraph.EdgeSameAccount) {
+		t.Fatalf("edge 2 type = %q, want %q", got, secgraph.EdgeSameAccount)
+	}
+}
+
+func TestComputeAttackPaths_FallsBackToHeuristicWhenAdjacencyMissing(t *testing.T) {
+	findings := []Finding{
+		{
+			ID:            "f-entry",
+			ResourceID:    "r-entry",
+			ResourceName:  "edge-workload",
+			ResourceType:  "compute",
+			CloudProvider: "aws",
+			AccountID:     "acct-1",
+			Region:        "us-east-1",
+			Severity:      "HIGH",
+			Category:      "NETWORK",
+		},
+		{
+			ID:            "f-target",
+			ResourceID:    "r-target",
+			ResourceName:  "customer-db",
+			ResourceType:  "database",
+			CloudProvider: "aws",
+			AccountID:     "acct-1",
+			Region:        "us-east-1",
+			Severity:      "CRITICAL",
+			Category:      "DATA",
+		},
+	}
+
+	paths, _ := computeAttackPaths(findings, nil)
+	if len(paths) != 1 {
+		t.Fatalf("path count = %d, want 1", len(paths))
+	}
+	if paths[0].HopCount != 1 {
+		t.Fatalf("hop count = %d, want 1", paths[0].HopCount)
 	}
 }
 

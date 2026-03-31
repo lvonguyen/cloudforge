@@ -318,9 +318,19 @@ Use this file as the shared climbing board for all security-graph work. Before s
 
 ### Pending
 
-- `WG-D Phase 3: Graph-native attack path traversal`
-  - Replace the remaining finding-level heuristic BFS with graph-native path computation over explicit edges / graph neighborhood data
-  - Likely touchpoints: `cmd/server/attackpath.go`, `cmd/server/handlers_attackpath.go`, `internal/secgraph/adjacency.go`, `docs/core/architecture/graph-native-attack-paths.md`
+- `WG-D Phase 3: Explicit-edge attack path traversal` — completed 2026-03-31 (codex)
+  - Scope completed: `computeAttackPaths` now uses bounded shortest-path BFS over findings whose resources are explicitly connected in `graph_edges` when adjacency is available, dedupes duplicate chains, preserves heuristic fallback when adjacency is absent, and surfaces explicit edge labels (`same_region`, `same_account`) in rendered paths
+  - Output files:
+    - `cmd/server/attackpath.go`
+    - `cmd/server/attackpath_test.go`
+    - `docs/core/architecture/graph-native-attack-paths.md`
+  - Verification:
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestComputeAttackPaths_|TestAttackPaths_' -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestGetAttackPath_|TestAttackPathStats' -count=1`
+
+- `WG-D Follow-up: Structured graph querier / Gremlin-backed attack path execution`
+  - Remaining gap: attack paths now use explicit edges, but execution is still in-memory Go BFS over findings rather than direct structured graph queries / Gremlin traversal over the graph backend
+  - Likely touchpoints: `cmd/server/attackpath.go`, `cmd/server/handlers_attackpath.go`, `internal/secgraph/queries.go`, `docs/core/architecture/graph-native-attack-paths.md`
 
 ### Current Architecture Facts (refreshed 2026-03-31, session 33)
 
@@ -342,12 +352,19 @@ Use this file as the shared climbing board for all security-graph work. Before s
 - SecurityGraph frontend page is backend-first via the neighborhood API and falls back to client-side derivation only when backend graph data is unavailable.
   - Evidence: `frontend/src/pages/ops/SecurityGraph.tsx`, `frontend/src/hooks/useGraphQuery.ts`
 
-- Attack paths are still heuristic-computed (computeAttackPaths in attackpath.go). Graph-native path queries are documented but not wired into the BFS engine yet.
-  - Evidence: `cmd/server/attackpath.go`, `docs/core/architecture/graph-native-attack-paths.md`
+- Attack paths now use explicit-edge BFS when graph adjacency is available and fall back to heuristic co-location only when adjacency is unavailable. Direct structured graph query / Gremlin execution is still a follow-up.
+  - Evidence: `cmd/server/attackpath.go`, `internal/secgraph/adjacency.go`, `docs/core/architecture/graph-native-attack-paths.md`
 
 ### Working Target (remaining)
 
-- Replace heuristic BFS with graph-native Gremlin traversals using explicit edges
+- Replace in-memory explicit-edge BFS with structured graph query / Gremlin execution over explicit edges when backend graph execution becomes the preferred path
+
+### GitHub CI Watch (refreshed 2026-03-31)
+
+- Last completed failed GitHub Actions `CI` run on `origin/main` was commit `757d046d0ed85ee5a32a3b1052bdf1e384f603b1` (run `23779386815`, 2026-03-31T03:43:18Z).
+  - `Lint` failed with 7 repo-wide issues across `internal/secgraph/materialize.go`, `cmd/server/handlers_attackpath.go`, `internal/secgraph/issue_queries.go`, `internal/secgraph/store.go`, `internal/secgraph/queries.go`, and `cmd/server/handlers_issues.go`.
+  - `Frontend Checks` failed in Playwright smoke on the viewer role switcher, waiting for stale label text `Demo Viewer — All Modules`.
+- Local verification on the current branch: `frontend/e2e/role-switcher.spec.ts` passes against `Viewer — Read-Only Ops`, so the prior Playwright failure is stale relative to the current role-switcher copy.
 
 ### Provisional Recommendation
 

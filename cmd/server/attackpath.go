@@ -111,6 +111,7 @@ func computeAttackPaths(findings []Finding, adj *secgraph.AdjacencySet) ([]Attac
 	var paths []AttackPath
 	pathID := 0
 	findingsInPaths := make(map[string]bool)
+	seenPaths := make(map[string]bool)
 
 	for accountID, accountFindings := range byAccount {
 		if len(accountFindings) < 2 {
@@ -132,14 +133,19 @@ func computeAttackPaths(findings []Finding, adj *secgraph.AdjacencySet) ([]Attac
 		// For each entry point, try to build a path to each target through intermediates
 		for _, entry := range entryPoints {
 			for _, target := range targets {
-				chain := buildChain(entry, intermediates, target, adj)
+				chain := buildChain(entry, accountFindings, intermediates, target, adj)
 				if chain == nil {
+					continue
+				}
+				fp := pathFingerprint(chain)
+				if seenPaths[fp] {
 					continue
 				}
 
 				pathID++
-				path := buildAttackPath(fmt.Sprintf("ap-%03d", pathID), accountID, chain)
+				path := buildAttackPath(fmt.Sprintf("ap-%03d", pathID), accountID, chain, adj)
 				paths = append(paths, path)
+				seenPaths[fp] = true
 
 				for _, n := range chain {
 					findingsInPaths[n.ID] = true
@@ -163,13 +169,19 @@ func computeAttackPaths(findings []Finding, adj *secgraph.AdjacencySet) ([]Attac
 				if findingsInPaths[f2.ID] {
 					continue
 				}
-				if canConnect(f1, f2, adj) {
+				chain := buildLateralChain(f1, accountFindings, f2, adj)
+				if chain != nil {
+					fp := pathFingerprint(chain)
+					if seenPaths[fp] {
+						continue
+					}
 					pathID++
-					chain := []Finding{f1, f2}
-					path := buildAttackPath(fmt.Sprintf("ap-%03d", pathID), accountID, chain)
+					path := buildAttackPath(fmt.Sprintf("ap-%03d", pathID), accountID, chain, adj)
 					paths = append(paths, path)
-					findingsInPaths[f1.ID] = true
-					findingsInPaths[f2.ID] = true
+					seenPaths[fp] = true
+					for _, n := range chain {
+						findingsInPaths[n.ID] = true
+					}
 				}
 			}
 		}
@@ -265,8 +277,27 @@ func canConnect(a, b Finding, adj *secgraph.AdjacencySet) bool {
 }
 
 // buildChain attempts to build a chain from entry through intermediates to target.
-// Returns nil if no viable chain exists.
-func buildChain(entry Finding, intermediates []Finding, target Finding, adj *secgraph.AdjacencySet) []Finding {
+// When adjacency is available, it uses an explicit-edge BFS over findings in the
+// account. Otherwise it falls back to the original direct/one-intermediate heuristic.
+func buildChain(entry Finding, accountFindings []Finding, intermediates []Finding, target Finding, adj *secgraph.AdjacencySet) []Finding {
+	if adj != nil {
+		return buildFindingChainBFS(entry, accountFindings, target, adj, 4)
+	}
+	return buildHeuristicChain(entry, intermediates, target, nil)
+}
+
+// buildLateralChain attempts to connect two high-severity findings.
+func buildLateralChain(from Finding, accountFindings []Finding, to Finding, adj *secgraph.AdjacencySet) []Finding {
+	if adj != nil {
+		return buildFindingChainBFS(from, accountFindings, to, adj, 4)
+	}
+	if canConnect(from, to, nil) {
+		return []Finding{from, to}
+	}
+	return nil
+}
+
+func buildHeuristicChain(entry Finding, intermediates []Finding, target Finding, adj *secgraph.AdjacencySet) []Finding {
 	if entry.AccountID != target.AccountID {
 		return nil
 	}
@@ -293,8 +324,98 @@ func buildChain(entry Finding, intermediates []Finding, target Finding, adj *sec
 	return nil
 }
 
+// buildFindingChainBFS returns the shortest simple path between two findings
+// using explicit resource adjacency. All nodes in the path are findings.
+func buildFindingChainBFS(start Finding, candidates []Finding, target Finding, adj *secgraph.AdjacencySet, maxHops int) []Finding {
+	if adj == nil {
+		return nil
+	}
+	if start.AccountID != target.AccountID || start.ID == target.ID {
+		return nil
+	}
+	if maxHops <= 0 {
+		maxHops = 4
+	}
+
+	queue := []string{start.ID}
+	visited := map[string]bool{start.ID: true}
+	depth := map[string]int{start.ID: 0}
+	parents := make(map[string]string)
+	byID := make(map[string]Finding, len(candidates))
+	for _, finding := range candidates {
+		byID[finding.ID] = finding
+	}
+	byID[start.ID] = start
+	byID[target.ID] = target
+
+	for len(queue) > 0 {
+		currentID := queue[0]
+		queue = queue[1:]
+		current := byID[currentID]
+		currentDepth := depth[currentID]
+		if currentDepth >= maxHops {
+			continue
+		}
+
+		for _, next := range candidates {
+			if next.ID == currentID || visited[next.ID] {
+				continue
+			}
+			if !canConnect(current, next, adj) {
+				continue
+			}
+
+			visited[next.ID] = true
+			parents[next.ID] = currentID
+			depth[next.ID] = currentDepth + 1
+
+			if next.ID == target.ID {
+				return reconstructFindingPath(start.ID, target.ID, parents, byID)
+			}
+
+			queue = append(queue, next.ID)
+		}
+	}
+
+	return nil
+}
+
+func reconstructFindingPath(startID, targetID string, parents map[string]string, byID map[string]Finding) []Finding {
+	var reversed []Finding
+	for currentID := targetID; currentID != ""; currentID = parents[currentID] {
+		finding, ok := byID[currentID]
+		if !ok {
+			return nil
+		}
+		reversed = append(reversed, finding)
+		if currentID == startID {
+			break
+		}
+	}
+	if len(reversed) == 0 || reversed[len(reversed)-1].ID != startID {
+		return nil
+	}
+
+	chain := make([]Finding, 0, len(reversed))
+	for i := len(reversed) - 1; i >= 0; i-- {
+		chain = append(chain, reversed[i])
+	}
+	return chain
+}
+
+func pathFingerprint(chain []Finding) string {
+	if len(chain) == 0 {
+		return ""
+	}
+	ids := make([]string, len(chain))
+	for i, finding := range chain {
+		ids[i] = finding.ID
+	}
+	return strings.Join(ids, "->")
+}
+
 // buildAttackPath constructs an AttackPath from a chain of findings.
-func buildAttackPath(id, accountID string, chain []Finding) AttackPath {
+func buildAttackPath(id, accountID string, chain []Finding, adj *secgraph.AdjacencySet) AttackPath {
 	nodes := make([]AttackPathNode, len(chain))
 	edges := make([]AttackPathEdge, 0, len(chain)-1)
 	findingIDs := make([]string, len(chain))
@@ -329,7 +450,7 @@ func buildAttackPath(id, accountID string, chain []Finding) AttackPath {
 		}
 
 		if i > 0 {
-			edgeType := inferEdgeType(chain[i-1], f) //nolint:gosec // bounds checked by i > 0
+			edgeType := inferEdgeType(chain[i-1], f, adj) //nolint:gosec // bounds checked by i > 0
 			edges = append(edges, AttackPathEdge{
 				ID:       fmt.Sprintf("%s-edge-%d", id, i-1),
 				Source:   fmt.Sprintf("%s-node-%d", id, i-1),
@@ -377,7 +498,12 @@ func buildAttackPath(id, accountID string, chain []Finding) AttackPath {
 }
 
 // inferEdgeType determines the relationship type between two adjacent findings.
-func inferEdgeType(from, to Finding) string {
+func inferEdgeType(from, to Finding, adj *secgraph.AdjacencySet) string {
+	if adj != nil {
+		if edgeType := adj.EdgeBetween(from.ResourceID, to.ResourceID); edgeType != "" {
+			return string(edgeType)
+		}
+	}
 	toRT := strings.ToLower(to.ResourceType)
 	fromCat := strings.ToUpper(from.Category)
 	toCat := strings.ToUpper(to.Category)
@@ -405,6 +531,10 @@ func edgeTypeLabel(edgeType string) string {
 		return "IAM trust"
 	case "lateral_movement":
 		return "lateral movement"
+	case "same_region":
+		return "same region"
+	case "same_account":
+		return "same account"
 	default:
 		return edgeType
 	}

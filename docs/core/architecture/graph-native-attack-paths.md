@@ -4,6 +4,14 @@ Reference for migrating `cmd/server/attackpath.go` heuristics to Gremlin travers
 over the Security Graph (ADR-020). Each section maps a current Go function to its
 graph-native equivalent.
 
+## Current Repo Status (2026-03-31)
+
+`computeAttackPaths` now uses bounded in-memory BFS over findings whose resources
+are explicitly connected in `graph_edges` whenever startup successfully loads
+adjacency. The old co-location heuristic remains only as a fallback when
+adjacency is unavailable. Direct structured graph query / Gremlin execution is
+still a future execution backend, not the current runtime path.
+
 ## Current Architecture (Heuristic BFS)
 
 ```
@@ -145,8 +153,8 @@ LIMIT 20
 
 | Phase | Engine | Edge Source | Notes |
 |-------|--------|------------|-------|
-| Current | Go BFS (`computeAttackPaths`) | Heuristic: `canConnect()` | No graph DB needed |
-| Phase 2 | Go BFS (updated) | `graph_edges` table lookup | Same algorithm, real edges |
+| Legacy | Go BFS (`computeAttackPaths`) | Heuristic: `canConnect()` | No graph DB needed |
+| Current | Go BFS (updated) | `graph_edges` table lookup | Same API shape, explicit edges, heuristic fallback only when adjacency missing |
 | Phase 4 | PuppyGraph Gremlin | `graph_edges` via JDBC | Native graph traversal |
 | Future | Neptune Gremlin | ETL from `graph_edges` | Production scale |
 
