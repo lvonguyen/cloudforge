@@ -26,6 +26,8 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - **D19 operator prep landed:** local docs/Makefile slice clarifies the full Fly/Postgres seed sequence, updates the runbook/checklist, and fixes `make migrate` so the preflight no longer flags a stale migration path
 - **D20 security-graph readability landed:** `a809c42f` moved the graph shell to a lighter analyst canvas and replaced the old scattered dark treatment with a more columnar left-to-right view
 - **D20 finding-detail shell landed:** `27774cf9` nests the attack-path and security-graph workspaces under finding detail so investigation stays in-context
+- **CHANGELOG catch-up landed:** `1aa11cd1` updates `CHANGELOG.md` for the recent D19/D20/D21/theme/readability slices
+- **Prod-safe status check (2026-03-31):** `GET /health` is healthy, but `GET /api/v1/providers` on `api.cloudforge-demo.lvonguyen.com` still returns the older shape and reports `grc=memory`, so the latest provider-readiness work is not live there yet
 
 ## Current State
 
@@ -58,7 +60,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - [ ] `D19` Seed findings into Fly Postgres
 - [ ] `D20` Wiz-parity polish: attack-path icons/indicators, crown-jewel cues, richer remediation/CVE context, final analyst-layout polish
 - [ ] `D21` Complete integration parity beyond Jira/Asana provider controls and webhook refresh
-- [ ] CHANGELOG catch-up (17+ sessions behind)
+- [x] CHANGELOG catch-up
 
 ### P2 — Backlog
 
@@ -87,6 +89,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
   - `6d38c8e1` landed backend webhook-driven ticket refresh
   - `6489f888` landed Jira comment readback parity for finding-linked tickets
   - `95ad7f80` landed operator visibility into active ticket providers / readiness via `/api/v1/providers`
+  - prod-safe check on 2026-03-31 shows the public API is still serving the older provider-status shape and `grc=memory`
   - highest-value remaining D21 slice is real env validation with 1Password-backed credentials during an explicit operator window, followed by any provider-specific gaps that show up in that exercise
 - `D19` progress snapshot:
   - `f0bf363f` landed the local preflight script for the Fly/Postgres seed path
