@@ -22,7 +22,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     ./cmd/server
 
 # Final stage - minimal runtime image
-FROM alpine:3.20
+FROM alpine:3.23
 
 # Security: Run as non-root user
 RUN addgroup -g 1000 aegis && \
