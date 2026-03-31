@@ -478,9 +478,10 @@ func evalStatusPriority(status EvalStatus) int {
 		return 2
 	case EvalPass:
 		return 1
-	default:
+	case EvalError:
 		return 0
 	}
+	return 0
 }
 
 func inferProvider(frameworkID string) string {
@@ -560,9 +561,10 @@ func deriveEvaluationStatus(finding *compliance.Finding) EvalStatus {
 		return EvalPass
 	case IssueSuppressed:
 		return EvalNotApplicable
-	default:
+	case IssueOpen, IssueAcknowledged, IssueInProgress:
 		return EvalFail
 	}
+	return EvalFail
 }
 
 func deriveIssueStatus(finding *compliance.Finding) IssueStatus {

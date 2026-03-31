@@ -60,38 +60,41 @@ func (q *PostgresQuerier) Neighborhood(ctx context.Context, nodeType NodeType, n
 	if hops <= 0 {
 		hops = 1
 	}
-	if hops > 3 {
-		hops = 3
+	const maxHops = 3
+	if hops > maxHops {
+		hops = maxHops
 	}
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}
 
 	// Recursive CTE: BFS from seed node through graph_edges up to N hops.
-	// Depth is excluded from the UNION key to prevent exponential row growth
-	// (a node discovered at depth=1 and depth=2 would be two distinct rows).
-	// CYCLE detection via USING prevents infinite loops in dense graphs.
+	// Depth tracks traversal distance and caps recursion at $3 (hops).
+	// UNION deduplicates (node_type, node_id) across depths so a node
+	// discovered at depth=1 is not re-expanded at depth=2.
 	rows, err := q.db.QueryContext(ctx, `
 		WITH RECURSIVE neighborhood AS (
-			-- Seed: the starting node
-			SELECT $1::text AS node_type, $2::text AS node_id
+			-- Seed: the starting node at depth 0
+			SELECT $1::text AS node_type, $2::text AS node_id, 0 AS depth
 			UNION
-			-- Expand: follow edges in both directions
+			-- Expand: follow edges in both directions, bounded by hops
 			SELECT
 				CASE WHEN e.source_type = n.node_type AND e.source_id = n.node_id
 				     THEN e.target_type ELSE e.source_type END,
 				CASE WHEN e.source_type = n.node_type AND e.source_id = n.node_id
-				     THEN e.target_id ELSE e.source_id END
+				     THEN e.target_id ELSE e.source_id END,
+				n.depth + 1
 			FROM neighborhood n
 			JOIN graph_edges e ON
 				(e.source_type = n.node_type AND e.source_id = n.node_id)
 				OR (e.target_type = n.node_type AND e.target_id = n.node_id)
+			WHERE n.depth < $3
 		),
 		distinct_nodes AS (
-			SELECT DISTINCT node_type, node_id FROM neighborhood LIMIT $3
+			SELECT DISTINCT node_type, node_id FROM neighborhood LIMIT $4
 		)
 		SELECT node_type, node_id FROM distinct_nodes`,
-		string(nodeType), nodeID, limit)
+		string(nodeType), nodeID, hops, limit)
 	if err != nil {
 		return nil, fmt.Errorf("neighborhood query: %w", err)
 	}
@@ -275,8 +278,9 @@ func BuildNeighborhoodGremlin(nodeType NodeType, nodeID string, hops int) string
 	if hops <= 0 {
 		hops = 1
 	}
-	if hops > 3 {
-		hops = 3
+	const maxGremlinHops = 3
+	if hops > maxGremlinHops {
+		hops = maxGremlinHops
 	}
 
 	var sb strings.Builder

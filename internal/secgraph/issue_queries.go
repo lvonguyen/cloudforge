@@ -180,7 +180,7 @@ func (q *PostgresQuerier) UpdateIssue(ctx context.Context, tenantID, id string, 
 		tenantID = "default"
 	}
 	args = append(args, id, tenantID)
-	query := fmt.Sprintf("UPDATE issues SET %s WHERE id = $%d AND tenant_id = $%d RETURNING id, title, description, severity, risk_score, blast_radius, status, COALESCE(control_id,''), COALESCE(resource_id,''), COALESCE(account_id,''), COALESCE(provider,''), COALESCE(assignee_id,''), COALESCE(ticket_id,''), COALESCE(ticket_url,''), sla_breach_at, exposure_paths, tenant_id, created_at, updated_at, resolved_at",
+	query := fmt.Sprintf("UPDATE issues SET %s WHERE id = $%d AND tenant_id = $%d RETURNING id, title, description, severity, risk_score, blast_radius, status, COALESCE(control_id,''), COALESCE(resource_id,''), COALESCE(account_id,''), COALESCE(provider,''), COALESCE(assignee_id,''), COALESCE(ticket_id,''), COALESCE(ticket_url,''), sla_breach_at, exposure_paths, tenant_id, created_at, updated_at, resolved_at", //nolint:gosec // G201: setClauses built from allowlisted field names, argN is an integer counter — no user input in SQL
 		strings.Join(setClauses, ", "), argN, argN+1)
 
 	var iss Issue

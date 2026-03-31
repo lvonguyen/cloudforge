@@ -4,7 +4,7 @@ test.describe('Role switcher', () => {
   /** Open the role dropdown in the top nav and select a role by label. */
   async function switchToRole(page: import('@playwright/test').Page, dropdownLabel: string) {
     // The RoleSwitcher trigger shows current role text + chevron
-    const trigger = page.locator('button').filter({ hasText: /Admin|Operator|Requester|Demo Viewer/ }).first()
+    const trigger = page.locator('button').filter({ hasText: /Admin|Operator|Requester|Viewer/ }).first()
     await trigger.click()
 
     // Wait for dropdown content
@@ -44,7 +44,7 @@ test.describe('Role switcher', () => {
 
   test('switch to Viewer — redirects to /ops/findings', async ({ page }) => {
     await page.goto('/')
-    await switchToRole(page, 'Demo Viewer — All Modules')
+    await switchToRole(page, 'Viewer — Read-Only Ops')
     await expect(page).toHaveURL(/\/ops\/findings/)
   })
 })

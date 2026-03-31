@@ -255,6 +255,7 @@ func (s *Store) ListIssues(ctx context.Context, filter IssueListFilter, page, pe
 	limitArg := len(args) - 1
 	offsetArg := len(args)
 
+	//nolint:gosec // G202: whereSQL built from allowlisted filter fields with parameterized args
 	listQuery := `
 		SELECT
 			i.id, i.title, i.description, i.severity, i.risk_score, i.blast_radius, i.status,

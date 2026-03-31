@@ -41,11 +41,11 @@ func (s *Server) handleListIssues(w http.ResponseWriter, r *http.Request) {
 		Page:       parseQueryInt(r, "page", 1),
 		PerPage:    parseQueryInt(r, "per_page", 25),
 	}
-	if hasTicket, ok := parseIssueTicketedQuery(w, r); !ok {
+	hasTicket, ok := parseIssueTicketedQuery(w, r)
+	if !ok {
 		return
-	} else {
-		params.HasTicket = hasTicket
 	}
+	params.HasTicket = hasTicket
 	if claims, ok := api.GetClaimsFromContext(r.Context()); ok && claims != nil {
 		if scope := api.ScopeFromContext(claims); scope != nil {
 			params.ScopeAccountIDs = append([]string(nil), scope.AccountIDs...)

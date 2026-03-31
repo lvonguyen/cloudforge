@@ -60,7 +60,7 @@ func (s *Server) ingestFinding(w http.ResponseWriter, r *http.Request) {
 
 	// Validate enum fields
 	switch req.Severity {
-	case "CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO":
+	case "CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO": //nolint:goconst // severity literals are domain values used across the package
 		// valid
 	default:
 		writeErrorResponse(w, "severity must be one of: CRITICAL, HIGH, MEDIUM, LOW, INFO", http.StatusBadRequest)

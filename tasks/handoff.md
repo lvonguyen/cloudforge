@@ -312,12 +312,6 @@ Use this file as the shared climbing board for all security-graph work. Before s
     - `cmd/server/attackpath.go` (canConnect, buildChain, computeAttackPaths signatures updated)
     - `cmd/server/main.go` (LoadAdjacencyFromDB wired before computeAttackPaths)
 
-### In Flight
-
-(none currently)
-
-### Pending
-
 - `WG-D Phase 3: Explicit-edge attack path traversal` — completed 2026-03-31 (codex)
   - Scope completed: `computeAttackPaths` now uses bounded shortest-path BFS over findings whose resources are explicitly connected in `graph_edges` when adjacency is available, dedupes duplicate chains, preserves heuristic fallback when adjacency is absent, and surfaces explicit edge labels (`same_region`, `same_account`) in rendered paths
   - Output files:
@@ -327,6 +321,12 @@ Use this file as the shared climbing board for all security-graph work. Before s
   - Verification:
     - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestComputeAttackPaths_|TestAttackPaths_' -count=1`
     - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestGetAttackPath_|TestAttackPathStats' -count=1`
+
+### In Flight
+
+(none currently)
+
+### Pending
 
 - `WG-D Follow-up: Structured graph querier / Gremlin-backed attack path execution`
   - Remaining gap: attack paths now use explicit edges, but execution is still in-memory Go BFS over findings rather than direct structured graph queries / Gremlin traversal over the graph backend
@@ -365,6 +365,14 @@ Use this file as the shared climbing board for all security-graph work. Before s
   - `Lint` failed again with the repo-wide lint backlog (same buckets as the prior run: `exhaustive`, `goconst`, `gosec`, `ineffassign`, `revive`; see `internal/secgraph/materialize.go`, `cmd/server/handlers_attackpath.go`, `internal/secgraph/issue_queries.go`, `internal/secgraph/store.go`, `internal/secgraph/queries.go`, and `cmd/server/handlers_issues.go`).
   - `Frontend Checks` failed in Playwright smoke on the viewer role switcher, timing out while waiting for stale label text `Demo Viewer — All Modules`.
 - Local verification against the current worktree: `npx playwright test e2e/role-switcher.spec.ts --reporter=line` passes against `Viewer — Read-Only Ops`, so the current remote Playwright failure is stale relative to the in-flight role-switcher spec update.
+- Current local remediation diff for that CI failure is limited to:
+  - `frontend/e2e/role-switcher.spec.ts`
+  - `cmd/server/handlers_attackpath.go`
+  - `cmd/server/handlers_issues.go`
+  - `internal/secgraph/issue_queries.go`
+  - `internal/secgraph/materialize.go`
+  - `internal/secgraph/queries.go`
+  - `internal/secgraph/store.go`
 
 ### Provisional Recommendation
 
