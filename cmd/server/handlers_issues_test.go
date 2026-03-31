@@ -52,14 +52,6 @@ func (s *stubIssueQuerier) IssueStats(_ context.Context) (*secgraph.IssueStats, 
 	return &secgraph.IssueStats{}, nil
 }
 
-func (s *stubIssueQuerier) Neighborhood(_ context.Context, _ secgraph.NodeType, _ string, _ int, _ int) (*secgraph.GraphQueryResult, error) {
-	return &secgraph.GraphQueryResult{}, nil
-}
-
-func (s *stubIssueQuerier) Stats(_ context.Context) (*secgraph.GraphStats, error) {
-	return &secgraph.GraphStats{Vertices: map[string]int64{}, Edges: map[string]int64{}}, nil
-}
-
 func TestIssuesEndpointsRequireAuth(t *testing.T) {
 	_, router := testServer(t)
 
