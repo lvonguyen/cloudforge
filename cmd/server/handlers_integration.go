@@ -42,6 +42,26 @@ type IntegrationHandler struct {
 	asanaWebhookToken  string // pre-shared token from ASANA_WEBHOOK_TOKEN for handshake auth
 }
 
+type cachedTicketRef struct {
+	tenantID  string
+	findingID string
+	ticket    *integrations.Ticket
+}
+
+type asanaWebhookPayload struct {
+	Events []struct {
+		Action   string `json:"action"`
+		Resource struct {
+			GID          string `json:"gid"`
+			ResourceType string `json:"resource_type"`
+		} `json:"resource"`
+		Parent *struct {
+			GID          string `json:"gid"`
+			ResourceType string `json:"resource_type"`
+		} `json:"parent,omitempty"`
+	} `json:"events"`
+}
+
 // selectProvider returns the named provider or the default.
 func (h *IntegrationHandler) selectProvider(name string) integrations.TicketProvider {
 	if name != "" && h.providers != nil {
@@ -56,6 +76,15 @@ func (h *IntegrationHandler) selectProvider(name string) integrations.TicketProv
 func (h *IntegrationHandler) providerForFinding(ctx context.Context, tenantID, findingID string) integrations.TicketProvider {
 	if ticket, ok := h.loadTicket(ctx, tenantID, findingID); ok && h.providers != nil {
 		if p, exists := h.providers[ticket.Provider]; exists {
+			return p
+		}
+	}
+	return h.provider
+}
+
+func (h *IntegrationHandler) providerForTicket(ticket *integrations.Ticket) integrations.TicketProvider {
+	if ticket != nil && h.providers != nil {
+		if p, ok := h.providers[ticket.Provider]; ok {
 			return p
 		}
 	}
@@ -130,6 +159,138 @@ func (h *IntegrationHandler) loadTicket(ctx context.Context, tenantID, findingID
 
 func ticketCacheKey(tenantID, findingID string) string {
 	return normalizeTicketTenantID(tenantID) + ":" + strings.TrimSpace(findingID)
+}
+
+func splitTicketCacheKey(key string) (tenantID, findingID string) {
+	parts := strings.SplitN(key, ":", 2)
+	if len(parts) != 2 {
+		return normalizeTicketTenantID(""), strings.TrimSpace(key)
+	}
+	return normalizeTicketTenantID(parts[0]), strings.TrimSpace(parts[1])
+}
+
+func (h *IntegrationHandler) refreshTicketFromProvider(ctx context.Context, tenantID, findingID string, ticket *integrations.Ticket) (*integrations.Ticket, error) {
+	if h == nil || ticket == nil {
+		return ticket, nil
+	}
+	prov := h.providerForTicket(ticket)
+	if prov == nil || strings.TrimSpace(ticket.ExternalID) == "" {
+		return ticket, nil
+	}
+
+	refreshed, err := prov.GetTicket(ctx, ticket.ExternalID)
+	if err != nil {
+		return nil, err
+	}
+	if refreshed == nil {
+		return nil, fmt.Errorf("provider %q returned nil ticket for %s", ticket.Provider, ticket.ExternalID)
+	}
+
+	if refreshed.ID == "" {
+		refreshed.ID = ticket.ID
+		if refreshed.ID == "" {
+			refreshed.ID = ticket.ExternalID
+		}
+	}
+	if refreshed.ExternalID == "" {
+		refreshed.ExternalID = ticket.ExternalID
+	}
+	if refreshed.Provider == "" {
+		refreshed.Provider = ticket.Provider
+	}
+	if refreshed.FindingID == "" {
+		refreshed.FindingID = findingID
+	}
+	if refreshed.Title == "" {
+		refreshed.Title = ticket.Title
+	}
+	if refreshed.Priority == "" {
+		refreshed.Priority = ticket.Priority
+	}
+	if refreshed.Assignee == "" {
+		refreshed.Assignee = ticket.Assignee
+	}
+	if refreshed.URL == "" {
+		refreshed.URL = ticket.URL
+	}
+	if refreshed.CreatedAt.IsZero() {
+		refreshed.CreatedAt = ticket.CreatedAt
+	}
+	if refreshed.UpdatedAt.IsZero() {
+		refreshed.UpdatedAt = ticket.UpdatedAt
+	}
+	if len(refreshed.Metadata) == 0 && len(ticket.Metadata) != 0 {
+		refreshed.Metadata = ticket.Metadata
+	}
+
+	h.storeTicket(ctx, tenantID, findingID, refreshed)
+	return refreshed, nil
+}
+
+func (h *IntegrationHandler) matchingCachedTickets(providerName, externalID string) []cachedTicketRef {
+	if h == nil || providerName == "" || externalID == "" {
+		return nil
+	}
+
+	h.ticketMu.RLock()
+	defer h.ticketMu.RUnlock()
+
+	matches := make([]cachedTicketRef, 0)
+	for key, ticket := range h.ticketStore {
+		if ticket == nil || !strings.EqualFold(ticket.Provider, providerName) || ticket.ExternalID != externalID {
+			continue
+		}
+		tenantID, findingID := splitTicketCacheKey(key)
+		matches = append(matches, cachedTicketRef{
+			tenantID:  tenantID,
+			findingID: findingID,
+			ticket:    ticket,
+		})
+	}
+	return matches
+}
+
+func (h *IntegrationHandler) refreshCachedTicketsByExternalID(ctx context.Context, providerName, externalID string) int {
+	matches := h.matchingCachedTickets(providerName, externalID)
+	refreshed := 0
+	for _, match := range matches {
+		if _, err := h.refreshTicketFromProvider(ctx, match.tenantID, match.findingID, match.ticket); err != nil {
+			if h.logger != nil {
+				h.logger.Warn("refreshing cached ticket from webhook failed",
+					zap.String("provider", providerName),
+					zap.String("tenant_id", match.tenantID),
+					zap.String("finding_id", match.findingID),
+					zap.String("external_id", externalID),
+					zap.Error(err),
+				)
+			}
+			continue
+		}
+		refreshed++
+	}
+	return refreshed
+}
+
+func asanaTaskGIDs(payload asanaWebhookPayload) []string {
+	seen := make(map[string]struct{})
+	gids := make([]string, 0, len(payload.Events))
+	add := func(resourceType, gid string) {
+		if !strings.EqualFold(resourceType, "task") || strings.TrimSpace(gid) == "" {
+			return
+		}
+		if _, ok := seen[gid]; ok {
+			return
+		}
+		seen[gid] = struct{}{}
+		gids = append(gids, gid)
+	}
+	for _, event := range payload.Events {
+		add(event.Resource.ResourceType, event.Resource.GID)
+		if event.Parent != nil {
+			add(event.Parent.ResourceType, event.Parent.GID)
+		}
+	}
+	return gids
 }
 
 // RemediateFinding creates a ticket and starts a remediation workflow.
@@ -258,8 +419,20 @@ func (h *IntegrationHandler) GetFindingTicket(w http.ResponseWriter, r *http.Req
 
 	// Look up from the durable store / cache first.
 	if ticket, ok := h.loadTicket(ctx, tenantID, findingID); ok {
+		refreshed := ticket
+		if latest, err := h.refreshTicketFromProvider(ctx, tenantID, findingID, ticket); err != nil {
+			h.logger.Warn("refreshing finding ticket failed",
+				zap.String("tenant_id", normalizeTicketTenantID(tenantID)),
+				zap.String("finding_id", findingID),
+				zap.String("provider", ticket.Provider),
+				zap.String("external_id", ticket.ExternalID),
+				zap.Error(err),
+			)
+		} else if latest != nil {
+			refreshed = latest
+		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(ticket)
+		_ = json.NewEncoder(w).Encode(refreshed)
 		return
 	}
 
@@ -469,7 +642,21 @@ func (h *IntegrationHandler) AsanaWebhook(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	h.logger.Info("asana webhook event received")
+	var payload asanaWebhookPayload
+	if err := json.Unmarshal(body, &payload); err != nil {
+		http.Error(w, "invalid webhook payload", http.StatusBadRequest)
+		return
+	}
+
+	refreshed := 0
+	for _, gid := range asanaTaskGIDs(payload) {
+		refreshed += h.refreshCachedTicketsByExternalID(r.Context(), "asana", gid)
+	}
+
+	h.logger.Info("asana webhook event received",
+		zap.Int("events", len(payload.Events)),
+		zap.Int("tickets_refreshed", refreshed),
+	)
 	w.WriteHeader(http.StatusOK)
 }
 

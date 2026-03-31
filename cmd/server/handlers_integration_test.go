@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"aegis/internal/integrations"
 )
@@ -17,6 +18,56 @@ import (
 type stubFindingTicketStore struct {
 	mu      sync.RWMutex
 	tickets map[string]*integrations.Ticket
+}
+
+type stubTicketProvider struct {
+	name    string
+	tickets map[string]*integrations.Ticket
+}
+
+func (p *stubTicketProvider) Name() string { return p.name }
+
+func (p *stubTicketProvider) CreateTicket(_ context.Context, req integrations.CreateTicketRequest) (*integrations.Ticket, error) {
+	now := time.Now().UTC()
+	return &integrations.Ticket{
+		ID:         req.FindingID,
+		ExternalID: req.FindingID,
+		Provider:   p.name,
+		FindingID:  req.FindingID,
+		Title:      req.Title,
+		Status:     integrations.TicketStatusOpen,
+		Priority:   req.Priority,
+		Assignee:   req.Assignee,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}, nil
+}
+
+func (p *stubTicketProvider) GetTicket(_ context.Context, externalID string) (*integrations.Ticket, error) {
+	ticket, ok := p.tickets[externalID]
+	if !ok {
+		return nil, http.ErrMissingFile
+	}
+	copy := *ticket
+	return &copy, nil
+}
+
+func (p *stubTicketProvider) AddComment(_ context.Context, externalID, body string) (*integrations.CommentSync, error) {
+	return &integrations.CommentSync{
+		ID:         "comment-" + externalID,
+		ExternalID: "comment-" + externalID,
+		Body:       body,
+		Author:     "stub",
+		CreatedAt:  time.Now().UTC(),
+	}, nil
+}
+
+func (p *stubTicketProvider) SyncStatus(_ context.Context, externalID string) (integrations.TicketStatus, error) {
+	ticket, ok := p.tickets[externalID]
+	if !ok {
+		return "", http.ErrMissingFile
+	}
+	return ticket.Status, nil
 }
 
 func (s *stubFindingTicketStore) GetTicket(_ context.Context, tenantID, findingID string) (*integrations.Ticket, error) {
@@ -181,6 +232,72 @@ func TestSyncTicketStatus_PersistsDurableStore(t *testing.T) {
 	}
 }
 
+func TestGetFindingTicket_RefreshesFromProviderAndDurableStore(t *testing.T) {
+	srv, router := testServer(t)
+	jwt := operatorJWT(t)
+	repo := &stubFindingTicketStore{
+		tickets: map[string]*integrations.Ticket{
+			"default:f-refresh": {
+				ID:         "JIRA-77",
+				ExternalID: "JIRA-77",
+				Provider:   "jira",
+				FindingID:  "f-refresh",
+				Title:      "Persisted remediation ticket",
+				Status:     integrations.TicketStatusOpen,
+				Priority:   integrations.PriorityHigh,
+				Assignee:   "alice",
+				URL:        "https://jira.local/browse/JIRA-77",
+				CreatedAt:  time.Now().Add(-2 * time.Hour).UTC(),
+				UpdatedAt:  time.Now().Add(-2 * time.Hour).UTC(),
+			},
+		},
+	}
+	jiraProvider := &stubTicketProvider{
+		name: "jira",
+		tickets: map[string]*integrations.Ticket{
+			"JIRA-77": {
+				ID:         "JIRA-77",
+				ExternalID: "JIRA-77",
+				Provider:   "jira",
+				Title:      "Persisted remediation ticket",
+				Status:     integrations.TicketStatusResolved,
+				Priority:   integrations.PriorityHigh,
+				Assignee:   "bob",
+				URL:        "https://jira.local/browse/JIRA-77",
+				CreatedAt:  time.Now().Add(-2 * time.Hour).UTC(),
+				UpdatedAt:  time.Now().UTC(),
+			},
+		},
+	}
+
+	srv.integrationHandler.ticketRepo = repo
+	srv.integrationHandler.provider = jiraProvider
+	srv.integrationHandler.providers = map[string]integrations.TicketProvider{"jira": jiraProvider}
+
+	rr := doRequest(t, router, "GET", "/api/v1/findings/f-refresh/ticket", "", jwt)
+	assertStatus(t, rr, http.StatusOK)
+
+	var ticket integrations.Ticket
+	assertJSON(t, rr, &ticket)
+	if ticket.Status != integrations.TicketStatusResolved {
+		t.Fatalf("status = %q, want %q", ticket.Status, integrations.TicketStatusResolved)
+	}
+	if ticket.Assignee != "bob" {
+		t.Fatalf("assignee = %q, want bob", ticket.Assignee)
+	}
+
+	stored, err := repo.GetTicket(context.Background(), defaultSecgraphTenantID, "f-refresh")
+	if err != nil {
+		t.Fatalf("repo.GetTicket: %v", err)
+	}
+	if stored == nil {
+		t.Fatal("expected refreshed ticket in durable store")
+	}
+	if stored.Status != integrations.TicketStatusResolved {
+		t.Fatalf("stored status = %q, want %q", stored.Status, integrations.TicketStatusResolved)
+	}
+}
+
 func TestAsanaWebhook_Handshake(t *testing.T) {
 	_, router := testServer(t)
 
@@ -216,6 +333,73 @@ func TestAsanaWebhook_EventDelivery(t *testing.T) {
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 	assertStatus(t, rr, http.StatusOK)
+}
+
+func TestAsanaWebhook_EventDelivery_RefreshesMatchingCachedTicket(t *testing.T) {
+	srv, router := testServer(t)
+	repo := &stubFindingTicketStore{}
+	asanaProvider := &stubTicketProvider{
+		name: "asana",
+		tickets: map[string]*integrations.Ticket{
+			"12001": {
+				ID:         "12001",
+				ExternalID: "12001",
+				Provider:   "asana",
+				Title:      "Cloud Aegis ticket",
+				Status:     integrations.TicketStatusResolved,
+				Priority:   integrations.PriorityHigh,
+				Assignee:   "automation-bot",
+				URL:        "https://app.asana.com/0/1/12001",
+				CreatedAt:  time.Now().Add(-time.Hour).UTC(),
+				UpdatedAt:  time.Now().UTC(),
+			},
+		},
+	}
+	srv.integrationHandler.provider = asanaProvider
+	srv.integrationHandler.providers = map[string]integrations.TicketProvider{"asana": asanaProvider}
+	srv.integrationHandler.ticketRepo = repo
+	srv.integrationHandler.storeTicket(context.Background(), defaultSecgraphTenantID, "f-asana", &integrations.Ticket{
+		ID:         "12001",
+		ExternalID: "12001",
+		Provider:   "asana",
+		FindingID:  "f-asana",
+		Title:      "Cloud Aegis ticket",
+		Status:     integrations.TicketStatusOpen,
+		Priority:   integrations.PriorityHigh,
+		URL:        "https://app.asana.com/0/1/12001",
+		CreatedAt:  time.Now().Add(-time.Hour).UTC(),
+		UpdatedAt:  time.Now().Add(-time.Hour).UTC(),
+	})
+
+	hsReq, _ := http.NewRequest("POST", "/api/v1/webhooks/asana", nil)
+	hsReq.Header.Set("X-Hook-Secret", "test-secret-123")
+	hsRR := httptest.NewRecorder()
+	router.ServeHTTP(hsRR, hsReq)
+	assertStatus(t, hsRR, http.StatusOK)
+
+	body := `{"events":[{"action":"changed","resource":{"gid":"story-1","resource_type":"story"},"parent":{"gid":"12001","resource_type":"task"}}]}`
+	sig := computeAsanaHMAC("test-secret-123", body)
+	req, _ := http.NewRequest("POST", "/api/v1/webhooks/asana", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Hook-Signature", sig)
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+	assertStatus(t, rr, http.StatusOK)
+
+	stored, err := repo.GetTicket(context.Background(), defaultSecgraphTenantID, "f-asana")
+	if err != nil {
+		t.Fatalf("repo.GetTicket: %v", err)
+	}
+	if stored == nil {
+		t.Fatal("expected refreshed ticket in durable store")
+	}
+	if stored.Status != integrations.TicketStatusResolved {
+		t.Fatalf("stored status = %q, want %q", stored.Status, integrations.TicketStatusResolved)
+	}
+	if stored.Assignee != "automation-bot" {
+		t.Fatalf("stored assignee = %q, want automation-bot", stored.Assignee)
+	}
 }
 
 func TestAsanaWebhook_EventDelivery_NoSignature(t *testing.T) {
