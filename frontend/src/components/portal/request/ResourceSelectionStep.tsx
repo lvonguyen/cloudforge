@@ -7,7 +7,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { REGIONS, RequestCatalogItem, SERVICE_MODELS } from './request-shared'
+import { REGIONS, SERVICE_MODELS } from './request-shared'
+import type { RequestCatalogItem } from './request-shared'
 
 export function ResourceSelectionStep({
   selectedId,
