@@ -237,3 +237,49 @@ Bare string literals (`"aegis-api"`, `"enrichment"`, `"ai_enrich"`,
 second OPA gate is added (DRY).
 
 **Effort:** ~15 minutes Go
+
+---
+
+## D18: Global Light/Dark/Auto Theme System
+
+**Context:** Attack Paths page has a local canvas tone toggle (Auto/Light/Dark) from the WG-E readability work. This should be promoted to a global app-level theme system.
+
+**Scope:**
+- Promote the local attack-path tone control to a global setting in AppShell/TopNav
+- Wire Tailwind CSS `dark:` variants consistently across all pages (currently dark-only)
+- Persist preference in localStorage, respect `prefers-color-scheme` for Auto mode
+- Ensure all ops pages (Command Center, Findings, Compliance, Investigations, Spend) render correctly in light mode — charts, badges, cards, table rows
+- Update severity badge colors for light mode contrast (dark bg badges on white surface)
+- Sidebar: light variant with proper border/hover states
+- Graph views (Investigation Board, Attack Paths): canvas background must respect theme
+
+**Pages requiring light-mode audit:**
+- `/ops` (Command Center) — charts, attack path cards, data layers panel
+- `/ops/findings` — table rows, severity badges, detail panel
+- `/ops/compliance` — framework health rings, score colors
+- `/ops/investigations` — ReactFlow canvas, node colors, edge labels
+- `/ops/attack-paths` — already has local toggle, promote to global
+- `/admin/*` — tables, status badges, cards
+- `/portal/*` — request wizard, dashboard cards
+
+**Why deferred:** Dark mode is the primary ops persona. Light mode is a "nice to have" for presentations and screen sharing. The local toggle on Attack Paths proves the pattern works — promotion is mechanical but touches every page.
+
+**Effort:** ~2-3 days frontend (audit + Tailwind variant pass + component updates)
+
+---
+
+## D19: Seed 300K Findings to Fly Postgres
+
+**Context:** Fly Postgres addon is now configured. The 300K seed pipeline exists (`scripts/aegis-seed.mjs` + `scripts/seed-postgres.mjs`) but hasn't been run against Fly's database.
+
+**Steps:**
+1. Get Fly Postgres connection string: `fly postgres connect -a cloudforge-db`
+2. Run migrations 001-008: `fly ssh console -C "cd /app && for f in migrations/*.sql; do psql $DATABASE_URL -f $f; done"`
+3. Generate seed data locally: `node scripts/aegis-seed.mjs --full` (produces ~594MB JSON)
+4. Stream to Fly Postgres: `DATABASE_URL=<fly-pg-url> node scripts/seed-postgres.mjs`
+5. Set `FINDINGS_SOURCE=postgres` on Fly app: `fly secrets set FINDINGS_SOURCE=postgres`
+6. Verify: `curl https://cloudforge-api.fly.dev/api/v1/findings?per_page=1` should return 300K total
+
+**Why deferred:** Pipeline works locally (verified session 29). Fly Postgres may need sizing check for 300K rows + graph_edges backfill.
+
+**Effort:** ~1 hour ops
