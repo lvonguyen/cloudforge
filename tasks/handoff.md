@@ -29,6 +29,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - **CHANGELOG catch-up landed:** `1aa11cd1` updates `CHANGELOG.md` for the recent D19/D20/D21/theme/readability slices
 - **Prod-safe status check (2026-03-31):** `GET /health` is healthy, but `GET /api/v1/providers` on `api.cloudforge-demo.lvonguyen.com` still returns the older shape and reports `grc=memory`, so the latest provider-readiness work is not live there yet
 - **Fly runtime probe (2026-03-31):** `fly status -a cloudforge-api` shows app version `63` healthy, but `fly secrets list -a cloudforge-api` only shows JWT/JWKS/CORS secrets. `AEGIS_DATABASE_URL`, `FINDINGS_SOURCE`, `ASANA_PAT`, `JIRA_URL`, and related D19/D21 runtime config are not deployed there yet
+- **Fly Postgres probe (2026-03-31):** `fly postgres list` and `fly mpg list -o personal` both return no clusters. D19 currently lacks a target Fly Postgres instance entirely
 - **D21 read-only credential validation (2026-03-31):** 1Password-backed probes succeeded against Jira project `CVRT` and Asana project `Cloud Vulnerability Remediation Tracking`, so provider auth/connectivity is confirmed without creating tickets
 
 ## Current State
@@ -39,6 +40,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - **Fly.io:** v59 healthy (sjc)
 - **Prod read-only probe (2026-03-31 05:51Z):** `https://api.cloudforge-demo.lvonguyen.com/health` is healthy, but `/api/v1/providers` still returns the older schema without the new `integrations` block, so `95ad7f80` is not visible on the public demo API yet
 - **Fly secrets probe (2026-03-31 05:53Z):** live `cloudforge-api` currently has only `AEGIS_JWT_SECRET`, `AEGIS_JWKS_URL`, `CLOUDFORGE_JWKS_URL`, and `CORS_ALLOWED_ORIGINS` deployed
+- **Fly Postgres probe (2026-03-31 05:56Z):** no unmanaged or managed Fly Postgres clusters exist in org `personal`
 - **Integration auth probe (2026-03-31 05:57Z):** Jira project `CVRT` and the Asana remediation project both responded successfully with 1Password-backed credentials; live mutation-path testing is the remaining D21 step
 - **Uncommitted:** `frontend/src/pages/ops/AttackPaths.tsx` (other session / in-flight D20 visual work) and `frontend/src/pages/__tests__/FindingDetail.investigation.test.tsx` (other session / in-flight finding-detail work)
 - **Stash:** `stash@{0}` — mixed D10/D20 WIP. Has 4 TS errors. Do NOT pop blindly. Recover one file at a time, verify tsc after each.
@@ -101,7 +103,8 @@ Session 34 — CI repair, documentation refresh, diagram polish:
   - `f0bf363f` landed the local preflight script for the Fly/Postgres seed path
   - local follow-up docs/Makefile slice aligns the runbook with the real `aegis-seed` -> `seed-postgres` -> `seed-resources` -> secgraph-backfill flow
   - live Fly runtime does not yet have `AEGIS_DATABASE_URL` or `FINDINGS_SOURCE` deployed
-  - remaining D19 blockers are operator-only: Fly secrets/env cutover, live Postgres load, and startup headroom validation on the current Fly machine/grace-period budget
+  - there is currently no Fly Postgres cluster in org `personal`, so D19 is blocked on database provisioning before any seed/cutover work
+  - after provisioning, the remaining blockers are operator-only: Fly secrets/env cutover, live Postgres load, and startup headroom validation on the current Fly machine/grace-period budget
 - Safe next parallel slice `D19-live-seed-execution`: operator-only runbook / checklist work based on `scripts/fly-findings-seed-preflight.mjs`. Do not use 1Password or live Fly secrets without an explicit handoff note and a clean operator window.
 - Safe next parallel slice `D20-attackpath-visuals`: own `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/*`, and dedicated attack-path tests only. Focus on icons, hop indicators, crown-jewel cues, and embedded remediation/finding context. The standalone east/west readability pass is already done for `SecurityGraph`.
 - Deferred-track closeout gates that must remain on the board:
