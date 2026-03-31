@@ -163,7 +163,13 @@ func initThreatIntelEnricher(logger *zap.Logger) (*threatintel.Enricher, *threat
 		logger.Info("OTX threat intel client initialized")
 	}
 
-	return threatintel.NewEnricher(epssClient, kevCatalog, greynoiseClient, hibpClient, otxClient, logger.Named("threatintel")), kevCatalog
+	var threatFoxClient *threatintel.ThreatFoxClient
+	if key := os.Getenv("THREATFOX_AUTH_KEY"); key != "" {
+		threatFoxClient = threatintel.NewThreatFoxClient(key)
+		logger.Info("ThreatFox threat intel client initialized")
+	}
+
+	return threatintel.NewEnricher(epssClient, kevCatalog, greynoiseClient, hibpClient, otxClient, threatFoxClient, logger.Named("threatintel")), kevCatalog
 }
 
 func initIdentityProviders(logger *zap.Logger) (map[string]identity.Provider, error) {

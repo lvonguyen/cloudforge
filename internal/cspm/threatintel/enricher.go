@@ -17,16 +17,23 @@ const providerTimeout = 6 * time.Second
 
 // ThreatIntelEnrichment holds aggregated threat intelligence data for a finding.
 type ThreatIntelEnrichment struct {
-	EPSSScore       float64   `json:"epss_score"`
-	EPSSPercentile  float64   `json:"epss_percentile"`
-	KEVExploited    bool      `json:"kev_exploited"`
-	KEVDateAdded    string    `json:"kev_date_added,omitempty"`
-	GreyNoiseClass  string    `json:"greynoise_classification,omitempty"`
-	GreyNoiseNoise  bool      `json:"greynoise_noise"`
-	HIBPBreachCount int       `json:"hibp_breach_count,omitempty"`
-	OTXPulseCount   int       `json:"otx_pulse_count,omitempty"`
-	OTXTags         []string  `json:"otx_tags,omitempty"`
-	EnrichedAt      time.Time `json:"enriched_at"`
+	EPSSScore           float64   `json:"epss_score"`
+	EPSSPercentile      float64   `json:"epss_percentile"`
+	KEVExploited        bool      `json:"kev_exploited"`
+	KEVDateAdded        string    `json:"kev_date_added,omitempty"`
+	GreyNoiseClass      string    `json:"greynoise_classification,omitempty"`
+	GreyNoiseNoise      bool      `json:"greynoise_noise"`
+	HIBPBreachCount     int       `json:"hibp_breach_count,omitempty"`
+	OTXPulseCount       int       `json:"otx_pulse_count,omitempty"`
+	OTXTags             []string  `json:"otx_tags,omitempty"`
+	ThreatFoxIOC        string    `json:"threatfox_ioc,omitempty"`
+	ThreatFoxIOCType    string    `json:"threatfox_ioc_type,omitempty"`
+	ThreatFoxThreatType string    `json:"threatfox_threat_type,omitempty"`
+	ThreatFoxMalware    string    `json:"threatfox_malware,omitempty"`
+	ThreatFoxConfidence int       `json:"threatfox_confidence,omitempty"`
+	ThreatFoxMatchCount int       `json:"threatfox_match_count,omitempty"`
+	ThreatFoxTags       []string  `json:"threatfox_tags,omitempty"`
+	EnrichedAt          time.Time `json:"enriched_at"`
 }
 
 // Enricher aggregates results from multiple threat intelligence providers.
@@ -37,17 +44,19 @@ type Enricher struct {
 	greynoise *GreyNoiseClient
 	hibp      *HIBPClient
 	otx       *OTXClient
+	threatfox *ThreatFoxClient
 	logger    *zap.Logger
 }
 
 // NewEnricher creates a threat intel enricher. Any client may be nil.
-func NewEnricher(epss *EPSSClient, kev *KEVCatalog, greynoise *GreyNoiseClient, hibp *HIBPClient, otx *OTXClient, logger *zap.Logger) *Enricher {
+func NewEnricher(epss *EPSSClient, kev *KEVCatalog, greynoise *GreyNoiseClient, hibp *HIBPClient, otx *OTXClient, threatfox *ThreatFoxClient, logger *zap.Logger) *Enricher {
 	return &Enricher{
 		epss:      epss,
 		kev:       kev,
 		greynoise: greynoise,
 		hibp:      hibp,
 		otx:       otx,
+		threatfox: threatfox,
 		logger:    logger,
 	}
 }
@@ -75,6 +84,7 @@ func (e *Enricher) Enrich(ctx context.Context, cves []string, ips []string, emai
 	g.Go(func() error { e.enrichGreyNoise(gCtx, validIPs, result); return nil })
 	g.Go(func() error { e.enrichHIBP(gCtx, emails, result); return nil })
 	g.Go(func() error { e.enrichOTX(gCtx, validIPs, result); return nil })
+	g.Go(func() error { e.enrichThreatFox(gCtx, validIPs, result); return nil })
 	_ = g.Wait()
 
 	return result
@@ -230,6 +240,48 @@ func (e *Enricher) enrichOTX(ctx context.Context, ips []string, result *ThreatIn
 		if indicator.PulseCount > result.OTXPulseCount {
 			result.OTXPulseCount = indicator.PulseCount
 			result.OTXTags = indicator.Tags
+		}
+	}
+}
+
+func (e *Enricher) enrichThreatFox(ctx context.Context, ips []string, result *ThreatIntelEnrichment) {
+	if e.threatfox == nil || len(ips) == 0 {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, providerTimeout)
+	defer cancel()
+	ctx, span := otel.Tracer("aegis.threatintel").Start(ctx, "threatintel.threatfox")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("feed", "threatfox"),
+		attribute.Int("input.ip_count", len(ips)),
+	)
+	limit := len(ips)
+	if limit > 5 {
+		limit = 5
+	}
+	bestConfidence := -1
+	for _, ip := range ips[:limit] {
+		match, err := e.threatfox.SearchIOC(ctx, ip)
+		if err != nil {
+			e.logger.Warn("ThreatFox lookup failed", zap.String("ip", ip), zap.Error(err))
+			continue
+		}
+		if match == nil {
+			continue
+		}
+		result.ThreatFoxMatchCount++
+		if match.ConfidenceLevel > bestConfidence {
+			bestConfidence = match.ConfidenceLevel
+			result.ThreatFoxIOC = match.IOC
+			result.ThreatFoxIOCType = match.IOCType
+			result.ThreatFoxThreatType = match.ThreatType
+			result.ThreatFoxMalware = match.MalwarePrintable
+			if result.ThreatFoxMalware == "" {
+				result.ThreatFoxMalware = match.Malware
+			}
+			result.ThreatFoxConfidence = match.ConfidenceLevel
+			result.ThreatFoxTags = match.Tags
 		}
 	}
 }

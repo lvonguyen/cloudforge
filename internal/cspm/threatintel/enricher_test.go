@@ -41,6 +41,12 @@ func TestEnricher_Enrich_AllProviders(t *testing.T) {
 	}))
 	defer otxSrv.Close()
 
+	// ThreatFox server
+	threatFoxSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"query_status":"ok","data":[{"ioc":"1.2.3.4:443","ioc_type":"ip:port","threat_type":"botnet_cc","malware":"win.cobalt_strike","malware_printable":"Cobalt Strike","confidence_level":75,"tags":["botnet","c2"]}]}`))
+	}))
+	defer threatFoxSrv.Close()
+
 	epssClient := NewEPSSClientWithHTTP(patchHTTPClientURL(epssSrv.URL))
 	kevCatalog := newKEVCatalogWithURL(kevSrv.URL)
 	_ = kevCatalog.LoadCatalog()
@@ -48,9 +54,10 @@ func TestEnricher_Enrich_AllProviders(t *testing.T) {
 	gnClient := NewGreyNoiseClient("test-key", WithBaseURL(gnSrv.URL+"/"), WithHTTPClient(gnSrv.Client()))
 	hibpClient := NewHIBPClient("test-key", WithHIBPBaseURL(hibpSrv.URL+"/"), WithHIBPHTTPClient(hibpSrv.Client()))
 	otxClient := NewOTXClient("test-key", WithOTXBaseURL(otxSrv.URL+"/"), WithOTXHTTPClient(otxSrv.Client()))
+	threatFoxClient := NewThreatFoxClient("test-key", WithThreatFoxBaseURL(threatFoxSrv.URL), WithThreatFoxHTTPClient(threatFoxSrv.Client()))
 
 	logger, _ := zap.NewDevelopment()
-	enricher := NewEnricher(epssClient, kevCatalog, gnClient, hibpClient, otxClient, logger)
+	enricher := NewEnricher(epssClient, kevCatalog, gnClient, hibpClient, otxClient, threatFoxClient, logger)
 
 	result := enricher.Enrich(
 		context.Background(),
@@ -83,6 +90,15 @@ func TestEnricher_Enrich_AllProviders(t *testing.T) {
 	if result.OTXPulseCount != 7 {
 		t.Errorf("expected OTXPulseCount=7, got %d", result.OTXPulseCount)
 	}
+	if result.ThreatFoxIOC != "1.2.3.4:443" {
+		t.Errorf("expected ThreatFoxIOC=1.2.3.4:443, got %q", result.ThreatFoxIOC)
+	}
+	if result.ThreatFoxConfidence != 75 {
+		t.Errorf("expected ThreatFoxConfidence=75, got %d", result.ThreatFoxConfidence)
+	}
+	if result.ThreatFoxMatchCount != 1 {
+		t.Errorf("expected ThreatFoxMatchCount=1, got %d", result.ThreatFoxMatchCount)
+	}
 	if result.EnrichedAt.IsZero() {
 		t.Error("expected non-zero EnrichedAt")
 	}
@@ -90,7 +106,7 @@ func TestEnricher_Enrich_AllProviders(t *testing.T) {
 
 func TestEnricher_NilClients(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
-	enricher := NewEnricher(nil, nil, nil, nil, nil, logger)
+	enricher := NewEnricher(nil, nil, nil, nil, nil, nil, logger)
 
 	result := enricher.Enrich(context.Background(), []string{"CVE-2024-0001"}, []string{"1.1.1.1"}, []string{"a@b.com"})
 
@@ -109,6 +125,9 @@ func TestEnricher_NilClients(t *testing.T) {
 	if result.OTXPulseCount != 0 {
 		t.Errorf("expected 0 OTX pulse count with nil client, got %d", result.OTXPulseCount)
 	}
+	if result.ThreatFoxMatchCount != 0 {
+		t.Errorf("expected 0 ThreatFox match count with nil client, got %d", result.ThreatFoxMatchCount)
+	}
 	if result.EnrichedAt.IsZero() {
 		t.Error("expected non-zero EnrichedAt even with nil clients")
 	}
@@ -116,7 +135,7 @@ func TestEnricher_NilClients(t *testing.T) {
 
 func TestEnricher_EmptyInputs(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
-	enricher := NewEnricher(NewEPSSClient(), NewKEVCatalog(), nil, nil, nil, logger)
+	enricher := NewEnricher(NewEPSSClient(), NewKEVCatalog(), nil, nil, nil, nil, logger)
 
 	result := enricher.Enrich(context.Background(), nil, nil, nil)
 
@@ -136,7 +155,7 @@ func TestEnricher_CVEOnly(t *testing.T) {
 
 	epssClient := NewEPSSClientWithHTTP(patchHTTPClientURL(epssSrv.URL))
 	logger, _ := zap.NewDevelopment()
-	enricher := NewEnricher(epssClient, nil, nil, nil, nil, logger)
+	enricher := NewEnricher(epssClient, nil, nil, nil, nil, nil, logger)
 
 	result := enricher.Enrich(context.Background(), []string{"CVE-2024-5678"}, nil, nil)
 

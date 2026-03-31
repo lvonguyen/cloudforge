@@ -51,6 +51,7 @@ All configuration is via environment variables. Defaults are tuned for local dev
 | `GREYNOISE_API_KEY` | *(empty)* | No | GreyNoise Community/Enterprise API key |
 | `HIBP_API_KEY` | *(empty)* | No | Have I Been Pwned API key |
 | `OTX_API_KEY` | *(empty)* | No | AlienVault OTX API key |
+| `THREATFOX_AUTH_KEY` | *(empty)* | No | abuse.ch ThreatFox Auth-Key used for IOC lookup |
 
 EPSS and KEV feeds are public (no key required).
 
