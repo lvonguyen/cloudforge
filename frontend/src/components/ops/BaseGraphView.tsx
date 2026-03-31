@@ -15,11 +15,32 @@ interface BaseGraphViewProps {
   edges: Edge[]
   onNodeClick?: (nodeId: string) => void
   height?: string
+  tone?: 'dark' | 'light'
 }
 
-export function BaseGraphView({ nodes: initialNodes, edges: initialEdges, onNodeClick, height = 'h-[600px]' }: BaseGraphViewProps) {
+const GRAPH_TONE = {
+  dark: {
+    background: '#0a0a0f',
+    grid: '#1e2330',
+    controlsClass: '[&_button]:rounded-none [&_button]:border-[#1e2330] [&_button]:bg-[#12121a] [&_button]:text-gray-400',
+  },
+  light: {
+    background: '#f8fafc',
+    grid: '#dbe4f0',
+    controlsClass: '[&_button]:rounded-md [&_button]:border-slate-200 [&_button]:bg-white [&_button]:text-slate-600 [&_button]:shadow-sm [&_button:hover]:bg-slate-50',
+  },
+} as const
+
+export function BaseGraphView({
+  nodes: initialNodes,
+  edges: initialEdges,
+  onNodeClick,
+  height = 'h-[600px]',
+  tone = 'dark',
+}: BaseGraphViewProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
+  const palette = GRAPH_TONE[tone]
 
   useEffect(() => { setNodes(initialNodes) }, [initialNodes, setNodes])
   useEffect(() => { setEdges(initialEdges) }, [initialEdges, setEdges])
@@ -40,12 +61,12 @@ export function BaseGraphView({ nodes: initialNodes, edges: initialEdges, onNode
         minZoom={0.3}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
-        style={{ background: '#0a0a0f' }}
+        style={{ background: palette.background }}
       >
-        <Background color="#1e2330" gap={20} size={1} />
+        <Background color={palette.grid} gap={20} size={1} />
         <Controls
           showInteractive={false}
-          className="[&_button]:rounded-none [&_button]:border-[#1e2330] [&_button]:bg-[#12121a] [&_button]:text-gray-400"
+          className={palette.controlsClass}
         />
       </ReactFlow>
     </div>
