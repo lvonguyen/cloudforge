@@ -5,6 +5,8 @@ export type ResolvedThemeMode = Exclude<ThemeMode, 'auto'>
 
 export const THEME_STORAGE_KEY = 'theme'
 export const THEME_MODE_CHANGE_EVENT = 'cloudforge:theme-mode-change'
+export const THEME_MODE_ATTRIBUTE = 'data-theme-mode'
+export const THEME_RESOLVED_ATTRIBUTE = 'data-theme-resolved'
 
 const SYSTEM_THEME_QUERY = '(prefers-color-scheme: dark)'
 
@@ -54,6 +56,8 @@ export function syncThemeModeClass(mode = getStoredThemeMode()): ResolvedThemeMo
   root.classList.toggle('dark', resolved === 'dark')
   root.dataset.themeMode = mode
   root.dataset.themeResolved = resolved
+  root.setAttribute(THEME_MODE_ATTRIBUTE, mode)
+  root.setAttribute(THEME_RESOLVED_ATTRIBUTE, resolved)
   root.style.colorScheme = resolved
   reapplyTheme()
   return resolved

@@ -17,6 +17,12 @@ interface ThemePalette {
   dark: Record<string, string>
 }
 
+export interface ThemeOverrides {
+  primary?: string
+  secondary?: string
+  accent?: string
+}
+
 /**
  * Sage — the original Cloud Aegis palette.
  * Earthy greens, warm tans, gold accent. These are the index.css defaults,
@@ -152,6 +158,23 @@ export const THEME_PRESETS: Record<string, ThemePalette> = {
   corporate: CORPORATE,
 }
 
+const defaultPreset = (import.meta.env.VITE_THEME as string | undefined) ?? 'neutral'
+
+let activePreset = defaultPreset
+let activeOverrides: ThemeOverrides | undefined = normalizeThemeOverrides(branding.themeColors)
+
+function normalizeThemeOverrides(overrides?: ThemeOverrides): ThemeOverrides | undefined {
+  if (!overrides) return undefined
+
+  const normalized: ThemeOverrides = {
+    primary: overrides.primary?.trim() || undefined,
+    secondary: overrides.secondary?.trim() || undefined,
+    accent: overrides.accent?.trim() || undefined,
+  }
+
+  return normalized.primary || normalized.secondary || normalized.accent ? normalized : undefined
+}
+
 /**
  * Applies a theme preset and optional brand color overrides to the document.
  *
@@ -160,10 +183,13 @@ export const THEME_PRESETS: Record<string, ThemePalette> = {
  */
 export function applyTheme(
   preset?: string,
-  overrides?: { primary?: string; secondary?: string; accent?: string },
+  overrides?: ThemeOverrides,
 ): void {
   const root = document.documentElement
-  const palette = THEME_PRESETS[preset ?? 'sage'] ?? SAGE
+  activePreset = preset ?? 'sage'
+  activeOverrides = normalizeThemeOverrides(overrides)
+
+  const palette = THEME_PRESETS[activePreset] ?? SAGE
   const isDark = root.classList.contains('dark')
   const vars = isDark ? palette.dark : palette.light
 
@@ -178,32 +204,37 @@ export function applyTheme(
   }
 
   // Apply brand color overrides on top (from branding.themeColors or runtime config)
-  if (overrides?.primary) {
-    root.style.setProperty('--color-primary', overrides.primary)
-    root.style.setProperty('--color-sidebar-primary', overrides.primary)
+  if (activeOverrides?.primary) {
+    root.style.setProperty('--color-primary', activeOverrides.primary)
+    root.style.setProperty('--color-sidebar-primary', activeOverrides.primary)
   }
-  if (overrides?.secondary) {
-    root.style.setProperty('--color-secondary', overrides.secondary)
-    root.style.setProperty('--color-card', overrides.secondary)
+  if (activeOverrides?.secondary) {
+    root.style.setProperty('--color-secondary', activeOverrides.secondary)
+    root.style.setProperty('--color-card', activeOverrides.secondary)
   }
-  if (overrides?.accent) {
-    root.style.setProperty('--color-accent', overrides.accent)
-    root.style.setProperty('--color-ring', overrides.accent)
-    root.style.setProperty('--color-sidebar-ring', overrides.accent)
+  if (activeOverrides?.accent) {
+    root.style.setProperty('--color-accent', activeOverrides.accent)
+    root.style.setProperty('--color-ring', activeOverrides.accent)
+    root.style.setProperty('--color-sidebar-ring', activeOverrides.accent)
   }
+}
+
+export function reapplyTheme(): void {
+  applyTheme(activePreset, activeOverrides)
 }
 
 /**
  * Initializes theme from branding config.
  * Called once from ConfigProvider after runtime config loads.
  */
-export function initTheme(runtimeTheme?: string): void {
-  const preset = runtimeTheme
-    ?? (import.meta.env.VITE_THEME as string | undefined)
-    ?? 'neutral'
+export function initTheme(runtimeTheme?: string, runtimeOverrides?: ThemeOverrides): void {
+  const preset = runtimeTheme ?? defaultPreset
 
-  const overrides = branding.themeColors
-  const hasOverrides = overrides.primary || overrides.secondary || overrides.accent
+  const overrides = normalizeThemeOverrides({
+    primary: runtimeOverrides?.primary ?? branding.themeColors.primary,
+    secondary: runtimeOverrides?.secondary ?? branding.themeColors.secondary,
+    accent: runtimeOverrides?.accent ?? branding.themeColors.accent,
+  })
 
-  applyTheme(preset, hasOverrides ? overrides : undefined)
+  applyTheme(preset, overrides)
 }
