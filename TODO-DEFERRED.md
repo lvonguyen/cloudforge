@@ -1,5 +1,8 @@
 # Cloud Aegis — Deferred Items
 
+> Migrated on 2026-03-30: the canonical backlog now lives in `tasks/handoff.md`.
+> Keep this file as an archival rationale log, not the primary working board.
+
 Items intentionally deferred from the Command Center V2 polish pass.
 Each has a clear rationale and can be picked up in future sprints.
 

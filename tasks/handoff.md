@@ -429,6 +429,37 @@ Session 32 was a security hardening + QA sprint:
 - [x] Expand fuzz coverage further — fixed 2026-03-30 (`cmd/server`, `internal/container`, `internal/secrets`, `internal/terminal`; 30s fuzz passes on highest-value boundaries)
 - [ ] PuppyGraph: run multi-hop benchmarks on local Docker with 300K seed data
 
+### Imported Deferred Backlog (migrated from `TODO-DEFERRED.md` on 2026-03-30)
+
+- [ ] `D1` Center-pane topology view
+  - `frontend/src/pages/ops/CommandCenter.tsx` already ships the treemap half of the original treemap/topology ask; the remaining gap is a true topology view and cleaned-up view switching.
+- [ ] `D2` Temporal scrubber + playback controls
+  - Still needs backend histogram/indexing support plus the frontend playback UI.
+- [ ] `D3` Full keyboard shortcut pass
+  - Existing shortcuts are no longer zero-to-one (`Escape`, `L`, `?`, `Cmd/Ctrl+K`, and Command Center center-view toggles exist), but the deferred attack-path and temporal-navigation shortcuts are still open.
+- [x] `D4` Frontend `/enrich` API call
+  - Shipped via `frontend/src/hooks/useFindings.ts` and the `EnrichButton` in `frontend/src/components/ops/EntityDetailPanel.tsx`; the old note tied it to `FindingDetail.tsx`, but the user-facing capability now exists.
+- [ ] `D5` Activate Bedrock in deployed environments
+  - Still an environment/config rollout task, not a code gap.
+- [x] `D6` localStorage role escalation hardening
+- [x] `D7` Severity color constant centralization
+- [ ] `D8` Accessibility regression sweep
+  - The concrete issues called out in the deferred file are mostly fixed (`FindingsSummaryChart`, `Sidebar`, `StatusBar`, `DataLayersPanel`), so the remaining work is a broader accessibility audit rather than those exact missing attributes.
+- [x] `D9` Mock fallback production guard
+- [ ] `D10` Split oversized frontend pages
+  - `frontend/src/pages/portal/Request.tsx` is still large and worth decomposing; the `PolicyDetail.tsx` portion of the old note is stale because the current file is `frontend/src/pages/admin/PolicyDetail.tsx` at a much smaller size.
+- [x] `D11` Vite manual chunks
+- [x] `D12` `gzipResponseWriter` interface forwarding
+- [ ] `D13` Extract `pathToFlow` JSX from `useMemo`
+  - Still open in `frontend/src/pages/ops/CommandCenter.tsx`.
+- [x] `D14` Attack-path O(1) lookup
+  - Shipped via `PathsByID` in `cmd/server/handlers_attackpath.go`.
+- [x] `D15` OPA fail-open to fail-closed
+- [ ] `D16` OPA `RequestContext` support for future policy expressiveness
+- [ ] `D17` OPA string literal cleanup in `cmd/server/handlers_api.go`
+- [ ] `D18` Global light/dark/auto theme follow-up
+  - Partially superseded: the app already has a global `ThemeToggle`, and Attack Paths already has its local Auto/Light/Dark canvas tone control. The remaining work is global Auto-mode behavior plus a full light-mode readability audit across the app.
+
 ### ACCEPT (no fix needed)
 
 - Budget rules hardcoded in main.go (acceptable for portfolio demo)
