@@ -242,6 +242,76 @@ second OPA gate is added (DRY).
 
 ## D18: Global Light/Dark/Auto Theme System
 
+**Context:** Attack Paths page has a local canvas tone toggle (Auto/Light/Dark) from the WG-E readability work. Promote to a global app-level theme system.
+
+**Scope:**
+- Promote local attack-path tone control to global setting in AppShell/TopNav
+- Wire Tailwind CSS `dark:` variants consistently across all pages (currently dark-only)
+- Persist preference in localStorage, respect `prefers-color-scheme` for Auto mode
+- Audit all ops pages for light-mode readability: charts, badges, cards, table rows, severity colors
+- Graph views (Investigation Board, Attack Paths): canvas background must respect theme
+- Sidebar: light variant with proper border/hover states
+
+**Pages requiring light-mode audit:** `/ops`, `/ops/findings`, `/ops/compliance`, `/ops/investigations`, `/ops/attack-paths`, `/admin/*`, `/portal/*`
+
+**Why deferred:** Dark mode is primary ops persona. Light mode is presentation/screen-sharing QoL. Local toggle on Attack Paths proves the pattern.
+
+**Effort:** ~2-3 days frontend
+
+---
+
+## D19: Seed 300K Findings to Fly Postgres
+
+**Context:** Fly Postgres addon is now configured. Pipeline exists (`scripts/aegis-seed.mjs` + `scripts/seed-postgres.mjs`) but hasn't run against Fly.
+
+**Steps:**
+1. Get Fly PG connection string: `fly postgres connect -a cloudforge-db`
+2. Run migrations 001-008
+3. Generate seed: `node scripts/aegis-seed.mjs --full` (~594MB JSON)
+4. Stream to Fly PG: `DATABASE_URL=<fly-pg-url> node scripts/seed-postgres.mjs`
+5. Set `FINDINGS_SOURCE=postgres` on Fly: `fly secrets set FINDINGS_SOURCE=postgres`
+6. Verify pagination: 300K total, 150/page in <25ms
+
+**Why deferred:** Pipeline verified locally (session 29). Fly PG may need sizing check for 300K + graph_edges.
+
+**Effort:** ~1 hour ops
+
+---
+
+## D20: Wiz-Parity Investigation + Remediation Polish
+
+**Context:** Investigation Board and Finding Detail are functional but lack the depth and visual polish of Wiz's equivalent views. Key gaps identified during session 33 visual QA.
+
+**Investigation Board gaps:**
+- No expandable node detail on click (inline panel within graph with evidence + timeline)
+- Generic box shapes for all node types — need distinct icons (shield=finding, server=resource, lock=compliance, user=assignee)
+- Force-directed layout — Wiz uses hierarchical (entry points top, targets bottom)
+- No compliance mapping cluster grouping
+- Edge labels lack directional arrows and clean typography
+
+**Remediation Detail gaps:**
+- `RemediationStep` struct exists in Go (`internal/compliance/finding.go`: Order, Title, Description, Command, Platform, Automated) but frontend doesn't render structured steps
+- No numbered CLI command blocks with copy-to-clipboard
+- No IaC/Terraform/CloudFormation snippet per finding
+- No "Fix in Code" button linking to source template
+- No evidence screenshots (config snapshots, API response diffs)
+- No visual SLA countdown bar (data exists: `sla_breach_date`, `due_date`)
+
+**Finding Detail enrichment:**
+- Add "Part of N attack paths" inline context with clickable link to paths
+- Add timeline visualization (first seen → triaged → assigned → SLA breach countdown)
+- Render `remediation_steps[]` as numbered accordion with command copy buttons
+- Render compliance mappings as clickable badges linking to framework detail
+
+**Implementation approach:**
+1. Investigation Board: switch to dagre/ELK hierarchical layout, custom node components per type, expandable detail drawer
+2. Remediation tab: structured step renderer with syntax-highlighted command blocks
+3. Finding Detail: timeline component, attack path context badge, SLA progress bar
+
+**Why deferred:** Functional parity achieved. Visual polish is differentiation work, not correctness. Each sub-item is independent and can be picked up in parallel.
+
+**Effort:** ~4-5 days frontend (Investigation Board ~2d, Remediation steps ~1d, Finding Detail enrichment ~1-2d)
+
 **Context:** Attack Paths page has a local canvas tone toggle (Auto/Light/Dark) from the WG-E readability work. This should be promoted to a global app-level theme system.
 
 **Scope:**
