@@ -218,35 +218,45 @@ Use this file as the shared climbing board for all security-graph work. Before s
   - Write scope: `frontend/src/pages/ops/SecurityGraph.tsx`, `frontend/src/types/security-graph.ts`, `frontend/src/hooks/useGraphQuery.ts` (new), `frontend/src/components/ops/BaseGraphView.tsx`
   - Coordination: backend graph API (WG-D) is done and committed
 
+- `WG-C Follow-up: Issue stats/update tenant hardening` — in progress 2026-03-30 (codex)
+  - Scope claimed: make issue stats and issue patch operations honor tenant context and add focused server/query tests so the issue surface is consistent beyond list/get
+  - Write scope: `cmd/server/handlers_issues.go`, `cmd/server/handlers_issues_test.go`, `cmd/server/routes.go`, `internal/secgraph/issue_queries.go`, `internal/secgraph/issue_queries_test.go`
+  - Coordination: backend-only; avoids `WG-E` graph UI files
+
 ### Pending
 
 - `WG-C Phase 2: Control evaluation + Issue pipeline`
   - Optional follow-up: broaden auto-dispatch policy beyond startup and add issue-level write actions once the read API lands
   - Likely touchpoints: `internal/secgraph/`, `internal/compliance/`, `cmd/server/handlers_*.go`
 
-### Current Architecture Facts
+### Current Architecture Facts (refreshed 2026-03-31, session 33)
 
-- Current attack paths are heuristic finding chains, not graph-native issue outputs.
-  - Evidence: `computeAttackPaths` builds paths from account grouping, entry/intermediate/target heuristics, and `canConnect` rules in `cmd/server/attackpath.go`.
+- Security Graph schema: 6 vertex types (finding, resource, account, control, issue, compliance_framework) + 8 edge types in `graph_edges` table. PuppyGraph schema synced.
+  - Evidence: `migrations/007_security_graph.sql`, `deploy/docker/puppygraph/schema.json`, `internal/secgraph/types.go`
 
-- The frontend attack-path experience still falls back to mock/precomputed payloads when the API is unavailable.
-  - Evidence: `frontend/src/hooks/useAttackPaths.ts`.
+- Controls are seeded from 30 compliance frameworks at startup into `controls` table. Per-resource evaluations written to `control_evaluations`.
+  - Evidence: `internal/secgraph/materialize.go` (BuildControlsFromManager), `cmd/server/secgraph_sync.go`
 
-- The main Security Graph UI is findings-derived, not backed by live graph neighborhoods.
-  - Evidence: `frontend/src/pages/ops/SecurityGraph.tsx`.
+- Issues are materialized from findings + control violations. Dedup key: (control_id, resource_id, tenant_id). First-class operator surface with CRUD API.
+  - Evidence: `cmd/server/handlers_issues.go`, `internal/secgraph/issue_queries.go`, routes at `/issues`, `/issues/{id}`, `/issues/stats`
 
-- PuppyGraph is wired today as a query surface over relational tables, not yet as the primary risk computation engine.
-  - Evidence: `cmd/server/handlers_graph.go`, `internal/graph/client.go`, `deploy/docker/puppygraph/schema.json`.
+- Graph edges are backfilled on startup (affects, belongs_to, maps_to, same_region) and incrementally on finding ingest.
+  - Evidence: `internal/secgraph/backfill.go`, `cmd/server/secgraph_sync.go`
 
-- The current PuppyGraph schema is too thin for Wiz-like path analysis.
-  - Today it models `finding`, `resource`, and `compliance_framework` with `affects` and `maps_to` edges only.
+- Structured graph query API: neighborhood expansion + stats via Postgres CTEs, independent of PuppyGraph.
+  - Evidence: `internal/secgraph/queries.go`, `cmd/server/handlers_graph.go` (handleGraphNeighborhood, handleGraphStats)
 
-### Working Target
+- SecurityGraph frontend page uses backend neighborhood API in focus mode, falls back to client-side derivation in demo mode.
+  - Evidence: `frontend/src/pages/ops/SecurityGraph.tsx`, `frontend/src/hooks/useGraphQuery.ts`
 
-- `Security Graph` = tenant-scoped live graph of evidence and relationships
-- `Controls` = graph-native toxic-combination rules evaluated over current graph state
-- `Issues` = materialized control matches with lifecycle and severity
-- `Attack Paths / Blast Radius / Exposure Views` = projections over issues and graph neighborhoods, not standalone heuristics
+- Attack paths are still heuristic-computed (computeAttackPaths in attackpath.go). Graph-native path queries are documented but not wired into the BFS engine yet.
+  - Evidence: `cmd/server/attackpath.go`, `docs/core/architecture/graph-native-attack-paths.md`
+
+### Working Target (remaining)
+
+- Replace heuristic BFS with graph-native Gremlin traversals using explicit edges
+- Promote SecurityGraph frontend to use neighborhood API as primary (not just focus mode)
+- Wire blast radius computation from graph edge traversal into Issue scoring
 
 ### Provisional Recommendation
 
