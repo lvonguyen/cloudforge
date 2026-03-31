@@ -288,7 +288,13 @@ Use this file as the shared climbing board for all security-graph work. Before s
 
 ### In Flight
 
-(none currently)
+- `WG-C Follow-up: Issue assignment propagation` — in flight 2026-03-30 (codex)
+  - Scope: carry finding assignment/ownership hints through the secgraph sync path so materialized issues can preserve explicit assignees and ownership-derived fallbacks before ticket dispatch
+  - Planned touchpoints:
+    - `cmd/server/types.go`
+    - `cmd/server/secgraph_sync.go`
+    - `cmd/server/secgraph_sync_test.go`
+  - Coordination: backend-only; does not change graph schema or graph UX contracts
 
 ### Pending
 

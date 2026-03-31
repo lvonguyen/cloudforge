@@ -6,6 +6,28 @@ import (
 	"encoding/json"
 )
 
+type FindingAssignee struct {
+	UserID      string `json:"user_id,omitempty"`
+	UserEmail   string `json:"user_email,omitempty"`
+	UserName    string `json:"user_name,omitempty"`
+	Team        string `json:"team,omitempty"`
+	AssignedAt  string `json:"assigned_at,omitempty"`
+	AssignedBy  string `json:"assigned_by,omitempty"`
+	DueDate     string `json:"due_date,omitempty"`
+	Escalated   bool   `json:"escalated,omitempty"`
+	EscalatedTo string `json:"escalated_to,omitempty"`
+	EscalatedAt string `json:"escalated_at,omitempty"`
+}
+
+type FindingContact struct {
+	Name      string `json:"name,omitempty"`
+	Email     string `json:"email,omitempty"`
+	Team      string `json:"team,omitempty"`
+	Phone     string `json:"phone,omitempty"`
+	SlackID   string `json:"slack_id,omitempty"`
+	OnCallURL string `json:"on_call_url,omitempty"`
+}
+
 // Finding represents a security finding from CSPM scanners.
 type Finding struct {
 	ID                  string              `json:"id"`
@@ -43,9 +65,13 @@ type Finding struct {
 	Category            string              `json:"category"`
 	Status              string              `json:"status"`
 	WorkflowStatus      string              `json:"workflow_status"`
+	Assignee            *FindingAssignee    `json:"assignee,omitempty"`
 	Suppressed          bool                `json:"suppressed"`
+	TechnicalContact    *FindingContact     `json:"technical_contact,omitempty"`
+	BusinessOwner       *FindingContact     `json:"business_owner,omitempty"`
 	ServiceName         string              `json:"service_name"`
 	LineOfBusiness      string              `json:"line_of_business"`
+	Team                string              `json:"team,omitempty"`
 	FirstFoundAt        string              `json:"first_found_at"`
 	LastSeenAt          string              `json:"last_seen_at"`
 	SLABreachDate       string              `json:"sla_breach_date,omitempty"`
