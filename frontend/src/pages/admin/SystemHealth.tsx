@@ -170,13 +170,13 @@ export default function SystemHealth() {
 
   const services: ServiceStatus[] = hasComponents
     ? Object.entries(data.components).map(([key, comp]) => ({
-        name: componentLabel(key),
-        description: comp.message || componentDescription(key),
-        status: normalizeStatus(comp.status),
-        latency_ms: comp.latency_ms > 0 ? Math.round(comp.latency_ms / 1_000_000) : undefined,
-        uptime: '—',
-        last_check: formatLastChecked(comp.last_checked),
-      }))
+      name: componentLabel(key),
+      description: comp.message || componentDescription(key),
+      status: normalizeStatus(comp.status),
+      latency_ms: comp.latency_ms > 0 ? Math.round(comp.latency_ms) : undefined,
+      uptime: '—',
+      last_check: formatLastChecked(comp.last_checked),
+    }))
     : STATIC_FALLBACK
 
   const summary = {

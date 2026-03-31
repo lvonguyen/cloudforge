@@ -43,10 +43,10 @@ type HealthStatus struct {
 
 // ComponentHealth represents health of a single component
 type ComponentHealth struct {
-	Status      string        `json:"status"` // healthy, unhealthy
-	Message     string        `json:"message,omitempty"`
-	LastChecked time.Time     `json:"last_checked"`
-	Latency     time.Duration `json:"latency_ms"`
+	Status      string    `json:"status"` // healthy, unhealthy
+	Message     string    `json:"message,omitempty"`
+	LastChecked time.Time `json:"last_checked"`
+	LatencyMS   int64     `json:"latency_ms"`
 }
 
 // NewHealthChecker creates a new health checker
@@ -154,7 +154,7 @@ func (h *HealthChecker) Check(ctx context.Context) *HealthStatus {
 			health := ComponentHealth{
 				Status:      "healthy",
 				LastChecked: time.Now(),
-				Latency:     latency,
+				LatencyMS:   latency.Milliseconds(),
 			}
 
 			if err != nil {
