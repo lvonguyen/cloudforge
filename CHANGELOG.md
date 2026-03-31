@@ -10,6 +10,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Sprint O**: Finding-detail analyst workspaces — dedicated attack path and security graph investigation surfaces, nested directly under `FindingDetail`, with remediation/investigation workflow polish and keyboard navigation
+- **Sprint O**: Global theme controls — explicit light/dark/auto mode support across the ops UI
+- **Sprint O**: Remediation integration parity — durable finding-ticket persistence, provider selection / assignee controls, webhook-driven ticket refresh, Jira comment readback, and `/api/v1/providers` integration-readiness reporting
+- **Sprint O**: D19 operator preflight — `scripts/fly-findings-seed-preflight.mjs` plus an explicit Fly/Postgres full-seed runbook
 - **Sprint K**: ADR-016 (Container Scanning Architecture), ADR-017 (Secrets Management), ADR-018 (Threat Intelligence Feeds) — 18 ADRs total
 - **Sprint K**: Documentation overhaul — docs reorg into `docs/core/`, `docs/research/`, `docs/archive/`; Mermaid syntax fixes; CloudForge-to-Cloud Aegis rename in HLD and DR-BC
 - **Sprint K**: DR-BC v2.1 — updated branding, deployment tier naming refresh
@@ -20,6 +24,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Sprint O**: `SecurityGraph` moved to a lighter, more readable analyst shell with stronger left-to-right investigation framing
+- **Sprint O**: Attack-path analysis surfaces now carry richer analyst context instead of relying only on the older standalone graph treatment
+- **Sprint O**: Deployment checklist, Fly runbook, and `make migrate` now reflect the real ordered Postgres migration + seed workflow for D19
 - **Sprint K**: README updated — 18 ADR count, corrected test counts (1,474 Go / 420+ frontend / 51 test files), updated docs tree structure
 - **Sprint K**: HLD v3.0 ADR cross-reference updated (14 -> 18 ADRs), title renamed to Cloud Aegis
 - **Sprint K**: risk-intelligence-pipeline.mmd — fixed node/subgraph ID collision for mermaid v10+ compatibility
@@ -37,6 +44,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Sprint O**: Jira-backed ticket activity no longer degrades on comment reads; finding-linked ticket timelines now support Jira comment retrieval
+- **Sprint O**: Cached remediation ticket state now refreshes correctly from provider webhooks and survives restarts through durable persistence
+- **Sprint O**: `make migrate` no longer stops at migration `001`; it now applies the full ordered schema set
 - AWS provider icon replaced with official wordmark+swoosh from logos-core (was compact amber glyph)
 - GCP provider icon viewBox tightened `0 0 128 128` -> `0 10 128 108` for badge-size legibility
 - ProviderBadge grey `bg-zinc-100` backdrop + padding removed (icons carry their own brand colors)
