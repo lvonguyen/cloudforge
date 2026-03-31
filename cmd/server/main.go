@@ -118,8 +118,9 @@ type Server struct {
 	orgScanner         secrets.OrgScanner
 
 	// Graph query engine (PuppyGraph — feature-flagged via PUPPYGRAPH_URL)
-	graphClient  *graph.Client
-	graphQuerier secgraph.Querier // structured graph queries (Postgres fallback)
+	graphClient    *graph.Client
+	graphQuerier   secgraph.Querier     // structured graph queries (Postgres fallback)
+	secgraphIssues secgraph.IssueReader // issue list/detail (Postgres store)
 
 	// Full-text search (BM25 + optional semantic/hybrid)
 	searchSvc *SearchService
@@ -417,10 +418,11 @@ func main() {
 				logger.Named("secgraph.incremental"),
 			)
 		},
-		asmSvc:       &asmService{scanner: asm.NewMockScanner()},
-		orgScanner:   secrets.NewMockOrgScanner(),
-		graphClient:  graphClient,
-		graphQuerier: initGraphQuerier(auditDB),
+		asmSvc:         &asmService{scanner: asm.NewMockScanner()},
+		orgScanner:     secrets.NewMockOrgScanner(),
+		graphClient:    graphClient,
+		graphQuerier:   initGraphQuerier(auditDB),
+		secgraphIssues: secgraphStore,
 	}
 
 	logger.Info("Server data loaded",

@@ -63,11 +63,14 @@ func TestIssueStatsStructure(t *testing.T) {
 
 func TestIssueDetailStructure(t *testing.T) {
 	detail := &IssueDetail{
-		Issue: Issue{
-			ID:       "ISS-001",
-			Title:    "S3 encryption missing",
-			Severity: "HIGH",
-			Status:   IssueOpen,
+		Issue: IssueSummary{
+			Issue: Issue{
+				ID:       "ISS-001",
+				Title:    "S3 encryption missing",
+				Severity: "HIGH",
+				Status:   IssueOpen,
+			},
+			FindingCount: 2,
 		},
 		FindingIDs: []string{"F-001", "F-002"},
 	}
@@ -78,11 +81,14 @@ func TestIssueDetailStructure(t *testing.T) {
 	if len(detail.FindingIDs) != 2 {
 		t.Errorf("expected 2 finding IDs, got %d", len(detail.FindingIDs))
 	}
+	if detail.Issue.FindingCount != 2 {
+		t.Errorf("expected finding count 2, got %d", detail.Issue.FindingCount)
+	}
 }
 
 func TestIssueListResultPagination(t *testing.T) {
 	result := &IssueListResult{
-		Data:       []Issue{{ID: "ISS-001"}, {ID: "ISS-002"}},
+		Data:       []IssueSummary{{Issue: Issue{ID: "ISS-001"}}, {Issue: Issue{ID: "ISS-002"}}},
 		Page:       1,
 		PerPage:    25,
 		Total:      50,

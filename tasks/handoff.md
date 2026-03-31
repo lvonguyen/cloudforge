@@ -184,6 +184,21 @@ Use this file as the shared climbing board for all security-graph work. Before s
     - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestIngestFinding|TestSyncSecurityGraphWithStore|TestSyncSecurityGraphWithStoreAndDispatcher|TestSecgraphTicketDispatcher|TestSecgraphAutoTicketsEnabled' -count=1`
     - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph ./internal/compliance ./internal/integrations -count=1`
 
+- `WG-C Phase 2: Issue read API` — completed 2026-03-30 (codex)
+  - Scope completed: scope-aware issue list/detail reads for the materialized secgraph issue surface, enriched issue summaries, tenant-aware query params, and focused route coverage
+  - Output files:
+    - `cmd/server/handlers_issues.go`
+    - `cmd/server/handlers_issues_test.go`
+    - `cmd/server/routes.go`
+    - `internal/secgraph/issue_queries.go`
+    - `internal/secgraph/issue_queries_test.go`
+    - `internal/secgraph/store.go`
+    - `internal/secgraph/types.go`
+  - Guardrail: `GET /api/v1/issues` and `GET /api/v1/issues/{id}` now enforce tenant/scope filters inline; `/api/v1/issues/stats` remains deny-by-default for scoped users until a scope-aware aggregate path exists
+  - Verification:
+    - `env GOCACHE=/tmp/go-build-cache go test ./cmd/server -run 'TestIssuesEndpointsRequireAuth|TestIssuesEndpointsRequesterForbidden|TestListIssuesNotConfigured|TestListIssuesPropagatesFiltersAndScope|TestListIssuesRejectsInvalidTicketedFilter|TestGetIssueNotFound|TestGetIssueEnforcesScope|TestGetIssueReturnsDetail' -count=1`
+    - `env GOCACHE=/tmp/go-build-cache go test ./internal/secgraph -count=1`
+
 - `WG-E Follow-up: Attack-path readability + theme controls` — completed 2026-03-31 (codex)
   - Scope completed: lighter/whiter analyst-friendly attack-path detail canvas, clearer node/icon presentation, and an explicit local canvas tone control layered on top of the existing app theme without changing backend graph contracts
   - Output files:
@@ -206,7 +221,7 @@ Use this file as the shared climbing board for all security-graph work. Before s
 ### Pending
 
 - `WG-C Phase 2: Control evaluation + Issue pipeline`
-  - Optional follow-up: broaden auto-dispatch policy beyond startup and add issue-level read/write APIs if secgraph issues become a first-class operator surface
+  - Optional follow-up: broaden auto-dispatch policy beyond startup and add issue-level write actions once the read API lands
   - Likely touchpoints: `internal/secgraph/`, `internal/compliance/`, `cmd/server/handlers_*.go`
 
 ### Current Architecture Facts

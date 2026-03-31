@@ -5,22 +5,25 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/lib/pq"
 )
 
-type execer interface {
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+// IssueReader exposes secgraph issues as a first-class operator surface.
+type IssueReader interface {
+	ListIssues(ctx context.Context, filter IssueListFilter, page, perPage int) ([]IssueSummary, int, error)
+	GetIssue(ctx context.Context, tenantID, issueID string) (*IssueDetail, error)
 }
 
 // Store persists secgraph controls, evaluations, issues, and edges.
 // Runtime wiring can depend on this without embedding SQL strings elsewhere.
 type Store struct {
-	db execer
+	db *sql.DB
 }
 
-// NewStore creates a secgraph store backed by a SQL execer.
-func NewStore(db execer) *Store {
+// NewStore creates a secgraph store backed by a SQL database handle.
+func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
@@ -111,6 +114,187 @@ func (s *Store) UpsertMaterialization(ctx context.Context, result Materializatio
 	}
 
 	return nil
+}
+
+// ListIssues returns a paginated operator-facing issue list for a tenant.
+func (s *Store) ListIssues(ctx context.Context, filter IssueListFilter, page, perPage int) ([]IssueSummary, int, error) {
+	if s == nil || s.db == nil {
+		return nil, 0, nil
+	}
+	if page <= 0 {
+		page = 1
+	}
+	if perPage <= 0 {
+		perPage = 50
+	}
+	if perPage > 200 {
+		perPage = 200
+	}
+
+	whereSQL, args := buildIssueWhereClause(filter)
+	countQuery := `
+		SELECT COUNT(DISTINCT i.id)
+		FROM issues i
+		LEFT JOIN resources r ON r.id = i.resource_id
+		LEFT JOIN accounts a ON a.id = i.account_id
+	` + whereSQL
+
+	var total int
+	if err := s.db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count issues: %w", err)
+	}
+
+	offset := (page - 1) * perPage
+	args = append(args, perPage, offset)
+	limitArg := len(args) - 1
+	offsetArg := len(args)
+
+	listQuery := `
+		SELECT
+			i.id, i.title, i.description, i.severity, i.risk_score, i.blast_radius, i.status,
+			i.control_id, i.resource_id, i.account_id, i.provider, i.assignee_id, i.ticket_id,
+			i.ticket_url, i.sla_breach_at, i.exposure_paths, i.tenant_id, i.created_at,
+			i.updated_at, i.resolved_at,
+			COALESCE(c.title, ''),
+			COALESCE(NULLIF(r.name, ''), r.id, ''),
+			COALESCE(r.region, ''),
+			COALESCE(a.environment_type, ''),
+			COALESCE(MAX(NULLIF(f.line_of_business, '')), ''),
+			COUNT(DISTINCT ifl.finding_id)::int
+		FROM issues i
+		LEFT JOIN controls c ON c.id = i.control_id
+		LEFT JOIN resources r ON r.id = i.resource_id
+		LEFT JOIN accounts a ON a.id = i.account_id
+		LEFT JOIN issue_findings ifl ON ifl.issue_id = i.id
+		LEFT JOIN findings f ON f.id = ifl.finding_id
+	` + whereSQL + `
+		GROUP BY i.id, c.title, r.name, r.id, r.region, a.environment_type
+	` + buildIssueSortClause(filter) + fmt.Sprintf(`
+		LIMIT $%d OFFSET $%d
+	`, limitArg, offsetArg)
+
+	rows, err := s.db.QueryContext(ctx, listQuery, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list issues: %w", err)
+	}
+	defer rows.Close()
+
+	issues := make([]IssueSummary, 0, min(total, perPage))
+	for rows.Next() {
+		issue, err := scanIssueSummary(rows)
+		if err != nil {
+			return nil, 0, fmt.Errorf("scan issue summary: %w", err)
+		}
+		issues = append(issues, issue)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate issues: %w", err)
+	}
+
+	return issues, total, nil
+}
+
+// GetIssue returns a single operator-facing issue detail payload for a tenant.
+func (s *Store) GetIssue(ctx context.Context, tenantID, issueID string) (*IssueDetail, error) {
+	if s == nil || s.db == nil {
+		return nil, nil
+	}
+
+	query := `
+		SELECT
+			i.id, i.title, i.description, i.severity, i.risk_score, i.blast_radius, i.status,
+			i.control_id, i.resource_id, i.account_id, i.provider, i.assignee_id, i.ticket_id,
+			i.ticket_url, i.sla_breach_at, i.exposure_paths, i.tenant_id, i.created_at,
+			i.updated_at, i.resolved_at,
+			COALESCE(c.title, ''),
+			COALESCE(NULLIF(r.name, ''), r.id, ''),
+			COALESCE(r.region, ''),
+			COALESCE(a.environment_type, ''),
+			COALESCE(MAX(NULLIF(f.line_of_business, '')), ''),
+			COUNT(DISTINCT ifl.finding_id)::int,
+			COALESCE(ARRAY_REMOVE(ARRAY_AGG(DISTINCT ifl.finding_id), NULL), ARRAY[]::text[])
+		FROM issues i
+		LEFT JOIN controls c ON c.id = i.control_id
+		LEFT JOIN resources r ON r.id = i.resource_id
+		LEFT JOIN accounts a ON a.id = i.account_id
+		LEFT JOIN issue_findings ifl ON ifl.issue_id = i.id
+		LEFT JOIN findings f ON f.id = ifl.finding_id
+		WHERE i.tenant_id = $1 AND i.id = $2
+		GROUP BY i.id, c.title, r.name, r.id, r.region, a.environment_type
+	`
+
+	var (
+		detail          IssueDetail
+		status          string
+		assigneeID      sql.NullString
+		ticketID        sql.NullString
+		ticketURL       sql.NullString
+		slaBreachAt     sql.NullTime
+		resolvedAt      sql.NullTime
+		controlTitle    string
+		resourceName    string
+		region          string
+		environmentType string
+		lineOfBusiness  string
+		findingCount    int
+		findingIDs      []string
+	)
+	row := s.db.QueryRowContext(ctx, query, tenantID, issueID)
+	err := row.Scan(
+		&detail.Issue.ID,
+		&detail.Issue.Title,
+		&detail.Issue.Description,
+		&detail.Issue.Severity,
+		&detail.Issue.RiskScore,
+		&detail.Issue.BlastRadius,
+		&status,
+		&detail.Issue.ControlID,
+		&detail.Issue.ResourceID,
+		&detail.Issue.AccountID,
+		&detail.Issue.Provider,
+		&assigneeID,
+		&ticketID,
+		&ticketURL,
+		&slaBreachAt,
+		&detail.Issue.ExposurePaths,
+		&detail.Issue.TenantID,
+		&detail.Issue.CreatedAt,
+		&detail.Issue.UpdatedAt,
+		&resolvedAt,
+		&controlTitle,
+		&resourceName,
+		&region,
+		&environmentType,
+		&lineOfBusiness,
+		&findingCount,
+		pq.Array(&findingIDs),
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("query issue %s: %w", issueID, err)
+	}
+	detail.Issue.Status = IssueStatus(status)
+	detail.Issue.ControlTitle = strings.TrimSpace(controlTitle)
+	detail.Issue.ResourceName = strings.TrimSpace(resourceName)
+	detail.Issue.Region = strings.TrimSpace(region)
+	detail.Issue.EnvironmentType = strings.TrimSpace(environmentType)
+	detail.Issue.LineOfBusiness = strings.TrimSpace(lineOfBusiness)
+	detail.Issue.FindingCount = findingCount
+	detail.Issue.AssigneeID = strings.TrimSpace(assigneeID.String)
+	detail.Issue.TicketID = strings.TrimSpace(ticketID.String)
+	detail.Issue.TicketURL = strings.TrimSpace(ticketURL.String)
+	if slaBreachAt.Valid {
+		value := slaBreachAt.Time.UTC()
+		detail.Issue.SLABreachAt = &value
+	}
+	if resolvedAt.Valid {
+		value := resolvedAt.Time.UTC()
+		detail.Issue.ResolvedAt = &value
+	}
+	detail.FindingIDs = findingIDs
+	return &detail, nil
 }
 
 func (s *Store) upsertEvaluation(ctx context.Context, evaluation ControlEvaluation) error {
@@ -243,4 +427,193 @@ func (s *Store) upsertEdge(ctx context.Context, edge GraphEdge) error {
 	}
 
 	return nil
+}
+
+type issueSummaryScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanIssueSummary(scanner issueSummaryScanner) (IssueSummary, error) {
+	var issue IssueSummary
+	err := scanIssueSummaryInto(scanner, &issue)
+	return issue, err
+}
+
+func scanIssueSummaryInto(scanner issueSummaryScanner, issue *IssueSummary) error {
+	if issue == nil {
+		return fmt.Errorf("issue summary destination is nil")
+	}
+
+	var (
+		status          string
+		assigneeID      sql.NullString
+		ticketID        sql.NullString
+		ticketURL       sql.NullString
+		slaBreachAt     sql.NullTime
+		resolvedAt      sql.NullTime
+		controlTitle    string
+		resourceName    string
+		region          string
+		environmentType string
+		lineOfBusiness  string
+		findingCount    int
+	)
+	if err := scanner.Scan(
+		&issue.ID,
+		&issue.Title,
+		&issue.Description,
+		&issue.Severity,
+		&issue.RiskScore,
+		&issue.BlastRadius,
+		&status,
+		&issue.ControlID,
+		&issue.ResourceID,
+		&issue.AccountID,
+		&issue.Provider,
+		&assigneeID,
+		&ticketID,
+		&ticketURL,
+		&slaBreachAt,
+		&issue.ExposurePaths,
+		&issue.TenantID,
+		&issue.CreatedAt,
+		&issue.UpdatedAt,
+		&resolvedAt,
+		&controlTitle,
+		&resourceName,
+		&region,
+		&environmentType,
+		&lineOfBusiness,
+		&findingCount,
+	); err != nil {
+		return err
+	}
+
+	issue.Status = IssueStatus(status)
+	issue.ControlTitle = strings.TrimSpace(controlTitle)
+	issue.ResourceName = strings.TrimSpace(resourceName)
+	issue.Region = strings.TrimSpace(region)
+	issue.EnvironmentType = strings.TrimSpace(environmentType)
+	issue.LineOfBusiness = strings.TrimSpace(lineOfBusiness)
+	issue.FindingCount = findingCount
+	issue.AssigneeID = strings.TrimSpace(assigneeID.String)
+	issue.TicketID = strings.TrimSpace(ticketID.String)
+	issue.TicketURL = strings.TrimSpace(ticketURL.String)
+	if slaBreachAt.Valid {
+		value := slaBreachAt.Time.UTC()
+		issue.SLABreachAt = &value
+	}
+	if resolvedAt.Valid {
+		value := resolvedAt.Time.UTC()
+		issue.ResolvedAt = &value
+	}
+
+	return nil
+}
+
+func buildIssueWhereClause(filter IssueListFilter) (string, []any) {
+	tenantID := strings.TrimSpace(filter.TenantID)
+	if tenantID == "" {
+		tenantID = "default"
+	}
+
+	clauses := []string{"i.tenant_id = $1"}
+	args := []any{tenantID}
+	add := func(clause string, value any) {
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf(clause, len(args)))
+	}
+
+	if severity := strings.ToUpper(strings.TrimSpace(filter.Severity)); severity != "" {
+		add("UPPER(i.severity) = $%d", severity)
+	}
+	if status := strings.ToUpper(strings.TrimSpace(filter.Status)); status != "" {
+		add("UPPER(i.status) = $%d", status)
+	}
+	if provider := strings.ToLower(strings.TrimSpace(filter.Provider)); provider != "" {
+		add("LOWER(i.provider) = $%d", provider)
+	}
+	if accountID := strings.TrimSpace(filter.AccountID); accountID != "" {
+		add("i.account_id = $%d", accountID)
+	}
+	if controlID := strings.TrimSpace(filter.ControlID); controlID != "" {
+		add("i.control_id = $%d", controlID)
+	}
+	if resourceID := strings.TrimSpace(filter.ResourceID); resourceID != "" {
+		add("i.resource_id = $%d", resourceID)
+	}
+	if filter.HasTicket != nil {
+		if *filter.HasTicket {
+			clauses = append(clauses, "NULLIF(TRIM(COALESCE(i.ticket_id, '')), '') IS NOT NULL")
+		} else {
+			clauses = append(clauses, "NULLIF(TRIM(COALESCE(i.ticket_id, '')), '') IS NULL")
+		}
+	}
+	if len(filter.ScopeAccountIDs) > 0 {
+		add("i.account_id = ANY($%d)", pq.Array(filter.ScopeAccountIDs))
+	}
+	if len(filter.ScopeRegions) > 0 {
+		add("LOWER(COALESCE(r.region, '')) = ANY($%d)", pq.Array(normalizeLowercase(filter.ScopeRegions)))
+	}
+	if len(filter.ScopeEnvironments) > 0 {
+		add("LOWER(COALESCE(a.environment_type, '')) = ANY($%d)", pq.Array(normalizeLowercase(filter.ScopeEnvironments)))
+	}
+	if len(filter.ScopeBusinessUnits) > 0 {
+		add(`EXISTS (
+			SELECT 1
+			FROM issue_findings if_scope
+			JOIN findings f_scope ON f_scope.id = if_scope.finding_id
+			WHERE if_scope.issue_id = i.id
+			  AND LOWER(COALESCE(f_scope.line_of_business, '')) = ANY($%d)
+		)`, pq.Array(normalizeLowercase(filter.ScopeBusinessUnits)))
+	}
+
+	return " WHERE " + strings.Join(clauses, " AND "), args
+}
+
+func buildIssueSortClause(filter IssueListFilter) string {
+	order := "DESC"
+	if strings.EqualFold(strings.TrimSpace(filter.SortOrder), "asc") {
+		order = "ASC"
+	}
+
+	switch strings.ToLower(strings.TrimSpace(filter.SortBy)) {
+	case "", "risk_score":
+		return fmt.Sprintf(" ORDER BY i.risk_score %s, i.updated_at DESC", order)
+	case "severity":
+		return fmt.Sprintf(` ORDER BY CASE UPPER(i.severity)
+			WHEN 'CRITICAL' THEN 4
+			WHEN 'HIGH' THEN 3
+			WHEN 'MEDIUM' THEN 2
+			WHEN 'LOW' THEN 1
+			ELSE 0
+		END %s, i.updated_at DESC`, order)
+	case "updated_at":
+		return fmt.Sprintf(" ORDER BY i.updated_at %s", order)
+	case "created_at":
+		return fmt.Sprintf(" ORDER BY i.created_at %s", order)
+	case "blast_radius":
+		return fmt.Sprintf(" ORDER BY i.blast_radius %s, i.updated_at DESC", order)
+	default:
+		return " ORDER BY i.risk_score DESC, i.updated_at DESC"
+	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func normalizeLowercase(values []string) []string {
+	normalized := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.ToLower(strings.TrimSpace(value))
+		if value == "" {
+			continue
+		}
+		normalized = append(normalized, value)
+	}
+	return normalized
 }

@@ -6,44 +6,51 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/lib/pq"
 )
 
 // IssueListParams controls filtering and pagination for ListIssues.
 type IssueListParams struct {
-	Severity  string // filter by severity (CRITICAL, HIGH, MEDIUM, LOW)
-	Status    string // filter by status (OPEN, ACKNOWLEDGED, IN_PROGRESS, RESOLVED, SUPPRESSED)
-	ControlID string // filter by control
-	AccountID string // filter by account
-	Provider  string // filter by cloud provider
-	Page      int
-	PerPage   int
+	TenantID           string
+	Severity           string // filter by severity (CRITICAL, HIGH, MEDIUM, LOW)
+	Status             string // filter by status (OPEN, ACKNOWLEDGED, IN_PROGRESS, RESOLVED, SUPPRESSED)
+	ControlID          string // filter by control
+	AccountID          string // filter by account
+	ResourceID         string // filter by resource
+	Provider           string // filter by cloud provider
+	HasTicket          *bool
+	SortBy             string
+	SortOrder          string
+	ScopeAccountIDs    []string
+	ScopeRegions       []string
+	ScopeEnvironments  []string
+	ScopeBusinessUnits []string
+	Page               int
+	PerPage            int
 }
 
 // IssueListResult is a paginated list of issues.
 type IssueListResult struct {
-	Data       []Issue `json:"data"`
-	Page       int     `json:"page"`
-	PerPage    int     `json:"per_page"`
-	Total      int     `json:"total"`
-	TotalPages int     `json:"total_pages"`
+	Data       []IssueSummary `json:"data"`
+	Page       int            `json:"page"`
+	PerPage    int            `json:"per_page"`
+	Total      int            `json:"total"`
+	TotalPages int            `json:"total_pages"`
 }
 
 // IssueDetail is an issue with its related finding IDs.
 type IssueDetail struct {
-	Issue      Issue    `json:"issue"`
-	FindingIDs []string `json:"finding_ids"`
+	Issue      IssueSummary `json:"issue"`
+	FindingIDs []string     `json:"finding_ids"`
 }
 
 // IssueStats summarizes issue counts by severity and status.
 type IssueStats struct {
-	BySeverity map[string]int `json:"by_severity"`
-	ByStatus   map[string]int `json:"by_status"`
-	ByProvider map[string]int `json:"by_provider"`
-	Total      int            `json:"total"`
-	OpenCount  int            `json:"open_count"`
-	SLABreachCount int        `json:"sla_breach_count"`
+	BySeverity     map[string]int `json:"by_severity"`
+	ByStatus       map[string]int `json:"by_status"`
+	ByProvider     map[string]int `json:"by_provider"`
+	Total          int            `json:"total"`
+	OpenCount      int            `json:"open_count"`
+	SLABreachCount int            `json:"sla_breach_count"`
 }
 
 // IssueUpdate is the set of mutable fields on an issue.
@@ -57,7 +64,7 @@ type IssueUpdate struct {
 // IssueQuerier reads and writes issues.
 type IssueQuerier interface {
 	ListIssues(ctx context.Context, params IssueListParams) (*IssueListResult, error)
-	GetIssue(ctx context.Context, id string) (*IssueDetail, error)
+	GetIssue(ctx context.Context, tenantID, id string) (*IssueDetail, error)
 	UpdateIssue(ctx context.Context, id string, update IssueUpdate) (*Issue, error)
 	IssueStats(ctx context.Context) (*IssueStats, error)
 }
@@ -67,141 +74,58 @@ var _ IssueQuerier = (*PostgresQuerier)(nil)
 
 // ListIssues returns a paginated, filterable list of issues.
 func (q *PostgresQuerier) ListIssues(ctx context.Context, params IssueListParams) (*IssueListResult, error) {
-	if params.Page <= 0 {
-		params.Page = 1
-	}
-	if params.PerPage <= 0 || params.PerPage > 100 {
-		params.PerPage = 25
-	}
-
-	var where []string
-	var args []interface{}
-	argN := 1
-
-	if params.Severity != "" {
-		where = append(where, fmt.Sprintf("severity = $%d", argN))
-		args = append(args, params.Severity)
-		argN++
-	}
-	if params.Status != "" {
-		where = append(where, fmt.Sprintf("status = $%d", argN))
-		args = append(args, params.Status)
-		argN++
-	}
-	if params.ControlID != "" {
-		where = append(where, fmt.Sprintf("control_id = $%d", argN))
-		args = append(args, params.ControlID)
-		argN++
-	}
-	if params.AccountID != "" {
-		where = append(where, fmt.Sprintf("account_id = $%d", argN))
-		args = append(args, params.AccountID)
-		argN++
-	}
-	if params.Provider != "" {
-		where = append(where, fmt.Sprintf("provider = $%d", argN))
-		args = append(args, params.Provider)
-		argN++
-	}
-
-	whereClause := ""
-	if len(where) > 0 {
-		whereClause = "WHERE " + strings.Join(where, " AND ")
-	}
-
-	// Count total
-	var total int
-	countQuery := "SELECT COUNT(*) FROM issues " + whereClause
-	if err := q.db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
-		return nil, fmt.Errorf("count issues: %w", err)
-	}
-
-	// Fetch page
-	offset := (params.Page - 1) * params.PerPage
-	args = append(args, params.PerPage, offset)
-	dataQuery := fmt.Sprintf(`SELECT id, title, description, severity, risk_score, blast_radius,
-		status, COALESCE(control_id,''), COALESCE(resource_id,''), COALESCE(account_id,''),
-		COALESCE(provider,''), COALESCE(assignee_id,''), COALESCE(ticket_id,''),
-		COALESCE(ticket_url,''), sla_breach_at, exposure_paths, tenant_id,
-		created_at, updated_at, resolved_at
-		FROM issues %s ORDER BY risk_score DESC, created_at DESC LIMIT $%d OFFSET $%d`,
-		whereClause, argN, argN+1)
-
-	rows, err := q.db.QueryContext(ctx, dataQuery, args...)
+	issues, total, err := NewStore(q.db).ListIssues(ctx, IssueListFilter{
+		TenantID:           params.TenantID,
+		Severity:           params.Severity,
+		Status:             params.Status,
+		Provider:           params.Provider,
+		AccountID:          params.AccountID,
+		ControlID:          params.ControlID,
+		ResourceID:         params.ResourceID,
+		HasTicket:          params.HasTicket,
+		SortBy:             params.SortBy,
+		SortOrder:          params.SortOrder,
+		ScopeAccountIDs:    params.ScopeAccountIDs,
+		ScopeRegions:       params.ScopeRegions,
+		ScopeEnvironments:  params.ScopeEnvironments,
+		ScopeBusinessUnits: params.ScopeBusinessUnits,
+	}, params.Page, params.PerPage)
 	if err != nil {
 		return nil, fmt.Errorf("list issues: %w", err)
 	}
-	defer rows.Close()
 
-	issues := make([]Issue, 0)
-	for rows.Next() {
-		var iss Issue
-		if err := rows.Scan(
-			&iss.ID, &iss.Title, &iss.Description, &iss.Severity, &iss.RiskScore,
-			&iss.BlastRadius, &iss.Status, &iss.ControlID, &iss.ResourceID,
-			&iss.AccountID, &iss.Provider, &iss.AssigneeID, &iss.TicketID,
-			&iss.TicketURL, &iss.SLABreachAt, &iss.ExposurePaths, &iss.TenantID,
-			&iss.CreatedAt, &iss.UpdatedAt, &iss.ResolvedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scan issue: %w", err)
-		}
-		issues = append(issues, iss)
+	page := params.Page
+	if page <= 0 {
+		page = 1
 	}
-
-	totalPages := total / params.PerPage
-	if total%params.PerPage > 0 {
+	perPage := params.PerPage
+	if perPage <= 0 || perPage > 200 {
+		perPage = 50
+	}
+	totalPages := total / perPage
+	if total%perPage > 0 {
 		totalPages++
+	}
+	if totalPages == 0 {
+		totalPages = 1
 	}
 
 	return &IssueListResult{
 		Data:       issues,
-		Page:       params.Page,
-		PerPage:    params.PerPage,
+		Page:       page,
+		PerPage:    perPage,
 		Total:      total,
 		TotalPages: totalPages,
 	}, nil
 }
 
 // GetIssue returns a single issue with its related finding IDs.
-func (q *PostgresQuerier) GetIssue(ctx context.Context, id string) (*IssueDetail, error) {
-	var iss Issue
-	err := q.db.QueryRowContext(ctx, `SELECT id, title, description, severity, risk_score, blast_radius,
-		status, COALESCE(control_id,''), COALESCE(resource_id,''), COALESCE(account_id,''),
-		COALESCE(provider,''), COALESCE(assignee_id,''), COALESCE(ticket_id,''),
-		COALESCE(ticket_url,''), sla_breach_at, exposure_paths, tenant_id,
-		created_at, updated_at, resolved_at
-		FROM issues WHERE id = $1`, id).Scan(
-		&iss.ID, &iss.Title, &iss.Description, &iss.Severity, &iss.RiskScore,
-		&iss.BlastRadius, &iss.Status, &iss.ControlID, &iss.ResourceID,
-		&iss.AccountID, &iss.Provider, &iss.AssigneeID, &iss.TicketID,
-		&iss.TicketURL, &iss.SLABreachAt, &iss.ExposurePaths, &iss.TenantID,
-		&iss.CreatedAt, &iss.UpdatedAt, &iss.ResolvedAt,
-	)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
+func (q *PostgresQuerier) GetIssue(ctx context.Context, tenantID, id string) (*IssueDetail, error) {
+	detail, err := NewStore(q.db).GetIssue(ctx, tenantID, id)
 	if err != nil {
 		return nil, fmt.Errorf("get issue %s: %w", id, err)
 	}
-
-	// Fetch related finding IDs
-	rows, err := q.db.QueryContext(ctx,
-		`SELECT finding_id FROM issue_findings WHERE issue_id = $1 ORDER BY created_at`, id)
-	if err != nil {
-		return &IssueDetail{Issue: iss}, nil // partial result
-	}
-	defer rows.Close()
-
-	var findingIDs []string
-	for rows.Next() {
-		var fid string
-		if err := rows.Scan(&fid); err != nil {
-			continue
-		}
-		findingIDs = append(findingIDs, fid)
-	}
-
-	return &IssueDetail{Issue: iss, FindingIDs: findingIDs}, nil
+	return detail, nil
 }
 
 // UpdateIssue applies partial updates to an issue and returns the updated row.
@@ -332,6 +256,3 @@ func (q *PostgresQuerier) IssueStats(ctx context.Context) (*IssueStats, error) {
 
 	return stats, nil
 }
-
-// Compile-time unused import guard for pq
-var _ = pq.Array

@@ -116,6 +116,20 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.getFinding)),
 	).Methods("GET")
 
+	// Security issues (ADR-020 — graph-native materialized issues)
+	apiRouter.Handle("/issues",
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleListIssues)),
+	).Methods("GET")
+	apiRouter.Handle("/issues/stats",
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.handleIssueStats))),
+	).Methods("GET")
+	apiRouter.Handle("/issues/{id}",
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleGetIssue)),
+	).Methods("GET")
+	apiRouter.Handle("/issues/{id}",
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.handleUpdateIssue))),
+	).Methods("PATCH")
+
 	// Finding comments — scope-guarded (comments inherit finding scope)
 	apiRouter.Handle("/findings/{id}/comments",
 		s.roles.Require(api.RoleViewer, api.RoleRequester, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.listComments))),
@@ -223,20 +237,6 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/graph/stats", // viewer+
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleGraphStats)),
 	).Methods("GET")
-
-	// Security issues (ADR-020 — graph-native materialized issues)
-	apiRouter.Handle("/issues", // viewer+
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.handleListIssues))),
-	).Methods("GET")
-	apiRouter.Handle("/issues/stats", // viewer+
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleIssueStats)),
-	).Methods("GET")
-	apiRouter.Handle("/issues/{id}", // viewer+
-		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.handleGetIssue))),
-	).Methods("GET")
-	apiRouter.Handle("/issues/{id}", // operator, admin
-		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.handleUpdateIssue))),
-	).Methods("PATCH")
 
 	// Data classification (DSPM) — scope-guarded (account-scoped assets)
 	apiRouter.Handle("/data-classification/assets",

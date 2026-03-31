@@ -121,6 +121,49 @@ type Issue struct {
 	ResolvedAt    *time.Time  `json:"resolved_at,omitempty" db:"resolved_at"`
 }
 
+// IssueListFilter constrains issue list queries for the operator surface.
+type IssueListFilter struct {
+	TenantID           string   `json:"tenant_id,omitempty"`
+	Severity           string   `json:"severity,omitempty"`
+	Status             string   `json:"status,omitempty"`
+	Provider           string   `json:"provider,omitempty"`
+	AccountID          string   `json:"account_id,omitempty"`
+	ControlID          string   `json:"control_id,omitempty"`
+	ResourceID         string   `json:"resource_id,omitempty"`
+	HasTicket          *bool    `json:"has_ticket,omitempty"`
+	SortBy             string   `json:"sort_by,omitempty"`
+	SortOrder          string   `json:"sort_order,omitempty"`
+	ScopeAccountIDs    []string `json:"scope_account_ids,omitempty"`
+	ScopeRegions       []string `json:"scope_regions,omitempty"`
+	ScopeEnvironments  []string `json:"scope_environments,omitempty"`
+	ScopeBusinessUnits []string `json:"scope_business_units,omitempty"`
+}
+
+// IssueSummary is the operator-facing issue view returned by list queries.
+// It enriches the materialized issue row with control/resource metadata and
+// scope-relevant fields used by API-side authorization checks.
+type IssueSummary struct {
+	Issue
+	ControlTitle    string `json:"control_title,omitempty"`
+	ResourceName    string `json:"resource_name,omitempty"`
+	Region          string `json:"region,omitempty"`
+	EnvironmentType string `json:"environment_type,omitempty"`
+	LineOfBusiness  string `json:"line_of_business,omitempty"`
+	FindingCount    int    `json:"finding_count"`
+}
+
+// GetAccountID returns the account dimension for scope enforcement.
+func (i IssueSummary) GetAccountID() string { return i.AccountID }
+
+// GetRegion returns the region dimension for scope enforcement.
+func (i IssueSummary) GetRegion() string { return i.Region }
+
+// GetEnvironmentType returns the environment dimension for scope enforcement.
+func (i IssueSummary) GetEnvironmentType() string { return i.EnvironmentType }
+
+// GetLineOfBusiness returns the business-unit dimension for scope enforcement.
+func (i IssueSummary) GetLineOfBusiness() string { return i.LineOfBusiness }
+
 // IssueFindingLink links a materialized issue to the findings that produced it.
 type IssueFindingLink struct {
 	IssueID   string    `json:"issue_id" db:"issue_id"`
