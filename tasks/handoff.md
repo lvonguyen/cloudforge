@@ -260,12 +260,29 @@ Use this file as the shared climbing board for all security-graph work. Before s
     - `npm run test -- src/pages/__tests__/OpsPages.test.tsx`
     - `npx tsc --noEmit`
 
+- `WG-E: Graph UX modernization` — completed 2026-03-31 (session 33, lead)
+  - Scope completed: SecurityGraph page wired to backend neighborhood API in focus mode, graph stats panel, edge type legend, node type visual distinction, client-side fallback preserved
+  - Output files:
+    - `frontend/src/pages/ops/SecurityGraph.tsx`
+    - `frontend/src/types/security-graph.ts`
+    - `frontend/src/hooks/useGraphQuery.ts`
+
+- `ADR-020 Phase 2: Graph-native BFS` — completed 2026-03-31 (session 33, lead)
+  - Scope completed: AdjacencySet loaded from graph_edges at startup, canConnect() upgraded from heuristic to edge lookup, buildChain uses explicit edges. Heuristic fallback when no DB.
+  - Output files:
+    - `internal/secgraph/adjacency.go`
+    - `internal/secgraph/adjacency_test.go`
+    - `cmd/server/attackpath.go` (canConnect, buildChain, computeAttackPaths signatures updated)
+    - `cmd/server/main.go` (LoadAdjacencyFromDB wired before computeAttackPaths)
+
 ### In Flight
 
-- `WG-E: Graph UX modernization` — in progress 2026-03-31 (session 33, lead)
-  - Scope claimed: Wire SecurityGraph page to backend neighborhood API, add issue/control node rendering, improve graph layout with type-lane clustering, add graph stats panel
-  - Write scope: `frontend/src/pages/ops/SecurityGraph.tsx`, `frontend/src/types/security-graph.ts`, `frontend/src/hooks/useGraphQuery.ts` (new), `frontend/src/components/ops/BaseGraphView.tsx`
-  - Coordination: backend graph API (WG-D) is done and committed
+(none currently)
+
+- `WG-C Follow-up: Full-sync stale issue reconciliation` — in progress 2026-03-30 (codex)
+  - Scope claimed: full startup sync should reconcile away issues/materialization links for findings that disappear from the current source set, while incremental ingest remains non-reconciling
+  - Write scope: `internal/secgraph/store.go`, `cmd/server/secgraph_sync.go`, `cmd/server/secgraph_sync_test.go`, `tasks/handoff.md`
+  - Coordination: backend-only; keep incremental ingest behavior unchanged
 
 ### Pending
 
