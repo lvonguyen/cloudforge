@@ -224,6 +224,20 @@ func (s *Server) setupRoutes() {
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleGraphStats)),
 	).Methods("GET")
 
+	// Security issues (ADR-020 — graph-native materialized issues)
+	apiRouter.Handle("/issues", // viewer+
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.handleListIssues))),
+	).Methods("GET")
+	apiRouter.Handle("/issues/stats", // viewer+
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(http.HandlerFunc(s.handleIssueStats)),
+	).Methods("GET")
+	apiRouter.Handle("/issues/{id}", // viewer+
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.handleGetIssue))),
+	).Methods("GET")
+	apiRouter.Handle("/issues/{id}", // operator, admin
+		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.handleUpdateIssue))),
+	).Methods("PATCH")
+
 	// Data classification (DSPM) — scope-guarded (account-scoped assets)
 	apiRouter.Handle("/data-classification/assets",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.listDataClassificationAssets))),
