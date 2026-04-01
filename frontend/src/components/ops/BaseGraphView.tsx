@@ -25,8 +25,8 @@ const GRAPH_TONE = {
     controlsClass: '[&_button]:rounded-none [&_button]:border-[#1e2330] [&_button]:bg-[#12121a] [&_button]:text-gray-400',
   },
   light: {
-    background: '#f8fafc',
-    grid: '#dbe4f0',
+    background: '#fbfdff',
+    grid: '#d7e3f0',
     controlsClass: '[&_button]:rounded-md [&_button]:border-slate-200 [&_button]:bg-white [&_button]:text-slate-600 [&_button]:shadow-sm [&_button:hover]:bg-slate-50',
   },
 } as const
@@ -58,7 +58,7 @@ export function BaseGraphView({
         onEdgesChange={onEdgesChange}
         onNodeClick={handleNodeClick}
         fitView
-        fitViewOptions={{ padding: 0.18 }}
+        fitViewOptions={{ padding: 0.14 }}
         minZoom={0.35}
         maxZoom={2.2}
         proOptions={{ hideAttribution: true }}

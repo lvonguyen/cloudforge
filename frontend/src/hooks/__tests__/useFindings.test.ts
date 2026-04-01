@@ -252,6 +252,26 @@ describe('useFindings', () => {
 
     expect(vi.mocked(apiClient.get)).toHaveBeenCalledWith('/findings?provider=aws')
   })
+
+  it('allows larger local demo pages for analyst views', async () => {
+    vi.stubEnv('VITE_DEMO_MODE', 'true')
+    const largeCorpus = Array.from({ length: 1500 }, (_, index) =>
+      buildUniformFinding(index, 'HIGH', 'open', true),
+    )
+
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(largeCorpus), { status: 200 }),
+    )
+
+    const { result } = renderHook(
+      () => useFindings({ page: 1, perPage: 1000, sort: 'ai_risk', order: 'desc' }),
+      { wrapper: makeWrapper() },
+    )
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toHaveLength(1000)
+    expect(result.current.total).toBe(1500)
+  })
 })
 
 describe('normalizeDemoFindings', () => {

@@ -153,6 +153,7 @@ function CenterPane({
     () => selectedPath ? pathToFlow(selectedPath) : { nodes: [], edges: [] },
     [selectedPath],
   )
+  const selectedPathCanvasClass = '[&_button]:rounded-xl [&_button]:border-slate-200 [&_button]:bg-white [&_button]:text-slate-500 [&_button:hover]:bg-slate-50 [&_button:hover]:text-slate-900'
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
@@ -297,20 +298,21 @@ function CenterPane({
               edges={edges}
               onNodeClick={onNodeClick}
               fitView
-              fitViewOptions={{ padding: 0.3 }}
+              fitViewOptions={{ padding: 0.16 }}
               proOptions={{ hideAttribution: true }}
               nodesDraggable={false}
               nodesConnectable={false}
               elementsSelectable={false}
-              minZoom={0.3}
-              maxZoom={1.5}
+              minZoom={0.4}
+              maxZoom={1.75}
+              style={{ background: '#f8fafc' }}
             >
-              <Background gap={20} size={1} color="#1a1e26" />
-              <Controls showInteractive={false} />
+              <Background gap={18} size={1} color="#dbe4f0" />
+              <Controls showInteractive={false} className={selectedPathCanvasClass} />
               <MiniMap
                 nodeColor={(n) => SEVERITY_HEX[(n.data?.severity as string) ?? ''] ?? SEVERITY_NEUTRAL_HEX}
-                style={{ background: '#0d1117' }}
-                maskColor="rgba(0,0,0,0.6)"
+                style={{ background: '#ffffff' }}
+                maskColor="rgba(148,163,184,0.22)"
               />
             </ReactFlow>
           </div>
@@ -421,21 +423,6 @@ function CommandCenterShell() {
   const { state, dispatch, showDetailPanel } = useCommandCenter()
   const [queryFilters, setQueryFilters] = useState<Pick<NLQFilters, 'category' | 'status' | 'text'>>({})
 
-  // Data fetching
-  const { data: allFindings = [], isLoading: findingsLoading, isUsingMockData } = useFindings({
-    page: 1,
-    perPage: 200,
-    sort: 'ai_risk',
-    order: 'desc',
-  })
-  const { data: findingStats } = useFindingsStats()
-  const { data: attackPathsResponse } = useAttackPaths(1, 100)
-  const { data: stats } = useAttackPathStats()
-  const { data: remediations = [] } = useRemediations()
-
-  const attackPaths = attackPathsResponse?.data ?? []
-
-  // Build enabled-value sets from flat activeLayers map
   const enabledByGroup = useMemo(() => {
     const map: Record<string, Set<string>> = {}
     for (const [key, on] of Object.entries(state.activeLayers)) {
@@ -446,6 +433,30 @@ function CommandCenterShell() {
     }
     return map
   }, [state.activeLayers])
+
+  const findingsQueryParams = useMemo(() => {
+    const severityValues = enabledByGroup.severity ? Array.from(enabledByGroup.severity) : []
+    const providerValues = enabledByGroup.provider ? Array.from(enabledByGroup.provider) : []
+
+    return {
+      page: 1,
+      perPage: 1000,
+      sort: 'ai_risk',
+      order: 'desc' as const,
+      severity: severityValues.length === 1 ? severityValues[0] : undefined,
+      provider: providerValues.length === 1 ? providerValues[0] : undefined,
+      status: queryFilters.status?.length === 1 ? queryFilters.status[0] : undefined,
+    }
+  }, [enabledByGroup.provider, enabledByGroup.severity, queryFilters.status])
+
+  // Data fetching
+  const { data: allFindings = [], isLoading: findingsLoading, isUsingMockData } = useFindings(findingsQueryParams)
+  const { data: findingStats } = useFindingsStats()
+  const { data: attackPathsResponse } = useAttackPaths(1, 100)
+  const { data: stats } = useAttackPathStats()
+  const { data: remediations = [] } = useRemediations()
+
+  const attackPaths = attackPathsResponse?.data ?? []
 
   // Filter findings by active layers (severity AND provider AND environment) + date range
   const filteredFindings = useMemo(() => {
@@ -539,6 +550,15 @@ function CommandCenterShell() {
 
   const handleNLQFilters = useCallback((filters: NLQFilters) => {
     const layers: Record<string, boolean> = {}
+    const hasFocusedQuery = Boolean(
+      filters.text?.trim() ||
+      filters.severity?.length ||
+      filters.provider?.length ||
+      filters.category?.length ||
+      filters.status?.length ||
+      filters.environment?.length,
+    )
+
     if (filters.severity) {
       for (const s of ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']) {
         layers[`severity:${s}`] = filters.severity.includes(s)
@@ -559,6 +579,11 @@ function CommandCenterShell() {
       status: filters.status && filters.status.length > 0 ? filters.status : undefined,
       text: filters.text?.trim() || undefined,
     })
+    if (hasFocusedQuery) {
+      dispatch({ type: 'SET_CENTER_VIEW', payload: 'queue' })
+      dispatch({ type: 'SELECT_PATH', payload: null })
+      dispatch({ type: 'SELECT_ENTITY', payload: null })
+    }
     dispatch({ type: 'SET_LAYERS', payload: layers })
   }, [dispatch])
 

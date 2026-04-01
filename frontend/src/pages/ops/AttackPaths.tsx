@@ -362,7 +362,7 @@ function pathToFlow(
       label: semantic.badge,
       type: 'smoothstep',
       markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
-      style: { strokeWidth: isPrivilegeEscalationEdge(e) ? 3.1 : 2.55, stroke: semantic.color ?? canvasTheme.edgeColor },
+      style: { strokeWidth: isPrivilegeEscalationEdge(e) ? 3.45 : 2.85, stroke: semantic.color ?? canvasTheme.edgeColor },
       labelStyle: { fontSize: 10, fill: semantic.color ?? canvasTheme.edgeLabelColor, fontWeight: 700 },
       labelBgStyle: { fill: canvasTheme.edgeLabelBackground, fillOpacity: 0.98 },
       labelBgPadding: [4, 6] as [number, number],
@@ -723,7 +723,7 @@ function PathGraphView({
             nodes={nodes}
             edges={edges}
             fitView
-            fitViewOptions={{ padding: 0.18 }}
+            fitViewOptions={{ padding: 0.14 }}
             proOptions={{ hideAttribution: true }}
             nodesDraggable={false}
             nodesConnectable={false}

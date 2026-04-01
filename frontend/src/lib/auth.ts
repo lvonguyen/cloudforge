@@ -47,6 +47,7 @@ export const STATE_KEY = `${branding.storagePrefix}_oauth_state`
 const NONCE_KEY = `${branding.storagePrefix}_oauth_nonce`
 export const LOGIN_RETURN_KEY = `${branding.storagePrefix}_login_return`
 const DEMO_SESSION_KEY = `${branding.storagePrefix}_demo_session`
+export const PREVIEW_ROLE_KEY = `${branding.storagePrefix}_preview_role`
 
 const OKTA_ISSUER = import.meta.env.VITE_OKTA_ISSUER as string | undefined
 const OKTA_CLIENT_ID = import.meta.env.VITE_OKTA_CLIENT_ID as string | undefined
@@ -104,8 +105,8 @@ export function isTokenExpired(token: string): boolean {
 // role switching in dev/demo contexts.
 const ROLE_RANK: Record<Role, number> = { viewer: 0, requester: 1, operator: 2, admin: 3 }
 
-// Preview-only role switching is intentionally ephemeral. This stays in
-// memory for the current runtime and is never persisted to storage.
+// Demo role switching should survive reloads during walkthroughs, but only
+// within dev/demo sessions. Real authenticated flows still derive role from JWT.
 let previewRoleOverride: Role | null = null
 
 export function getPreviewRoleOverride(): Role | null {
@@ -114,6 +115,15 @@ export function getPreviewRoleOverride(): Role | null {
 
 export function setPreviewRoleOverride(role: Role | null): void {
   previewRoleOverride = role
+}
+
+function getStoredPreviewRole(): Role | null {
+  if (typeof window === 'undefined') return null
+  const raw = sessionStorage.getItem(PREVIEW_ROLE_KEY)
+  if (raw === 'admin' || raw === 'operator' || raw === 'requester' || raw === 'viewer') {
+    return raw
+  }
+  return null
 }
 
 export function deriveRoleFromGroups(groups: string[]): Role {
@@ -155,7 +165,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const staticToken = import.meta.env.VITE_STATIC_TOKEN as string | undefined
 
   const [user, setUser] = useState<User>(() => {
-    const previewRole = getPreviewRoleOverride()
+    const previewRole = getPreviewRoleOverride() ?? ((isDev || isDemo) ? getStoredPreviewRole() : null)
+    if (previewRole) {
+      setPreviewRoleOverride(previewRole)
+    }
     if (isDev) {
       return previewRole
         ? { ...DEFAULT_USER, role: previewRole, name: ROLE_DISPLAY_NAMES[previewRole] }
@@ -193,7 +206,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Clear any legacy persisted role override so old preview data cannot
     // leak across reloads or into authenticated flows.
     sessionStorage.removeItem(ROLE_KEY)
-  }, [])
+    if (!isDev && !isDemo) {
+      sessionStorage.removeItem(PREVIEW_ROLE_KEY)
+      setPreviewRoleOverride(null)
+    }
+  }, [isDemo, isDev])
 
   const login = useCallback(async () => {
     if (!OKTA_ISSUER || !OKTA_CLIENT_ID) {
@@ -269,6 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(NONCE_KEY)
     sessionStorage.removeItem(ROLE_KEY)
     sessionStorage.removeItem(DEMO_SESSION_KEY)
+    sessionStorage.removeItem(PREVIEW_ROLE_KEY)
     setPreviewRoleOverride(null)
 
     // Always clear React state so UI reflects logged-out immediately,
@@ -295,6 +313,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const maxRole = isDev ? DEFAULT_USER.role : 'admin' as Role
     const effective = ROLE_RANK[role] <= ROLE_RANK[maxRole] ? role : maxRole
     setPreviewRoleOverride(effective)
+    sessionStorage.setItem(PREVIEW_ROLE_KEY, effective)
     setUser((prev) => ({
       ...prev,
       role: effective,

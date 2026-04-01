@@ -128,7 +128,7 @@ function describeNodeImportance(type: InvestigationEntityType, data: Record<stri
 }
 
 export default function Investigations() {
-  const { data: findings = [], isLoading } = useFindings({ page: 1, perPage: 200, sort: 'ai_risk', order: 'desc' })
+  const { data: findings = [], isLoading } = useFindings({ page: 1, perPage: 1000, sort: 'ai_risk', order: 'desc' })
   const [searchParams] = useSearchParams()
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(() => searchParams.get('findingId'))
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
@@ -276,11 +276,11 @@ export default function Investigations() {
         target: id,
         label: edgeLabel || undefined,
         animated: true,
-        style: { stroke: colors.border, strokeWidth: 1.8 },
+        style: { stroke: colors.border, strokeWidth: 2.2 },
         labelStyle: edgeLabel ? { fontSize: 8, fill: '#475569' } : undefined,
         labelBgStyle: edgeLabel ? { fill: '#ffffff', fillOpacity: 0.92 } : undefined,
         labelBgPadding: edgeLabel ? [2, 4] as [number, number] : undefined,
-        markerEnd: { type: MarkerType.ArrowClosed, color: colors.border, width: 12, height: 12 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: colors.border, width: 14, height: 14 },
       })
     }
 

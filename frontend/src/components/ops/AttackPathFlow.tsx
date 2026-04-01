@@ -14,12 +14,12 @@ function AttackPathFlowNodeLabel({ node }: { node: AttackPathNode }) {
         <span className={`text-[10px] font-bold px-1 py-0 ${SEVERITY_COLORS[node.severity] ?? ''}`}>
           {node.severity}
         </span>
-        <span className="text-[10px] text-gray-500">{node.category}</span>
+        <span className="text-[10px] text-slate-500">{node.category}</span>
       </div>
-      <div className="text-xs font-medium text-gray-200 truncate max-w-[180px]">
+      <div className="text-xs font-medium text-slate-950 truncate max-w-[200px]">
         {node.resource_name}
       </div>
-      <div className="text-[11px] text-gray-500">{node.resource_type} · {node.region}</div>
+      <div className="text-[11px] text-slate-500">{node.resource_type} · {node.region}</div>
     </div>
   )
 }
@@ -37,11 +37,12 @@ export function pathToFlow(path: AttackPath): { nodes: Node[]; edges: Edge[] } {
     targetPosition: Position.Left,
     style: {
       border: `2px solid ${SEVERITY_HEX[node.severity] ?? SEVERITY_NEUTRAL_HEX}`,
-      borderRadius: '0px',
-      background: '#111318',
+      borderRadius: '20px',
+      background: '#ffffff',
       padding: '4px',
-      width: 220,
+      width: 240,
       cursor: 'pointer',
+      boxShadow: '0 14px 32px rgba(15, 23, 42, 0.12)',
     },
   }))
 
@@ -51,10 +52,10 @@ export function pathToFlow(path: AttackPath): { nodes: Node[]; edges: Edge[] } {
     target: edge.target,
     label: edge.label,
     type: 'default',
-    markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-    style: { strokeWidth: 2, stroke: '#374151' },
-    labelStyle: { fontSize: 9, fill: '#6b7280' },
-    labelBgStyle: { fill: '#0a0a0f', fillOpacity: 0.9 },
+    markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
+    style: { strokeWidth: 2.35, stroke: '#64748b' },
+    labelStyle: { fontSize: 9, fill: '#475569', fontWeight: 700 },
+    labelBgStyle: { fill: '#ffffff', fillOpacity: 0.96 },
     labelBgPadding: [3, 5] as [number, number],
   }))
 

@@ -85,6 +85,7 @@ async function fetchLocalMockFindings(): Promise<Finding[]> {
 }
 
 const SESSION_SOURCE_KEY = 'aegis_findings_source'
+const MAX_LOCAL_FINDINGS_PAGE_SIZE = 1000
 
 async function fetchMockFindings(): Promise<Finding[]> {
   const preferred = sessionStorage.getItem(SESSION_SOURCE_KEY)
@@ -162,7 +163,10 @@ function compareFindings(a: Finding, b: Finding, field: string, order: 'asc' | '
 
 function paginateLocalFindings(findings: Finding[], params?: FindingsQueryParams): FindingsPageEnvelope {
   const page = Math.max(params?.page ?? 1, 1)
-  const perPage = Math.min(Math.max(params?.perPage ?? (findings.length || 1), 1), 200)
+  const perPage = Math.min(
+    Math.max(params?.perPage ?? (findings.length || 1), 1),
+    MAX_LOCAL_FINDINGS_PAGE_SIZE,
+  )
   const filtered = findings.filter((finding) => {
     if (params?.severity && finding.severity !== params.severity) return false
     if (params?.provider && finding.cloud_provider !== params.provider) return false

@@ -28,7 +28,7 @@ const TABS: FeedTab[] = [
 
 export default function ThreatIntel() {
   const [activeTab, setActiveTab] = useState<FeedId>('overview')
-  const { data: findings = [] } = useFindings()
+  const { data: findings = [] } = useFindings({ page: 1, perPage: 1000, sort: 'ai_risk', order: 'desc' })
 
   const stats = useMemo(() => {
     const withEpss = findings.filter((f) => f.epss && f.epss > 0)
