@@ -8,11 +8,7 @@ test.describe('Command Center page', () => {
   })
 
   test('data layers panel is visible', async ({ page }) => {
-    // The DataLayersPanel shows filter groups for findings
-    // Check for severity-related filter text
-    await expect(
-      page.getByText('severity', { exact: false }).or(page.getByText('Severity')),
-    ).toBeVisible()
+    await expect(page.getByLabel('Data layer filters')).toBeVisible()
   })
 
   test('severity counts are displayed', async ({ page }) => {
@@ -25,14 +21,13 @@ test.describe('Command Center page', () => {
   })
 
   test('charts or visualization is present', async ({ page }) => {
-    // The CommandCenter renders various visualizations (charts, treemaps, graphs)
-    // Check for any SVG-based visualization, canvas, or known chart containers
+    // The CommandCenter renders charts, a prioritized queue, and graph views.
     const hasSvg = await page.locator('main svg').first().isVisible().catch(() => false)
     const hasCanvas = await page.locator('main canvas').first().isVisible().catch(() => false)
     const hasChart = await page.locator('.recharts-wrapper').first().isVisible().catch(() => false)
-    const hasTreemap = await page.locator('[data-testid="findings-treemap"]').first().isVisible().catch(() => false)
+    const hasQueue = await page.getByText('Investigation Queue').first().isVisible().catch(() => false)
     const hasGraph = await page.locator('.react-flow').first().isVisible().catch(() => false)
 
-    expect(hasSvg || hasCanvas || hasChart || hasTreemap || hasGraph).toBeTruthy()
+    expect(hasSvg || hasCanvas || hasChart || hasQueue || hasGraph).toBeTruthy()
   })
 })

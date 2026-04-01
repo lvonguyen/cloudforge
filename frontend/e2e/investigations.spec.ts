@@ -3,20 +3,17 @@ import { test, expect } from '@playwright/test'
 test.describe('Investigations page', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/ops/investigations')
-    // Wait for the investigation board heading
-    await page.getByText('Investigation Board').waitFor({ timeout: 15_000 })
+    await page.getByText('Investigation Queue').waitFor({ timeout: 15_000 })
   })
 
   test('finding list renders', async ({ page }) => {
-    // The left panel shows finding items as buttons with severity badges
-    const findingItems = page.locator('button').filter({ hasText: /CRITICAL|HIGH|MEDIUM|LOW/ })
+    const findingItems = page.locator('button').filter({ hasText: /CRITICAL|HIGH/ })
     const count = await findingItems.count()
     expect(count).toBeGreaterThan(0)
   })
 
   test('clicking different findings changes graph center node', async ({ page }) => {
-    // Get all finding buttons in the left panel
-    const findingButtons = page.locator('.w-80 button').filter({ hasText: /CRITICAL|HIGH|MEDIUM|LOW/ })
+    const findingButtons = page.locator('.w-80 button').filter({ hasText: /CRITICAL|HIGH/ })
     const count = await findingButtons.count()
     // Need at least 2 findings to compare
     test.skip(count < 2, 'Need at least 2 findings for this test')
