@@ -65,7 +65,7 @@ module "aegis_api" {
   }
 
   secrets = {
-    DATABASE_URL              = "aegis-dev-db-url"
+    AEGIS_DATABASE_URL        = "aegis-dev-db-url"
     AEGIS_JWT_SECRET     = "aegis-dev-jwt-secret"
     AEGIS_REDIS_PASSWORD = "aegis-dev-redis-password"
   }

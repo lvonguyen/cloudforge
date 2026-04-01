@@ -1,6 +1,7 @@
 # Cloud Aegis — Personal Demo Environment
-# Deploys the full pipeline to lvn-personal (431330216246) for portfolio demo.
-# Teardown target: 2026-04-20 (calendar reminder set).
+# STATUS: DECOMMISSIONED 2026-03-27. All resources destroyed.
+# This file is retained as architecture reference only. Do NOT run terraform apply.
+# Original target: lvn-personal (431330216246), us-east-1.
 
 terraform {
   required_version = ">= 1.5.0"

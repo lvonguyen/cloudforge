@@ -102,6 +102,16 @@
             "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; node \"$REPO_ROOT/.claude/scripts/hooks/skill-telemetry.js\""
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO_ROOT=\"$(git rev-parse --show-superproject-working-tree 2>/dev/null)\"; [ -z \"$REPO_ROOT\" ] && REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [ ! -d \"$REPO_ROOT/.claude/scripts\" ] && _GCD=\"$(git rev-parse --git-common-dir 2>/dev/null)\" && [ \"$_GCD\" != \".git\" ] && REPO_ROOT=\"$(cd \"$_GCD/..\" 2>/dev/null && pwd)\"; node \"$REPO_ROOT/.claude/scripts/hooks/go-vet.js\""
+          }
+        ],
+        "description": "Run go vet static analysis on edited Go packages"
       }
     ],
     "SessionStart": [

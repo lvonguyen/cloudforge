@@ -90,7 +90,7 @@ module "aegis_api" {
   }
 
   secrets = {
-    DATABASE_URL              = "aegis-staging-db-url"
+    AEGIS_DATABASE_URL        = "aegis-staging-db-url"
     AEGIS_JWT_SECRET     = "aegis-staging-jwt-secret"
     AEGIS_REDIS_PASSWORD = "aegis-staging-redis-password"
   }
