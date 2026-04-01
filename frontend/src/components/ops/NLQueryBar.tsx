@@ -108,7 +108,8 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
       vuln: 'VULNERABILITY', vulnerability: 'VULNERABILITY', vulnerabilities: 'VULNERABILITY',
       misconfig: 'MISCONFIGURATION', misconfiguration: 'MISCONFIGURATION',
       identity: 'IDENTITY', iam: 'IDENTITY',
-      network: 'NETWORK', data: 'DATA_PROTECTION',
+      network: 'NETWORK', data: 'DATA_PROTECTION', pii: 'DATA_PROTECTION', phi: 'DATA_PROTECTION',
+      sensitive: 'DATA_PROTECTION', pci: 'DATA_PROTECTION',
     }
     const statusTerms: Record<string, string> = {
       open: 'open', 'in progress': 'in_progress', resolved: 'resolved', suppressed: 'suppressed',

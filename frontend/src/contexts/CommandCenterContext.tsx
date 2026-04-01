@@ -18,7 +18,7 @@ export type SelectedEntity =
   | { type: 'attack-path'; data: AttackPath }
   | null
 
-export type CenterView = 'charts' | 'treemap'
+export type CenterView = 'charts' | 'queue'
 
 type Action =
   | { type: 'SELECT_ENTITY'; payload: SelectedEntity }
@@ -63,7 +63,7 @@ const INITIAL_STATE: State = {
   activeLayers: INITIAL_LAYERS,
   selectedPathId: null,
   leftPanelOpen: true,
-  centerView: 'charts',
+  centerView: 'queue',
   dateRange: { start: null, end: null },
   showShortcutOverlay: false,
 }

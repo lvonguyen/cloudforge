@@ -28,7 +28,7 @@ interface ProjectCard {
 const PROJECTS: ProjectCard[] = [
   {
     name: branding.productName,
-    slug: 'aegis',
+    slug: 'cloudforge',
     tier: 'flagship',
     description:
       'Enterprise cloud security platform — policy-as-code provisioning, AI-powered risk scoring, automated remediation, and multi-cloud compliance across AWS, Azure, and GCP.',
@@ -43,11 +43,11 @@ const PROJECTS: ProjectCard[] = [
       { label: 'Go Packages', value: '34' },
     ],
     link: '/admin',
-    repo: `${branding.repoPrefix}/aegis`,
+    repo: `${branding.repoPrefix}/cloudforge`,
   },
   {
     name: 'Posture Management',
-    slug: 'cspm-aggregator',
+    slug: 'posture-management',
     tier: 'supporting',
     description:
       'Security posture management for AWS, Azure, and GCP — normalizes provider findings into a unified schema with LLM-powered contextual risk scoring.',
@@ -62,7 +62,7 @@ const PROJECTS: ProjectCard[] = [
       { label: 'Edge Cases', value: '52' },
     ],
     link: '/ops/findings',
-    repo: `${branding.repoPrefix}/cspm-aggregator`,
+    repo: `${branding.repoPrefix}/posture-management`,
   },
   {
     name: 'Threat Intelligence',

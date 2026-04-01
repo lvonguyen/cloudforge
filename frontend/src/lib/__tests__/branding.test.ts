@@ -30,18 +30,18 @@ afterEach(() => {
 
 describe('applyRuntimeBranding', () => {
   it('overrides visible branding with runtime config values', () => {
-    branding.productName = 'Cloud Aegis'
+    branding.productName = 'CloudForge Legacy'
     branding.logoPath = '/logo.svg'
     branding.enabledModules = ['legacy-module']
     branding.themeColors = { primary: '', secondary: '', accent: '' }
 
     const runtime: RuntimeConfig = {
       companyName: 'Contoso Inc.',
-      productName: 'Aegis',
+      productName: 'CloudForge',
       logoPath: '/icons/aegis-logo.svg',
       emailDomain: 'contoso.dev',
       repoPrefix: 'github.com/contoso',
-      enabledModules: ['aegis', 'cspm-aggregator'],
+      enabledModules: ['cloudforge', 'posture-management'],
       storagePrefix: 'aegis',
       theme: {
         primaryColor: '#111111',
@@ -52,9 +52,9 @@ describe('applyRuntimeBranding', () => {
 
     applyRuntimeBranding(runtime)
 
-    expect(branding.productName).toBe('Aegis')
+    expect(branding.productName).toBe('CloudForge')
     expect(branding.logoPath).toBe('/icons/aegis-logo.svg')
-    expect(branding.enabledModules).toEqual(['aegis', 'cspm-aggregator'])
+    expect(branding.enabledModules).toEqual(['cloudforge', 'posture-management'])
     expect(branding.themeColors).toEqual({
       primary: '#111111',
       secondary: '#222222',

@@ -58,8 +58,9 @@ export function BaseGraphView({
         onEdgesChange={onEdgesChange}
         onNodeClick={handleNodeClick}
         fitView
-        minZoom={0.3}
-        maxZoom={2}
+        fitViewOptions={{ padding: 0.18 }}
+        minZoom={0.35}
+        maxZoom={2.2}
         proOptions={{ hideAttribution: true }}
         style={{ background: palette.background }}
       >

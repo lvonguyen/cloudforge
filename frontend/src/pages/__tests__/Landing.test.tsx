@@ -9,9 +9,9 @@ describe('Landing', () => {
     expect(await screen.findByRole('heading', { level: 1 }, { timeout: 10_000 })).toBeInTheDocument()
   }, 10_000)
 
-  it('shows the Aegis Platform heading', () => {
+  it('shows the CloudForge Platform heading', () => {
     renderWithProviders(<Landing />)
-    expect(screen.getByText(/Aegis Platform/i)).toBeInTheDocument()
+    expect(screen.getByText(/CloudForge Platform/i)).toBeInTheDocument()
   })
 
   it('shows the Modules section heading', () => {
@@ -29,7 +29,7 @@ describe('Landing', () => {
 
   it('renders the 2 core project tiles', () => {
     renderWithProviders(<Landing />)
-    expect(screen.getByText('Aegis')).toBeInTheDocument()
+    expect(screen.getByText('CloudForge')).toBeInTheDocument()
     expect(screen.getByText('Posture Management')).toBeInTheDocument()
   })
 

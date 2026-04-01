@@ -88,7 +88,7 @@ export function XTermView({ onCommand, panelHeight, isConnected: _isConnected, i
     onTermInstanceRef.current?.(term)
 
     // Welcome banner.
-    term.writeln('\x1b[1;36m  Aegis Terminal\x1b[0m')
+    term.writeln('\x1b[1;36m  CloudForge Terminal\x1b[0m')
     term.writeln('\x1b[90m  Type a command (e.g., aws s3 ls, kubectl get pods)\x1b[0m')
     term.writeln('\x1b[90m  Only read-only cloud CLI commands are allowed.\x1b[0m')
     term.writeln('')

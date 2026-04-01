@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback, useId, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useEffect, useMemo, useCallback, useId, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import {
   ReactFlow,
   Background,
@@ -7,6 +7,7 @@ import {
   type Node,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { useNavigate } from 'react-router-dom'
 import {
   CommandCenterProvider,
   useCommandCenter,
@@ -17,10 +18,9 @@ import { EntityDetailPanel } from '@/components/ops/EntityDetailPanel'
 import { NLQueryBar } from '@/components/ops/NLQueryBar'
 import { StatusBar } from '@/components/ops/StatusBar'
 import { FindingsSummaryChart } from '@/components/ops/FindingsSummaryChart'
-import { FindingsTreemap } from '@/components/ops/FindingsTreemap'
 import { ShortcutOverlay } from '@/components/ops/ShortcutOverlay'
 import { pathToFlow } from '@/components/ops/AttackPathFlow'
-import { useFindings } from '@/hooks/useFindings'
+import { useFindings, useFindingsStats } from '@/hooks/useFindings'
 import { useAttackPaths, useAttackPathStats } from '@/hooks/useAttackPaths'
 import { useRemediations } from '@/hooks/useRemediations'
 import { Badge } from '@/components/ui/badge'
@@ -28,12 +28,57 @@ import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS, SEVERITY_HEX, SEVERITY_NEU
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import {
   ArrowLeft,
+  ChevronRight,
   Layers,
   Shield,
   Sparkles,
 } from 'lucide-react'
 import type { AttackPath } from '@/types/attack-path'
 import type { Finding } from '@/types/compliance'
+
+interface NLQFilters {
+  severity?: string[]
+  provider?: string[]
+  category?: string[]
+  status?: string[]
+  environment?: string[]
+  text?: string
+}
+
+function getFindingQueueScore(finding: Finding): number {
+  const severityScore: Record<string, number> = {
+    CRITICAL: 40,
+    HIGH: 28,
+    MEDIUM: 16,
+    LOW: 8,
+  }
+
+  return (
+    (severityScore[finding.severity] ?? 0) +
+    Math.round(finding.ai_risk_score * 5) +
+    (finding.toxic_combo_details ? 24 : 0) +
+    (finding.exploit_available ? 18 : 0) +
+    Math.min(finding.impacted_resources?.length ?? 0, 5) * 3 +
+    Math.min(finding.compliance_mappings?.length ?? 0, 4) * 2 +
+    (finding.environment_type === 'production' ? 6 : 0)
+  )
+}
+
+function summarizeFindingQueueContext(finding: Finding): string {
+  if (finding.toxic_combo_details) {
+    return `Toxic combo · ${finding.toxic_combo_details.combo_type}`
+  }
+  if (finding.exploit_available) {
+    return 'Exploit path available'
+  }
+  if ((finding.impacted_resources?.length ?? 0) > 0) {
+    return `${finding.impacted_resources?.length ?? 0} downstream resource${finding.impacted_resources?.length === 1 ? '' : 's'}`
+  }
+  if ((finding.compliance_mappings?.length ?? 0) > 0) {
+    return `${finding.compliance_mappings?.length ?? 0} mapped control${finding.compliance_mappings?.length === 1 ? '' : 's'}`
+  }
+  return finding.ai_contextual_factors?.[0] ?? finding.category.replaceAll('_', ' ')
+}
 
 // ---------------------------------------------------------------------------
 // Compact attack path card (for the grid view)
@@ -81,20 +126,23 @@ function CenterPane({
   attackPaths,
   allFindings,
   filteredFindings,
+  totalFindings,
   stats,
 }: {
   attackPaths: AttackPath[]
   allFindings: Finding[]
   filteredFindings: Finding[]
+  totalFindings: number
   stats?: { total_paths: number; critical_paths: number }
 }) {
   const { state, dispatch } = useCommandCenter()
+  const navigate = useNavigate()
   const { selectedPathId } = state
   const centerViewId = useId()
   const chartsTabId = `${centerViewId}-charts-tab`
-  const treemapTabId = `${centerViewId}-treemap-tab`
+  const queueTabId = `${centerViewId}-queue-tab`
   const chartsPanelId = `${centerViewId}-charts-panel`
-  const treemapPanelId = `${centerViewId}-treemap-panel`
+  const queuePanelId = `${centerViewId}-queue-panel`
 
   const selectedPath = useMemo(
     () => attackPaths.find(p => p.id === selectedPathId) ?? null,
@@ -138,8 +186,16 @@ function CenterPane({
     [dispatch],
   )
 
+  const queuedFindings = useMemo(
+    () =>
+      [...filteredFindings]
+        .sort((a, b) => getFindingQueueScore(b) - getFindingQueueScore(a))
+        .slice(0, 24),
+    [filteredFindings],
+  )
+
   const handleViewTabKeyDown = useCallback(
-    (event: ReactKeyboardEvent<HTMLButtonElement>, currentView: 'charts' | 'treemap') => {
+    (event: ReactKeyboardEvent<HTMLButtonElement>, currentView: 'charts' | 'queue') => {
       const advanceKeys = ['ArrowRight', 'ArrowDown']
       const retreatKeys = ['ArrowLeft', 'ArrowUp']
 
@@ -154,13 +210,13 @@ function CenterPane({
         return
       }
       if (event.key === 'End') {
-        dispatch({ type: 'SET_CENTER_VIEW', payload: 'treemap' })
+        dispatch({ type: 'SET_CENTER_VIEW', payload: 'queue' })
         return
       }
 
       dispatch({
         type: 'SET_CENTER_VIEW',
-        payload: currentView === 'charts' ? 'treemap' : 'charts',
+        payload: currentView === 'charts' ? 'queue' : 'charts',
       })
     },
     [dispatch],
@@ -196,9 +252,9 @@ function CenterPane({
               {attackPaths.length > 0 && stats?.critical_paths != null ? ` · ${stats.critical_paths} critical` : ''}
             </span>
             <span className="text-xs text-gray-600 font-mono">
-              {filteredFindings.length === allFindings.length
-                ? `${allFindings.length} findings`
-                : `${filteredFindings.length} of ${allFindings.length} findings`}
+              {filteredFindings.length === totalFindings
+                ? `${totalFindings.toLocaleString()} findings`
+                : `${filteredFindings.length.toLocaleString()} visible · ${totalFindings.toLocaleString()} total`}
             </span>
             {/* Segmented center view control */}
             <div
@@ -206,14 +262,14 @@ function CenterPane({
               role="tablist"
               aria-label="Command center visualization view"
             >
-              {(['charts', 'treemap'] as const).map((view, i) => (
+              {(['charts', 'queue'] as const).map((view, i) => (
                 <button
                   key={view}
                   type="button"
-                  id={view === 'charts' ? chartsTabId : treemapTabId}
+                  id={view === 'charts' ? chartsTabId : queueTabId}
                   role="tab"
                   aria-selected={state.centerView === view}
-                  aria-controls={view === 'charts' ? chartsPanelId : treemapPanelId}
+                  aria-controls={view === 'charts' ? chartsPanelId : queuePanelId}
                   tabIndex={state.centerView === view ? 0 : -1}
                   onClick={() => dispatch({ type: 'SET_CENTER_VIEW', payload: view })}
                   onKeyDown={(event) => handleViewTabKeyDown(event, view)}
@@ -223,7 +279,7 @@ function CenterPane({
                       : 'text-gray-500 hover:text-gray-300'
                   }`}
                 >
-                  {i + 1} {view === 'charts' ? 'Charts' : 'Heatmap'}
+                  {i + 1} {view === 'charts' ? 'Charts' : 'Queue'}
                 </button>
               ))}
             </div>
@@ -258,15 +314,71 @@ function CenterPane({
               />
             </ReactFlow>
           </div>
-        ) : state.centerView === 'treemap' ? (
-          /* Treemap heatmap view */
+        ) : state.centerView === 'queue' ? (
+          /* Operator findings queue */
           <div
-            id={treemapPanelId}
+            id={queuePanelId}
             role="tabpanel"
-            aria-labelledby={treemapTabId}
-            className="h-full"
+            aria-labelledby={queueTabId}
+            className="h-full overflow-y-auto"
           >
-            <FindingsTreemap findings={filteredFindings} onSelect={onSelectFinding} />
+            <div className="border-b border-[#1e2330] px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gray-500">
+                Investigation Queue
+              </p>
+              <p className="mt-1 text-xs text-gray-400">
+                Highest-value findings first. Toxic combinations, exploit availability, production scope, and downstream impact push items to the top.
+              </p>
+            </div>
+            <div className="divide-y divide-[#1e2330]">
+              {queuedFindings.map((finding) => (
+                <div
+                  key={finding.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onSelectFinding(finding)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      onSelectFinding(finding)
+                    }
+                  }}
+                  className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[#111827]"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${SEVERITY_COLORS[finding.severity] ?? ''}`}>
+                        {finding.severity}
+                      </Badge>
+                      <ProviderBadge provider={finding.cloud_provider} size="sm" />
+                      <span className="text-[10px] font-mono text-gray-500">{finding.id}</span>
+                      <span className="text-[10px] font-mono text-cyan-300">Score {getFindingQueueScore(finding)}</span>
+                    </div>
+                    <p className="mt-2 text-sm font-medium text-gray-100">{finding.title}</p>
+                    <p className="mt-1 text-xs text-gray-400">
+                      {finding.resource_name} · {finding.resource_type} · {finding.environment_type}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-gray-400">
+                      <span>{summarizeFindingQueueContext(finding)}</span>
+                      {finding.assignee?.user_name && <span>Owner: {finding.assignee.user_name}</span>}
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        navigate(`/ops/findings/${finding.id}`)
+                      }}
+                      className="inline-flex items-center gap-1 rounded border border-[#1f2937] px-2 py-1 text-[10px] uppercase tracking-wide text-gray-300 transition-colors hover:border-[#374151] hover:bg-[#0f172a]"
+                    >
+                      Open case
+                      <ChevronRight className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : attackPaths.length > 0 ? (
           /* Card grid with findings summary */
@@ -307,9 +419,16 @@ function CenterPane({
 
 function CommandCenterShell() {
   const { state, dispatch, showDetailPanel } = useCommandCenter()
+  const [queryFilters, setQueryFilters] = useState<Pick<NLQFilters, 'category' | 'status' | 'text'>>({})
 
   // Data fetching
-  const { data: allFindings = [], isLoading: findingsLoading, isUsingMockData } = useFindings()
+  const { data: allFindings = [], isLoading: findingsLoading, isUsingMockData } = useFindings({
+    page: 1,
+    perPage: 200,
+    sort: 'ai_risk',
+    order: 'desc',
+  })
+  const { data: findingStats } = useFindingsStats()
   const { data: attackPathsResponse } = useAttackPaths(1, 100)
   const { data: stats } = useAttackPathStats()
   const { data: remediations = [] } = useRemediations()
@@ -338,11 +457,27 @@ function CommandCenterShell() {
       if (sevs && sevs.size > 0 && !sevs.has(f.severity)) return false
       if (provs && provs.size > 0 && !provs.has(f.cloud_provider)) return false
       if (envs && envs.size > 0 && !envs.has(f.environment_type)) return false
+      if (queryFilters.category?.length && !queryFilters.category.includes(f.category)) return false
+      if (queryFilters.status?.length && !queryFilters.status.includes(f.status) && !queryFilters.status.includes(f.workflow_status)) return false
+      if (queryFilters.text) {
+        const q = queryFilters.text.toLowerCase()
+        const haystack = [
+          f.title,
+          f.resource_name,
+          f.id,
+          f.description,
+          f.category,
+          f.cloud_provider,
+          f.resource_type,
+          ...(f.ai_contextual_factors ?? []),
+        ].join(' ').toLowerCase()
+        if (!haystack.includes(q)) return false
+      }
       if (start && f.first_found_at < start) return false
       if (end && f.first_found_at > end + 'T23:59:59Z') return false
       return true
     })
-  }, [allFindings, enabledByGroup, state.dateRange])
+  }, [allFindings, enabledByGroup, queryFilters.category, queryFilters.status, queryFilters.text, state.dateRange])
 
   // Filter attack paths by active layers (provider/severity match on nodes)
   const filteredAttackPaths = useMemo(() => {
@@ -391,7 +526,7 @@ function CommandCenterShell() {
           dispatch({ type: 'SET_CENTER_VIEW', payload: 'charts' })
           break
         case '2':
-          dispatch({ type: 'SET_CENTER_VIEW', payload: 'treemap' })
+          dispatch({ type: 'SET_CENTER_VIEW', payload: 'queue' })
           break
         case '?':
           dispatch({ type: 'TOGGLE_SHORTCUT_OVERLAY' })
@@ -402,7 +537,7 @@ function CommandCenterShell() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [dispatch, state.showShortcutOverlay])
 
-  const handleNLQFilters = useCallback((filters: { severity?: string[]; provider?: string[]; environment?: string[] }) => {
+  const handleNLQFilters = useCallback((filters: NLQFilters) => {
     const layers: Record<string, boolean> = {}
     if (filters.severity) {
       for (const s of ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']) {
@@ -419,6 +554,11 @@ function CommandCenterShell() {
         layers[`environment:${e}`] = filters.environment.includes(e)
       }
     }
+    setQueryFilters({
+      category: filters.category && filters.category.length > 0 ? filters.category : undefined,
+      status: filters.status && filters.status.length > 0 ? filters.status : undefined,
+      text: filters.text?.trim() || undefined,
+    })
     dispatch({ type: 'SET_LAYERS', payload: layers })
   }, [dispatch])
 
@@ -473,6 +613,7 @@ function CommandCenterShell() {
             attackPaths={filteredAttackPaths}
             allFindings={allFindings}
             filteredFindings={filteredFindings}
+            totalFindings={findingStats?.total ?? allFindings.length}
             stats={stats ?? undefined}
           />
         </div>
@@ -495,7 +636,7 @@ function CommandCenterShell() {
       {/* Bottom bar — classification legend */}
       <StatusBar
         filteredFindings={filteredFindings}
-        totalFindings={allFindings.length}
+        totalFindings={findingStats?.total ?? allFindings.length}
         attackPathCount={attackPaths.length}
         toxicComboCount={toxicComboCount}
         dateRange={state.dateRange}

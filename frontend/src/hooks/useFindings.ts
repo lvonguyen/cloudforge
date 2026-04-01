@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueries, useQueryClient } from '@tanstack/react-query'
-import { apiClient, ApiError, isMockFallbackEnabled, unwrapPaginated } from '@/lib/api'
+import { apiClient, ApiError, isMockFallbackEnabled } from '@/lib/api'
 import type { Finding } from '@/types/compliance'
 
 const R2_FINDINGS_URL =
@@ -108,29 +108,133 @@ async function fetchMockFindings(): Promise<Finding[]> {
 interface FetchFindingsResult {
   data: Finding[]
   usingMockData: boolean
+  page: number
+  perPage: number
+  total: number
+  totalPages: number
 }
 
-async function fetchFindings(filters?: { severity?: string; provider?: string; status?: string }): Promise<FetchFindingsResult> {
+export interface FindingsQueryParams {
+  severity?: string
+  provider?: string
+  status?: string
+  page?: number
+  perPage?: number
+  sort?: string
+  order?: 'asc' | 'desc'
+}
+
+interface FindingsPageEnvelope {
+  data: Finding[]
+  page: number
+  per_page: number
+  total: number
+  total_pages: number
+}
+
+function compareFindings(a: Finding, b: Finding, field: string, order: 'asc' | 'desc' = 'asc'): number {
+  const direction = order === 'desc' ? -1 : 1
+  const severityRank: Record<string, number> = { INFO: 0, LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 }
+
+  let base = 0
+  switch (field) {
+    case 'severity':
+      base = (severityRank[a.severity] ?? 0) - (severityRank[b.severity] ?? 0)
+      break
+    case 'ai_risk':
+    case 'ai_risk_score':
+      base = a.ai_risk_score - b.ai_risk_score
+      break
+    case 'first_found_at':
+      base = a.first_found_at.localeCompare(b.first_found_at)
+      break
+    case 'status':
+      base = a.status.localeCompare(b.status)
+      break
+    case 'title':
+      base = a.title.localeCompare(b.title)
+      break
+    default:
+      base = 0
+  }
+  return base * direction
+}
+
+function paginateLocalFindings(findings: Finding[], params?: FindingsQueryParams): FindingsPageEnvelope {
+  const page = Math.max(params?.page ?? 1, 1)
+  const perPage = Math.min(Math.max(params?.perPage ?? (findings.length || 1), 1), 200)
+  const filtered = findings.filter((finding) => {
+    if (params?.severity && finding.severity !== params.severity) return false
+    if (params?.provider && finding.cloud_provider !== params.provider) return false
+    if (params?.status && finding.status !== params.status) return false
+    return true
+  })
+  const sorted = [...filtered]
+  if (params?.sort) {
+    sorted.sort((a, b) => compareFindings(a, b, params.sort ?? '', params.order ?? 'asc'))
+  }
+
+  const total = sorted.length
+  const totalPages = Math.max(Math.ceil(total / perPage), 1)
+  const boundedPage = Math.min(page, totalPages)
+  const start = (boundedPage - 1) * perPage
+  const data = sorted.slice(start, start + perPage)
+
+  return {
+    data,
+    page: boundedPage,
+    per_page: perPage,
+    total,
+    total_pages: totalPages,
+  }
+}
+
+function toFetchResult(payload: Finding[] | FindingsPageEnvelope, usingMockData: boolean): FetchFindingsResult {
+  if (Array.isArray(payload)) {
+    return {
+      data: payload,
+      usingMockData,
+      page: 1,
+      perPage: payload.length,
+      total: payload.length,
+      totalPages: 1,
+    }
+  }
+
+  return {
+    data: payload.data,
+    usingMockData,
+    page: payload.page,
+    perPage: payload.per_page,
+    total: payload.total,
+    totalPages: payload.total_pages,
+  }
+}
+
+async function fetchFindings(filters?: FindingsQueryParams): Promise<FetchFindingsResult> {
   if (import.meta.env.VITE_DEMO_MODE === 'true') {
     const data = await fetchMockFindings()
-    return { data, usingMockData: true }
+    return toFetchResult(paginateLocalFindings(data, filters), true)
   }
   const params = new URLSearchParams()
   if (filters?.severity) params.set('severity', filters.severity)
   if (filters?.provider) params.set('provider', filters.provider)
   if (filters?.status) params.set('status', filters.status)
+  if (filters?.page) params.set('page', String(filters.page))
+  if (filters?.perPage) params.set('per_page', String(filters.perPage))
+  if (filters?.sort) params.set('sort', filters.sort)
+  if (filters?.order) params.set('order', filters.order)
   const qs = params.toString()
   try {
-    const raw = await apiClient.get<Finding[] | { data: Finding[] }>(`/findings${qs ? `?${qs}` : ''}`)
-    const data = unwrapPaginated(raw)
+    const raw = await apiClient.get<Finding[] | FindingsPageEnvelope>(`/findings${qs ? `?${qs}` : ''}`)
     sessionStorage.setItem(SESSION_SOURCE_KEY, 'api')
-    return { data, usingMockData: false }
+    return toFetchResult(raw, false)
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
     if (!isMockFallbackEnabled()) throw err
     console.warn('[useFindings] API unavailable, using mock data')
     const data = await fetchMockFindings()
-    return { data, usingMockData: true }
+    return toFetchResult(paginateLocalFindings(data, filters), true)
   }
 }
 
@@ -150,7 +254,7 @@ async function fetchFindingById(id: string): Promise<Finding | null> {
   }
 }
 
-export function useFindings(filters?: { severity?: string; provider?: string; status?: string }) {
+export function useFindings(filters?: FindingsQueryParams) {
   const query = useQuery({
     queryKey: ['findings', filters],
     queryFn: () => fetchFindings(filters),
@@ -158,6 +262,10 @@ export function useFindings(filters?: { severity?: string; provider?: string; st
   return {
     ...query,
     data: query.data?.data,
+    total: query.data?.total ?? 0,
+    page: query.data?.page ?? filters?.page ?? 1,
+    perPage: query.data?.perPage ?? filters?.perPage ?? 0,
+    totalPages: query.data?.totalPages ?? 1,
     isUsingMockData: query.isSuccess && (query.data?.usingMockData ?? false),
   }
 }
@@ -214,6 +322,7 @@ export interface FindingsStats {
   by_severity: Record<string, number>
   by_status: Record<string, number>
   by_provider: Record<string, number>
+  by_category?: Record<string, number>
   sla_breached: number
   auto_remedial: number
 }

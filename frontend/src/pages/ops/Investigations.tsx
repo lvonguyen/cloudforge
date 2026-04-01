@@ -73,6 +73,39 @@ function describeFindingPriority(finding: Finding) {
   return factors.join(' · ')
 }
 
+function getInvestigationScore(finding: Finding): number {
+  const severityScore: Record<string, number> = {
+    CRITICAL: 40,
+    HIGH: 28,
+    MEDIUM: 16,
+    LOW: 8,
+  }
+
+  return (
+    (severityScore[finding.severity] ?? 0) +
+    Math.round(finding.ai_risk_score * 5) +
+    (finding.toxic_combo_details ? 26 : 0) +
+    (finding.exploit_available ? 18 : 0) +
+    Math.min(finding.impacted_resources?.length ?? 0, 5) * 3 +
+    Math.min(finding.compliance_mappings?.length ?? 0, 4) * 2 +
+    (finding.environment_type === 'production' ? 6 : 0)
+  )
+}
+
+function deriveInvestigationSeverity(finding: Finding): 'CRITICAL' | 'HIGH' {
+  return getInvestigationScore(finding) >= 80 ? 'CRITICAL' : 'HIGH'
+}
+
+function isInvestigationCandidate(finding: Finding): boolean {
+  return (
+    finding.severity === 'CRITICAL' ||
+    finding.severity === 'HIGH' ||
+    finding.toxic_combo_details !== undefined ||
+    finding.exploit_available ||
+    (finding.impacted_resources?.length ?? 0) > 0
+  )
+}
+
 function describeNodeImportance(type: InvestigationEntityType, data: Record<string, unknown>) {
   switch (type) {
     case 'finding':
@@ -95,37 +128,46 @@ function describeNodeImportance(type: InvestigationEntityType, data: Record<stri
 }
 
 export default function Investigations() {
-  const { data: findings = [], isLoading } = useFindings()
+  const { data: findings = [], isLoading } = useFindings({ page: 1, perPage: 200, sort: 'ai_risk', order: 'desc' })
   const [searchParams] = useSearchParams()
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(() => searchParams.get('findingId'))
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const navigate = useNavigate()
 
+  const investigationCandidates = useMemo(
+    () =>
+      [...findings]
+        .filter(isInvestigationCandidate)
+        .sort((a, b) => getInvestigationScore(b) - getInvestigationScore(a)),
+    [findings],
+  )
+
   // Auto-select first finding when none is selected and findings are loaded
   useEffect(() => {
-    if (!selectedFindingId && findings.length > 0) {
-      setSelectedFindingId(findings[0].id)
+    if (!selectedFindingId && investigationCandidates.length > 0) {
+      setSelectedFindingId(investigationCandidates[0].id)
     }
-  }, [selectedFindingId, findings])
+  }, [selectedFindingId, investigationCandidates])
 
   const filteredFindings = useMemo(() => {
-    if (!searchQuery) return findings.slice(0, 50)
+    if (!searchQuery) return investigationCandidates.slice(0, 50)
     const q = searchQuery.toLowerCase()
-    return findings.filter(f =>
+    return investigationCandidates.filter(f =>
       f.title.toLowerCase().includes(q) ||
       f.resource_name.toLowerCase().includes(q) ||
       f.id.toLowerCase().includes(q)
     ).slice(0, 50)
-  }, [findings, searchQuery])
+  }, [investigationCandidates, searchQuery])
   const selectedFinding = useMemo(
-    () => findings.find(f => f.id === selectedFindingId) ?? null,
-    [findings, selectedFindingId],
+    () => investigationCandidates.find(f => f.id === selectedFindingId) ?? null,
+    [investigationCandidates, selectedFindingId],
   )
   const analystBrief = useMemo(() => {
     if (!selectedFinding) return null
+    const contextualSeverity = deriveInvestigationSeverity(selectedFinding)
     return {
-      posture: describeFindingPriority(selectedFinding),
+      posture: `Contextual ${contextualSeverity} · ${describeFindingPriority(selectedFinding)}`,
       rationale: selectedFinding.ai_risk_rationale || 'Use the graph to validate owner, control linkage, and downstream blast radius.',
       workflow: selectedFinding.assignee
         ? `Confirm ${selectedFinding.assignee.user_name}'s team owns the path, then validate control and impact coverage.`
@@ -134,10 +176,11 @@ export default function Investigations() {
   }, [selectedFinding])
 
   const { graphNodes, graphEdges } = useMemo(() => {
-    const finding = findings.find(f => f.id === selectedFindingId)
+    const finding = investigationCandidates.find(f => f.id === selectedFindingId)
     if (!finding) return { graphNodes: [], graphEdges: [] }
 
     const findingId = finding.id
+    const contextualSeverity = deriveInvestigationSeverity(finding)
     const nodes: Node[] = []
     const edges: Edge[] = []
     const laneIndex: Record<InvestigationEntityType, number> = {
@@ -166,14 +209,14 @@ export default function Investigations() {
               <TypeIcon className="h-3 w-3" style={{ color: '#991b1b' }} />
               <span className="text-[10px] text-red-900 font-medium truncate flex-1">{finding.title}</span>
             </div>
-            <div className="text-[9px] text-red-800/80">{finding.severity} · {finding.category} · {finding.cloud_provider.toUpperCase()}</div>
+            <div className="text-[9px] text-red-800/80">{contextualSeverity} · {finding.category} · {finding.cloud_provider.toUpperCase()}</div>
           </div>
         ),
         entityType: 'finding' as InvestigationEntityType,
           entityData: {
             id: finding.id,
             title: finding.title,
-            severity: finding.severity,
+            severity: contextualSeverity,
             category: finding.category,
             cloud_provider: finding.cloud_provider,
             resource_name: finding.resource_name,
@@ -233,11 +276,11 @@ export default function Investigations() {
         target: id,
         label: edgeLabel || undefined,
         animated: true,
-        style: { stroke: colors.border, strokeWidth: 1 },
+        style: { stroke: colors.border, strokeWidth: 1.8 },
         labelStyle: edgeLabel ? { fontSize: 8, fill: '#475569' } : undefined,
         labelBgStyle: edgeLabel ? { fill: '#ffffff', fillOpacity: 0.92 } : undefined,
         labelBgPadding: edgeLabel ? [2, 4] as [number, number] : undefined,
-        markerEnd: { type: MarkerType.ArrowClosed, color: colors.border, width: 10, height: 10 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: colors.border, width: 12, height: 12 },
       })
     }
 
@@ -299,7 +342,7 @@ export default function Investigations() {
     }
 
     return { graphNodes: nodes, graphEdges: edges }
-  }, [findings, selectedFindingId])
+  }, [investigationCandidates, selectedFindingId])
 
   const handleNodeClick = useCallback((nodeId: string) => {
     setSelectedNodeId(prev => prev === nodeId ? null : nodeId)
@@ -425,9 +468,9 @@ export default function Investigations() {
       {/* Left panel — finding search */}
       <div className="w-80 border-r border-border bg-background flex flex-col shrink-0">
         <div className="p-4 border-b border-border space-y-3">
-          <h1 className="text-sm font-semibold">Investigation Board</h1>
+          <h1 className="text-sm font-semibold">Investigation Queue</h1>
           <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
-            <span>{filteredFindings.length} findings in focus</span>
+            <span>{filteredFindings.length} contextual cases in focus</span>
             {selectedFinding && (
               <>
                 <span aria-hidden="true">·</span>
@@ -456,7 +499,7 @@ export default function Investigations() {
               Analyst workflow
             </div>
             <p className="mt-2 text-[11px] leading-relaxed text-foreground">
-              Start from the finding, confirm who owns it, validate the primary resource, then trace control and downstream impact before opening the full case.
+              Start from contextual critical and high cases only. Confirm owner, validate the primary resource, then trace control and downstream impact before opening the full case.
             </p>
           </div>
         </div>
@@ -471,8 +514,8 @@ export default function Investigations() {
               className={`w-full text-left px-4 py-2.5 border-b border-border hover:bg-muted/30 transition-colors group/item ${selectedFindingId === f.id ? 'bg-muted/50 border-l-2 border-l-primary' : ''}`}
             >
               <div className="flex items-center gap-1.5 mb-0.5">
-                <Badge variant="outline" className={`text-[9px] px-1 py-0 ${SEVERITY_COLORS[f.severity] ?? ''}`}>
-                  {f.severity}
+                <Badge variant="outline" className={`text-[9px] px-1 py-0 ${SEVERITY_COLORS[deriveInvestigationSeverity(f)] ?? ''}`}>
+                  {deriveInvestigationSeverity(f)}
                 </Badge>
                 <ProviderBadge provider={f.cloud_provider} />
                 <span className="text-[10px] text-muted-foreground font-mono">{f.id.slice(0, 12)}</span>
@@ -482,7 +525,7 @@ export default function Investigations() {
                 <p className="text-xs font-medium truncate">{f.title}</p>
               </div>
               <div className="flex items-center justify-between">
-                <p className="text-[10px] text-muted-foreground truncate">{f.resource_name}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{f.resource_name} · Score {getInvestigationScore(f)}</p>
                 <span
                   role="button"
                   tabIndex={0}
@@ -505,8 +548,8 @@ export default function Investigations() {
             {selectedFinding && (
               <div className="pointer-events-none absolute left-4 top-4 z-10 max-w-md rounded-[24px] border border-border/80 bg-background/95 p-4 shadow-[0_18px_48px_rgba(15,23,42,0.12)] backdrop-blur-sm">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${SEVERITY_COLORS[selectedFinding.severity] ?? ''}`}>
-                    {selectedFinding.severity}
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${SEVERITY_COLORS[deriveInvestigationSeverity(selectedFinding)] ?? ''}`}>
+                    {deriveInvestigationSeverity(selectedFinding)}
                   </Badge>
                   <ProviderBadge provider={selectedFinding.cloud_provider} />
                   <span className="text-[10px] font-mono text-muted-foreground">{selectedFinding.id}</span>
@@ -581,7 +624,7 @@ export default function Investigations() {
                 })}
               </div>
             </div>
-            <BaseGraphView nodes={graphNodes} edges={graphEdges} onNodeClick={handleNodeClick} height="h-full" />
+            <BaseGraphView nodes={graphNodes} edges={graphEdges} onNodeClick={handleNodeClick} height="h-full" tone="light" />
           </>
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">

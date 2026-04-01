@@ -122,7 +122,7 @@ const CANVAS_THEME: Record<ResolvedCanvasTone, {
 function getInitialCanvasTone(): CanvasTone {
   const stored = getCanvasToneStorage()?.getItem(CANVAS_TONE_STORAGE_KEY)
   if (stored === 'auto' || stored === 'light' || stored === 'dark') return stored
-  return 'auto'
+  return 'light'
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -361,8 +361,8 @@ function pathToFlow(
       target: e.target,
       label: semantic.badge,
       type: 'smoothstep',
-      markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-      style: { strokeWidth: isPrivilegeEscalationEdge(e) ? 2.75 : 2.25, stroke: semantic.color ?? canvasTheme.edgeColor },
+      markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
+      style: { strokeWidth: isPrivilegeEscalationEdge(e) ? 3.1 : 2.55, stroke: semantic.color ?? canvasTheme.edgeColor },
       labelStyle: { fontSize: 10, fill: semantic.color ?? canvasTheme.edgeLabelColor, fontWeight: 700 },
       labelBgStyle: { fill: canvasTheme.edgeLabelBackground, fillOpacity: 0.98 },
       labelBgPadding: [4, 6] as [number, number],
@@ -723,13 +723,13 @@ function PathGraphView({
             nodes={nodes}
             edges={edges}
             fitView
-            fitViewOptions={{ padding: 0.3 }}
+            fitViewOptions={{ padding: 0.18 }}
             proOptions={{ hideAttribution: true }}
             nodesDraggable={false}
             nodesConnectable={false}
             elementsSelectable={false}
             minZoom={0.5}
-            maxZoom={1.5}
+            maxZoom={1.75}
             style={{ background: canvasTheme.graphBackground }}
           >
             <Background gap={18} size={1} color={canvasTheme.gridColor} />

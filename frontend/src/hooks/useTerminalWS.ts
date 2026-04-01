@@ -64,13 +64,13 @@ const isDemoMode = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'tr
 
 const MOCK_RESPONSES: Record<string, string | (() => string)> = {
   'help': 'Available commands: aws, kubectl, gcloud, terraform, whoami, date, help\nNote: This is a demo terminal — commands return sample output.',
-  'whoami': 'demo-operator@aegis.contoso.dev',
+  'whoami': 'demo-operator@cloudforge.contoso.dev',
   'date': () => new Date().toISOString(),
-  'aws s3 ls': '2026-01-15 aegis-findings-prod\n2026-02-01 aegis-config-backup\n2026-03-10 aegis-audit-logs',
-  'aws sts get-caller-identity': '{\n  "UserId": "AROA3XFRBF23YPEXAMPLE",\n  "Account": "123456789012",\n  "Arn": "arn:aws:sts::123456789012:assumed-role/aegis-operator/session"\n}',
-  'kubectl get pods': 'NAME                          READY   STATUS    RESTARTS   AGE\naegis-api-7d4f8b6c9-x2k4p    1/1     Running   0          2d\naegis-worker-5c8d9f7-m3n1q    1/1     Running   0          2d\nredis-master-0                1/1     Running   0          5d',
+  'aws s3 ls': '2026-01-15 cloudforge-findings-prod\n2026-02-01 cloudforge-config-backup\n2026-03-10 cloudforge-audit-logs',
+  'aws sts get-caller-identity': '{\n  "UserId": "AROA3XFRBF23YPEXAMPLE",\n  "Account": "123456789012",\n  "Arn": "arn:aws:sts::123456789012:assumed-role/cloudforge-operator/session"\n}',
+  'kubectl get pods': 'NAME                               READY   STATUS    RESTARTS   AGE\ncloudforge-api-7d4f8b6c9-x2k4p     1/1     Running   0          2d\ncloudforge-worker-5c8d9f7-m3n1q    1/1     Running   0          2d\nredis-master-0                     1/1     Running   0          5d',
   'kubectl get nodes': 'NAME                          STATUS   ROLES    AGE   VERSION\nip-10-0-1-42.ec2.internal     Ready    <none>   14d   v1.31.2\nip-10-0-2-87.ec2.internal     Ready    <none>   14d   v1.31.2',
-  'gcloud projects list': 'PROJECT_ID        NAME              PROJECT_NUMBER\naegis-dev-000001  aegis-dev         100001\naegis-prod-000002 aegis-prod        100002',
+  'gcloud projects list': 'PROJECT_ID            NAME                PROJECT_NUMBER\ncloudforge-dev-000001  cloudforge-dev      100001\ncloudforge-prod-000002 cloudforge-prod     100002',
   'terraform plan': 'No changes. Your infrastructure matches the configuration.\n\nNo changes. Infrastructure is up-to-date.',
 }
 

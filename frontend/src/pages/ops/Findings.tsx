@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback, useRef, useDeferredValue, useEffect } f
 import { useNavigate } from 'react-router-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Download, ArrowUp, ArrowDown, X, SlidersHorizontal, ListFilter, ChevronDown, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight } from 'lucide-react'
-import { useFindings } from '@/hooks/useFindings'
+import { useFindings, useFindingsStats } from '@/hooks/useFindings'
 import FindingDetail from '@/pages/ops/FindingDetail'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -109,7 +109,6 @@ function formatWorkflowStatus(ws: string): string {
 
 export default function Findings() {
   const navigate = useNavigate()
-  const { data: allFindings = [], isLoading } = useFindings()
 
   // Sidebar filters
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
@@ -159,7 +158,37 @@ export default function Findings() {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>(DEFAULT_WIDTHS)
   const resizingRef = useRef<{ col: string; startX: number; startWidth: number } | null>(null)
 
-  const displayCount = allFindings.length
+  const serverSortField = useMemo(() => {
+    switch (sortCol) {
+      case 'severity':
+        return 'severity'
+      case 'title':
+        return 'title'
+      case 'status':
+        return 'status'
+      case 'ai_risk':
+        return 'ai_risk'
+      case 'first_found':
+        return 'first_found_at'
+      default:
+        return undefined
+    }
+  }, [sortCol])
+  const singleProviderFilter = selectedProviders.size === 1 ? Array.from(selectedProviders)[0] : undefined
+  const singleStatusFilter = selectedStatuses.size === 1 ? Array.from(selectedStatuses)[0] : undefined
+  const severityFilter = severityTab !== 'ALL' ? severityTab : undefined
+  const { data: allFindings = [], isLoading, total: pageTotal, totalPages: apiTotalPages } = useFindings({
+    page,
+    perPage: pageSize,
+    sort: serverSortField,
+    order: sortDir,
+    severity: severityFilter,
+    provider: singleProviderFilter,
+    status: singleStatusFilter,
+  })
+  const { data: stats } = useFindingsStats()
+
+  const displayCount = stats?.total ?? pageTotal ?? allFindings.length
 
   const onResizeStart = useCallback((col: string, e: React.MouseEvent) => {
     e.preventDefault()
@@ -199,22 +228,25 @@ export default function Findings() {
 
   // Counts for sidebar (computed from full dataset before any sidebar filter)
   const categoryCounts = useMemo(() => {
+    if (stats?.by_category) return stats.by_category
     const m: Record<string, number> = {}
     for (const f of allFindings) m[f.category] = (m[f.category] ?? 0) + 1
     return m
-  }, [allFindings])
+  }, [allFindings, stats?.by_category])
 
   const providerCounts = useMemo(() => {
+    if (stats?.by_provider) return stats.by_provider
     const m: Record<string, number> = {}
     for (const f of allFindings) m[f.cloud_provider] = (m[f.cloud_provider] ?? 0) + 1
     return m
-  }, [allFindings])
+  }, [allFindings, stats?.by_provider])
 
   const statusCounts = useMemo(() => {
+    if (stats?.by_status) return stats.by_status
     const m: Record<string, number> = {}
     for (const f of allFindings) m[f.status] = (m[f.status] ?? 0) + 1
     return m
-  }, [allFindings])
+  }, [allFindings, stats?.by_status])
 
   // Base filtered: sidebar + search + severity tab (excludes metric card toggles)
   // KPI cards derive from this so clicking SLA/AutoRem doesn't zero their own counts
@@ -334,15 +366,15 @@ export default function Findings() {
   }, [filtered, sortCol, sortDir])
 
   // Pagination — slice sorted into current page
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const totalPages = Math.max(apiTotalPages, 1)
   const currentPage = Math.min(page, totalPages)
-  const paged = useMemo(() => {
-    const start = (currentPage - 1) * pageSize
-    return sorted.slice(start, start + pageSize)
-  }, [sorted, currentPage, pageSize])
+  const paged = sorted
 
   // Reset to page 1 when filter inputs change
   useEffect(() => { setPage(1) }, [selectedCategories, selectedProviders, selectedStatuses, deferredSearch, severityTab, filterSLABreached, filterAutoRem, pageSize])
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages)
+  }, [page, totalPages])
 
   // Clear stale previewId when the selected finding is filtered out
   useEffect(() => {
@@ -721,14 +753,14 @@ export default function Findings() {
           <div>
             <h1 className="text-xl font-semibold font-mono">Findings</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {displayCount.toLocaleString()} total findings{hasFilters ? ` (${filtered.length.toLocaleString()} matching)` : ''}
+              {displayCount.toLocaleString()} total findings{hasFilters ? ` (${filtered.length.toLocaleString()} visible in current page window)` : ''}
             </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex gap-1.5">
               {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map(sev => (
                 <Badge key={sev} variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${SEVERITY_COLORS[sev]}`}>
-                  {sev} {(severityCounts[sev] ?? 0).toLocaleString()}
+                  {sev} {((hasFilters ? severityCounts[sev] : stats?.by_severity?.[sev]) ?? severityCounts[sev] ?? 0).toLocaleString()}
                 </Badge>
               ))}
             </div>
@@ -1018,7 +1050,10 @@ export default function Findings() {
                   </select>
                 </div>
                 <span className="text-xs text-muted-foreground tabular-nums">
-                  {sorted.length === 0 ? '0' : `${((currentPage - 1) * pageSize + 1).toLocaleString()}–${Math.min(currentPage * pageSize, sorted.length).toLocaleString()}`} of {sorted.length.toLocaleString()}
+                  {sorted.length === 0
+                    ? '0 visible'
+                    : `Page ${currentPage} · ${sorted.length.toLocaleString()} visible`}
+                  {' '}of {displayCount.toLocaleString()}
                 </span>
                 <div className="flex items-center gap-0.5">
                   <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage <= 1} onClick={() => setPage(1)} aria-label="First page">

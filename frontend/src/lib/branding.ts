@@ -27,11 +27,11 @@ export interface Branding {
  */
 export const branding: Branding = {
   companyName: import.meta.env.VITE_COMPANY_NAME || 'Contoso',
-  productName: import.meta.env.VITE_PRODUCT_NAME || 'Aegis',
+  productName: import.meta.env.VITE_PRODUCT_NAME || 'CloudForge',
   logoPath: import.meta.env.VITE_LOGO_PATH || '/icons/aegis-logo.svg',
   emailDomain: import.meta.env.VITE_EMAIL_DOMAIN || 'contoso.dev',
   repoPrefix: import.meta.env.VITE_REPO_PREFIX || 'github.com/contoso',
-  enabledModules: (import.meta.env.VITE_ENABLED_MODULES || 'aegis,cspm-aggregator,threat-intel,remediation-engine,ops-center')
+  enabledModules: (import.meta.env.VITE_ENABLED_MODULES || 'cloudforge,posture-management,threat-intel,remediation-engine,ops-center')
     .split(',')
     .map((s: string) => s.trim()),
   storagePrefix: import.meta.env.VITE_STORAGE_PREFIX || 'aegis',
