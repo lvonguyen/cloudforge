@@ -52,7 +52,9 @@ type SearchService struct {
 	embedSvc *EmbeddingService   // optional: nil when semantic search is disabled
 }
 
-const defaultSemanticSearchMaxFindings = 10000
+const defaultSemanticSearchMaxFindings = 500000
+const defaultAttackPathWarmupMaxFindings = 10000
+const defaultSecgraphFullSyncMaxFindings = 10000
 const fallbackKeywordSearchMaxCandidates = 1000
 
 // NewSearchService builds an in-memory BM25 index from the given findings.
@@ -88,21 +90,49 @@ func NewSearchService(findings []Finding) (*SearchService, error) {
 	return ss, nil
 }
 
-func semanticSearchMaxFindings() int {
-	raw := strings.TrimSpace(os.Getenv("SEMANTIC_SEARCH_MAX_FINDINGS"))
+func corpusLimitFromEnv(env string, defaultLimit int) int {
+	raw := strings.TrimSpace(os.Getenv(env))
 	if raw == "" {
-		return defaultSemanticSearchMaxFindings
+		return defaultLimit
 	}
 
 	n, err := strconv.Atoi(raw)
 	if err != nil || n < 0 {
-		return defaultSemanticSearchMaxFindings
+		return defaultLimit
 	}
 	return n
 }
 
+func semanticSearchMaxFindings() int {
+	return corpusLimitFromEnv("SEMANTIC_SEARCH_MAX_FINDINGS", defaultSemanticSearchMaxFindings)
+}
+
 func semanticSearchEnabledForCorpus(findingsCount int) bool {
 	limit := semanticSearchMaxFindings()
+	if limit == 0 {
+		return false
+	}
+	return findingsCount <= limit
+}
+
+func attackPathWarmupMaxFindings() int {
+	return corpusLimitFromEnv("ATTACK_PATH_WARMUP_MAX_FINDINGS", defaultAttackPathWarmupMaxFindings)
+}
+
+func attackPathWarmupEnabledForCorpus(findingsCount int) bool {
+	limit := attackPathWarmupMaxFindings()
+	if limit == 0 {
+		return false
+	}
+	return findingsCount <= limit
+}
+
+func secgraphFullSyncMaxFindings() int {
+	return corpusLimitFromEnv("SECGRAPH_FULL_SYNC_MAX_FINDINGS", defaultSecgraphFullSyncMaxFindings)
+}
+
+func secgraphFullSyncEnabledForCorpus(findingsCount int) bool {
+	limit := secgraphFullSyncMaxFindings()
 	if limit == 0 {
 		return false
 	}
@@ -397,6 +427,9 @@ func (ss *SearchService) IndexFinding(f Finding) {
 	ss.findings[f.ID] = &fCopy
 	doc := toFindingDocument(&fCopy)
 	_ = ss.index.Index(f.ID, doc)
+	if ss.embedSvc != nil {
+		ss.embedSvc.IndexDocument(f.ID, findingSearchText(&fCopy))
+	}
 }
 
 // Close releases the Bleve index resources. Called during server shutdown.
@@ -473,50 +506,7 @@ func (ss *SearchService) semanticSearch(ctx context.Context, query string, topN 
 	if err != nil {
 		return nil, fmt.Errorf("generating query embedding: %w", err)
 	}
-
-	// Snapshot finding IDs and cached embeddings under RLock, then release
-	// to avoid holding the lock during CPU-intensive embedding generation.
-	ss.mu.RLock()
-	type findingSnapshot struct {
-		id  string
-		vec []float32
-	}
-	snapshots := make([]findingSnapshot, 0, len(ss.findings))
-	for id := range ss.findings {
-		vec, _ := ss.embedSvc.GetCachedEmbedding(id)
-		snapshots = append(snapshots, findingSnapshot{id: id, vec: vec})
-	}
-	ss.mu.RUnlock()
-
-	// Score candidates outside the lock.
-	candidates := make([]scoredID, 0, len(snapshots))
-	for _, snap := range snapshots {
-		var fVec []float32
-		if snap.vec != nil {
-			fVec = snap.vec
-		} else {
-			// Generate embedding for uncached finding (rare after init).
-			ss.mu.RLock()
-			f := ss.findings[snap.id]
-			ss.mu.RUnlock()
-			if f != nil {
-				text := findingSearchText(f)
-				if vec, err := ss.embedSvc.GenerateEmbedding(ctx, text); err == nil {
-					ss.embedSvc.CacheEmbedding(snap.id, vec)
-					fVec = vec
-				}
-			}
-		}
-		if fVec != nil {
-			sim := cosineSimilarity(queryVec, fVec)
-			if sim > 0 {
-				candidates = append(candidates, scoredID{id: snap.id, score: sim})
-			}
-		}
-	}
-
-	// Sort by descending similarity.
-	sortByScoreDesc(candidates)
+	candidates := ss.embedSvc.SearchSimilar(queryVec, topN)
 
 	if topN > len(candidates) {
 		topN = len(candidates)

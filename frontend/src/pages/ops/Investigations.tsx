@@ -5,10 +5,11 @@ import { BaseGraphView } from '@/components/ops/BaseGraphView'
 import { useFindings } from '@/hooks/useFindings'
 import { Badge } from '@/components/ui/badge'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Search, X, Shield, Server, Database, Key, Globe, ChevronRight, CalendarClock, UserRound, Route } from 'lucide-react'
+import { Search, X, Shield, Server, Database, Key, Globe, ChevronRight, CalendarClock, UserRound, Route, FileCheck2, Link2, TriangleAlert, Sparkles } from 'lucide-react'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS } from '@/lib/severity'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import type { InvestigationEntityType } from '@/types/investigation'
+import type { Finding } from '@/types/compliance'
 
 const FINDING_TYPE_ICONS: Record<string, typeof Shield> = {
   network: Globe,
@@ -45,11 +46,52 @@ const ENTITY_COLORS: Record<InvestigationEntityType, { bg: string; border: strin
   impacted_resource:  { bg: '#fff7ed', border: '#ea580c', text: '#c2410c' },
 }
 
+const ENTITY_META: Record<InvestigationEntityType, { label: string; icon: typeof Shield; summary: string }> = {
+  finding: { label: 'Finding', icon: Shield, summary: 'Anchor node. Start here, then validate owner, control coverage, and impact chain.' },
+  assignee: { label: 'Assignee', icon: UserRound, summary: 'Operational owner responsible for triage, execution, and SLA adherence.' },
+  technical_contact: { label: 'Technical contact', icon: UserRound, summary: 'Domain contact who can confirm implementation details and remediation blast radius.' },
+  resource: { label: 'Primary resource', icon: Server, summary: 'Primary asset carrying the finding. Use this to confirm scope and affected surface.' },
+  compliance_mapping: { label: 'Control mapping', icon: FileCheck2, summary: 'Mapped policy or framework control that turns technical risk into audit exposure.' },
+  impacted_resource: { label: 'Impacted resource', icon: Route, summary: 'Downstream asset touched by the same weakness, dependency, or reachable path.' },
+}
+
+const GRAPH_GUIDE: InvestigationEntityType[] = ['finding', 'assignee', 'resource', 'compliance_mapping', 'impacted_resource']
+
 function formatDateLabel(value?: string) {
   if (!value) return 'Not set'
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return value
   return parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+function describeFindingPriority(finding: Finding) {
+  const factors = [
+    finding.assignee ? `Owned by ${finding.assignee.user_name}` : 'Ownership gap',
+    `${finding.compliance_mappings?.length ?? 0} control link${finding.compliance_mappings?.length === 1 ? '' : 's'}`,
+    `${finding.impacted_resources?.length ?? 0} downstream resource${finding.impacted_resources?.length === 1 ? '' : 's'}`,
+  ]
+  return factors.join(' · ')
+}
+
+function describeNodeImportance(type: InvestigationEntityType, data: Record<string, unknown>) {
+  switch (type) {
+    case 'finding':
+      return 'Use this node to decide whether the rest of the graph is ownership work, control work, or blast-radius work.'
+    case 'assignee':
+      return data.name === 'Unassigned'
+        ? 'This is a triage gap. Assigning ownership is the fastest way to reduce operator drag.'
+        : 'This tells you who is on the hook for remediation and whether the current route matches the actual owning team.'
+    case 'technical_contact':
+      return 'Use the technical contact to validate whether the alert maps to the real service boundary and rollout path.'
+    case 'resource':
+      return 'This is the primary asset under investigation. Confirm its environment, provider, and exposure before escalating.'
+    case 'compliance_mapping':
+      return 'This shows which control narrative the finding will roll up into for audit and governance reporting.'
+    case 'impacted_resource':
+      return 'Use impacted resources to judge whether the issue is isolated or part of a broader service chain.'
+    default:
+      return ''
+  }
 }
 
 export default function Investigations() {
@@ -80,6 +122,16 @@ export default function Investigations() {
     () => findings.find(f => f.id === selectedFindingId) ?? null,
     [findings, selectedFindingId],
   )
+  const analystBrief = useMemo(() => {
+    if (!selectedFinding) return null
+    return {
+      posture: describeFindingPriority(selectedFinding),
+      rationale: selectedFinding.ai_risk_rationale || 'Use the graph to validate owner, control linkage, and downstream blast radius.',
+      workflow: selectedFinding.assignee
+        ? `Confirm ${selectedFinding.assignee.user_name}'s team owns the path, then validate control and impact coverage.`
+        : 'Claim ownership first, then validate control coverage and impacted dependencies before opening the full finding.',
+    }
+  }, [selectedFinding])
 
   const { graphNodes, graphEdges } = useMemo(() => {
     const finding = findings.find(f => f.id === selectedFindingId)
@@ -262,6 +314,7 @@ export default function Investigations() {
       entityData: node.data.entityData as Record<string, unknown>,
     }
   }, [selectedNodeId, graphNodes])
+  const selectedNodeMeta = selectedNodeData ? ENTITY_META[selectedNodeData.entityType] : null
 
   function renderNodeDetail(type: InvestigationEntityType, data: Record<string, unknown>) {
     const field = (label: string, value: unknown) => {
@@ -397,6 +450,15 @@ export default function Investigations() {
               </button>
             )}
           </div>
+          <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5" />
+              Analyst workflow
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-foreground">
+              Start from the finding, confirm who owns it, validate the primary resource, then trace control and downstream impact before opening the full case.
+            </p>
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto">
           {filteredFindings.map(f => (
@@ -451,6 +513,19 @@ export default function Investigations() {
                 </div>
                 <p className="mt-2 text-sm font-semibold leading-snug">{selectedFinding.title}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{selectedFinding.resource_name} · {selectedFinding.resource_type}</p>
+                {analystBrief && (
+                  <>
+                    <div className="mt-3 rounded-xl border border-border/70 bg-muted/20 px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Analyst briefing</p>
+                      <p className="mt-1 text-[11px] text-foreground">{analystBrief.posture}</p>
+                      <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">{analystBrief.rationale}</p>
+                    </div>
+                    <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-200/80 bg-amber-50/80 px-3 py-2 text-[10px] text-amber-900">
+                      <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>{analystBrief.workflow}</span>
+                    </div>
+                  </>
+                )}
                 <div className="mt-3 grid grid-cols-2 gap-2 text-[10px]">
                   <div className="rounded-xl border border-border/70 bg-muted/30 px-2.5 py-2">
                     <div className="flex items-center gap-1 text-muted-foreground">
@@ -479,6 +554,33 @@ export default function Investigations() {
                 </div>
               </div>
             )}
+            <div className="pointer-events-none absolute right-4 top-4 z-10 w-72 rounded-[24px] border border-border/80 bg-background/95 p-4 shadow-[0_18px_48px_rgba(15,23,42,0.12)] backdrop-blur-sm">
+              <div className="flex items-center gap-2 text-xs font-semibold">
+                <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+                How to read this graph
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                The graph is laid out as finding {'->'} owner {'->'} primary asset {'->'} controls {'->'} downstream impact. Use it to prove whether a finding is isolated, owned, and audit-relevant.
+              </p>
+              <div className="mt-3 grid grid-cols-1 gap-2">
+                {GRAPH_GUIDE.map((type) => {
+                  const meta = ENTITY_META[type]
+                  const Icon = meta.icon
+                  const colors = ENTITY_COLORS[type]
+                  return (
+                    <div key={type} className="flex items-start gap-2 rounded-xl border border-border/70 bg-muted/20 px-2.5 py-2">
+                      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: colors.bg, border: `1px solid ${colors.border}`, color: colors.text }}>
+                        <Icon className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-semibold text-foreground">{meta.label}</p>
+                        <p className="text-[10px] leading-relaxed text-muted-foreground">{meta.summary}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
             <BaseGraphView nodes={graphNodes} edges={graphEdges} onNodeClick={handleNodeClick} height="h-full" />
           </>
         ) : (
@@ -501,6 +603,27 @@ export default function Investigations() {
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
+          {selectedNodeMeta && (
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
+              {(() => {
+                const Icon = selectedNodeMeta.icon
+                return (
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-background">
+                  <Icon className="h-3.5 w-3.5 text-foreground" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{selectedNodeMeta.label}</p>
+                  <p className="text-xs font-medium text-foreground">Why this node matters</p>
+                </div>
+              </div>
+                )
+              })()}
+              <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                {describeNodeImportance(selectedNodeData.entityType, selectedNodeData.entityData)}
+              </p>
+            </div>
+          )}
           <div className="rounded-xl border border-border/70 bg-muted/20 px-3 py-2 text-[10px] text-muted-foreground">
             Use this rail to confirm ownership, control mappings, and downstream impact before opening the full finding page.
           </div>

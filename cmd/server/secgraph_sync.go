@@ -210,7 +210,7 @@ func syncSecurityGraph(ctx context.Context, db *sql.DB, mgr *compliance.Manager,
 		autoDispatch: secgraphAutoTicketsEnabled(),
 		logger:       logger,
 	}
-	if !semanticSearchEnabledForCorpus(len(findings)) {
+	if !secgraphFullSyncEnabledForCorpus(len(findings)) {
 		seedCatalog, err := secgraphStartupNeedsCatalogSeed(ctx, db, mgr)
 		if err != nil {
 			return err
@@ -218,6 +218,7 @@ func syncSecurityGraph(ctx context.Context, db *sql.DB, mgr *compliance.Manager,
 		if logger != nil {
 			logger.Warn("Large corpus security graph startup using issue-surface mode",
 				zap.Int("findings", len(findings)),
+				zap.Int("max_full_sync_findings", secgraphFullSyncMaxFindings()),
 				zap.String("deferred_artifacts", "issue graph edges"),
 				zap.Bool("seed_catalog", seedCatalog),
 			)

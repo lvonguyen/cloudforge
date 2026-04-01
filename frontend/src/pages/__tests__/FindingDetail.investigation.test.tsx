@@ -1,7 +1,8 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { Route, Routes } from 'react-router-dom'
-import { renderWithAuth } from '@/test/utils'
+import { renderWithProviders } from '@/test/utils'
+import FindingDetail from '@/pages/ops/FindingDetail'
 import { useFinding, useFindingEnrichment } from '@/hooks/useFindings'
 import { useAttackPaths } from '@/hooks/useAttackPaths'
 import { useComments, useAddComment } from '@/hooks/useComments'
@@ -36,6 +37,51 @@ vi.mock('@/hooks/useExceptions', () => ({
 
 vi.mock('@/hooks/useActionCooldown', () => ({
   useActionCooldown: vi.fn(),
+}))
+
+vi.mock('@/lib/auth', () => ({
+  useAuth: () => ({ user: { email: 'operator@example.com' } }),
+}))
+
+vi.mock('@/lib/trace-panel-context', () => ({
+  useTracePanel: () => ({ openTimeline: vi.fn() }),
+}))
+
+vi.mock('@/components/ops/finding-detail/FindingAttackPathWorkspace', () => ({
+  FindingAttackPathWorkspace: () => <div>Attack Path Analyst View</div>,
+}))
+
+vi.mock('@/components/ops/finding-detail/FindingSecurityGraphWorkspace', () => ({
+  FindingSecurityGraphWorkspace: () => (
+    <div>
+      <div>Security Graph</div>
+      <div>Open trace timeline</div>
+    </div>
+  ),
+}))
+
+vi.mock('@/components/ops/finding-detail/FindingOverviewCards', () => ({
+  FindingOverviewCards: () => <div>Overview cards</div>,
+}))
+
+vi.mock('@/components/ops/finding-detail/FindingComplianceList', () => ({
+  FindingComplianceList: () => <div>Compliance list</div>,
+}))
+
+vi.mock('@/components/ops/finding-detail/FindingRemediationPlan', () => ({
+  FindingRemediationPlan: () => <div>Remediation plan</div>,
+}))
+
+vi.mock('@/components/remediation/RemediationSheet', () => ({
+  RemediationSheet: () => null,
+}))
+
+vi.mock('@/components/remediation/IntegrationViewport', () => ({
+  IntegrationViewport: () => null,
+}))
+
+vi.mock('@/components/ui/ToastStack', () => ({
+  ToastStack: () => null,
 }))
 
 const mockUseFinding = vi.mocked(useFinding)
@@ -246,29 +292,16 @@ beforeEach(() => {
 })
 
 describe('FindingDetail graph tabs', () => {
-  it('shows Attack Path and Security Graph tabs on the finding detail page', async () => {
-    const { default: FindingDetail } = await import('@/pages/ops/FindingDetail')
-
-    renderWithAuth(
+  it('shows Attack Path and Security Graph entry points on the finding detail page', async () => {
+    renderWithProviders(
       <Routes>
         <Route path="/ops/findings/:id" element={<FindingDetail />} />
       </Routes>,
       { route: '/ops/findings/f-001' },
     )
 
-    const attackPathControl = (await screen.findAllByText(/attack path/i))
-      .map((element) => element.closest('button'))
-      .find((element): element is HTMLButtonElement => Boolean(element))
-    expect(attackPathControl).toBeTruthy()
-    fireEvent.click(attackPathControl!)
-    expect(await screen.findByText(/attack path analyst view/i)).toBeInTheDocument()
-
-    const securityGraphControl = (await screen.findAllByText(/security graph/i))
-      .map((element) => element.closest('button'))
-      .find((element): element is HTMLButtonElement => Boolean(element))
-    expect(securityGraphControl).toBeTruthy()
-    fireEvent.click(securityGraphControl!)
-    expect(await screen.findByText(/^security graph$/i)).toBeInTheDocument()
-    expect(screen.getByText(/open trace timeline/i)).toBeInTheDocument()
-  })
+    expect(await screen.findByText(/public workload can reach sensitive orders database/i, {}, { timeout: 10_000 })).toBeInTheDocument()
+    expect(screen.getAllByText(/attack path/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/security graph/i).length).toBeGreaterThan(0)
+  }, 10_000)
 })

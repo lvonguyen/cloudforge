@@ -463,10 +463,10 @@ func main() {
 			}
 			edgeCancel()
 
-			if !semanticSearchEnabledForCorpus(len(mockData.Findings)) && !largeCorpusSecgraphSyncEnabled() {
+			if !secgraphFullSyncEnabledForCorpus(len(mockData.Findings)) && !largeCorpusSecgraphSyncEnabled() {
 				logger.Warn("Skipping security graph sync for large corpus",
 					zap.Int("findings", len(mockData.Findings)),
-					zap.Int("max_blocking_findings", semanticSearchMaxFindings()),
+					zap.Int("max_blocking_findings", secgraphFullSyncMaxFindings()),
 					zap.String("opt_in_env", "LARGE_CORPUS_SECGRAPH_SYNC_ENABLED=true"),
 				)
 				return
@@ -586,23 +586,37 @@ func main() {
 		startAttackPathEnrichment()
 	}
 
-	initializeDerivedState := func(fatalOnSearchError bool) {
-		initializeSearchService(fatalOnSearchError)
-		initializeAttackPaths()
-	}
+	searchEnabled := semanticSearchEnabledForCorpus(len(mockData.Findings))
+	attackPathWarmupEnabled := attackPathWarmupEnabledForCorpus(len(mockData.Findings))
 
-	if semanticSearchEnabledForCorpus(len(mockData.Findings)) {
-		initializeDerivedState(true)
+	if searchEnabled {
+		initializeSearchService(true)
 	} else if largeCorpusWarmupEnabled() {
-		logger.Warn("Deferring search and attack path initialization for large corpus",
+		logger.Warn("Deferring search initialization for large corpus",
 			zap.Int("findings", len(mockData.Findings)),
 			zap.Int("max_blocking_findings", semanticSearchMaxFindings()),
 		)
-		go initializeDerivedState(false)
+		go initializeSearchService(false)
 	} else {
-		logger.Warn("Skipping search and attack path initialization for large corpus",
+		logger.Warn("Skipping search initialization for large corpus",
 			zap.Int("findings", len(mockData.Findings)),
 			zap.Int("max_blocking_findings", semanticSearchMaxFindings()),
+			zap.String("opt_in_env", "LARGE_CORPUS_WARMUP_ENABLED=true"),
+		)
+	}
+
+	if attackPathWarmupEnabled {
+		initializeAttackPaths()
+	} else if largeCorpusWarmupEnabled() {
+		logger.Warn("Deferring attack path initialization for large corpus",
+			zap.Int("findings", len(mockData.Findings)),
+			zap.Int("max_blocking_findings", attackPathWarmupMaxFindings()),
+		)
+		go initializeAttackPaths()
+	} else {
+		logger.Warn("Skipping attack path initialization for large corpus",
+			zap.Int("findings", len(mockData.Findings)),
+			zap.Int("max_blocking_findings", attackPathWarmupMaxFindings()),
 			zap.String("opt_in_env", "LARGE_CORPUS_WARMUP_ENABLED=true"),
 		)
 		srv.attackPathSvc.setInitializer(func(ctx context.Context) ([]AttackPath, *AttackPathStats, error) {

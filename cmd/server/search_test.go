@@ -184,46 +184,67 @@ func TestEmbeddingService_GenerateEmbedding(t *testing.T) {
 		t.Fatalf("GenerateEmbedding: %v", err)
 	}
 
-	if len(vec) != es.vocabSize {
-		t.Errorf("expected vector of size %d, got %d", es.vocabSize, len(vec))
+	if len(vec) == 0 {
+		t.Fatal("expected sparse vector to contain non-zero terms")
 	}
 
-	// Vector should be non-zero (query terms exist in vocab).
-	nonZero := false
-	for _, v := range vec {
-		if v != 0 {
-			nonZero = true
-			break
+	for i := 1; i < len(vec); i++ {
+		if vec[i-1].index >= vec[i].index {
+			t.Fatalf("expected sparse vector to be sorted by index, got %d before %d", vec[i-1].index, vec[i].index)
 		}
 	}
-	if !nonZero {
-		t.Error("expected non-zero embedding vector")
+
+	var magnitude float64
+	for _, component := range vec {
+		if component.weight == 0 {
+			t.Fatal("expected sparse vector to exclude zero-weight terms")
+		}
+		magnitude += float64(component.weight * component.weight)
+	}
+	if magnitude < 0.99 || magnitude > 1.01 {
+		t.Fatalf("expected normalized sparse vector, got squared magnitude %.4f", magnitude)
 	}
 }
 
 func TestCosineSimilarity(t *testing.T) {
 	// Identical normalized vectors should have similarity ~1.0.
-	a := []float32{0.6, 0.8, 0}
-	b := []float32{0.6, 0.8, 0}
+	a := sparseVector{{index: 1, weight: 0.6}, {index: 3, weight: 0.8}}
+	b := sparseVector{{index: 1, weight: 0.6}, {index: 3, weight: 0.8}}
 	sim := cosineSimilarity(a, b)
 	if sim < 0.99 {
 		t.Errorf("identical vectors: expected ~1.0, got %f", sim)
 	}
 
 	// Orthogonal vectors should have similarity ~0.0.
-	c := []float32{1, 0, 0}
-	d := []float32{0, 1, 0}
+	c := sparseVector{{index: 1, weight: 1}}
+	d := sparseVector{{index: 2, weight: 1}}
 	sim = cosineSimilarity(c, d)
 	if sim > 0.01 {
 		t.Errorf("orthogonal vectors: expected ~0.0, got %f", sim)
 	}
 
-	// Mismatched dimensions should return 0.
-	e := []float32{1, 0}
-	f := []float32{1, 0, 0}
-	sim = cosineSimilarity(e, f)
+	// Empty vectors should return 0.
+	sim = cosineSimilarity(nil, d)
 	if sim != 0 {
-		t.Errorf("mismatched dimensions: expected 0, got %f", sim)
+		t.Errorf("empty vector: expected 0, got %f", sim)
+	}
+}
+
+func TestEmbeddingService_SearchSimilar(t *testing.T) {
+	findings := testFindings()
+	es := NewEmbeddingService(findings)
+
+	query, err := es.GenerateEmbedding(context.Background(), "audit logging database")
+	if err != nil {
+		t.Fatalf("GenerateEmbedding: %v", err)
+	}
+
+	results := es.SearchSimilar(query, 5)
+	if len(results) == 0 {
+		t.Fatal("expected at least one semantic candidate")
+	}
+	if results[0].score <= 0 {
+		t.Fatalf("expected positive similarity score, got %f", results[0].score)
 	}
 }
 

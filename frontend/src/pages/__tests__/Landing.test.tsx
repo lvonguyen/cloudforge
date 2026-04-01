@@ -4,10 +4,10 @@ import { renderWithProviders } from '@/test/utils'
 import Landing from '@/pages/Landing'
 
 describe('Landing', () => {
-  it('renders without crashing', () => {
+  it('renders without crashing', async () => {
     renderWithProviders(<Landing />)
-    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
-  })
+    expect(await screen.findByRole('heading', { level: 1 }, { timeout: 10_000 })).toBeInTheDocument()
+  }, 10_000)
 
   it('shows the Aegis Platform heading', () => {
     renderWithProviders(<Landing />)

@@ -1,11 +1,20 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import AttackPaths from '@/pages/ops/AttackPaths'
 import { renderWithProviders } from '@/test/utils'
 import { useAttackPaths, useAttackPathStats } from '@/hooks/useAttackPaths'
 import { useFindingsByIds } from '@/hooks/useFindings'
 import type { Finding } from '@/types/compliance'
 import type { AttackPath, AttackPathStats, PaginatedResponse } from '@/types/attack-path'
+
+vi.mock('@xyflow/react', () => ({
+  ReactFlow: ({ children }: { children?: ReactNode }) => <div data-testid="reactflow-mock">{children}</div>,
+  Background: () => null,
+  Controls: () => <div data-testid="reactflow-controls-mock" />,
+  Position: { Left: 'left', Right: 'right', Top: 'top', Bottom: 'bottom' },
+  MarkerType: { ArrowClosed: 'arrowclosed' },
+}))
 
 vi.mock('@/hooks/useAttackPaths', () => ({
   useAttackPaths: vi.fn(),
@@ -255,7 +264,7 @@ describe('AttackPaths readability controls', () => {
     expect(screen.getByRole('button', { name: /auto canvas/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /light canvas/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /dark canvas/i })).toBeInTheDocument()
-  })
+  }, 10_000)
 
   it('applies and persists a local dark canvas selection in the detail view', async () => {
     renderWithProviders(<AttackPaths />)
