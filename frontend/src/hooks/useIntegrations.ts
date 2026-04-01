@@ -154,7 +154,7 @@ const MOCK_COMMENTS: TicketComment[] = [
     id: 'tc-seed-1',
     ticket_id: 'tkt-mock-001',
     author: 'Sarah Chen',
-    body: 'Ticket created from Cloud Aegis. Escalating to infrastructure team for remediation.',
+    body: 'Ticket created from Aegis. Escalating to infrastructure team for remediation.',
     created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
   },
   {

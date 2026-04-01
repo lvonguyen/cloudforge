@@ -4,9 +4,9 @@ slug: /intro
 title: Welcome
 ---
 
-# Cloud Aegis Documentation
+# Aegis Documentation
 
-**Cloud Aegis** is an enterprise cloud governance platform that unifies CSPM findings, AI-powered risk scoring, policy enforcement, and automated remediation across AWS, Azure, and GCP.
+**Aegis** is an enterprise cloud governance platform that unifies posture findings, AI-powered risk scoring, policy enforcement, and automated remediation across AWS, Azure, and GCP.
 
 ## Quick Links
 
@@ -16,7 +16,7 @@ title: Welcome
 | [ADRs](/docs/adr) | 19 Architecture Decision Records |
 | [Diagrams](/docs/diagrams) | System architecture and flow diagrams |
 | [API Reference](/docs/api) | Interactive OpenAPI explorer (82 operations) |
-| [CSPM Aggregator](/docs/cspm/hld) | Multi-cloud finding aggregation module |
+| [Posture Management](/docs/cspm/hld) | Multi-cloud finding aggregation module |
 | [Runbooks](/docs/runbooks/01-deployment) | 9 operational runbooks |
 | [Security](/docs/security/threat-model) | STRIDE threat model |
 

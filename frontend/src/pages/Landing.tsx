@@ -46,11 +46,11 @@ const PROJECTS: ProjectCard[] = [
     repo: `${branding.repoPrefix}/aegis`,
   },
   {
-    name: 'CSPM Aggregator',
+    name: 'Posture Management',
     slug: 'cspm-aggregator',
     tier: 'supporting',
     description:
-      'Cloud Security Posture Management — normalizes findings from AWS Security Hub, Azure Defender, and GCP SCC into a unified schema with LLM-powered contextual risk scoring.',
+      'Security posture management for AWS, Azure, and GCP — normalizes provider findings into a unified schema with LLM-powered contextual risk scoring.',
     icon: Cloud,
     iconSvg: '/icons/cspm-logo.svg',
     color: 'text-green-600 dark:text-green-400',

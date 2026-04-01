@@ -52,7 +52,7 @@ let _loading: Promise<RuntimeConfig | null> | null = null
  */
 const DEFAULT_CONFIG: RuntimeConfig = {
   companyName: 'Contoso',
-  productName: 'Cloud Aegis',
+  productName: 'Aegis',
   logoPath: '/icons/aegis-logo.svg',
   emailDomain: 'contoso.dev',
   repoPrefix: 'github.com/contoso',

@@ -1,10 +1,10 @@
 {
   "icons": [
     {
-      "name": "Cloud Aegis Logo",
+      "name": "Aegis Logo",
       "file": "aegis-logo.svg",
       "path": "/icons/aegis-logo.svg",
-      "description": "Main Cloud Aegis product logo — shield with cloud and hammer motif",
+      "description": "Main Aegis product logo — shield with cloud and hammer motif",
       "colors": {
         "primary": "#1e40af",
         "secondary": "#3b82f6"
@@ -26,7 +26,7 @@
       "name": "CSPM Logo",
       "file": "cspm-logo.svg",
       "path": "/icons/cspm-logo.svg",
-      "description": "CSPM Aggregator — cloud with shield and checkmark",
+      "description": "Posture Management — cloud with shield and checkmark",
       "colors": {
         "primary": "#16a34a",
         "secondary": "#166534"
@@ -70,7 +70,7 @@
       "name": "Favicon",
       "file": "favicon.svg",
       "path": "/icons/favicon.svg",
-      "description": "Simplified Cloud Aegis shield favicon, works at 16x16 and 32x32",
+      "description": "Simplified Aegis shield favicon, works at 16x16 and 32x32",
       "colors": {
         "primary": "#1e40af",
         "secondary": "#3b82f6"

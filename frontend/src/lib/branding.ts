@@ -10,7 +10,7 @@ export const branding = {
   companyName: import.meta.env.VITE_COMPANY_NAME || 'Contoso',
 
   /** Product name shown in nav, headings, and title bar. */
-  productName: import.meta.env.VITE_PRODUCT_NAME || 'Cloud Aegis',
+  productName: import.meta.env.VITE_PRODUCT_NAME || 'Aegis',
 
   /** Path to the primary logo SVG (relative to /public). */
   logoPath: import.meta.env.VITE_LOGO_PATH || '/icons/aegis-logo.svg',

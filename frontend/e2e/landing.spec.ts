@@ -15,7 +15,7 @@ test.describe('Landing page', () => {
     expect(count).toBeGreaterThanOrEqual(3)
 
     // Verify key module names are present
-    await expect(page.getByText('CSPM Aggregator').first()).toBeVisible()
+    await expect(page.getByText('Posture Management').first()).toBeVisible()
     await expect(page.getByText('Threat Intelligence').first()).toBeVisible()
     await expect(page.getByText('Remediation Engine').first()).toBeVisible()
     await expect(page.getByText('Operations Center').first()).toBeVisible()

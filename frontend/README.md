@@ -1,4 +1,4 @@
-# Cloud Aegis Portal
+# Aegis Portal
 
 Self-service cloud governance portal — React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui.
 

@@ -1,4 +1,4 @@
-# Cloud Aegis
+# Aegis
 
 ![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -7,11 +7,11 @@
 
 ## Enterprise Cloud Governance Platform with Self-Service Provisioning
 
-Cloud Aegis is a reference architecture and implementation for an Internal Developer Platform (IDP) that enables self-service cloud resource provisioning with built-in governance, compliance guardrails, and exception management workflows.
+Aegis is a reference architecture and implementation for an Internal Developer Platform (IDP) that enables self-service cloud resource provisioning with built-in governance, compliance guardrails, and exception management workflows.
 
 > **[Live Demo](https://cloudaegis-demo.lvonguyen.com)** | **[API](https://api.cloudforge-demo.lvonguyen.com/health)**
 
-> **About this project** — Cloud Aegis demonstrates enterprise security patterns designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains. The approach is project-based: assess current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — working systems backed by threat models and ADRs (the [20 ADRs](docs/core/architecture/adr/) capture the decision-making process used to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. The core discipline is security-focused systems design, with agentic coding workflows (Claude Code) as a force multiplier for delivery.
+> **About this project** — Aegis demonstrates enterprise security patterns designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains. The approach is project-based: assess current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — working systems backed by threat models and ADRs (the [20 ADRs](docs/core/architecture/adr/) capture the decision-making process used to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. The core discipline is security-focused systems design, with agentic coding workflows (Claude Code) as a force multiplier for delivery.
 >
 > **Development rigor** — Code quality is enforced through a layered toolchain: `golangci-lint` with `gosec`/`gocritic`/`revive` in CI, shared coding standards governing Go patterns, error handling, and security rules across all repos, pre-commit hooks blocking credential leaks, and systematic multi-pass QA reviews (quality, security, bug discovery) before merge. The emphasis is on elegant, maintainable code paired with comprehensive documentation and detailed architecture diagrams — minimizing tech debt throughout the SDLC rather than accruing it for later.
 
@@ -168,7 +168,7 @@ Enterprise cloud environments face a constant tension:
 - **Finance** requires cost controls, tagging, and chargeback
 - **Compliance** demands policy enforcement and exception documentation
 
-Cloud Aegis bridges these needs with a unified platform that provides:
+Aegis bridges these needs with a unified platform that provides:
 
 - Self-service portal for requesting cloud resources
 - Policy-as-code guardrails (OPA/Rego)
@@ -180,7 +180,7 @@ Cloud Aegis bridges these needs with a unified platform that provides:
 
 ## [/] Architecture
 
-<img src="docs/core/diagrams/architecture-figma.png" alt="Cloud Aegis Architecture" width="720">
+<img src="docs/core/diagrams/architecture-figma.png" alt="Aegis Architecture" width="720">
 
 ---
 
