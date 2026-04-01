@@ -57,6 +57,23 @@ const defaultAttackPathWarmupMaxFindings = 10000
 const defaultSecgraphFullSyncMaxFindings = 10000
 const fallbackKeywordSearchMaxCandidates = 1000
 
+var searchTermExpansions = map[string][]string{
+	"mfa":        {"multi factor authentication", "multi-factor authentication"},
+	"sso":        {"single sign on", "identity federation"},
+	"rds":        {"database", "relational database service"},
+	"ec2":        {"instance", "compute", "virtual machine"},
+	"s3":         {"bucket", "storage", "object storage"},
+	"elb":        {"load balancer", "public endpoint"},
+	"iam":        {"identity", "access management", "permissions", "role"},
+	"waf":        {"web application firewall"},
+	"cve":        {"vulnerability", "security advisory"},
+	"privesc":    {"privilege escalation"},
+	"ssrf":       {"server side request forgery"},
+	"sqli":       {"sql injection"},
+	"guardduty":  {"threat detection", "runtime monitoring"},
+	"cloudtrail": {"audit trail", "logging"},
+}
+
 // NewSearchService builds an in-memory BM25 index from the given findings.
 func NewSearchService(findings []Finding) (*SearchService, error) {
 	indexMapping := buildIndexMapping()
@@ -153,6 +170,65 @@ func fallbackKeywordSearchCandidateLimit(page, perPage int) int {
 		limit = fallbackKeywordSearchMaxCandidates
 	}
 	return limit
+}
+
+func rewriteSearchQuery(query string) string {
+	trimmed := strings.TrimSpace(query)
+	if trimmed == "" {
+		return ""
+	}
+
+	normalized := strings.ToLower(trimmed)
+	tokens := tokenizeFallbackSearchQuery(trimmed)
+	if len(tokens) == 0 {
+		return trimmed
+	}
+
+	seen := make(map[string]struct{}, len(tokens))
+	for _, token := range tokens {
+		seen[token] = struct{}{}
+	}
+
+	extras := make([]string, 0, 8)
+	add := func(values ...string) {
+		for _, value := range values {
+			candidate := strings.ToLower(strings.TrimSpace(value))
+			if candidate == "" {
+				continue
+			}
+			if _, ok := seen[candidate]; ok {
+				continue
+			}
+			seen[candidate] = struct{}{}
+			extras = append(extras, value)
+		}
+	}
+
+	for _, token := range tokens {
+		add(searchTermExpansions[token]...)
+	}
+
+	switch {
+	case strings.Contains(normalized, "internet exposed"),
+		strings.Contains(normalized, "public internet"),
+		strings.Contains(normalized, "publicly exposed"):
+		add("public access", "public endpoint", "internet reachable")
+	}
+
+	if strings.Contains(normalized, "public bucket") || (strings.Contains(normalized, "bucket") && strings.Contains(normalized, "public")) {
+		add("s3", "storage", "object storage")
+	}
+	if strings.Contains(normalized, "attack path") || strings.Contains(normalized, "lateral movement") {
+		add("pivot", "reachable path", "privilege escalation")
+	}
+	if strings.Contains(normalized, "owner") && strings.Contains(normalized, "finding") {
+		add("assignee", "technical contact", "workflow owner")
+	}
+
+	if len(extras) == 0 {
+		return trimmed
+	}
+	return trimmed + " " + strings.Join(extras, " ")
 }
 
 func fallbackKeywordSearch(findings []Finding, query string, limit int) *SearchResult {

@@ -85,8 +85,11 @@ func (s *Server) searchFindings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rewrittenQuery := rewriteSearchQuery(query)
+
 	span.SetAttributes(
 		attribute.Int("search.query_length", len(query)),
+		attribute.Int("search.rewritten_query_length", len(rewrittenQuery)),
 		attribute.String("search.mode", mode),
 		attribute.Int("search.page", page),
 		attribute.Int("search.per_page", perPage),
@@ -100,11 +103,13 @@ func (s *Server) searchFindings(w http.ResponseWriter, r *http.Request) {
 
 	if searchSvc == nil {
 		effectiveMode = "keyword"
-		result = fallbackKeywordSearch(s.data.Findings, query, fallbackKeywordSearchCandidateLimit(page, perPage))
+		result = fallbackKeywordSearch(s.data.Findings, rewrittenQuery, fallbackKeywordSearchCandidateLimit(page, perPage))
 		span.SetAttributes(attribute.Bool("search.degraded", true))
 		if s.logger != nil {
 			s.logger.Warn("Falling back to in-memory keyword search",
 				zap.String("requested_mode", mode),
+				zap.String("query", query),
+				zap.String("rewritten_query", rewrittenQuery),
 				zap.Int("findings", len(s.data.Findings)),
 				zap.Int("candidate_limit", fallbackKeywordSearchCandidateLimit(page, perPage)),
 			)
@@ -115,20 +120,20 @@ func (s *Server) searchFindings(w http.ResponseWriter, r *http.Request) {
 			// Fetch wide window from Bleve — post-filter ABAC + structured filters
 			// will reduce the set, so pre-paginating at the index level produces
 			// wrong results for scoped users on page 2+.
-			result, err = searchSvc.Search(ctx, query, 1, 200)
+			result, err = searchSvc.Search(ctx, rewrittenQuery, 1, 200)
 		case "semantic":
 			if searchSvc.embedSvc == nil {
 				writeErrorResponse(w, "semantic search not available", http.StatusServiceUnavailable)
 				return
 			}
-			scored, sErr := searchSvc.semanticSearch(ctx, query, 200)
+			scored, sErr := searchSvc.semanticSearch(ctx, rewrittenQuery, 200)
 			if sErr != nil {
 				s.writeInternalError(w, sErr, "semantic_search")
 				return
 			}
 			result, err = searchSvc.paginateScored(scored, page, perPage, 0)
 		case "hybrid":
-			result, err = searchSvc.HybridSearch(ctx, query, page, perPage)
+			result, err = searchSvc.HybridSearch(ctx, rewrittenQuery, page, perPage)
 		}
 	}
 

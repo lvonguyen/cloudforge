@@ -394,6 +394,44 @@ func TestFallbackKeywordSearchCandidateLimit(t *testing.T) {
 	}
 }
 
+func TestRewriteSearchQuery_ExpandsOperatorShorthand(t *testing.T) {
+	rewritten := rewriteSearchQuery("internet exposed rds without mfa")
+
+	for _, expected := range []string{
+		"public access",
+		"database",
+		"multi factor authentication",
+	} {
+		if !strings.Contains(rewritten, expected) {
+			t.Fatalf("rewritten query %q missing %q", rewritten, expected)
+		}
+	}
+}
+
+func TestFallbackKeywordSearch_RewriteImprovesRecall(t *testing.T) {
+	findings := []Finding{
+		{
+			ID:           "db-public-access",
+			Title:        "Database instance has public access enabled",
+			Description:  "Multi-factor authentication is not enforced for the owning workflow.",
+			ResourceName: "db-prod-001",
+		},
+	}
+
+	raw := fallbackKeywordSearch(findings, "internet exposed rds without mfa", 10)
+	if raw.Total != 0 {
+		t.Fatalf("expected raw fallback search to miss shorthand query, got %d results", raw.Total)
+	}
+
+	rewritten := fallbackKeywordSearch(findings, rewriteSearchQuery("internet exposed rds without mfa"), 10)
+	if rewritten.Total == 0 {
+		t.Fatal("expected rewritten fallback search to recover a result")
+	}
+	if rewritten.Findings[0].Finding.ID != "db-public-access" {
+		t.Fatalf("first rewritten result = %s, want db-public-access", rewritten.Findings[0].Finding.ID)
+	}
+}
+
 // --- Handler tests ---
 
 func TestSearchFindings_Handler(t *testing.T) {

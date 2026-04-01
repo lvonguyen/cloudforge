@@ -449,7 +449,7 @@ func seedTenants(logger *zap.Logger) tenant.Store {
 		Name: "Contoso Inc.",
 		Branding: tenant.Branding{
 			CompanyName:  "Contoso Inc.",
-			ProductName:  "Cloud Aegis",
+			ProductName:  "Aegis",
 			LogoPath:     "/logo.svg",
 			EmailDomain:  "contoso.com",
 			PrimaryColor: "#f59e0b",

@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '@/lib/api'
 import { AuthProvider } from '@/lib/auth'
-import { ConfigProvider } from '@/lib/config-context'
+import { ConfigProvider, useConfig } from '@/lib/config-context'
 import { branding } from '@/lib/branding'
 import { TracePanelProvider } from '@/lib/trace-panel-context'
 import { TerminalPanelProvider } from '@/lib/terminal-context'
@@ -76,18 +76,28 @@ function PageFallback() {
 }
 
 export default function App() {
-  useEffect(() => {
-    document.title = `${branding.productName} — Cloud Security Platform`
-  }, [])
-
   return (
     <ConfigProvider>
+      <AppContent />
+    </ConfigProvider>
+  )
+}
+
+function AppContent() {
+  const { config } = useConfig()
+
+  useEffect(() => {
+    const productName = config?.productName || branding.productName
+    document.title = `${productName} — Cloud Security Platform`
+  }, [config])
+
+  return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TerminalPanelProvider>
-        <TracePanelProvider>
-          <BrowserRouter>
-            <Routes>
+          <TracePanelProvider>
+            <BrowserRouter>
+              <Routes>
               {/* OAuth callback — outside AppShell */}
               <Route path="/callback" element={<Suspense fallback={<PageFallback />}><Callback /></Suspense>} />
               <Route element={<AppShell />}>
@@ -156,14 +166,13 @@ export default function App() {
                 {/* 404 catch-all */}
                 <Route path="*" element={<NotFound />} />
               </Route>
-            </Routes>
-            <Suspense fallback={null}><ExecutionTracePanel /></Suspense>
-            <Suspense fallback={null}><TerminalPanel /></Suspense>
-          </BrowserRouter>
-        </TracePanelProvider>
+              </Routes>
+              <Suspense fallback={null}><ExecutionTracePanel /></Suspense>
+              <Suspense fallback={null}><TerminalPanel /></Suspense>
+            </BrowserRouter>
+          </TracePanelProvider>
         </TerminalPanelProvider>
       </AuthProvider>
     </QueryClientProvider>
-    </ConfigProvider>
   )
 }

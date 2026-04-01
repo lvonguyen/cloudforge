@@ -20,6 +20,7 @@
 import { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from 'react'
 import { loadRuntimeConfig, type RuntimeConfig } from '@/lib/runtime-config'
 import { initTheme } from '@/lib/apply-theme'
+import { applyRuntimeBranding } from '@/lib/branding'
 
 interface ConfigContextValue {
   /** Runtime config, or null if loading / unavailable */
@@ -49,6 +50,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
 
     loadRuntimeConfig().then((cfg) => {
       if (!active) return
+      applyRuntimeBranding(cfg)
       setConfig(cfg)
       initTheme(undefined, cfg?.theme ? {
         primary: cfg.theme.primaryColor,

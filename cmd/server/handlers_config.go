@@ -23,7 +23,7 @@ type configResponse struct {
 // Default Contoso branding (fallback when no tenant is resolved).
 var defaultConfigResponse = configResponse{
 	CompanyName:    "Contoso Inc.",
-	ProductName:    "Cloud Aegis",
+	ProductName:    "Aegis",
 	LogoPath:       "/logo.svg",
 	EmailDomain:    "contoso.com",
 	RepoPrefix:     "contoso",
