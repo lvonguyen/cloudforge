@@ -5,10 +5,77 @@ import type { Finding } from '@/types/compliance'
 const R2_FINDINGS_URL =
   'https://pub-878a225fb2464e2ab2e3b08d0603e04b.r2.dev/mock/findings.json'
 
+const UNIFORM_R2_SIGNATURE = {
+  total: 20_000,
+  severity: {
+    CRITICAL: 2_000,
+    HIGH: 5_000,
+    MEDIUM: 7_000,
+    LOW: 6_000,
+  },
+  status: {
+    open: 12_500,
+    in_progress: 3_750,
+    resolved: 2_500,
+    suppressed: 1_250,
+  },
+  autoRemediatable: 6_000,
+}
+
+const DEMO_KEEP_RATIO_BY_SEVERITY: Record<string, number> = {
+  CRITICAL: 0.9345,
+  HIGH: 0.9621,
+  MEDIUM: 0.9464,
+  LOW: 0.9753,
+}
+
+function countBy<T extends string>(items: Finding[], key: (finding: Finding) => T): Record<string, number> {
+  const counts: Record<string, number> = {}
+  for (const item of items) counts[key(item)] = (counts[key(item)] ?? 0) + 1
+  return counts
+}
+
+function sameCounts(actual: Record<string, number>, expected: Record<string, number>): boolean {
+  const keys = new Set([...Object.keys(actual), ...Object.keys(expected)])
+  for (const key of keys) {
+    if ((actual[key] ?? 0) !== (expected[key] ?? 0)) return false
+  }
+  return true
+}
+
+function stableUnitInterval(input: string): number {
+  let hash = 2166136261
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  return (hash >>> 0) / 0xffffffff
+}
+
+export function normalizeDemoFindings(findings: Finding[]): Finding[] {
+  if (findings.length !== UNIFORM_R2_SIGNATURE.total) return findings
+
+  const severity = countBy(findings, (finding) => finding.severity)
+  const status = countBy(findings, (finding) => finding.status)
+  const autoRemediatable = findings.filter((finding) => finding.auto_remediatable).length
+
+  const looksLikeUniformR2Corpus =
+    sameCounts(severity, UNIFORM_R2_SIGNATURE.severity) &&
+    sameCounts(status, UNIFORM_R2_SIGNATURE.status) &&
+    autoRemediatable === UNIFORM_R2_SIGNATURE.autoRemediatable
+
+  if (!looksLikeUniformR2Corpus) return findings
+
+  return findings.filter((finding) => {
+    const threshold = DEMO_KEEP_RATIO_BY_SEVERITY[finding.severity] ?? 0.96
+    return stableUnitInterval(`${finding.id}:${finding.severity}:${finding.status}`) <= threshold
+  })
+}
+
 async function fetchR2Findings(): Promise<Finding[]> {
   const res = await fetch(R2_FINDINGS_URL)
   if (!res.ok) throw new Error(`R2 fetch failed: ${res.status}`)
-  return res.json()
+  return normalizeDemoFindings(await res.json())
 }
 
 async function fetchLocalMockFindings(): Promise<Finding[]> {
