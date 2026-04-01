@@ -47,7 +47,7 @@
 | High-Level Design | [HLD.md](./HLD.md) |
 | Component Rationale | [component-rationale.md](./adr/component-rationale.md) |
 | DR/BC Plan | [DR-BC.md](./DR-BC.md) |
-| API Specification | [openapi.yaml](../../api/openapi.yaml) (OpenAPI 3.1, 82 operations) |
+| API Specification | [openapi.yaml](../../api/openapi.yaml) (OpenAPI 3.1, 89 operations) |
 
 ---
 
@@ -80,9 +80,55 @@ This document covers:
 
 ### 2.1 External Integrations
 
+```mermaid
+flowchart TB
+    subgraph Aegis["Aegis Platform"]
+        API["API Server<br/>Go 1.25 · JWT · RBAC"]
+        FE["Portal<br/>React 19 · Vite 7"]
+        RE["Remediation<br/>17 Handlers"]
+        RI["Risk Intelligence<br/>EPSS · KEV · GreyNoise"]
+        PE["Policy Engine<br/>OPA / Rego"]
+        GR["Graph Engine<br/>Gremlin · Cypher"]
+    end
+
+    subgraph Ext["External Systems"]
+        VCS["VCS<br/>GitHub · GitLab · ADO"]
+        SAST["SAST<br/>SonarQube · Veracode · Checkov"]
+        IdP["Identity<br/>Entra ID · Okta"]
+        GRC["GRC<br/>ServiceNow · Archer"]
+        CSP["Cloud Providers<br/>AWS · Azure · GCP"]
+        TI["Threat Intel<br/>FIRST · CISA · ThreatFox"]
+        TKT["Ticketing<br/>Asana · Jira · ADO"]
+    end
+
+    FE --> API
+    API --> RE
+    API --> RI
+    API --> PE
+    API --> GR
+    API --> VCS
+    API --> SAST
+    API --> IdP
+    API --> GRC
+    API --> CSP
+    RI --> TI
+    RE --> TKT
+
+    style Aegis fill:#1e40af,stroke:#334155,color:#e2e8f0
+    style Ext fill:#0f172a,stroke:#334155,color:#e2e8f0
+    style API fill:#1e40af,stroke:#334155,color:#e2e8f0
+    style CSP fill:#f59e0b,stroke:#334155,color:#0f172a
+    style IdP fill:#3b82f6,stroke:#334155,color:#e2e8f0
+    style GRC fill:#8b5cf6,stroke:#334155,color:#e2e8f0
+    style TI fill:#ef4444,stroke:#334155,color:#e2e8f0
+```
+
+<details>
+<summary>ASCII fallback</summary>
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              Cloud Aegis                                      │
+│                              Aegis                                           │
 └─────────────────────────────────────────────────────────────────────────────┘
          │              │              │              │              │
          ▼              ▼              ▼              ▼              ▼
@@ -93,6 +139,8 @@ This document covers:
     │ ADO     │   │ Checkov │   │         │   │         │   │ GCP     │
     └─────────┘   └─────────┘   └─────────┘   └─────────┘   └─────────┘
 ```
+
+</details>
 
 ### 2.2 Integration Authentication
 

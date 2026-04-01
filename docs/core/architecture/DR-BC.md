@@ -23,6 +23,27 @@ Cloud Aegis manages cloud security posture, policy enforcement, and AI-driven re
 | **MTTR** | 1 hour | Average time to restore service |
 | **MTBF** | 720 hours | Minimum mean time between failures |
 
+```mermaid
+sequenceDiagram
+    participant M as Monitoring
+    participant T1 as Tier 1 (Primary)
+    participant T2 as Tier 2 (DR Standby)
+    participant DNS as Global DNS
+    participant OPS as On-Call
+
+    M->>T1: Health check fails (3 consecutive)
+    M->>OPS: PagerDuty alert (P1)
+    M->>T2: Trigger scale-up (0 → N replicas)
+    Note over T2: DB replica promoted (RPO ≤ 5 min)
+    T2->>T2: Readiness checks pass
+    DNS->>DNS: Failover record updated
+    DNS->>T2: Traffic routed to DR region
+    Note over T1,T2: RTO target: 30 min (automated)
+    OPS->>T1: Root cause investigation
+    T1->>T1: Remediation + validation
+    DNS->>T1: Failback (manual approval)
+```
+
 ---
 
 ## Service Criticality

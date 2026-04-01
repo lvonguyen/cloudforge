@@ -1,8 +1,8 @@
-# Cloud Aegis Technical Runbooks
+# Aegis Technical Runbooks
 
 ## Overview
 
-This directory contains operational runbooks for Cloud Aegis. Each runbook provides step-by-step procedures for common operational tasks and incident response.
+This directory contains operational runbooks for Aegis. Each runbook provides step-by-step procedures for common operational tasks and incident response.
 
 ## Runbook Index
 
@@ -36,4 +36,3 @@ Each runbook follows this structure:
 | On-Call Engineer | PagerDuty | 24/7 |
 | Security Team | security@vonguyen.io | 24/7 |
 | Platform Team | platform@vonguyen.io | Business hours |
-

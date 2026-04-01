@@ -1,4 +1,4 @@
-# Cloud Aegis Configuration Reference
+# Aegis Configuration Reference
 
 All configuration is via environment variables. Defaults are tuned for local development.
 
@@ -149,7 +149,7 @@ When `GRC_PROVIDER` is not `memory`, the selected backend requires credentials:
 | `SERVICENOW_CLIENT_ID` | `servicenow` (OAuth) | ServiceNow OAuth client ID |
 | `SERVICENOW_CLIENT_SECRET` | `servicenow` (OAuth) | ServiceNow OAuth client secret |
 
-## CSPM Aggregator
+## Posture Management (Standalone CSPM Aggregator)
 
 These variables configure the standalone CSPM aggregator binary (`cmd/cspm-aggregator`).
 
@@ -172,7 +172,7 @@ These are set in `fly.toml` for the Fly.io deployment:
 | `GRC_PROVIDER` | `memory` | In-memory GRC backend |
 | `APP_ENV` | `production` | Production mode |
 | `RATE_LIMIT_ENABLED` | `true` | Rate limiting on |
-| `CORS_ALLOWED_ORIGINS` | `https://cloudaegis-demo.lvonguyen.com` | Cloudflare Pages domain |
+| `CORS_ALLOWED_ORIGINS` | `https://cloudaegis-demo.lvonguyen.com,https://cloudguard.lvonguyen.com` | Allowed web origins for the Fly API |
 
 ## Observability / Tracing
 
@@ -201,7 +201,7 @@ These variables are embedded at build time via Vite's `import.meta.env`:
 | `VITE_WS_URL` | *(empty)* | WebSocket server URL for SSE events |
 | `VITE_DEV_TOKEN` | *(empty)* | Dev-mode auth token override |
 | `VITE_COMPANY_NAME` | `Contoso` | White-label company name |
-| `VITE_PRODUCT_NAME` | `Cloud Aegis` | White-label product name |
+| `VITE_PRODUCT_NAME` | `Aegis` | White-label product name |
 | `VITE_LOGO_PATH` | `/icons/aegis-logo.svg` | Path to logo SVG |
 | `VITE_EMAIL_DOMAIN` | `contoso.dev` | Domain used in demo email addresses |
 | `VITE_REPO_PREFIX` | `github.com/contoso` | Repository URL prefix |

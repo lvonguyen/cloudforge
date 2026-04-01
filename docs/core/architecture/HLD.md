@@ -1,4 +1,4 @@
-# High-Level Design: Cloud Aegis Enterprise Cloud Governance Platform
+# High-Level Design: Aegis Enterprise Cloud Governance Platform
 
 | Property | Value |
 | --- | --- |
@@ -23,7 +23,7 @@
 
 ## 1. Executive Summary
 
-Cloud Aegis is an Enterprise Cloud Governance Platform that provides:
+Aegis is an enterprise cloud governance platform that provides:
 - Self-service cloud resource provisioning with built-in governance guardrails
 - Cloud Security Posture Management (CSPM) with multi-cloud aggregation
 - Multi-framework compliance mapping (CIS, NIST, ISO, PCI-DSS, HIPAA, etc.)
@@ -67,7 +67,7 @@ flowchart TB
         FinOpsEngine["FinOps Aggregator"]
     end
 
-    subgraph CSPM["CSPM Aggregator"]
+    subgraph CSPM["Posture Management"]
         Normalizer["Multi-CSP Normalizer"]
         AttackPath["Attack Path Engine"]
         ToxicCombo["Toxic Combo Detector"]
@@ -126,7 +126,7 @@ flowchart TB
 | Policy Engine | Evaluate requests against governance rules (dual-OPA) | OPA / Rego (external server + embedded Go library) |
 | AI Risk Analyzer | Contextual risk scoring, toxic combo detection | Claude Opus 4.6 / GPT-4 / AWS Bedrock |
 | Compliance Engine | Multi-framework compliance mapping and assessment | Go |
-| CSPM Aggregator | Multi-cloud finding normalization and enrichment | Go (AWS/Azure/GCP SDK clients) |
+| Posture Management | Multi-cloud finding normalization and enrichment | Go (AWS/Azure/GCP SDK clients) |
 | Graph Query Engine | Multi-hop graph traversal (zero-ETL over PostgreSQL) | PuppyGraph Enterprise (Gremlin / openCypher) |
 | Attack Path Engine | In-memory BFS graph computation | Go + ReactFlow (frontend) |
 | Toxic Combo Detector | 4-pattern toxic combination detection | Go |
@@ -293,7 +293,7 @@ In-memory BFS graph engine that builds an adjacency graph from loaded findings a
 
 ### 7.2 Graph Query Engine (PuppyGraph)
 
-For multi-hop traversal queries beyond the BFS engine (e.g., "find all findings reachable from identity X within 3 hops"), Cloud Aegis integrates PuppyGraph Enterprise as a zero-ETL graph query layer over the existing PostgreSQL data store. PuppyGraph supports both Gremlin and openCypher query languages and is accessed via `POST /api/v1/graph/query`. The existing Go BFS engine is retained as a fallback when the PuppyGraph service is unavailable (feature flag: `PUPPYGRAPH_URL`). See [ADR-015](./adr/ADR-015-graph-query-engine.md) for the full architecture decision.
+For multi-hop traversal queries beyond the BFS engine (e.g., "find all findings reachable from identity X within 3 hops"), Aegis integrates PuppyGraph Enterprise as a zero-ETL graph query layer over the existing PostgreSQL data store. PuppyGraph supports both Gremlin and openCypher query languages and is accessed via `POST /api/v1/graph/query`. The existing Go BFS engine is retained as a fallback when the PuppyGraph service is unavailable (feature flag: `PUPPYGRAPH_URL`). See [ADR-015](./adr/ADR-015-graph-query-engine.md) for the full architecture decision.
 
 ### 7.3 API
 
@@ -567,7 +567,7 @@ Routing rules are first-match-wins with a configurable rule set (`RoutingRule` w
 
 ### 15.1 Architecture
 
-Outbound webhook engine delivers Cloud Aegis events to registered HTTP endpoints with HMAC-SHA256 signing.
+Outbound webhook engine delivers Aegis events to registered HTTP endpoints with HMAC-SHA256 signing.
 
 ### 15.2 Event Types
 
@@ -807,7 +807,7 @@ Approval chain: multi-level (SECURITY_LEAD → GRC_ANALYST → CISO). Empty appr
 - Postgres queries use parameterized placeholders (`$N`) and `pq.Array()` for batch operations
 - All Postgres queries include `tenant_id` scoping
 
-See [ADR-007](./adr/ADR-007-grc-exception-management.md) for the architecture decision.
+See [ADR-007](./adr/ADR-007-grc-integration.md) for the architecture decision.
 
 ---
 
@@ -827,7 +827,7 @@ See [ADR-007](./adr/ADR-007-grc-exception-management.md) for the architecture de
 | Container Runtime | Kubernetes (EKS/AKS/GKE) |
 | Observability | OpenTelemetry, Prometheus, zap |
 | Identity | Okta, Microsoft Entra ID (OIDC) |
-| Deployment | Cloudflare Pages (frontend), Docker (backend) |
+| Deployment | Cloudflare Pages (frontend), Fly.io (backend) |
 
 ---
 

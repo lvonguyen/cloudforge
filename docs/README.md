@@ -1,10 +1,10 @@
-# Cloud Aegis Documentation
+# Aegis Documentation
 
 ## Architecture
 
 | Document | Description |
 |----------|-------------|
-| [HLD.md](core/architecture/HLD.md) | High-Level Design v3.0 |
+| [HLD.md](core/architecture/HLD.md) | High-Level Design v4.0 |
 | [DDD.md](core/architecture/DDD.md) | Detailed Design -- API specs, data models |
 | [DR-BC.md](core/architecture/DR-BC.md) | Disaster Recovery / Business Continuity v2.1 |
 | [component-rationale.md](core/architecture/adr/component-rationale.md) | Technology selection and cost analysis |
@@ -28,11 +28,12 @@
 | [ADR-012](core/architecture/adr/ADR-012-whitelabel-architecture.md) | Whitelabel / Multi-Tenant Architecture | Accepted |
 | [ADR-013](core/architecture/adr/ADR-013-resource-scoped-rbac.md) | Resource-Scoped RBAC | Accepted |
 | [ADR-014](core/architecture/adr/ADR-014-event-driven-ingestion.md) | Event-Driven Finding Ingestion | Accepted |
-| [ADR-015](core/architecture/adr/ADR-015-graph-query-engine.md) | Graph Query Engine (PuppyGraph) | Proposed |
+| [ADR-015](core/architecture/adr/ADR-015-graph-query-engine.md) | Graph Query Engine (PuppyGraph) | Accepted |
 | [ADR-016](core/architecture/adr/ADR-016-container-scanning.md) | Container Security Scanning | Accepted |
 | [ADR-017](core/architecture/adr/ADR-017-secrets-management.md) | Secrets Management Architecture | Accepted |
 | [ADR-018](core/architecture/adr/ADR-018-threat-intelligence-feeds.md) | Threat Intelligence Feed Integration | Accepted |
 | [ADR-019](core/architecture/adr/ADR-019-multi-tenant-data-isolation.md) | Multi-Tenant Data Isolation | Accepted |
+| [ADR-020](core/architecture/adr/ADR-020-security-graph-architecture.md) | Security Graph Architecture | Accepted |
 
 ## Operational Runbooks
 
@@ -49,6 +50,9 @@ See [diagrams/README.md](core/diagrams/README.md) -- 8 architecture diagrams (SV
 | [attack-path-enhancements.md](research/attack-path-enhancements.md) | Graph-based attack path analysis roadmap |
 | [INDUSTRY_LANDSCAPE.md](research/INDUSTRY_LANDSCAPE.md) | CSPM/CNAPP competitive landscape |
 | [puppygraph-poc.md](research/puppygraph-poc.md) | PuppyGraph zero-ETL graph POC notes |
+| [security-graph-target-architecture.md](research/security-graph-target-architecture.md) | Security graph target architecture design |
+| [security-graph-platform-options.md](research/security-graph-platform-options.md) | Graph platform evaluation (PuppyGraph, Neo4j, Neptune) |
+| [security-graph-eventing.md](research/security-graph-eventing.md) | Security graph eventing and materialization |
 | [whitelabel-exploration.md](research/whitelabel-exploration.md) | Whitelabel strategy (4-phase) |
 
 ## Archive
@@ -57,16 +61,16 @@ One-time planning documents moved to [archive/](archive/):
 
 | Document | Description |
 |----------|-------------|
-| [cloudforge-HLD-v1.md](archive/cloudforge-HLD-v1.md) | Original HLD (superseded by v3.0) |
+| [cloudforge-HLD-v1.md](archive/cloudforge-HLD-v1.md) | Original HLD (superseded by v4.0) |
 | [implementation-plan-v1.md](archive/implementation-plan-v1.md) | Initial implementation plan |
 | [frontend-planning.md](archive/frontend-planning.md) | Frontend design (superseded by implementation) |
 | [iac-planning.md](archive/iac-planning.md) | IaC planning session notes |
 | [pitch-deck.md](archive/pitch-deck.md) | Executive presentation (12 slides) |
 | [figma-session-prep.md](archive/figma-session-prep.md) | Figma MCP session preparation notes |
 
-## Related: CSPM Aggregator
+## Related: Posture Management
 
-See [cspm/](cspm/) -- Cross-Cloud CSPM Aggregator documentation (separate project, shared lineage with Cloud Aegis).
+See [cspm/](cspm/) -- Posture Management module documentation (legacy `cspm-aggregator` naming on disk, shared lineage with Aegis).
 
 ---
 

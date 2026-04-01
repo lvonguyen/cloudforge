@@ -613,7 +613,7 @@ cspm-aggregator/
 | Splunk Dashboard | Real-time finding visualization | Medium | Q2 |
 | Runbook Generation | AI-generated remediation guides | Medium | Q3 |
 | Finding Explainer | Natural language finding summaries | Low | Q1 |
-| CloudForge Integration | IDP portal for finding dashboard | Medium | Q2 |
+| Aegis Integration | IDP portal for finding dashboard | Medium | Q2 |
 
 ---
 

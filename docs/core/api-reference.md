@@ -1,4 +1,4 @@
-# Cloud Aegis API Reference
+# Aegis API Reference
 
 Base URL: `/api/v1` (all endpoints require JWT authentication unless noted)
 

@@ -70,7 +70,7 @@
 | Remediation | `pkg/remediation/` (executor) + `internal/remediation/` (8 domain handlers) |
 | FinOps | `internal/finops/` (aggregator, alerting, anomaly, chargeback, estimation) |
 | Identity | `internal/identity/` (provider, okta, entra_id, mock, zero_trust) |
-| Frontend | `frontend/src/` (36 route pages, shadcn components, hooks, lib) |
+| Frontend | `frontend/src/` (37 route pages, shadcn components, hooks, lib) |
 | Docs | `docs/core/architecture/HLD.md`, `docs/core/architecture/adr/`, `docs/core/runbooks/` |
 
 ## Dev Server

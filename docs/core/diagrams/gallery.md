@@ -6,31 +6,31 @@ slug: /diagrams
 
 # Architecture Diagrams
 
-Visual reference for Cloud Aegis system architecture and data flows.
+Visual reference for Aegis system architecture and data flows.
 
 ## System Architecture
 
-The main architecture diagram shows all platform components: CSPM aggregation, AI risk scoring, policy engine, remediation dispatcher, and multi-cloud provider integrations.
+The main architecture diagram shows all platform components: Posture Management, AI risk scoring, policy engine, remediation dispatcher, and multi-cloud provider integrations.
 
-![Cloud Aegis Architecture](/architecture-figma.png)
+![Cloud Aegis Architecture](architecture-figma.png)
 
 ## Dual-OPA Architecture
 
 Cloud provisioning uses an external OPA server (HTTP POST), while AI governance uses an embedded OPA Go SDK (in-process). Both load from a shared Rego policy bundle.
 
-![Dual-OPA Architecture](/dual-opa-architecture-figma.png)
+![Dual-OPA Architecture](dual-opa-architecture-figma.png)
 
 ## Global Deployment
 
 Multi-region deployment topology with DR failover across AWS (primary), GCP (warm standby), and edge policy evaluation.
 
-![Global Deployment](/global-deployment-figma.png)
+![Global Deployment](global-deployment-figma.png)
 
 ## Risk Intelligence Pipeline
 
 End-to-end risk scoring pipeline: ingestion, normalization, AI enrichment, contextual scoring, and output to dashboards and ticketing.
 
-![Risk Intelligence Pipeline](/risk-pipeline-figma.png)
+![Risk Intelligence Pipeline](risk-pipeline-figma.png)
 
 ## Mermaid Source Diagrams
 
@@ -38,7 +38,7 @@ The following diagrams are rendered from Mermaid source files. Click to view ful
 
 | Diagram | Description |
 |---------|-------------|
-| [Compliance Deployment Models](../architecture/hld#compliance-deployment-models) | Multi-cloud compliance topology |
-| [Failover Sequence](../architecture/dr-bc) | DR failover steps and timing |
-| [IaC Deploy Pipeline](../architecture/hld#iac-pipeline) | Terraform/conftest CI/CD flow |
-| [Remediation Dispatcher Flow](../architecture/hld#remediation) | Automated remediation routing |
+| [Compliance Deployment Models](../architecture/HLD.md#compliance-deployment-models) | Multi-cloud compliance topology |
+| [Failover Sequence](../architecture/DR-BC.md) | DR failover steps and timing |
+| [IaC Deploy Pipeline](../architecture/HLD.md#iac-pipeline) | Terraform/conftest CI/CD flow |
+| [Remediation Dispatcher Flow](../architecture/HLD.md#remediation) | Automated remediation routing |

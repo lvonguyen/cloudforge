@@ -6,11 +6,11 @@ slug: /api
 
 # API Reference
 
-Cloud Aegis exposes 85 REST API operations across 21 domains. The full specification is available as an OpenAPI 3.1.0 document.
+Aegis exposes 89 REST API operations across 21 domains. The full specification is available as an OpenAPI 3.1.0 document.
 
 ## Quick Access
 
-- **[Download OpenAPI Spec](https://github.com/lvonguyen/cloudforge/blob/main/docs/api/openapi.yaml)** (3,326 lines, YAML)
+- **[Download OpenAPI Spec](https://github.com/lvonguyen/cloudforge/blob/main/docs/api/openapi.yaml)** (3,774 lines, YAML)
 - **[Endpoint Reference](/docs/reference/api-reference)** (markdown summary with pagination contract)
 
 ## API Domains

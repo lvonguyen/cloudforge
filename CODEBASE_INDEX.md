@@ -7,7 +7,7 @@ Compressed context for AI agents. Updated: 2026-03-26.
 ```
 cloudforge/
   cmd/
-    server/           # Main HTTP server — composition root, routes, 65 routes (82 operations)
+    server/           # Main HTTP server — composition root, routes, 65 routes (89 operations)
     cspm-aggregator/  # CSPM finding aggregation CLI
     cspm-testgen/     # Test data generator
     remediation-dispatcher/  # Remediation execution runner
@@ -163,11 +163,11 @@ Layer key format: `"group:value"` — parsed via `parseLayerKey()`, built via `l
 - **TerminalHandler**: xterm.js WebSocket with ticket nonce auth (SA-002), command whitelist
 - **GraphHandler**: PuppyGraph Gremlin/Cypher query proxy
 - **Handler files**: `handlers_api.go`, `handlers_grc.go`, `handlers_attackpath.go`, `handlers_nlq.go`, `handlers_containers.go`, `handlers_integration.go`, `handlers_terminal.go` (via internal/terminal), `handlers_graph.go`, `handlers_finops.go`, `handlers_secrets.go`, `handlers_secrets_orgscan.go`, `handlers_waf.go`, `handlers_identity.go`, `handlers_webhooks.go`, `handlers_rql.go`, `handlers_asm.go`, `handlers_deploy.go`, `handlers_search.go`, `handlers_ingest.go`, `handlers_compliance.go`, `handlers_config.go`, `handlers_comments.go`, `handlers_workflow.go`, `service_enrichment.go`, `service_identity.go`, `mockdata.go`
-- **Routes**: gorilla/mux with auth → tenant → rate-limit → RBAC middleware chain (65 routes, 82 operations per OpenAPI spec)
+- **Routes**: gorilla/mux with auth → tenant → rate-limit → RBAC middleware chain (65 routes, 89 operations per OpenAPI spec)
 - **Tenant middleware**: resolves from JWT `tenant_id` → X-Tenant-ID header → subdomain
 - **Config endpoint**: `GET /api/v1/config` + `/config.json` (unauthenticated, tenant-aware branding)
 
-## API Surface (65 routes / 82 operations)
+## API Surface (65 routes / 89 operations)
 
 | Domain | Endpoints | Auth | Notes |
 |--------|-----------|------|-------|

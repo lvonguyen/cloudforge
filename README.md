@@ -82,7 +82,7 @@ Aegis is a reference architecture and implementation for an Internal Developer P
 | Environment configs | Done | Dev environment with GCS remote state |
 | **Portal** | | |
 | React SPA (frontend/) | Done | React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui |
-| 36 route pages | Done | Admin, Operator, Requester role views + attack paths + containers |
+| 37 route pages | Done | Admin, Operator, Requester role views + attack paths + containers |
 | Dark mode | Done | CSS variable overrides, anti-flash script |
 | Cloudflare Pages deploy | Done | cloudaegis-demo.lvonguyen.com |
 | API hook migration | Partial | MyRequests, useFindings (R2 fallback), useAttackPaths (mock fallback), useCostAnomalies cache fix, Execute/Retry mutations wired; remaining hooks fall back to mock on 401 in dev |
@@ -95,7 +95,7 @@ Aegis is a reference architecture and implementation for an Internal Developer P
 | CISA KEV catalog | Done | In-memory catalog with auto-refresh from CISA feed |
 | GreyNoise integration | Done | HTTP client with 12h cache, classification enrichment |
 | **Testing** | | |
-| Unit tests | 2600+ passing | 45 Go packages (2,146 tests), 452+ frontend tests (54 test files), 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
+| Unit tests | 2650+ passing | 47 Go packages (2,187 tests), 469 frontend tests (60 test files), 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
 | Integration tests | Done | 12-step server lifecycle + 34-subtest RBAC authorization matrix (`go test -tags=integration`) |
 
 ### Package Maturity
@@ -133,9 +133,9 @@ Aegis is a reference architecture and implementation for an Internal Developer P
 
 | Metric | Value |
 | ------ | ----- |
-| Go packages | 45 (all passing with `-race`) |
-| Go tests | 2,146 |
-| Frontend tests | 452+ (54 test files) |
+| Go packages | 47 (all passing with `-race`) |
+| Go tests | 2,187 |
+| Frontend tests | 469 (60 test files) |
 | Benchmarks | 8 |
 | CI checks | 8 (lint, gosec, Trivy, vitest, npm audit, integration, Codecov, Lighthouse) |
 | Coverage thresholds | v8 lines: 70%, functions: 75%, branches: 65% (configured in frontend Vitest) |
@@ -148,7 +148,7 @@ This is a **platform reference implementation**, not production software:
 1. **Temporal Workflows** — In-memory workflow engine is wired (list, get, submit handlers); Temporal orchestration layer planned but not connected
 2. **Stub Packages** — secrets, waf modules have interfaces and mock implementations but no production wiring
 3. **RoleViewer** — `RoleViewer` (rank 0) is implemented with read-only surface (`/findings`, `/compliance/frameworks`, `/agents` + traces); fine-grained per-resource viewer scoping is not yet enforced
-4. **Chrome QA Findings** — 35/36 routes passing with error states, focus rings, footer landmark, OG meta tags; React 19 lazy() context edge case under Playwright (pre-existing, not prod)
+4. **Chrome QA Findings** — 35/37 routes passing with error states, focus rings, footer landmark, OG meta tags; React 19 lazy() context edge case under Playwright (pre-existing, not prod)
 5. **OIDC Auth Flow** — JWT middleware is production-ready (HS256/RS256, JWKS); Okta JWKS URL auto-derives from `OKTA_DOMAIN` env var. Full SSO login flow requires Okta app configuration.
 
 **Production Requirements:**
@@ -180,7 +180,9 @@ Aegis bridges these needs with a unified platform that provides:
 
 ## [/] Architecture
 
-<img src="docs/core/diagrams/architecture-figma.png" alt="Aegis Architecture" width="720">
+<a href="docs/core/diagrams/architecture-figma.png">
+  <img src="docs/core/diagrams/architecture-figma.png" alt="Aegis Architecture">
+</a>
 
 ---
 
@@ -244,7 +246,7 @@ cloudforge/
 ├── configs/                       # Configuration templates
 ├── frontend/                      # Self-service portal (React 19 + Vite 7)
 │   ├── src/
-│   │   ├── pages/                 # 36 route pages (admin, ops, portal views)
+│   │   ├── pages/                 # 37 route pages (admin, ops, portal views)
 │   │   ├── components/            # shadcn/ui component layer
 │   │   ├── hooks/                 # Custom hooks (deploy preview, etc.)
 │   │   ├── lib/                   # API client, auth, utilities
@@ -256,7 +258,7 @@ cloudforge/
 │   │   │   └── adr/               # Architecture Decision Records (20 ADRs)
 │   │   ├── diagrams/              # Architecture diagrams (SVG + Mermaid + Figma)
 │   │   └── runbooks/              # Operational procedures (9 runbooks)
-│   ├── api/                       # OpenAPI 3.1 specification (82 operations)
+│   ├── api/                       # OpenAPI 3.1 specification (89 operations)
 │   ├── cspm/                      # CSPM aggregator HLD, DDD, schema reference
 │   ├── research/                  # Technical research and POC notes
 │   └── archive/                   # Historical planning docs
@@ -318,7 +320,9 @@ Pluggable providers for enterprise GRC platforms:
 - **Deploy scripts** — dry-run-by-default deployment with policy violation gate and human-readable remediation guidance
 - **Container images** — multi-stage Dockerfiles for frontend (nginx + SPA routing) and backend (Go + healthcheck)
 
-<img src="docs/core/diagrams/dual-opa-architecture-figma.png" alt="Dual-OPA Architecture" width="720">
+<a href="docs/core/diagrams/dual-opa-architecture-figma.png">
+  <img src="docs/core/diagrams/dual-opa-architecture-figma.png" alt="Dual-OPA Architecture">
+</a>
 
 ### Risk Intelligence
 
@@ -437,7 +441,7 @@ workflow:
 
 | Document | Description |
 | -------- | ----------- |
-| [High-Level Design](docs/core/architecture/HLD.md) | System architecture overview (v3.0) |
+| [High-Level Design](docs/core/architecture/HLD.md) | System architecture overview (v4.0) |
 | [Detailed Design](docs/core/architecture/DDD.md) | API specs, data models |
 | [DR/BC Plan](docs/core/architecture/DR-BC.md) | Disaster recovery procedures (v2.1) |
 | [Component Rationale](docs/core/architecture/adr/component-rationale.md) | Build vs buy decisions |
@@ -473,6 +477,7 @@ workflow:
 | [ADR-017](docs/core/architecture/adr/ADR-017-secrets-management.md) | Secrets Management Architecture |
 | [ADR-018](docs/core/architecture/adr/ADR-018-threat-intelligence-feeds.md) | Threat Intelligence Feed Integration |
 | [ADR-019](docs/core/architecture/adr/ADR-019-multi-tenant-data-isolation.md) | Multi-Tenant Data Isolation |
+| [ADR-020](docs/core/architecture/adr/ADR-020-security-graph-architecture.md) | Security Graph Architecture |
 
 ### Runbooks
 
@@ -597,7 +602,7 @@ Built-in support for 20+ frameworks:
 | Phase | Description |
 | ----- | ----------- |
 | **Phase 5: Risk Intelligence + FinOps** | EPSS/KEV/GreyNoise/HIBP/OTX threat intel, attack path BFS engine + ReactFlow viz, toxic combo detection, blast radius computation, PuppyGraph graph query integration, AWS Bedrock enrichment. FinOps multi-cloud cost aggregation, anomaly detection, chargeback engine, budget alerting |
-| **Phase 4: Frontend + QA Hardening** | Self-service portal (React 19 + Vite 7, 36 routes, 3 role views, dark mode), Cloudflare Pages deploy, investigation board, DSPM classification, kanban remediation pipeline, NLQ bar, demo mode hardening. Multi-pass QA reviews (quality 4.5+, security 4.5+, bugs 4.3+) |
+| **Phase 4: Frontend + QA Hardening** | Self-service portal (React 19 + Vite 7, 37 routes, 3 role views, dark mode), Cloudflare Pages deploy, investigation board, DSPM classification, kanban remediation pipeline, NLQ bar, demo mode hardening. Multi-pass QA reviews (quality 4.5+, security 4.5+, bugs 4.3+) |
 | **Phase 3: IaC + Security** | Multi-cloud Terraform modules (compute, database, redis, IAM, monitoring, secrets), 5 Rego policies (27 rules), policy gate script, resource-scoped RBAC, integrity hashing, audit logging, rollback encryption (AES-256-GCM), CI enforcement (gosec, Trivy, Codecov) |
 | **Phase 2: Remediation + AI Governance** | 10 remediation handlers across 8 domains, batch executor with dry-run + 48h rollback, AI governance module (embedded OPA, agent registry, STRIDE/ATLAS threat models), JWT auth (HS256/RS256 + JWKS), RBAC middleware, security fixes SEC-001 through SEC-012 |
 | **Phase 1: Core Platform** | API server, GRC provider abstraction (Archer, ServiceNow, PostgreSQL), 20+ compliance frameworks, OPA/Rego policy engine, AI provider abstraction (Claude/OpenAI), identity module (Okta + Entra ID), container security, structured logging (zap), PostgreSQL migrations, architecture docs (HLD, DDD, 20 ADRs, DR/BC, 9 runbooks) |

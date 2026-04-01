@@ -13,9 +13,9 @@ title: Welcome
 | Section | Description |
 |---------|-------------|
 | [Architecture](/docs/architecture/hld) | High-Level Design, Detailed Design, DR/BC |
-| [ADRs](/docs/adr) | 19 Architecture Decision Records |
+| [ADRs](/docs/adr) | 20 Architecture Decision Records |
 | [Diagrams](/docs/diagrams) | System architecture and flow diagrams |
-| [API Reference](/docs/api) | Interactive OpenAPI explorer (82 operations) |
+| [API Reference](/docs/api) | Interactive OpenAPI explorer (89 operations) |
 | [Posture Management](/docs/cspm/hld) | Multi-cloud finding aggregation module |
 | [Runbooks](/docs/runbooks/01-deployment) | 9 operational runbooks |
 | [Security](/docs/security/threat-model) | STRIDE threat model |
