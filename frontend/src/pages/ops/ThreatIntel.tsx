@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useFindings } from '@/hooks/useFindings'
+import { useFindings, useFindingsStats } from '@/hooks/useFindings'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -29,9 +29,10 @@ const TABS: FeedTab[] = [
 export default function ThreatIntel() {
   const [activeTab, setActiveTab] = useState<FeedId>('overview')
   const { data: findings = [], total } = useFindings({ page: 1, perPage: 1000, sort: 'ai_risk', order: 'desc' })
+  const { data: findingStats } = useFindingsStats()
 
   const stats = useMemo(() => {
-    const corpusTotal = Math.max(total, findings.length)
+    const corpusTotal = Math.max(findingStats?.total ?? 0, total, findings.length)
     const sampled = corpusTotal > findings.length
     const withEpss = findings.filter((f) => f.epss && f.epss > 0)
     const withKev = findings.filter((f) => f.exploit_available)
@@ -65,7 +66,7 @@ export default function ThreatIntel() {
         return (sevOrder[a.severity] ?? 4) - (sevOrder[b.severity] ?? 4)
       }).slice(0, 20),
     }
-  }, [findings, total])
+  }, [findingStats?.total, findings, total])
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
