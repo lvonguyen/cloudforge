@@ -12,13 +12,13 @@ title: Welcome
 
 | Section | Description |
 |---------|-------------|
-| [Architecture](/docs/architecture/hld) | High-Level Design, Detailed Design, DR/BC |
+| [Architecture](/docs/core/architecture/HLD) | High-Level Design, Detailed Design, DR/BC |
 | [ADRs](/docs/adr) | 20 Architecture Decision Records |
 | [Diagrams](/docs/diagrams) | System architecture and flow diagrams |
 | [API Reference](/docs/api) | Interactive OpenAPI explorer (89 operations) |
-| [Posture Management](/docs/cspm/hld) | Multi-cloud finding aggregation module |
-| [Runbooks](/docs/runbooks/01-deployment) | 9 operational runbooks |
-| [Security](/docs/security/threat-model) | STRIDE threat model |
+| [Posture Management](/docs/cspm/HLD_CSPM_Aggregator) | Multi-cloud finding aggregation module |
+| [Runbooks](/docs/core/runbooks/deployment) | 9 operational runbooks |
+| [Security](/docs/threat-models/remediation-and-ai-pipeline) | STRIDE threat model |
 
 ## Architecture at a Glance
 
@@ -52,9 +52,9 @@ flowchart TD
 
 ## Key Capabilities
 
-- **Multi-cloud CSPM** -- Normalize findings from AWS Security Hub, Azure Defender, GCP SCC, Trivy, and Prowler into a unified schema
+- **Posture Management** -- Normalize findings from AWS Security Hub, Azure Defender, GCP SCC, Trivy, and Prowler into a unified schema
 - **AI Risk Scoring** -- LLM-powered severity re-scoring considering asset tier, environment, exposure, and blast radius
 - **Dual-OPA Policy** -- External OPA server for cloud provisioning + embedded Go SDK for AI agent governance
 - **Automated Remediation** -- Dispatcher routes findings to provider-specific handlers with approval workflows
 - **FinOps Integration** -- Multi-cloud cost aggregation with anomaly detection
-- **Graph Analysis** -- PuppyGraph-backed attack path computation and resource relationship mapping
+- **Graph Analysis** -- Security-graph context and attack-path analysis for triage and containment

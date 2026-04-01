@@ -76,7 +76,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 - [ ] Verified March 31, 2026: leave `LARGE_CORPUS_WARMUP_ENABLED` unset on the current `2 GB` Fly VM. Enabling startup warmup for large-corpus search/attack paths causes health flaps and eventual OOM on the current machine size.
 - [ ] Verified March 31, 2026: leave `LARGE_CORPUS_SECGRAPH_SYNC_ENABLED` unset on the current `2 GB` Fly VM. That flag controls the full large-corpus secgraph graph-artifact path, which still causes repeated OOM restarts after backfill on the current machine size.
 - [ ] Verified March 31, 2026: even with `LARGE_CORPUS_SECGRAPH_SYNC_ENABLED` unset, the operator-facing secgraph issue surface now incrementally materializes on startup in bounded batches on the current Fly VM size.
-- [ ] Verified March 31, 2026: authenticated findings search now falls back to in-memory keyword mode when `LARGE_CORPUS_WARMUP_ENABLED` remains unset, so operators are no longer blocked on a full Bleve warmup for the 300K corpus.
+- [ ] Verified April 1, 2026: authenticated findings search now remains usable when `LARGE_CORPUS_WARMUP_ENABLED` is unset. `keyword` requests stay in-memory, while `semantic` and `hybrid` requests fall back to candidate-scoped in-memory reranking over keyword candidates instead of requiring full Bleve warmup.
 - [ ] Verified March 31, 2026: attack paths now lazily materialize a bounded sampled cache on first request when `LARGE_CORPUS_WARMUP_ENABLED` remains unset; expect a slower first cold request instead of an empty result set.
 - [ ] Feature flags: 14 backend features gated by env vars -- all OFF by default
   - PUPPYGRAPH_URL, AEGIS_AI_ENABLED, AEGIS_TRACING_ENABLED
@@ -201,7 +201,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 - [ ] Resources loader is separate: `node scripts/seed-resources.mjs --in testdata/seed --out /tmp/seed-resources.sql` then `psql "$DATABASE_URL" -f /tmp/seed-resources.sql`
 - [ ] Re-run `migrations/006_graph_support.sql` and `migrations/007_security_graph.sql` after findings/resources load so accounts and graph edges backfill from the seeded corpus
 - [ ] Verify counts before cutover: `findings`, `resources`, `accounts`, `graph_edges`
-- [ ] Current stable live posture: findings load from Postgres, full large-corpus startup warmup stays disabled by default on the current Fly VM, findings search degrades to keyword mode when the search service is intentionally absent, attack paths are built lazily from a bounded sampled cache, and the operator-facing secgraph issue surface incrementally syncs in startup batches while full graph-edge secgraph artifacts remain deferred
+- [ ] Current stable live posture: findings load from Postgres, full large-corpus startup warmup stays disabled by default on the current Fly VM, findings search uses the large-corpus in-memory fallback path when the full search service is intentionally absent, attack paths are built lazily from a bounded sampled cache, and the operator-facing secgraph issue surface incrementally syncs in startup batches while full graph-edge secgraph artifacts remain deferred
 
 ---
 

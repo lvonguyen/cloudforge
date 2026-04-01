@@ -73,11 +73,11 @@ Error codes: `BAD_REQUEST`, `FORBIDDEN`, `NOT_FOUND`, `{RESOURCE}_NOT_FOUND`, `C
 | GET | `/api/v1/findings/{id}/ticket/comments` | viewer, operator, admin | No | List ticket comments (from integration) |
 | POST | `/api/v1/findings/{id}/ticket/comments` | operator, admin | No | Add comment to linked ticket |
 | POST | `/api/v1/findings/{id}/ticket/sync` | operator, admin | No | Force-refresh ticket status from integration |
-| POST | `/api/v1/findings/search` | operator, admin | Yes | BM25 + semantic hybrid search |
+| POST | `/api/v1/findings/search` | operator, admin | Yes | Keyword, semantic, or hybrid finding search with large-corpus fallback |
 
 #### POST /api/v1/findings/search
 
-Full-text and semantic search over findings. Combines Bleve BM25 text search with TF-IDF embeddings via Reciprocal Rank Fusion (RRF).
+Full-text and semantic search over findings. The primary path combines Bleve BM25 text search with TF-IDF embeddings via Reciprocal Rank Fusion (RRF). On large-corpus deployments where eager warmup is intentionally disabled, `semantic` and `hybrid` requests degrade to candidate-scoped in-memory reranking over keyword candidates instead of failing closed.
 
 **Request body:**
 
@@ -98,7 +98,7 @@ Full-text and semantic search over findings. Combines Bleve BM25 text search wit
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `query` | string | *(required)* | Search query (max 1000 chars) |
-| `mode` | string | `hybrid` | Search mode: `keyword`, `semantic`, or `hybrid` |
+| `mode` | string | `hybrid` | Requested search mode: `keyword`, `semantic`, or `hybrid` |
 | `filters.severity` | string[] | *(none)* | Filter by severity (case-insensitive) |
 | `filters.provider` | string[] | *(none)* | Filter by cloud provider (case-insensitive) |
 | `filters.status` | string[] | *(none)* | Filter by finding status (case-insensitive) |
@@ -118,6 +118,8 @@ Full-text and semantic search over findings. Combines Bleve BM25 text search wit
   "mode": "hybrid"
 }
 ```
+
+`mode` in the response is the effective mode used for execution. On the public 300K corpus, it may downgrade to `keyword` when the full search service is intentionally unavailable during startup.
 
 #### POST /api/v1/findings/ingest
 

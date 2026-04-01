@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers policy lifecycle operations for Cloud Aegis, including:
+This runbook covers policy lifecycle operations for Aegis, including:
 - OPA policy lifecycle (create, test, deploy, monitor, retire)
 - Dual-OPA architecture operations (external server + embedded engine)
 - Policy bundle management and hot-reload
@@ -11,31 +11,31 @@ This runbook covers policy lifecycle operations for Cloud Aegis, including:
 - Policy decision monitoring and deny rate tracking
 - Troubleshooting policy evaluation failures
 
+> Runtime note (April 1, 2026): the live demo does not run a standalone Kubernetes OPA sidecar. IaC policy gates run through `conftest` in CI, while runtime/AI governance policies execute in-process inside the Fly-hosted API.
+
 ## Prerequisites
 
 - [ ] OPA CLI installed (`opa version` >= 0.60.0)
 - [ ] conftest installed (`conftest --version` >= 0.47.0)
-- [ ] kubectl access to the Cloud Aegis cluster
-- [ ] Cloud Aegis API token with `policy:manage` scope
+- [ ] `flyctl` authenticated against the `personal` org
+- [ ] Aegis API token with `policy:manage` scope
 - [ ] Access to policy bundle S3 bucket
 
 ## Dual-OPA Architecture
 
-Cloud Aegis runs two OPA instances serving distinct domains:
+Aegis runs two policy paths serving distinct domains:
 
 | Instance | Type | Namespace | Purpose |
 |----------|------|-----------|---------|
-| External OPA server | HTTP REST sidecar | `aegis.provisioning.*` | Cloud provisioning policy gates |
-| Embedded OPA engine | Go library (`internal/ai-governance/opa/engine.go`) | `aegis.ai.*` | AI agent governance |
+| IaC policy gate | `conftest` + Rego bundle in CI | `aegis.provisioning.*` | Terraform plan enforcement |
+| Embedded OPA engine | Go library (`internal/ai-governance/opa/engine.go`) | `aegis.ai.*` | AI/runtime policy governance |
 
 ```bash
-# Check external OPA server status
-kubectl exec -n aegis deployment/aegis-api -- \
-  curl -sf http://localhost:8181/health | jq .
+# Validate IaC policies locally
+conftest test tfplan.json --policy deploy/policies/rego/provisioning
 
-# Check embedded engine status (via API)
-curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/policies/health | jq .
-# Expected: {"opa_external": "ok", "opa_embedded": "ok"}
+# Validate the embedded engine through the running API process
+fly logs -a cloudforge-api --no-tail | grep -i "policy"
 ```
 
 ## OPA Policy Lifecycle
@@ -121,13 +121,8 @@ curl -s -X POST http://opa-server:8181/v1/policies/reload \
 # Copy Rego files to the embedded engine policy directory
 cp deploy/policies/rego/ai/* internal/ai-governance/policies/
 
-# Rebuild and redeploy Cloud Aegis API
-docker build -t aegis:dev .
-kubectl set image deployment/aegis-api \
-  api=aegis:dev \
-  -n aegis
-
-kubectl rollout status deployment/aegis-api -n aegis
+# Rebuild and redeploy the live API
+fly deploy --remote-only -a cloudforge-api
 ```
 
 ### 4. Monitor
@@ -177,9 +172,9 @@ External OPA is configured with bundle polling (60s interval). To force immediat
 # Force reload via management API
 curl -s http://opa-server:8181/v1/bundles/aegis-provisioning/status | jq .
 
-# Restart OPA sidecar if reload fails
-kubectl rollout restart deployment/opa-server -n aegis
-kubectl rollout status deployment/opa-server -n aegis
+# Self-managed alternative: restart the OPA sidecar if reload fails
+# kubectl rollout restart deployment/opa-server -n aegis
+# kubectl rollout status deployment/opa-server -n aegis
 ```
 
 ### Version Pinning

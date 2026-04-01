@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Cloud Aegis API
+  title: Aegis API
   version: 1.0.0-beta
   description: |
     Multi-cloud CSPM platform API providing security findings, compliance posture,
@@ -295,7 +295,7 @@ paths:
     post:
       operationId: searchFindings
       summary: Full-text and semantic finding search
-      description: "RBAC: operator, admin. BM25 keyword, semantic embedding, or hybrid search."
+      description: "RBAC: operator, admin. BM25 keyword, semantic embedding, or hybrid search. On large-corpus deployments without eager warmup, semantic and hybrid requests fall back to candidate-scoped in-memory reranking."
       tags: [Findings]
       x-rbac: [operator, admin]
       requestBody:
@@ -3037,6 +3037,7 @@ components:
           type: string
           enum: [keyword, semantic, hybrid]
           default: hybrid
+          description: Requested search mode.
         filters:
           type: object
           properties:
@@ -3081,6 +3082,7 @@ components:
           type: integer
         mode:
           type: string
+          description: Effective execution mode used to serve the request.
 
     IngestRequest:
       type: object

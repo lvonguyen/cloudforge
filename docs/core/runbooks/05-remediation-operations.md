@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers operating Cloud Aegis's remediation dispatcher, including:
+This runbook covers operating Aegis's remediation dispatcher, including:
 - Dispatcher architecture and executor model
 - Starting and monitoring remediation batches
 - Per-handler operations (network, storage, compute, identity, security services)
@@ -11,17 +11,19 @@ This runbook covers operating Cloud Aegis's remediation dispatcher, including:
 - Troubleshooting common failures
 - Reporting and SLA compliance
 
+> Runtime note (April 1, 2026): the public demo runs on Fly.io + Cloudflare Pages. Use `flyctl`, the Aegis API, and 1Password-backed secret refs for live operations. Any `kubectl` examples below apply only to a future self-managed deployment.
+
 ## Prerequisites
 
 - [ ] Write-access cloud credentials for the target account/subscription
-- [ ] kubectl access to the Cloud Aegis cluster
-- [ ] Cloud Aegis API token with `remediation:execute` scope
+- [ ] `flyctl` authenticated against the `personal` org
+- [ ] Aegis API token with `remediation:execute` scope
 - [ ] Runbook 02-incident-response.md reviewed if remediating an active incident
 - [ ] Change management approval for production remediations
 
 ## Dispatcher Architecture
 
-The remediation dispatcher runs as a Kubernetes Deployment (`aegis-remediation`) and exposes a tiered execution model:
+The public demo executes remediation flows from the main `cloudforge-api` Fly app and exposes a tiered execution model. Self-managed deployments can break this out into a dedicated remediation worker if isolation is required.
 
 | Tier | Handler Types | Concurrency | Timeout |
 |------|--------------|-------------|---------|
@@ -76,9 +78,11 @@ curl -s -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations \
 watch -n 10 'curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/remediations/batch-20260226-001 | \
   jq "{status, completed, failed, pending, elapsed_s}"'
 
-# Stream dispatcher logs
-kubectl logs -n aegis -l app=aegis-remediation -f | \
-  grep "batch-20260226-001"
+# Stream dispatcher logs in the live demo
+fly logs -a cloudforge-api | grep "batch-20260226-001"
+
+# Self-managed alternative
+kubectl logs -n aegis -l app=aegis-remediation -f | grep "batch-20260226-001"
 ```
 
 ## Monitoring Active Remediations
@@ -104,12 +108,10 @@ rate(aegis_remediations_total{status="failed"}[5m])
 
 ```bash
 # All remediation errors in the last hour
-kubectl logs -n aegis -l app=aegis-remediation \
-  --since=1h | grep '"level":"error"' | jq '{handler, finding_id, error}'
+fly logs -a cloudforge-api --no-tail | grep '"level":"error"' | jq '{handler, finding_id, error}'
 
 # Successful remediations
-kubectl logs -n aegis -l app=aegis-remediation \
-  --since=1h | grep '"status":"success"' | \
+fly logs -a cloudforge-api --no-tail | grep '"status":"success"' | \
   jq -r '[.handler, .finding_id, .resource_id] | @tsv'
 ```
 

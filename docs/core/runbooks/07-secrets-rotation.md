@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers rotating secrets used by Cloud Aegis, including:
+This runbook covers rotating secrets used by Aegis, including:
 - JWT signing keys
 - Cloud provider credentials (AWS, Azure, GCP)
 - Database connection strings
@@ -10,10 +10,12 @@ This runbook covers rotating secrets used by Cloud Aegis, including:
 - AI provider API keys (Anthropic, OpenAI)
 - Identity provider secrets (Okta, Entra ID)
 
+> Runtime note (April 1, 2026): the public demo uses 1Password as the source of truth and syncs runtime secrets into Fly with `scripts/fly-sync-runtime-secrets.sh`. Kubernetes examples below are legacy guidance for a future self-managed deployment.
+
 ## Prerequisites
 
 - [ ] Access to cloud provider secret stores (AWS Secrets Manager, Azure Key Vault, GCP Secret Manager)
-- [ ] kubectl access to the Cloud Aegis cluster
+- [ ] `flyctl` authenticated against the `personal` org
 - [ ] Database admin access (for connection string rotation)
 - [ ] 1Password vault access for development secrets
 
@@ -21,8 +23,8 @@ This runbook covers rotating secrets used by Cloud Aegis, including:
 
 | Secret | Storage | Rotation Frequency | Auto-Rotation |
 |--------|---------|-------------------|---------------|
-| JWT signing key | Env var / Secrets Manager | 90 days | No |
-| PostgreSQL password | Secrets Manager / Key Vault | 90 days | RDS: Yes |
+| JWT signing key | 1Password + Fly secret | 90 days | No |
+| PostgreSQL DSN | 1Password + Fly secret | 90 days | No |
 | Redis AUTH token | Secrets Manager | 90 days | ElastiCache: Yes |
 | Anthropic API key | Secrets Manager | 180 days | No |
 | OpenAI API key | Secrets Manager | 180 days | No |
@@ -46,39 +48,26 @@ openssl rsa -in new-jwt-private.pem -pubout -out new-jwt-public.pem
 ### Step 2: Store New Key
 
 ```bash
-# AWS Secrets Manager
-aws secretsmanager update-secret \
-  --secret-id aegis/jwt-signing-key \
-  --secret-string "$(cat new-jwt-secret.txt)" \
-  --region us-east-1
-
-# Azure Key Vault
-az keyvault secret set \
-  --vault-name aegis-kv \
-  --name jwt-signing-key \
-  --value "$(cat new-jwt-secret.txt)"
+# Update the 1Password item backing AEGIS_JWT_SECRET
+# Current Development ref:
+op read op://Development/aegis-personal-jwt-secret/credential >/dev/null
 ```
 
 ### Step 3: Deploy with Dual-Key Support
 
-During rotation, both old and new keys must be accepted for a grace period (default: 24h). Update the configmap:
+During rotation, both old and new keys must be accepted for a grace period (default: 24h). In the live demo, update the 1Password item and re-sync Fly secrets:
 
 ```bash
-kubectl edit configmap aegis-config -n aegis
-# Add: jwt.previous_signing_key = <old-key>
-# Update: jwt.signing_key = <new-key>
+./scripts/fly-sync-runtime-secrets.sh --include-postgres --include-integrations --include-threat-intel --apply
 
-kubectl rollout restart deployment/aegis-api -n aegis
-kubectl rollout status deployment/aegis-api -n aegis
+# If a staged dual-key rollout is required, set the temporary previous key directly
+fly secrets set JWT_PREVIOUS_SIGNING_KEY="<old-key>" -a cloudforge-api
 ```
 
 ### Step 4: Remove Old Key (after grace period)
 
 ```bash
-kubectl edit configmap aegis-config -n aegis
-# Remove: jwt.previous_signing_key
-
-kubectl rollout restart deployment/aegis-api -n aegis
+fly secrets unset JWT_PREVIOUS_SIGNING_KEY -a cloudforge-api
 ```
 
 ### Step 5: Clean Up
@@ -114,21 +103,15 @@ aws secretsmanager get-secret-value \
 # 1. Generate new password
 NEW_PASSWORD=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 32)
 
-# 2. Update database password
-psql $DATABASE_URL -c "ALTER USER aegis PASSWORD '$NEW_PASSWORD';"
+# 2. Update the live database user/password or DSN target
+psql "$AEGIS_DATABASE_URL" -c "ALTER USER aegis PASSWORD '$NEW_PASSWORD';"
 
-# 3. Update secret store
-aws secretsmanager update-secret \
-  --secret-id aegis/db-password \
-  --secret-string "$NEW_PASSWORD"
-
-# 4. Restart API pods to pick up new credentials
-kubectl rollout restart deployment/aegis-api -n aegis
-kubectl rollout status deployment/aegis-api -n aegis
+# 3. Update the 1Password item referenced by AEGIS_DATABASE_URL_REF
+# 4. Re-sync Fly runtime secrets
+./scripts/fly-sync-runtime-secrets.sh --include-postgres --apply
 
 # 5. Verify connectivity
-kubectl exec -n aegis deployment/aegis-api -- \
-  ./aegis health | grep database
+curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '.components.postgres'
 ```
 
 ## AI Provider API Key Rotation
@@ -139,13 +122,9 @@ kubectl exec -n aegis deployment/aegis-api -- \
 # 1. Generate new key in Anthropic console
 # https://console.anthropic.com/settings/keys
 
-# 2. Update secret store
-aws secretsmanager update-secret \
-  --secret-id aegis/anthropic-api-key \
-  --secret-string "$NEW_ANTHROPIC_KEY"
-
-# 3. Restart API pods
-kubectl rollout restart deployment/aegis-api -n aegis
+# 2. Update the 1Password item backing the runtime ref
+# 3. Re-sync Fly runtime secrets
+./scripts/fly-sync-runtime-secrets.sh --include-threat-intel --include-integrations --apply
 
 # 4. Verify AI provider health
 curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '.components.ai_provider'
@@ -156,12 +135,8 @@ curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '.components.ai_p
 ### OpenAI (Fallback)
 
 ```bash
-# Same process, different secret ID
-aws secretsmanager update-secret \
-  --secret-id aegis/openai-api-key \
-  --secret-string "$NEW_OPENAI_KEY"
-
-kubectl rollout restart deployment/aegis-api -n aegis
+# Same process, different 1Password item/ref
+./scripts/fly-sync-runtime-secrets.sh --include-integrations --apply
 ```
 
 ## Identity Provider Secret Rotation
@@ -172,14 +147,11 @@ kubectl rollout restart deployment/aegis-api -n aegis
 # 1. Create new token in Okta Admin Console
 # Security > API > Tokens > Create Token
 
-# 2. Update secret
-aws secretsmanager update-secret \
-  --secret-id aegis/okta-api-token \
-  --secret-string "$NEW_OKTA_TOKEN"
-
-# 3. Restart and verify
-kubectl rollout restart deployment/aegis-api -n aegis
-curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '.components.identity_provider'
+# 2. Update the 1Password item/ref
+# 3. Re-sync Fly secrets and verify protected API access
+./scripts/fly-sync-runtime-secrets.sh --include-integrations --apply
+curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/providers \
+  -H "Authorization: Bearer $API_TOKEN" | jq .
 
 # 4. Revoke old token in Okta Admin Console
 ```
@@ -190,27 +162,22 @@ curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '.components.iden
 # 1. Create new client secret in Azure Portal
 # App registrations > Cloud Aegis > Certificates & secrets > New client secret
 
-# 2. Update Key Vault
-az keyvault secret set \
-  --vault-name aegis-kv \
-  --name entra-client-secret \
-  --value "$NEW_ENTRA_SECRET"
-
-# 3. Restart and verify
-kubectl rollout restart deployment/aegis-api -n aegis
+# 2. Update the 1Password item/ref
+# 3. Re-sync Fly secrets and verify protected API access
+./scripts/fly-sync-runtime-secrets.sh --include-integrations --apply
 ```
 
 ## Development Secrets
 
-Development JWT secrets are stored in 1Password (`aegis-dev-jwt-secret` vault item) and referenced in `frontend/.env.development` (gitignored).
+Development JWT secrets are stored in 1Password (`aegis-personal-jwt-secret`) and referenced via `op://Development/aegis-personal-jwt-secret/credential`.
 
 ```bash
 # Rotate dev JWT secret
 # 1. Generate new secret
 openssl rand -base64 64
 
-# 2. Update 1Password vault item
-# 3. Update frontend/.env.development with new VITE_DEV_TOKEN
+# 2. Update the 1Password vault item
+# 3. Refresh any local env file or shell export that references it
 # 4. Restart dev server
 ```
 
@@ -223,7 +190,7 @@ After any secret rotation:
 curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq .
 
 # 2. Verify no auth errors in logs (wait 5 minutes)
-kubectl logs -n aegis -l app=aegis-api --since=5m | \
+fly logs -a cloudforge-api --no-tail | \
   grep -i "auth.*error\|unauthorized\|forbidden" | head -20
 
 # 3. Run smoke test

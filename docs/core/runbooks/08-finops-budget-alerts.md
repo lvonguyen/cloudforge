@@ -2,16 +2,19 @@
 
 ## Overview
 
-This runbook covers operating Cloud Aegis's FinOps budget alerting system, including:
+This runbook covers operating Aegis's FinOps budget alerting system, including:
 - Budget configuration and threshold management
 - Slack and PagerDuty alert channel setup
 - Responding to budget threshold breaches
 - Cost anomaly investigation
 - Chargeback report generation
 
+> Runtime note (April 1, 2026): the public demo runs on Fly.io and stores Slack/PagerDuty-style alert credentials in 1Password before syncing them to Fly secrets. `kubectl` configmap edits below are legacy examples for a future self-managed deployment.
+
 ## Prerequisites
 
-- [ ] Cloud Aegis API token with `finops:manage` scope
+- [ ] Aegis API token with `finops:manage` scope
+- [ ] `flyctl` authenticated against the `personal` org
 - [ ] Slack workspace with incoming webhook configured
 - [ ] PagerDuty service with Events API v2 integration key
 - [ ] Access to cloud billing consoles (AWS Cost Explorer, Azure Cost Management, GCP Billing)
@@ -56,24 +59,16 @@ curl -s -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/budgets \
 
 ```bash
 # Set Slack webhook URL
-kubectl edit configmap aegis-config -n aegis
-# Update:
-#   finops:
-#     slack:
-#       webhook_url: "https://hooks.slack.com/services/T00/B00/xxx"
-#       channel: "#finops-alerts"
+# Update the 1Password item backing the Slack webhook ref, then sync Fly secrets
+./scripts/fly-sync-runtime-secrets.sh --include-integrations --apply
 ```
 
 ### Configure PagerDuty
 
 ```bash
 # Set PagerDuty integration key
-kubectl edit configmap aegis-config -n aegis
-# Update:
-#   finops:
-#     pagerduty:
-#       routing_key: "abc123def456"
-#       severity: "warning"  # or "critical" for >100% threshold
+# Update the 1Password item backing the PagerDuty routing key, then sync Fly secrets
+./scripts/fly-sync-runtime-secrets.sh --include-integrations --apply
 ```
 
 ## Responding to Budget Alerts
@@ -141,7 +136,7 @@ curl -sf "https://api.cloudforge-demo.lvonguyen.com/api/v1/costs/anomalies/anom-
   -H "Authorization: Bearer $API_TOKEN" | jq .
 
 # 2. Check if it correlates with a deployment
-kubectl rollout history deployment/aegis-api -n aegis
+fly releases -a cloudforge-api
 
 # 3. Check if it correlates with a traffic spike
 curl -s 'http://prometheus:9090/api/v1/query?query=sum(rate(aegis_http_requests_total[1h]))[7d:1h]'
@@ -187,7 +182,7 @@ time() - aegis_finops_last_sync_timestamp
 | Condition | Action |
 |-----------|--------|
 | Budget alert not delivered | Check Slack webhook / PagerDuty key, verify network |
-| Cost data stale (>24h) | Check CSP API credentials, verify aggregator pod |
+| Cost data stale (>24h) | Check CSP API credentials, verify the Fly app and sync job logs |
 | Anomaly false positive | Tune detection thresholds in config |
 | Budget exceeded with no alert | Check BudgetMonitor logs, verify threshold config |
 

@@ -34,7 +34,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'CSPM Aggregator',
+      label: 'Posture Management',
       collapsed: true,
       items: [
         'cspm/HLD_CSPM_Aggregator',

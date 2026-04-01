@@ -15,9 +15,9 @@
 | [Detailed Design Document (DDD)](./DDD.md) | Implementation-level technical specifications |
 | [Component Rationale](./adr/component-rationale.md) | Technology selection with cost analysis |
 | [DR/BC Plan](./DR-BC.md) | Disaster Recovery and Business Continuity |
-| [Pitch Deck](../../archive/pitch-deck.md) | Executive presentation |
-| [ADRs](./adr/) | Architecture Decision Records (ADR-001 through ADR-020) |
-| [Runbooks](../runbooks/README.md) | Operational procedures (9 runbooks) |
+| [Pitch Deck](https://github.com/lvonguyen/cloudforge/blob/main/docs/archive/pitch-deck.md) | Executive presentation |
+| [ADRs](./adr/adr-index.md) | Architecture Decision Records (ADR-001 through ADR-020) |
+| [Runbooks](../runbooks/01-deployment.md) | Operational procedures (9 runbooks) |
 
 ---
 
@@ -440,7 +440,7 @@ Built-in troubleshooting capabilities provide remediation suggestions for common
 - **AI provider timeouts**: Fallback provider activation, rate limit handling
 - **High memory/CPU usage**: Profiling endpoints at `/debug/pprof/`
 
-See [Technical Runbooks](../runbooks/README.md) for detailed operational procedures.
+See [Technical Runbooks](../runbooks/01-deployment.md) for detailed operational procedures.
 
 ---
 

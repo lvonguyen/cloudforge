@@ -38,7 +38,7 @@ The following diagrams are rendered from Mermaid source files. Click to view ful
 
 | Diagram | Description |
 |---------|-------------|
-| [Compliance Deployment Models](../architecture/HLD.md#compliance-deployment-models) | Multi-cloud compliance topology |
+| [Compliance Deployment Models](../architecture/HLD.md) | Multi-cloud compliance topology |
 | [Failover Sequence](../architecture/DR-BC.md) | DR failover steps and timing |
-| [IaC Deploy Pipeline](../architecture/HLD.md#iac-pipeline) | Terraform/conftest CI/CD flow |
-| [Remediation Dispatcher Flow](../architecture/HLD.md#remediation) | Automated remediation routing |
+| [IaC Deploy Pipeline](../architecture/HLD.md) | Terraform/conftest CI/CD flow |
+| [Remediation Dispatcher Flow](../architecture/HLD.md) | Automated remediation routing |

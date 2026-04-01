@@ -3,7 +3,7 @@ import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'Cloud Aegis Docs',
+  title: 'Aegis Docs',
   tagline: 'Enterprise Cloud Governance Platform',
   favicon: undefined,
 
@@ -14,8 +14,6 @@ const config: Config = {
   projectName: 'cloudforge',
 
   onBrokenLinks: 'warn',
-  onBrokenMarkdownLinks: 'warn',
-
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
@@ -24,6 +22,9 @@ const config: Config = {
   markdown: {
     mermaid: true,
     format: 'detect',
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    },
     mdx1Compat: {
       comments: true,
       admonitions: true,
@@ -71,7 +72,7 @@ const config: Config = {
     },
 
     navbar: {
-      title: 'Cloud Aegis',
+      title: 'Aegis',
       items: [
         {
           type: 'docSidebar',
@@ -105,14 +106,14 @@ const config: Config = {
           items: [
             {label: 'Architecture', to: '/docs/core/architecture/HLD'},
             {label: 'API Reference', to: '/docs/api'},
-            {label: 'Runbooks', to: '/docs/core/runbooks/01-deployment'},
+            {label: 'Runbooks', to: '/docs/core/runbooks/deployment'},
           ],
         },
         {
           title: 'Project',
           items: [
             {label: 'GitHub', href: 'https://github.com/lvonguyen/cloudforge'},
-            {label: 'Live Demo', href: 'https://cloudguard.lvonguyen.com'},
+            {label: 'Live Demo', href: 'https://cloudaegis-demo.lvonguyen.com'},
           ],
         },
       ],

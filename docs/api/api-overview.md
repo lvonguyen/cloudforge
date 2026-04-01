@@ -11,7 +11,7 @@ Aegis exposes 89 REST API operations across 21 domains. The full specification i
 ## Quick Access
 
 - **[Download OpenAPI Spec](https://github.com/lvonguyen/cloudforge/blob/main/docs/api/openapi.yaml)** (3,774 lines, YAML)
-- **[Endpoint Reference](/docs/reference/api-reference)** (markdown summary with pagination contract)
+- **[Endpoint Reference](/docs/core/api-reference)** (markdown summary with pagination contract)
 
 ## API Domains
 
@@ -48,3 +48,13 @@ Authorization: Bearer <jwt-token>
 ```
 
 Roles: `viewer` | `requester` | `operator` | `admin`
+
+## Search Behavior on Large Corpora
+
+The public 300K-finding demo keeps eager search warmup disabled on the current Fly footprint. In that mode:
+
+- `keyword` search runs in-memory over the loaded findings set
+- `semantic` and `hybrid` requests degrade to candidate-scoped in-memory reranking instead of returning a hard failure
+- the `mode` field in the response reflects the effective execution mode used for that request
+
+That keeps operator search usable on the full corpus without requiring startup-time Bleve warmup.

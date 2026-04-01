@@ -82,7 +82,7 @@ Aegis is a reference architecture and implementation for an Internal Developer P
 | Environment configs | Done | Dev environment with GCS remote state |
 | **Portal** | | |
 | React SPA (frontend/) | Done | React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui |
-| 37 route pages | Done | Admin, Operator, Requester role views + attack paths + containers |
+| 47 route pages | Done | Admin, Operator, Requester, and viewer role views + investigations, attack paths, and containers |
 | Dark mode | Done | CSS variable overrides, anti-flash script |
 | Cloudflare Pages deploy | Done | cloudaegis-demo.lvonguyen.com |
 | API hook migration | Partial | MyRequests, useFindings (R2 fallback), useAttackPaths (mock fallback), useCostAnomalies cache fix, Execute/Retry mutations wired; remaining hooks fall back to mock on 401 in dev |
@@ -148,7 +148,7 @@ This is a **platform reference implementation**, not production software:
 1. **Temporal Workflows** — In-memory workflow engine is wired (list, get, submit handlers); Temporal orchestration layer planned but not connected
 2. **Stub Packages** — secrets, waf modules have interfaces and mock implementations but no production wiring
 3. **RoleViewer** — `RoleViewer` (rank 0) is implemented with read-only surface (`/findings`, `/compliance/frameworks`, `/agents` + traces); fine-grained per-resource viewer scoping is not yet enforced
-4. **Chrome QA Findings** — 35/37 routes passing with error states, focus rings, footer landmark, OG meta tags; React 19 lazy() context edge case under Playwright (pre-existing, not prod)
+4. **Visual QA Residuals** — Core prod flows now pass live browser checks (landing, findings, investigations, attack paths, finding security graph). Remaining work is polish and broader route coverage, not basic operability.
 5. **OIDC Auth Flow** — JWT middleware is production-ready (HS256/RS256, JWKS); Okta JWKS URL auto-derives from `OKTA_DOMAIN` env var. Full SSO login flow requires Okta app configuration.
 
 **Production Requirements:**
@@ -246,7 +246,7 @@ cloudforge/
 ├── configs/                       # Configuration templates
 ├── frontend/                      # Self-service portal (React 19 + Vite 7)
 │   ├── src/
-│   │   ├── pages/                 # 37 route pages (admin, ops, portal views)
+│   │   ├── pages/                 # 47 route pages (admin, ops, portal, and viewer views)
 │   │   ├── components/            # shadcn/ui component layer
 │   │   ├── hooks/                 # Custom hooks (deploy preview, etc.)
 │   │   ├── lib/                   # API client, auth, utilities
@@ -602,7 +602,7 @@ Built-in support for 20+ frameworks:
 | Phase | Description |
 | ----- | ----------- |
 | **Phase 5: Risk Intelligence + FinOps** | EPSS/KEV/GreyNoise/HIBP/OTX threat intel, attack path BFS engine + ReactFlow viz, toxic combo detection, blast radius computation, PuppyGraph graph query integration, AWS Bedrock enrichment. FinOps multi-cloud cost aggregation, anomaly detection, chargeback engine, budget alerting |
-| **Phase 4: Frontend + QA Hardening** | Self-service portal (React 19 + Vite 7, 37 routes, 3 role views, dark mode), Cloudflare Pages deploy, investigation board, DSPM classification, kanban remediation pipeline, NLQ bar, demo mode hardening. Multi-pass QA reviews (quality 4.5+, security 4.5+, bugs 4.3+) |
+| **Phase 4: Frontend + QA Hardening** | Self-service portal (React 19 + Vite 7, 47 routes, 4 role views, dark mode), Cloudflare Pages deploy, investigation board, DSPM classification, kanban remediation pipeline, NLQ bar, demo mode hardening. Multi-pass QA reviews (quality 4.5+, security 4.5+, bugs 4.3+) |
 | **Phase 3: IaC + Security** | Multi-cloud Terraform modules (compute, database, redis, IAM, monitoring, secrets), 5 Rego policies (27 rules), policy gate script, resource-scoped RBAC, integrity hashing, audit logging, rollback encryption (AES-256-GCM), CI enforcement (gosec, Trivy, Codecov) |
 | **Phase 2: Remediation + AI Governance** | 10 remediation handlers across 8 domains, batch executor with dry-run + 48h rollback, AI governance module (embedded OPA, agent registry, STRIDE/ATLAS threat models), JWT auth (HS256/RS256 + JWKS), RBAC middleware, security fixes SEC-001 through SEC-012 |
 | **Phase 1: Core Platform** | API server, GRC provider abstraction (Archer, ServiceNow, PostgreSQL), 20+ compliance frameworks, OPA/Rego policy engine, AI provider abstraction (Claude/OpenAI), identity module (Okta + Entra ID), container security, structured logging (zap), PostgreSQL migrations, architecture docs (HLD, DDD, 20 ADRs, DR/BC, 9 runbooks) |

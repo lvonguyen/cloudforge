@@ -2,22 +2,24 @@
 
 ## Overview
 
-This runbook covers configuring identity providers for Cloud Aegis authentication, including:
+This runbook covers configuring identity providers for Aegis authentication, including:
 - Okta OIDC setup and configuration
 - Microsoft Entra ID setup and configuration
 - JWT validation configuration
 - Mock provider for development
 - Troubleshooting authentication issues
 
+> Runtime note (April 1, 2026): the public demo runs on Fly.io + Cloudflare Pages. Configure IdP secrets through 1Password and `fly secrets set`/`fly-sync-runtime-secrets.sh`. The older `kubectl` examples are only relevant to a future self-managed deployment.
+
 ## Prerequisites
 
 - [ ] Admin access to Okta Admin Console or Azure Portal (Entra ID)
-- [ ] kubectl access to the Cloud Aegis cluster
-- [ ] Cloud Aegis configuration access (configmap or environment variables)
+- [ ] `flyctl` authenticated against the `personal` org
+- [ ] Aegis configuration access (Fly secrets or environment variables)
 
 ## Architecture
 
-Cloud Aegis uses config-driven identity provider selection:
+Aegis uses config-driven identity provider selection:
 
 ```
 OKTA_DOMAIN set    --> Okta provider activated
@@ -42,7 +44,7 @@ Relevant code:
 2. Select: OIDC - OpenID Connect
 3. Application type: Web Application
 4. Settings:
-   - App name: `Cloud Aegis`
+   - App name: `Aegis`
    - Grant type: Authorization Code
    - Sign-in redirect URIs: `https://app.aegis.io/callback`
    - Sign-out redirect URIs: `https://app.aegis.io`
@@ -55,9 +57,9 @@ Relevant code:
 
 ### Step 2: Configure Groups and Roles
 
-Map Okta groups to Cloud Aegis roles:
+Map Okta groups to Aegis roles:
 
-| Okta Group | Cloud Aegis Role |
+| Okta Group | Aegis Role |
 |------------|----------------|
 | `aegis-admin` | admin |
 | `aegis-operator` | operator |
@@ -71,36 +73,19 @@ Configure group claim in Okta:
    - Value type: Groups
    - Filter: Starts with `aegis-`
 
-### Step 3: Configure Cloud Aegis
+### Step 3: Configure Aegis
 
 ```bash
-# Set environment variables
-kubectl set env deployment/aegis-api -n aegis \
+fly secrets set \
   OKTA_DOMAIN="dev-12345.okta.com" \
   OKTA_CLIENT_ID="0oa..." \
-  OKTA_CLIENT_SECRET="xxx"
-
-# Or update configmap
-kubectl edit configmap aegis-config -n aegis
-# Add:
-#   identity:
-#     okta:
-#       domain: "dev-12345.okta.com"
-#       client_id: "0oa..."
-#       client_secret: "xxx"
-
-# Restart to pick up changes
-kubectl rollout restart deployment/aegis-api -n aegis
-kubectl rollout status deployment/aegis-api -n aegis
+  OKTA_CLIENT_SECRET="xxx" \
+  -a cloudforge-api
 ```
 
 ### Step 4: Verify
 
 ```bash
-# Check health endpoint
-curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '.components.identity_provider'
-# Expected: {"okta": "ok"}
-
 # Test token validation
 curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/findings \
   -H "Authorization: Bearer $OKTA_TOKEN" | jq '.total'
@@ -112,7 +97,7 @@ curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/findings \
 
 1. Azure Portal > Entra ID > App registrations > New registration
 2. Settings:
-   - Name: `Cloud Aegis`
+   - Name: `Aegis`
    - Supported account types: Single tenant (or multi-tenant for MSP)
    - Redirect URI: Web > `https://app.aegis.io/callback`
 
@@ -135,37 +120,33 @@ curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/findings \
    - Customize token properties: Group ID
 
 2. App roles > Create app role:
-   - Display name: `Cloud Aegis Admin`
+   - Display name: `Aegis Admin`
    - Value: `admin`
    - Allowed member types: Users/Groups
 
    Repeat for `operator` and `requester`.
 
-### Step 4: Configure Cloud Aegis
+### Step 4: Configure Aegis
 
 ```bash
-# Set environment variables
-kubectl set env deployment/aegis-api -n aegis \
+fly secrets set \
   ENTRA_TENANT_ID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
   ENTRA_CLIENT_ID="yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy" \
-  ENTRA_CLIENT_SECRET="zzz"
-
-# Restart
-kubectl rollout restart deployment/aegis-api -n aegis
-kubectl rollout status deployment/aegis-api -n aegis
+  ENTRA_CLIENT_SECRET="zzz" \
+  -a cloudforge-api
 ```
 
 ### Step 5: Verify
 
 ```bash
-# Check health endpoint
-curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '.components.identity_provider'
-# Expected: {"entra_id": "ok"}
+# Test token validation
+curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/findings \
+  -H "Authorization: Bearer $ENTRA_TOKEN" | jq '.total'
 ```
 
 ## Development Mode (Mock Provider)
 
-When neither `OKTA_DOMAIN` nor `ENTRA_TENANT_ID` is set, Cloud Aegis falls back to the mock provider.
+When neither `OKTA_DOMAIN` nor `ENTRA_TENANT_ID` is set, local development falls back to the mock provider. The deployed Pages demo instead uses demo/static auth mode with the in-app role switcher.
 
 In development mode:
 - `AuthProvider` component auto-authenticates as admin
@@ -180,7 +161,7 @@ curl -sf http://localhost:8080/health | jq '.components.identity_provider'
 
 # Use dev header override for role testing
 curl -sf http://localhost:8080/api/v1/findings \
-  -H "X-Cloud Aegis-Role: operator"
+  -H "X-Aegis-Role: operator"
 ```
 
 ## JWT Validation Configuration
