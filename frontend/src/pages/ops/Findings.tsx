@@ -295,6 +295,11 @@ export default function Findings() {
     return m
   }, [baseFiltered])
 
+  const severitySummaryCounts = useMemo(
+    () => (hasFilters ? severityCounts : (stats?.by_severity ?? severityCounts)),
+    [hasFilters, severityCounts, stats?.by_severity],
+  )
+
   const slaBreachedCount = useMemo(() => {
     const now = Date.now()
     return baseFiltered.filter(f => f.sla_breach_date && new Date(f.sla_breach_date).getTime() < now).length
@@ -760,7 +765,7 @@ export default function Findings() {
             <div className="flex gap-1.5">
               {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map(sev => (
                 <Badge key={sev} variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${SEVERITY_COLORS[sev]}`}>
-                  {sev} {((hasFilters ? severityCounts[sev] : stats?.by_severity?.[sev]) ?? severityCounts[sev] ?? 0).toLocaleString()}
+                  {sev} {(severitySummaryCounts[sev] ?? 0).toLocaleString()}
                 </Badge>
               ))}
             </div>
@@ -809,7 +814,7 @@ export default function Findings() {
         {/* Metric cards */}
         <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
           {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map(sev => {
-            const count = (severityCounts[sev] ?? 0)
+            const count = severitySummaryCounts[sev] ?? 0
             const isActive = severityTab === sev
             return (
               <button
