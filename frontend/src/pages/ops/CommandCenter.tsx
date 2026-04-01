@@ -331,6 +331,9 @@ function CenterPane({
               <p className="mt-1 text-xs text-gray-400">
                 Highest-value findings first. Toxic combinations, exploit availability, production scope, and downstream impact push items to the top.
               </p>
+              <p className="mt-1 text-[10px] text-gray-500">
+                Single-click to inspect in the side panel. Double-click or use "View finding" to open the full finding detail.
+              </p>
             </div>
             <div className="divide-y divide-[#1e2330]">
               {queuedFindings.map((finding) => (
@@ -339,6 +342,7 @@ function CenterPane({
                   role="button"
                   tabIndex={0}
                   onClick={() => onSelectFinding(finding)}
+                  onDoubleClick={() => navigate(`/ops/findings/${finding.id}`)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault()
@@ -374,7 +378,7 @@ function CenterPane({
                       }}
                       className="inline-flex items-center gap-1 rounded border border-[#1f2937] px-2 py-1 text-[10px] uppercase tracking-wide text-gray-300 transition-colors hover:border-[#374151] hover:bg-[#0f172a]"
                     >
-                      Open case
+                      View finding
                       <ChevronRight className="h-3 w-3" />
                     </button>
                   </div>

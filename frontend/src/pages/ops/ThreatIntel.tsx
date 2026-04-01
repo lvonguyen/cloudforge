@@ -28,9 +28,11 @@ const TABS: FeedTab[] = [
 
 export default function ThreatIntel() {
   const [activeTab, setActiveTab] = useState<FeedId>('overview')
-  const { data: findings = [] } = useFindings({ page: 1, perPage: 1000, sort: 'ai_risk', order: 'desc' })
+  const { data: findings = [], total } = useFindings({ page: 1, perPage: 1000, sort: 'ai_risk', order: 'desc' })
 
   const stats = useMemo(() => {
+    const corpusTotal = Math.max(total, findings.length)
+    const sampled = corpusTotal > findings.length
     const withEpss = findings.filter((f) => f.epss && f.epss > 0)
     const withKev = findings.filter((f) => f.exploit_available)
     const withCves = findings.filter((f) => f.cves && f.cves.length > 0)
@@ -48,7 +50,9 @@ export default function ThreatIntel() {
     })
 
     return {
-      total: findings.length,
+      sampleTotal: findings.length,
+      corpusTotal,
+      sampled,
       withCves: withCves.length,
       withEpss: withEpss.length,
       withKev: withKev.length,
@@ -61,15 +65,22 @@ export default function ThreatIntel() {
         return (sevOrder[a.severity] ?? 4) - (sevOrder[b.severity] ?? 4)
       }).slice(0, 20),
     }
-  }, [findings])
+  }, [findings, total])
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div>
         <h1 className="text-xl font-semibold">Threat Intelligence</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Feed status, enrichment coverage, and exploitability analysis across {stats.total.toLocaleString()} findings
+          {stats.sampled
+            ? `Feed status, enrichment coverage, and exploitability analysis across the top ${stats.sampleTotal.toLocaleString()} high-risk findings from ${stats.corpusTotal.toLocaleString()} total findings`
+            : `Feed status, enrichment coverage, and exploitability analysis across ${stats.corpusTotal.toLocaleString()} findings`}
         </p>
+        {stats.sampled && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Feed drill-downs use a top-risk sample to keep the workspace responsive. Corpus totals still reflect the full finding set.
+          </p>
+        )}
       </div>
 
       {/* Tab bar */}
@@ -105,7 +116,9 @@ export default function ThreatIntel() {
 /* ---------- Overview ---------- */
 
 interface TIStats {
-  total: number
+  sampleTotal: number
+  corpusTotal: number
+  sampled: boolean
   withCves: number
   withEpss: number
   withKev: number
@@ -117,11 +130,12 @@ interface TIStats {
 }
 
 function OverviewTab({ stats, onNavigate }: { stats: TIStats; onNavigate: (id: FeedId) => void }) {
+  const sampleDenominator = stats.sampleTotal || 1
   const kpis = [
-    { label: 'Findings with CVEs', value: stats.withCves, total: stats.total || 1, color: 'text-blue-600' },
-    { label: 'EPSS Scored', value: stats.withEpss, total: stats.total || 1, color: 'text-violet-600' },
+    { label: 'Findings with CVEs', value: stats.withCves, total: sampleDenominator, color: 'text-blue-600' },
+    { label: 'EPSS Scored', value: stats.withEpss, total: sampleDenominator, color: 'text-violet-600' },
     { label: 'EPSS >= 0.7 (Critical)', value: stats.highEpss, total: stats.withEpss || 1, color: 'text-red-600' },
-    { label: 'KEV Exploited', value: stats.withKev, total: stats.total || 1, color: 'text-amber-600' },
+    { label: 'KEV Exploited', value: stats.withKev, total: sampleDenominator, color: 'text-amber-600' },
   ]
 
   const feeds = [
@@ -144,7 +158,7 @@ function OverviewTab({ stats, onNavigate }: { stats: TIStats; onNavigate: (id: F
                 {kpi.value.toLocaleString()}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {((kpi.value / kpi.total) * 100).toFixed(1)}% of {kpi.total.toLocaleString()}
+                {((kpi.value / kpi.total) * 100).toFixed(1)}% of {stats.sampled ? `${kpi.total.toLocaleString()} sampled` : kpi.total.toLocaleString()}
               </p>
             </CardContent>
           </Card>

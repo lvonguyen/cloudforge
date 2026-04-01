@@ -138,6 +138,7 @@ function AppContent() {
                 <Route element={<ProtectedRoute roles={['admin', 'operator']}><Outlet /></ProtectedRoute>}>
                   <Route element={<RoutingErrorBoundary fallbackLabel="Ops"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></RoutingErrorBoundary>}>
                     <Route path="/ops" element={<CommandCenter />} />
+                    <Route path="/ops/command-center" element={<CommandCenter />} />
                     <Route path="/ops/remediation" element={<RemediationQueue />} />
                     <Route path="/ops/remediation/:id" element={<RemediationDetail />} />
                     <Route path="/ops/costs" element={<Spend />} />
