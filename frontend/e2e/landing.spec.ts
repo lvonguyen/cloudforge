@@ -16,7 +16,7 @@ test.describe('Landing page', () => {
     expect(count).toBeGreaterThanOrEqual(2)
 
     // Verify the current runtime-configured modules are present.
-    await expect(page.getByText('Aegis').first()).toBeVisible()
+    await expect(page.getByText('CloudForge').first()).toBeVisible()
     await expect(page.getByText('Posture Management').first()).toBeVisible()
   })
 
