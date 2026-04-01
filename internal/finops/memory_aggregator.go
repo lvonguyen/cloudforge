@@ -55,7 +55,7 @@ func (a *MemoryAggregator) NormalizeCosts(records []CostRecord) []CostRecord {
 	return out
 }
 
-// seed generates 30 days of synthetic cost data ending today.
+// seed generates 30 days of synthetic cost data including today.
 func (a *MemoryAggregator) seed() {
 	// Fixed source for reproducibility.
 	rng := rand.New(rand.NewSource(42)) //nolint:gosec
@@ -90,7 +90,7 @@ func (a *MemoryAggregator) seed() {
 	environments := []string{"production", "staging"}
 
 	today := time.Now().UTC().Truncate(24 * time.Hour)
-	start := today.AddDate(0, 0, -30)
+	start := today.AddDate(0, 0, -29)
 
 	var records []CostRecord
 	id := 0

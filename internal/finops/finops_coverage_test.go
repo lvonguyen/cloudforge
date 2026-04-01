@@ -38,6 +38,24 @@ func TestCovMemoryAggregator_FetchCosts_EmptyRange(t *testing.T) {
 	}
 }
 
+func TestCovMemoryAggregator_FetchCosts_IncludesCurrentUTCDay(t *testing.T) {
+	a := NewMemoryAggregator()
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+
+	records, err := a.FetchCosts(context.Background(), today, today.Add(24*time.Hour-time.Nanosecond))
+	if err != nil {
+		t.Fatalf("FetchCosts: %v", err)
+	}
+	if len(records) == 0 {
+		t.Fatal("expected records for current UTC day")
+	}
+	for _, r := range records {
+		if !r.Date.Equal(today) {
+			t.Fatalf("record date = %v, want %v", r.Date, today)
+		}
+	}
+}
+
 func TestCovMemoryAggregator_NormalizeCosts(t *testing.T) {
 	a := NewMemoryAggregator()
 

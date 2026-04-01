@@ -259,7 +259,7 @@ func fallbackKeywordScore(f *Finding, phrase string, terms []string) float64 {
 			matched = true
 		}
 		if strings.Contains(supplementary, term) {
-			score += 1
+			score++
 			matched = true
 		}
 		if matched {

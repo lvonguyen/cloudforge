@@ -27,14 +27,6 @@ type sqlExecContexter interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
-type preparedExec struct {
-	stmt *sql.Stmt
-}
-
-func (p preparedExec) ExecContext(ctx context.Context, _ string, args ...any) (sql.Result, error) {
-	return p.stmt.ExecContext(ctx, args...)
-}
-
 const (
 	evaluationUpsertBatchSize   = 500
 	issueUpsertBatchSize        = 200
@@ -196,13 +188,6 @@ const upsertIssueSuffix = `
 		END
 `
 
-const upsertIssueQuery = upsertIssuePrefix + `(
-		$1, $2, $3, $4, $5, $6, $7,
-		$8, $9, $10, $11, $12, $13,
-		$14, $15, $16, $17, $18,
-		$19, $20
-	)` + upsertIssueSuffix
-
 const upsertIssueFindingPrefix = `
 	INSERT INTO issue_findings (issue_id, finding_id, created_at)
 	VALUES `
@@ -210,8 +195,6 @@ const upsertIssueFindingPrefix = `
 const upsertIssueFindingSuffix = `
 	ON CONFLICT (issue_id, finding_id) DO NOTHING
 `
-
-const upsertIssueFindingQuery = upsertIssueFindingPrefix + `($1, $2, $3)` + upsertIssueFindingSuffix
 
 const upsertEdgePrefix = `
 	INSERT INTO graph_edges (
@@ -221,8 +204,6 @@ const upsertEdgePrefix = `
 const upsertEdgeSuffix = `
 	ON CONFLICT (source_type, source_id, target_type, target_id, edge_type, tenant_id) DO NOTHING
 `
-
-const upsertEdgeQuery = upsertEdgePrefix + `($1, $2, $3, $4, $5, $6, $7, $8, $9)` + upsertEdgeSuffix
 
 // NewStore creates a secgraph store backed by a SQL database handle.
 func NewStore(db *sql.DB) *Store {
@@ -819,69 +800,6 @@ func (s *Store) upsertEvaluation(ctx context.Context, execer sqlExecContexter, e
 		evaluation.TenantID,
 	); err != nil {
 		return fmt.Errorf("upserting evaluation %s: %w", evaluation.ID, err)
-	}
-
-	return nil
-}
-
-// upsertIssue persists the materialized issue surface without deciding issue
-// state transitions; higher layers are expected to reconcile lifecycle first.
-func (s *Store) upsertIssue(ctx context.Context, execer sqlExecContexter, issue Issue) error {
-	if _, err := execer.ExecContext(ctx, upsertIssueQuery,
-		issue.ID,
-		issue.Title,
-		issue.Description,
-		issue.Severity,
-		issue.RiskScore,
-		issue.BlastRadius,
-		string(issue.Status),
-		issue.ControlID,
-		issue.ResourceID,
-		issue.AccountID,
-		issue.Provider,
-		issue.AssigneeID,
-		issue.TicketID,
-		issue.TicketURL,
-		issue.SLABreachAt,
-		issue.ExposurePaths,
-		issue.TenantID,
-		issue.CreatedAt,
-		issue.UpdatedAt,
-		issue.ResolvedAt,
-	); err != nil {
-		return fmt.Errorf("upserting issue %s: %w", issue.ID, err)
-	}
-
-	return nil
-}
-
-// upsertIssueFinding records the source findings that currently justify an issue.
-func (s *Store) upsertIssueFinding(ctx context.Context, execer sqlExecContexter, link IssueFindingLink) error {
-	if _, err := execer.ExecContext(ctx, upsertIssueFindingQuery, link.IssueID, link.FindingID, link.CreatedAt); err != nil {
-		return fmt.Errorf("upserting issue_finding %s/%s: %w", link.IssueID, link.FindingID, err)
-	}
-
-	return nil
-}
-
-// upsertEdge persists graph relationships emitted during materialization.
-func (s *Store) upsertEdge(ctx context.Context, execer sqlExecContexter, edge GraphEdge) error {
-	payload, err := json.Marshal(edge.Properties)
-	if err != nil {
-		return fmt.Errorf("marshalling edge %s properties: %w", edge.ID, err)
-	}
-	if _, err := execer.ExecContext(ctx, upsertEdgeQuery,
-		edge.ID,
-		string(edge.SourceType),
-		edge.SourceID,
-		string(edge.TargetType),
-		edge.TargetID,
-		string(edge.EdgeType),
-		payload,
-		edge.TenantID,
-		edge.CreatedAt,
-	); err != nil {
-		return fmt.Errorf("upserting edge %s: %w", edge.ID, err)
 	}
 
 	return nil

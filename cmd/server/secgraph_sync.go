@@ -19,7 +19,7 @@ const defaultSecgraphTenantID = "default"
 
 const (
 	secgraphStartupAdvisoryLockKey int64 = 0x5345434752415048
-	secgraphProgressInterval             = 5000
+	secgraphProgressInterval       int   = 5000
 )
 
 var secgraphIssueSurfacePersistInterval = 25000
