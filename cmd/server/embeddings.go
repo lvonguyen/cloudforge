@@ -39,6 +39,10 @@ const maxVocabSize = 10_000
 // NewEmbeddingService builds a TF-IDF vocabulary from all finding text and
 // pre-computes sparse embeddings plus postings for each finding.
 func NewEmbeddingService(findings []Finding) *EmbeddingService {
+	return newEmbeddingServiceWithMinDocFreq(findings, 2)
+}
+
+func newEmbeddingServiceWithMinDocFreq(findings []Finding, minDocFreq int) *EmbeddingService {
 	es := &EmbeddingService{
 		embeddings: make(map[string]sparseVector, len(findings)),
 		postings:   make(map[int][]weightedDoc, maxVocabSize),
@@ -49,7 +53,7 @@ func NewEmbeddingService(findings []Finding) *EmbeddingService {
 		docs[i] = findingSearchText(&findings[i])
 	}
 
-	es.buildVocabulary(docs)
+	es.buildVocabulary(docs, minDocFreq)
 
 	for i := range findings {
 		es.IndexDocument(findings[i].ID, docs[i])
@@ -59,9 +63,12 @@ func NewEmbeddingService(findings []Finding) *EmbeddingService {
 }
 
 // buildVocabulary constructs the term vocabulary and IDF weights from a corpus.
-func (es *EmbeddingService) buildVocabulary(docs []string) {
+func (es *EmbeddingService) buildVocabulary(docs []string, minDocFreq int) {
 	df := make(map[string]int)
 	tf := make(map[string]int)
+	if minDocFreq < 1 {
+		minDocFreq = 1
+	}
 
 	for _, doc := range docs {
 		seen := make(map[string]bool)
@@ -80,7 +87,7 @@ func (es *EmbeddingService) buildVocabulary(docs []string) {
 	}
 	ranked := make([]termFreq, 0, len(tf))
 	for term, freq := range tf {
-		if df[term] >= 2 && len(term) > 1 {
+		if df[term] >= minDocFreq && len(term) > 1 {
 			ranked = append(ranked, termFreq{term: term, freq: freq})
 		}
 	}

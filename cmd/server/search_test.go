@@ -362,6 +362,14 @@ func TestSemanticSearchEnabledForCorpus(t *testing.T) {
 	}
 }
 
+func TestSemanticSearchDefaultDisablesLargeCorpus(t *testing.T) {
+	t.Setenv("SEMANTIC_SEARCH_MAX_FINDINGS", "")
+
+	if semanticSearchEnabledForCorpus(300000) {
+		t.Fatal("expected semantic search disabled for large default corpus")
+	}
+}
+
 func TestFallbackKeywordSearch_RanksTitlePhraseFirst(t *testing.T) {
 	findings := []Finding{
 		{
@@ -391,6 +399,15 @@ func TestFallbackKeywordSearchCandidateLimit(t *testing.T) {
 	}
 	if got := fallbackKeywordSearchCandidateLimit(5, 50); got != fallbackKeywordSearchMaxCandidates {
 		t.Fatalf("limit for large page = %d, want %d", got, fallbackKeywordSearchMaxCandidates)
+	}
+}
+
+func TestFallbackSemanticSearchCandidateLimit(t *testing.T) {
+	if got := fallbackSemanticSearchCandidateLimit(1, 10); got != 100 {
+		t.Fatalf("semantic limit for small page = %d, want 100", got)
+	}
+	if got := fallbackSemanticSearchCandidateLimit(10, 100); got != fallbackSemanticSearchMaxCandidates {
+		t.Fatalf("semantic limit for large page = %d, want %d", got, fallbackSemanticSearchMaxCandidates)
 	}
 }
 
@@ -429,6 +446,63 @@ func TestFallbackKeywordSearch_RewriteImprovesRecall(t *testing.T) {
 	}
 	if rewritten.Findings[0].Finding.ID != "db-public-access" {
 		t.Fatalf("first rewritten result = %s, want db-public-access", rewritten.Findings[0].Finding.ID)
+	}
+}
+
+func TestFallbackSemanticSearch_ReranksKeywordCandidates(t *testing.T) {
+	findings := []Finding{
+		{
+			ID:           "db-public-access",
+			Title:        "Database instance has public access enabled",
+			Description:  "A relational database is internet reachable and not protected by multi-factor authentication.",
+			ResourceName: "db-prod-001",
+		},
+		{
+			ID:           "log-alert",
+			Title:        "Database audit trail is missing",
+			Description:  "Logging is disabled for an internal database workload.",
+			ResourceName: "db-logs-001",
+		},
+	}
+
+	candidates := fallbackKeywordSearch(findings, rewriteSearchQuery("internet exposed rds without mfa"), 10)
+	results, err := fallbackSemanticSearch(context.Background(), findingsFromScored(candidates.Findings), rewriteSearchQuery("internet exposed rds without mfa"), 10)
+	if err != nil {
+		t.Fatalf("fallbackSemanticSearch: %v", err)
+	}
+	if len(results) == 0 {
+		t.Fatal("expected semantic rerank results")
+	}
+	if got := results[0].Finding.ID; got != "db-public-access" {
+		t.Fatalf("first semantic fallback result = %s, want db-public-access", got)
+	}
+}
+
+func TestFallbackHybridSearch_UsesHybridRanking(t *testing.T) {
+	findings := []Finding{
+		{
+			ID:           "db-public-access",
+			Title:        "Database instance has public access enabled",
+			Description:  "A relational database is internet reachable and not protected by multi-factor authentication.",
+			ResourceName: "db-prod-001",
+		},
+		{
+			ID:           "log-alert",
+			Title:        "Database audit trail is missing",
+			Description:  "Logging is disabled for an internal database workload.",
+			ResourceName: "db-logs-001",
+		},
+	}
+
+	result, err := fallbackHybridSearch(context.Background(), findings, rewriteSearchQuery("internet exposed rds without mfa"), 1, 10)
+	if err != nil {
+		t.Fatalf("fallbackHybridSearch: %v", err)
+	}
+	if result.Total == 0 {
+		t.Fatal("expected hybrid fallback results")
+	}
+	if got := result.Findings[0].Finding.ID; got != "db-public-access" {
+		t.Fatalf("first hybrid fallback result = %s, want db-public-access", got)
 	}
 }
 
@@ -551,18 +625,39 @@ func TestSearchFindings_HybridMode(t *testing.T) {
 	}
 }
 
-func TestSearchFindings_NotInitializedFallsBackToKeyword(t *testing.T) {
+func TestSearchFindings_NotInitializedFallsBackToHybridFallback(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)
 
-	rr := doRequest(t, router, "POST", "/api/v1/findings/search", `{"query":"test"}`, jwt)
+	rr := doRequest(t, router, "POST", "/api/v1/findings/search", `{"query":"audit logging"}`, jwt)
 	assertStatus(t, rr, http.StatusOK)
 
 	var resp searchResponse
 	assertJSON(t, rr, &resp)
 
-	if resp.Mode != "keyword" {
-		t.Fatalf("mode = %s, want keyword fallback", resp.Mode)
+	if resp.Mode != "hybrid" {
+		t.Fatalf("mode = %s, want hybrid fallback", resp.Mode)
+	}
+	if resp.Total == 0 {
+		t.Fatal("expected hybrid fallback results")
+	}
+}
+
+func TestSearchFindings_NotInitializedSemanticUsesSemanticFallback(t *testing.T) {
+	_, router := testServer(t)
+	jwt := adminJWT(t)
+
+	rr := doRequest(t, router, "POST", "/api/v1/findings/search", `{"query":"audit logging","mode":"semantic"}`, jwt)
+	assertStatus(t, rr, http.StatusOK)
+
+	var resp searchResponse
+	assertJSON(t, rr, &resp)
+
+	if resp.Mode != "semantic" {
+		t.Fatalf("mode = %s, want semantic fallback", resp.Mode)
+	}
+	if resp.Total == 0 {
+		t.Fatal("expected semantic fallback results")
 	}
 }
 

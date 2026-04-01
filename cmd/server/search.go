@@ -52,10 +52,13 @@ type SearchService struct {
 	embedSvc *EmbeddingService   // optional: nil when semantic search is disabled
 }
 
-const defaultSemanticSearchMaxFindings = 500000
+// Full in-memory semantic indexing is intentionally conservative by default.
+// Larger corpora need the planned offline index pipeline instead of startup warmup.
+const defaultSemanticSearchMaxFindings = 10000
 const defaultAttackPathWarmupMaxFindings = 10000
 const defaultSecgraphFullSyncMaxFindings = 10000
 const fallbackKeywordSearchMaxCandidates = 1000
+const fallbackSemanticSearchMaxCandidates = 400
 
 var searchTermExpansions = map[string][]string{
 	"mfa":        {"multi factor authentication", "multi-factor authentication"},
@@ -168,6 +171,17 @@ func fallbackKeywordSearchCandidateLimit(page, perPage int) int {
 	}
 	if limit > fallbackKeywordSearchMaxCandidates {
 		limit = fallbackKeywordSearchMaxCandidates
+	}
+	return limit
+}
+
+func fallbackSemanticSearchCandidateLimit(page, perPage int) int {
+	limit := perPage * 8
+	if limit < 100 {
+		limit = 100
+	}
+	if limit > fallbackSemanticSearchMaxCandidates {
+		limit = fallbackSemanticSearchMaxCandidates
 	}
 	return limit
 }
@@ -290,6 +304,102 @@ func fallbackKeywordSearch(findings []Finding, query string, limit int) *SearchR
 		MaxScore: maxScore,
 		Took:     time.Since(start),
 	}
+}
+
+func findingsFromScored(results []ScoredFinding) []Finding {
+	if len(results) == 0 {
+		return nil
+	}
+
+	findings := make([]Finding, 0, len(results))
+	for _, result := range results {
+		findings = append(findings, result.Finding)
+	}
+	return findings
+}
+
+func paginateFallbackResults(results []ScoredFinding, page, perPage int, took time.Duration) *SearchResult {
+	total := len(results)
+	offset := (page - 1) * perPage
+	if offset >= total {
+		return &SearchResult{
+			Findings: []ScoredFinding{},
+			Total:    total,
+			Took:     took,
+		}
+	}
+
+	end := offset + perPage
+	if end > total {
+		end = total
+	}
+
+	maxScore := 0.0
+	if len(results) > 0 {
+		maxScore = results[0].Score
+	}
+
+	return &SearchResult{
+		Findings: results[offset:end],
+		Total:    total,
+		MaxScore: maxScore,
+		Took:     took,
+	}
+}
+
+func fallbackSemanticSearch(ctx context.Context, findings []Finding, query string, topN int) ([]ScoredFinding, error) {
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+	if len(findings) == 0 || topN <= 0 {
+		return []ScoredFinding{}, nil
+	}
+
+	embedSvc := newEmbeddingServiceWithMinDocFreq(findings, 1)
+	queryVec, err := embedSvc.GenerateEmbedding(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("generating fallback query embedding: %w", err)
+	}
+
+	candidates := embedSvc.SearchSimilar(queryVec, topN)
+	if len(candidates) == 0 {
+		return []ScoredFinding{}, nil
+	}
+
+	findingByID := make(map[string]Finding, len(findings))
+	for _, finding := range findings {
+		findingByID[finding.ID] = finding
+	}
+
+	results := make([]ScoredFinding, 0, min(topN, len(candidates)))
+	for _, candidate := range candidates {
+		if finding, ok := findingByID[candidate.id]; ok {
+			results = append(results, ScoredFinding{
+				Finding: finding,
+				Score:   candidate.score,
+			})
+		}
+	}
+	return results, nil
+}
+
+func fallbackHybridSearch(ctx context.Context, findings []Finding, query string, page, perPage int) (*SearchResult, error) {
+	start := time.Now()
+	keywordLimit := fallbackKeywordSearchCandidateLimit(page, perPage)
+	keywordResult := fallbackKeywordSearch(findings, query, keywordLimit)
+	if keywordResult.Total == 0 {
+		keywordResult.Took = time.Since(start)
+		return keywordResult, nil
+	}
+
+	semanticLimit := fallbackSemanticSearchCandidateLimit(page, perPage)
+	semanticResults, err := fallbackSemanticSearch(ctx, findingsFromScored(keywordResult.Findings), query, semanticLimit)
+	if err != nil || len(semanticResults) == 0 {
+		return paginateFallbackResults(keywordResult.Findings, page, perPage, time.Since(start)), nil
+	}
+
+	fused := rrfFuse(keywordResult.Findings, semanticResults, 60)
+	return paginateFallbackResults(fused, page, perPage, time.Since(start)), nil
 }
 
 func fallbackMinScore(results []ScoredFinding) (int, float64) {
@@ -660,32 +770,7 @@ func rrfFuse(bm25, semantic []ScoredFinding, k int) []ScoredFinding {
 
 // paginateScored slices a scored result set for the given page.
 func (ss *SearchService) paginateScored(results []ScoredFinding, page, perPage int, took time.Duration) (*SearchResult, error) {
-	total := len(results)
-	offset := (page - 1) * perPage
-	if offset >= total {
-		return &SearchResult{
-			Findings: []ScoredFinding{},
-			Total:    total,
-			Took:     took,
-		}, nil
-	}
-
-	end := offset + perPage
-	if end > total {
-		end = total
-	}
-
-	maxScore := 0.0
-	if len(results) > 0 {
-		maxScore = results[0].Score
-	}
-
-	return &SearchResult{
-		Findings: results[offset:end],
-		Total:    total,
-		MaxScore: maxScore,
-		Took:     took,
-	}, nil
+	return paginateFallbackResults(results, page, perPage, took), nil
 }
 
 // findingSearchText concatenates searchable text fields for embedding generation.

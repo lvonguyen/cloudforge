@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -102,12 +103,38 @@ func (s *Server) searchFindings(w http.ResponseWriter, r *http.Request) {
 	effectiveMode := mode
 
 	if searchSvc == nil {
-		effectiveMode = "keyword"
-		result = fallbackKeywordSearch(s.data.Findings, rewrittenQuery, fallbackKeywordSearchCandidateLimit(page, perPage))
+		switch mode {
+		case "semantic":
+			start := time.Now()
+			candidates := fallbackKeywordSearch(s.data.Findings, rewrittenQuery, fallbackKeywordSearchCandidateLimit(page, perPage))
+			semanticResults, semErr := fallbackSemanticSearch(
+				ctx,
+				findingsFromScored(candidates.Findings),
+				rewrittenQuery,
+				fallbackSemanticSearchCandidateLimit(page, perPage),
+			)
+			if semErr != nil || len(semanticResults) == 0 {
+				effectiveMode = "keyword"
+				result = candidates
+			} else {
+				result = paginateFallbackResults(semanticResults, page, perPage, time.Since(start))
+			}
+		case "hybrid":
+			hybridResult, hybridErr := fallbackHybridSearch(ctx, s.data.Findings, rewrittenQuery, page, perPage)
+			if hybridErr != nil {
+				s.writeInternalError(w, hybridErr, "fallback_hybrid_search")
+				return
+			}
+			result = hybridResult
+		default:
+			effectiveMode = "keyword"
+			result = fallbackKeywordSearch(s.data.Findings, rewrittenQuery, fallbackKeywordSearchCandidateLimit(page, perPage))
+		}
 		span.SetAttributes(attribute.Bool("search.degraded", true))
 		if s.logger != nil {
-			s.logger.Warn("Falling back to in-memory keyword search",
+			s.logger.Warn("Falling back to in-memory large-corpus search",
 				zap.String("requested_mode", mode),
+				zap.String("effective_mode", effectiveMode),
 				zap.String("query", query),
 				zap.String("rewritten_query", rewrittenQuery),
 				zap.Int("findings", len(s.data.Findings)),
