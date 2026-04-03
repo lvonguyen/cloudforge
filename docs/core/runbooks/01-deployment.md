@@ -9,6 +9,26 @@ This runbook covers the current production-style demo deployment path:
 
 The earlier ECS/RDS rollout path has been retired. Do not use Kubernetes, ECS, or ALB procedures from older notes for the active demo environment.
 
+## Process Flow
+
+```mermaid
+flowchart TD
+    A[Start Deployment] --> B[Pre-Deployment Checklist]
+    B --> C{Fly.io App Healthy?}
+    C -->|No| D[Investigate Before Proceeding]
+    C -->|Yes| E[Deploy Backend to Fly.io]
+    E --> F{Health Check Pass?}
+    F -->|No| G[Rollback to Previous Release]
+    G --> H[Investigate Failure]
+    F -->|Yes| I[Run DB Migrations if Needed]
+    I --> J[Deploy Frontend to CF Pages]
+    J --> K[Verify Frontend Loads]
+    K --> L{Full Stack Healthy?}
+    L -->|No| G
+    L -->|Yes| M[Post-Deployment Smoke Tests]
+    M --> N[Update Stakeholders]
+```
+
 ## Prerequisites
 
 - [ ] GitHub access to the repo and Actions history

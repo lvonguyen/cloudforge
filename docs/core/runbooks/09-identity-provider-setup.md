@@ -11,6 +11,28 @@ This runbook covers configuring identity providers for Aegis authentication, inc
 
 > Runtime note (April 1, 2026): the public demo runs on Fly.io + Cloudflare Pages. Configure IdP secrets through 1Password and `fly secrets set`/`fly-sync-runtime-secrets.sh`. The older `kubectl` examples are only relevant to a future self-managed deployment.
 
+## Process Flow
+
+```mermaid
+flowchart TD
+    A[Configure Identity Provider] --> B{Which Provider?}
+    B -->|Okta| C[Create OIDC App in Okta Admin]
+    B -->|Entra ID| D[Register App in Azure Portal]
+    B -->|Development| E[Use Mock Provider]
+    C --> F[Set OKTA_DOMAIN + OKTA_CLIENT_ID]
+    D --> G[Set ENTRA_TENANT_ID + ENTRA_CLIENT_ID]
+    E --> H[No Config Needed]
+    F & G --> I[Deploy Secrets via fly secrets set]
+    I --> J[Restart API]
+    H --> J
+    J --> K[Validate JWT Flow]
+    K --> L{Token Validated?}
+    L -->|No| M[Check JWKS Endpoint + Claims]
+    M --> K
+    L -->|Yes| N[Verify RBAC Role Mapping]
+    N --> O[Provider Active]
+```
+
 ## Prerequisites
 
 - [ ] Admin access to Okta Admin Console or Azure Portal (Entra ID)

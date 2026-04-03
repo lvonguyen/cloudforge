@@ -13,6 +13,29 @@ This runbook covers policy lifecycle operations for Aegis, including:
 
 > Runtime note (April 1, 2026): the live demo does not run a standalone Kubernetes OPA sidecar. IaC policy gates run through `conftest` in CI, while runtime/AI governance policies execute in-process inside the Fly-hosted API.
 
+## Process Flow
+
+```mermaid
+flowchart TD
+    A[Policy Request] --> B{Which Engine?}
+    B -->|IaC Gate| C[Write Rego in provisioning namespace]
+    B -->|AI/Runtime| D[Write Rego in ai namespace]
+    C & D --> E[Unit Test with OPA CLI]
+    E --> F{Tests Pass?}
+    F -->|No| G[Fix Policy Logic]
+    G --> E
+    F -->|Yes| H[PR Review + conftest Verify]
+    H --> I[Merge to Main]
+    I --> J{Deployment Target}
+    J -->|IaC| K[Bundle to S3 + OPA Hot-Reload]
+    J -->|Embedded| L[Rebuild API Image + Deploy]
+    K & L --> M[Monitor Decision Logs]
+    M --> N{Deny Rate Normal?}
+    N -->|Anomalous| O[Investigate False Positives]
+    O -->|Tune| G
+    N -->|Normal| P[Policy Active in Production]
+```
+
 ## Prerequisites
 
 - [ ] OPA CLI installed (`opa version` >= 0.60.0)

@@ -13,6 +13,30 @@ This runbook covers operating Aegis's remediation dispatcher, including:
 
 > Runtime note (April 1, 2026): the public demo runs on Fly.io + Cloudflare Pages. Use `flyctl`, the Aegis API, and 1Password-backed secret refs for live operations. Any `kubectl` examples below apply only to a future self-managed deployment.
 
+## Process Flow
+
+```mermaid
+flowchart TD
+    A[Remediation Request] --> B[Dry Run]
+    B --> C{Review Changes}
+    C -->|Reject| D[Abort]
+    C -->|Approve| E[Create State Snapshot]
+    E --> F[Execute Batch]
+    F --> G{Tier Assignment}
+    G -->|T1 Fast| H[Network/Storage ACLs - 10 parallel]
+    G -->|T2 Standard| I[Compute/IAM - 5 parallel]
+    G -->|T3 Slow| J[Patching/Key Rotation - 2 parallel]
+    H & I & J --> K[Monitor Progress]
+    K --> L{All Succeeded?}
+    L -->|Partial Failure| M{Rollback Needed?}
+    M -->|Yes| N[Rollback from Snapshot]
+    M -->|No| O[Retry Failed Items]
+    O --> K
+    L -->|Yes| P[Post-Batch Verification]
+    P --> Q[Generate Report]
+    N --> Q
+```
+
 ## Prerequisites
 
 - [ ] Write-access cloud credentials for the target account/subscription

@@ -10,6 +10,31 @@ This runbook covers disaster recovery failover procedures for Cloud Aegis, inclu
 - Failback to primary
 - Stakeholder communication templates
 
+## Process Flow
+
+```mermaid
+flowchart TD
+    A[Incident Detected] --> B{Classify Incident}
+    B -->|Region Outage| C[Full Failover]
+    B -->|DB Corruption| D[DB-Only Failover]
+    B -->|Network Partition| E[Routing Failover]
+    B -->|Compute Failure| F[Cluster Failover]
+    C & D & E & F --> G[Pre-Failover Checklist]
+    G --> H{DR Environment Healthy?}
+    H -->|No| I[Escalate to On-Call Lead]
+    H -->|Yes| J{Auto-Trigger Fired?}
+    J -->|Yes| K[Verify Auto-Failover]
+    J -->|No| L[Manual Failover Procedure]
+    K & L --> M[Per-CSP Failover Steps]
+    M --> N[Post-Failover Verification]
+    N --> O{All Health Checks Pass?}
+    O -->|No| P[Troubleshoot & Retry]
+    P --> N
+    O -->|Yes| Q[Notify Stakeholders]
+    Q --> R[Monitor for Stability]
+    R --> S[Plan Failback When Ready]
+```
+
 ## Prerequisites
 
 - [ ] Access to all three CSP consoles (AWS, Azure, GCP)
