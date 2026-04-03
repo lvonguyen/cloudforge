@@ -111,7 +111,7 @@ psql "$AEGIS_DATABASE_URL" -c "ALTER USER aegis PASSWORD '$NEW_PASSWORD';"
 ./scripts/fly-sync-runtime-secrets.sh --include-postgres --apply
 
 # 5. Verify connectivity
-curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '.components.postgres'
+curl -sf https://api.cloudforge.lvonguyen.com/health | jq '.components.postgres'
 ```
 
 ## AI Provider API Key Rotation
@@ -127,7 +127,7 @@ curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '.components.post
 ./scripts/fly-sync-runtime-secrets.sh --include-threat-intel --include-integrations --apply
 
 # 4. Verify AI provider health
-curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '.components.ai_provider'
+curl -sf https://api.cloudforge.lvonguyen.com/health | jq '.components.ai_provider'
 
 # 5. Revoke old key in Anthropic console
 ```
@@ -150,7 +150,7 @@ curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq '.components.ai_p
 # 2. Update the 1Password item/ref
 # 3. Re-sync Fly secrets and verify protected API access
 ./scripts/fly-sync-runtime-secrets.sh --include-integrations --apply
-curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/providers \
+curl -sf https://api.cloudforge.lvonguyen.com/api/v1/providers \
   -H "Authorization: Bearer $API_TOKEN" | jq .
 
 # 4. Revoke old token in Okta Admin Console
@@ -187,14 +187,14 @@ After any secret rotation:
 
 ```bash
 # 1. Health check
-curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq .
+curl -sf https://api.cloudforge.lvonguyen.com/health | jq .
 
 # 2. Verify no auth errors in logs (wait 5 minutes)
 fly logs -a cloudforge-api --no-tail | \
   grep -i "auth.*error\|unauthorized\|forbidden" | head -20
 
 # 3. Run smoke test
-curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/findings \
+curl -sf https://api.cloudforge.lvonguyen.com/api/v1/findings \
   -H "Authorization: Bearer $API_TOKEN" | jq '.total'
 ```
 

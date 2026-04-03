@@ -1,13 +1,24 @@
 # Session Handoff
 
-**Generated:** 2026-03-31T05:45:00Z
+**Generated:** 2026-03-31T19:30:00Z
 **Repo:** cloudforge (Cloud Aegis)
 **Branch:** main
-**Recent code commits:** `a809c42f` security graph readability, `2c2e363f` remediation provider controls, `6d38c8e1` webhook ticket refresh, `c3d987db` Fly runbook refresh, `f0bf363f` secgraph godoc + D19 preflight
-
-> Coordination note: this file is still the shared climbing board. Before replacing it with a compressed session summary, preserve the deferred / workstream detail from `8e38ca17` and `0ea823f5` (`D19`, `D20`, `D21`, the `/qa-visual -e ensemble` prod exit gate, and the follow-up `docs-audit` gate), or merge those sections back in after the docs session lands.
+**Latest commits:** `8b3dbe41` command center drillthrough, `3d1d1e20` investigation realism, `eb92e5ed` docs refresh, `03acb311` TF env var fix
 
 ## What Was Done
+
+Session 36 — 6-tier documentation audit + diagram enrichment:
+
+- **Docs audit completed:** 4-module fan-out (Go, Frontend, Docs, Infra) with 12 structural integrity checks
+- **Squished README diagrams FIXED:** architecture-figma.png (7152x1101, 6.5:1) and dual-opa (7152x2322, 3:1) — removed `width="720"`, now render at natural width with click-to-expand links
+- **17 stale counts updated:** routes 36→37 (4 locations), Go tests 2146→2187, packages 45→47, frontend tests 452→469 (60 files), operations 82→89 (4 files), HLD v3→v4, ADR-015 Proposed→Accepted
+- **ADR-020 added** to README, docs/README, adr-index tables
+- **28 broken links fixed:** 20 adr-index slug links (→ .md), 8 gallery Docusaurus paths (→ relative), HLD ADR-007 filename
+- **Diagram enrichment:** Mermaid system context flowchart in DDD.md (1725L), failover sequence in DR-BC.md (1214L)
+- **Latent deploy failure FIXED (INF-23):** dev/staging/prod TF envs all had `DATABASE_URL` instead of `AEGIS_DATABASE_URL` — would crash on apply
+- **INF-22 FIXED (local):** prod tfvars `cloudforge_image` → `aegis_image` (was silently ignored by TF — wrong variable name)
+- **Personal env decommission notice** added to main.tf header
+- **Hook-propagated:** branding, CORS, search refactor, runtime config overlay
 
 Session 35 — live secgraph issue-surface stabilization:
 
@@ -39,8 +50,8 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 
 ## Current State
 
-- **Build:** Go clean, lint 0 issues
-- **Tests:** Go 45 pkg / 2,146 tests pass. Frontend 452/452 vitest.
+- **Build:** Go clean, TS clean (tsc --noEmit passes)
+- **Tests:** Go 47 pkg / 2,187 tests pass. Frontend 469/469 vitest (60 files).
 - **CI:** other session reported 6/6 GREEN after the latest CI repair sweep
 - **Fly.io:** app version `88` healthy in `sjc`
 - **Fly.io secgraph live state (2026-03-31 22:24Z):** the public demo is serving Postgres-backed findings and incrementally materialized secgraph issues; first committed batch size is `77116`
@@ -117,7 +128,7 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 - Safe next parallel slice `D20-attackpath-visuals`: own `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/*`, and dedicated attack-path tests only. Focus on icons, hop indicators, crown-jewel cues, and embedded remediation/finding context. The standalone east/west readability pass is already done for `SecurityGraph`.
 - Deferred-track closeout gates that must remain on the board:
   - after the high-value deferred items are implemented, run `/qa-visual -e ensemble` against production and click through the completed surfaces end to end before closing the track
-  - after the docs / diagrams session lands and the render outputs are stable, run `docs-audit` again before closing the track
+  - ~~after the docs / diagrams session lands and the render outputs are stable, run `docs-audit` again before closing the track~~ **DONE session 36** (`eb92e5ed` + `03acb311`). Remaining P1s: frontend README env vars (FE-08), frontend hooks inventory (FE-06), config-reference 7 missing env vars (DOC-12), orphaned 48hr-teardown runbook (DOC-13).
 
 ## Context & Decisions
 

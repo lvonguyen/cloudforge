@@ -371,7 +371,7 @@ module "aegis_api" {
     GRC_PROVIDER         = "postgres"
     APP_ENV              = "production"
     RATE_LIMIT_ENABLED   = "true"
-    CORS_ALLOWED_ORIGINS = "https://cloudguard.lvonguyen.com,https://cloudaegis-demo.lvonguyen.com"
+    CORS_ALLOWED_ORIGINS = "https://cloudguard.lvonguyen.com,https://cloudforge.lvonguyen.com"
     REDIS_ADDR           = "${module.redis.host}:${module.redis.port}"
 
     # AI enrichment (Bedrock)

@@ -36,7 +36,7 @@ The FinOps alerting system consists of:
 ### Create a Budget
 
 ```bash
-curl -s -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/budgets \
+curl -s -X POST https://api.cloudforge.lvonguyen.com/api/v1/budgets \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -81,19 +81,19 @@ No action required. This is an awareness notification.
 
 1. Review current spend by service:
 ```bash
-curl -sf "https://api.cloudforge-demo.lvonguyen.com/api/v1/costs/summary?period=mtd&group_by=service" \
+curl -sf "https://api.cloudforge.lvonguyen.com/api/v1/costs/summary?period=mtd&group_by=service" \
   -H "Authorization: Bearer $API_TOKEN" | jq '.services[] | {service, cost, percent_of_budget}'
 ```
 
 2. Identify top cost drivers:
 ```bash
-curl -sf "https://api.cloudforge-demo.lvonguyen.com/api/v1/costs/summary?period=mtd&group_by=resource" \
+curl -sf "https://api.cloudforge.lvonguyen.com/api/v1/costs/summary?period=mtd&group_by=resource" \
   -H "Authorization: Bearer $API_TOKEN" | jq '.resources | sort_by(-.cost) | .[0:10]'
 ```
 
 3. Check for cost anomalies:
 ```bash
-curl -sf "https://api.cloudforge-demo.lvonguyen.com/api/v1/costs/anomalies?period=7d" \
+curl -sf "https://api.cloudforge.lvonguyen.com/api/v1/costs/anomalies?period=7d" \
   -H "Authorization: Bearer $API_TOKEN" | jq '.anomalies[] | {service, expected, actual, deviation_pct}'
 ```
 
@@ -113,7 +113,7 @@ aws ce get-cost-and-usage \
 
 2. Review and action rightsizing recommendations:
 ```bash
-curl -sf "https://api.cloudforge-demo.lvonguyen.com/api/v1/costs/recommendations" \
+curl -sf "https://api.cloudforge.lvonguyen.com/api/v1/costs/recommendations" \
   -H "Authorization: Bearer $API_TOKEN" | jq '.recommendations[] | {resource, current_cost, recommended_cost, savings}'
 ```
 
@@ -132,7 +132,7 @@ When an anomaly is detected:
 
 ```bash
 # 1. Get anomaly details
-curl -sf "https://api.cloudforge-demo.lvonguyen.com/api/v1/costs/anomalies/anom-001" \
+curl -sf "https://api.cloudforge.lvonguyen.com/api/v1/costs/anomalies/anom-001" \
   -H "Authorization: Bearer $API_TOKEN" | jq .
 
 # 2. Check if it correlates with a deployment
@@ -152,12 +152,12 @@ aws ce get-anomalies \
 
 ```bash
 # Monthly chargeback report (CSV)
-curl -sf "https://api.cloudforge-demo.lvonguyen.com/api/v1/costs/chargeback?period=2026-02&format=csv" \
+curl -sf "https://api.cloudforge.lvonguyen.com/api/v1/costs/chargeback?period=2026-02&format=csv" \
   -H "Authorization: Bearer $API_TOKEN" \
   -o chargeback-2026-02.csv
 
 # JSON format for programmatic consumption
-curl -sf "https://api.cloudforge-demo.lvonguyen.com/api/v1/costs/chargeback?period=2026-02&format=json" \
+curl -sf "https://api.cloudforge.lvonguyen.com/api/v1/costs/chargeback?period=2026-02&format=json" \
   -H "Authorization: Bearer $API_TOKEN" | jq '.teams[] | {team, total_cost, services}'
 ```
 

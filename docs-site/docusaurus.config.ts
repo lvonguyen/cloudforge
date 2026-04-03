@@ -7,7 +7,7 @@ const config: Config = {
   tagline: 'Enterprise Cloud Governance Platform',
   favicon: undefined,
 
-  url: 'https://docs.cloudguard.lvonguyen.com',
+  url: 'https://docs.cloudforge.lvonguyen.com',
   baseUrl: '/',
 
   organizationName: 'lvonguyen',
@@ -113,7 +113,7 @@ const config: Config = {
           title: 'Project',
           items: [
             {label: 'GitHub', href: 'https://github.com/lvonguyen/cloudforge'},
-            {label: 'Live Demo', href: 'https://cloudaegis-demo.lvonguyen.com'},
+            {label: 'Live Demo', href: 'https://cloudforge.lvonguyen.com'},
           ],
         },
       ],

@@ -1,5 +1,5 @@
 output "alb_dns" {
-  description = "ALB DNS name — CNAME api.cloudforge-demo.lvonguyen.com to this"
+  description = "ALB DNS name — CNAME api.cloudforge.lvonguyen.com to this"
   value       = aws_lb.this.dns_name
 }
 

@@ -15,7 +15,7 @@ info:
     identifier: MIT
 
 servers:
-  - url: https://api.cloudforge-demo.lvonguyen.com
+  - url: https://api.cloudforge.lvonguyen.com
     description: Production (Fly.io)
   - url: http://localhost:8080
     description: Development

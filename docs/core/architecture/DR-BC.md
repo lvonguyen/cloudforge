@@ -994,7 +994,7 @@ aws route53 change-resource-record-sets \
     "Changes": [{
       "Action": "UPSERT",
       "ResourceRecordSet": {
-        "Name": "api.cloudforge-demo.lvonguyen.com",
+        "Name": "api.cloudforge.lvonguyen.com",
         "Type": "CNAME",
         "TTL": 30,
         "ResourceRecords": [{"Value": "'$DR_LOAD_BALANCER_DNS'"}]
@@ -1004,8 +1004,8 @@ aws route53 change-resource-record-sets \
 
 # Verify propagation (wait up to 60s)
 for i in {1..12}; do
-  RESOLVED=$(dig +short api.cloudforge-demo.lvonguyen.com)
-  echo "[$i] api.cloudforge-demo.lvonguyen.com -> $RESOLVED"
+  RESOLVED=$(dig +short api.cloudforge.lvonguyen.com)
+  echo "[$i] api.cloudforge.lvonguyen.com -> $RESOLVED"
   [ "$RESOLVED" = "$DR_LOAD_BALANCER_DNS" ] && echo "Propagated" && break
   sleep 5
 done
@@ -1015,7 +1015,7 @@ done
 
 **Verification Checklist — DNS:**
 - [ ] DNS resolves to DR endpoint from 3+ geographic locations (use `dig` from different regions)
-- [ ] TLS certificate valid for DR endpoint (`openssl s_client -connect api.cloudforge-demo.lvonguyen.com:443`)
+- [ ] TLS certificate valid for DR endpoint (`openssl s_client -connect api.cloudforge.lvonguyen.com:443`)
 - [ ] Synthetic monitor passes from DR endpoint (Checkly check green)
 - [ ] CDN cache purged and serving from DR origin
 

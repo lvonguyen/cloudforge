@@ -25,7 +25,7 @@ fly status -a cloudforge-api
 fly releases list -a cloudforge-api | head
 
 # 2. Verify current health
-curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq .
+curl -sf https://api.cloudforge.lvonguyen.com/health | jq .
 
 # 3. Review runtime secrets and config
 fly secrets list -a cloudforge-api
@@ -50,7 +50,7 @@ fly status -a cloudforge-api
 fly logs -a cloudforge-api
 
 # 3. Verify the machine is healthy
-curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq .
+curl -sf https://api.cloudforge.lvonguyen.com/health | jq .
 ```
 
 ### Option B: Frontend Deployment (Cloudflare Pages)
@@ -62,7 +62,7 @@ Cloudflare Pages deploys automatically from GitHub on pushes to `main`.
 wrangler pages deployment list --project-name cloudforge-demo | head -10
 
 # Validate required build-time env vars in the Pages dashboard:
-# - VITE_API_URL=https://api.cloudforge-demo.lvonguyen.com/api/v1
+# - VITE_API_URL=https://api.cloudforge.lvonguyen.com/api/v1
 # - VITE_DEMO_MODE=true
 # - JWT_SECRET=<secret used to generate the static demo token>
 ```
@@ -71,7 +71,7 @@ Cloudflare refs currently present in the `Development` vault:
 - Scoped Pages deploy token: `op://Development/cf-pages-deploy/credential`
 - Global API key fallback: `op://Development/cf-gbl-api-token/credential`
 - Global API key email / username: `op://Development/cf-gbl-api-token/username`
-- Verified 2026-03-31: the token can list deployments for `cloudguard` and `cloudforge-demo`. `cloudaegis-demo.lvonguyen.com` is the custom domain, not the Pages project name.
+- Verified 2026-03-31: the token can list deployments for `cloudguard` and `cloudforge-demo`. `cloudforge.lvonguyen.com` is the custom domain, not the Pages project name.
 
 ### Runtime Secrets Update
 
@@ -204,7 +204,7 @@ Notes:
 ### API Health Check
 
 ```bash
-curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq .
+curl -sf https://api.cloudforge.lvonguyen.com/health | jq .
 ```
 
 Expected response shape:
@@ -219,14 +219,14 @@ Expected response shape:
 
 ```bash
 # Authenticated findings request
-curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/findings?limit=5 \
+curl -sf https://api.cloudforge.lvonguyen.com/api/v1/findings?limit=5 \
   -H "Authorization: Bearer $API_TOKEN" | jq '.data | length'
 
 # Provider readiness / durable ticket store
-curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/providers | jq '.integrations'
+curl -sf https://api.cloudforge.lvonguyen.com/api/v1/providers | jq '.integrations'
 
 # Frontend smoke
-open https://cloudaegis-demo.lvonguyen.com
+open https://cloudforge.lvonguyen.com
 ```
 
 Check:
@@ -242,18 +242,18 @@ Optional operator-window remediation smoke:
 
 ```bash
 # Create an Asana-backed remediation ticket for a known finding.
-curl -sf -X POST "https://api.cloudforge-demo.lvonguyen.com/api/v1/findings/<finding-id>/remediate" \
+curl -sf -X POST "https://api.cloudforge.lvonguyen.com/api/v1/findings/<finding-id>/remediate" \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
   --data '{"provider":"asana","severity":"CRITICAL"}' | jq .
 
 # Add a comment and then force-refresh status.
-curl -sf -X POST "https://api.cloudforge-demo.lvonguyen.com/api/v1/findings/<finding-id>/ticket/comments" \
+curl -sf -X POST "https://api.cloudforge.lvonguyen.com/api/v1/findings/<finding-id>/ticket/comments" \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
   --data '{"body":"operator smoke"}' | jq .
 
-curl -sf -X POST "https://api.cloudforge-demo.lvonguyen.com/api/v1/findings/<finding-id>/ticket/sync" \
+curl -sf -X POST "https://api.cloudforge.lvonguyen.com/api/v1/findings/<finding-id>/ticket/sync" \
   -H "Authorization: Bearer $API_TOKEN" | jq .
 ```
 
@@ -280,7 +280,7 @@ fly releases list -a cloudforge-api
 fly releases rollback <version> -a cloudforge-api
 
 # Verify health after rollback
-curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq .
+curl -sf https://api.cloudforge.lvonguyen.com/health | jq .
 ```
 
 ### Database Rollback

@@ -87,7 +87,7 @@ fly secrets set \
 
 ```bash
 # Test token validation
-curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/findings \
+curl -sf https://api.cloudforge.lvonguyen.com/api/v1/findings \
   -H "Authorization: Bearer $OKTA_TOKEN" | jq '.total'
 ```
 
@@ -140,7 +140,7 @@ fly secrets set \
 
 ```bash
 # Test token validation
-curl -sf https://api.cloudforge-demo.lvonguyen.com/api/v1/findings \
+curl -sf https://api.cloudforge.lvonguyen.com/api/v1/findings \
   -H "Authorization: Bearer $ENTRA_TOKEN" | jq '.total'
 ```
 

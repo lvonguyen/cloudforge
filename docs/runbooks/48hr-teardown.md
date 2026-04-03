@@ -19,14 +19,14 @@ wrangler whoami
 fly apps list | rg 'cloudforge-api|cloudforge-db'
 
 # Verify the API is still reachable before capture / backup
-curl -sf https://api.cloudforge-demo.lvonguyen.com/health | jq .
+curl -sf https://api.cloudforge.lvonguyen.com/health | jq .
 
 # Optional: verify PuppyGraph local stack state
 docker ps --format '{{.Names}}' | rg 'puppy|postgres'
 
 # Screenshot the live demo if needed for portfolio assets
-# open https://cloudaegis-demo.lvonguyen.com
-# open https://api.cloudforge-demo.lvonguyen.com/health
+# open https://cloudforge.lvonguyen.com
+# open https://api.cloudforge.lvonguyen.com/health
 ```
 
 **Confirm before proceeding:**
@@ -81,7 +81,7 @@ fly releases list -a cloudforge-api | head
 fly apps destroy cloudforge-api --yes
 ```
 
-This removes the `cloudforge-api.fly.dev` origin behind `api.cloudforge-demo.lvonguyen.com`.
+This removes the `cloudforge-api.fly.dev` origin behind `api.cloudforge.lvonguyen.com`.
 
 ---
 
@@ -115,8 +115,8 @@ wrangler pages deployment list --project-name cloudguard | head -5
 ```
 
 DNS records to consider:
-- `api.cloudforge-demo.lvonguyen.com` -> `cloudforge-api.fly.dev`
-- `cloudaegis-demo.lvonguyen.com` -> Cloudflare Pages project `cloudforge-demo`
+- `api.cloudforge.lvonguyen.com` -> `cloudforge-api.fly.dev`
+- `cloudforge.lvonguyen.com` -> Cloudflare Pages project `cloudforge-demo`
 - `cloudguard.lvonguyen.com` -> Cloudflare Pages
 
 If decommissioning entirely:
@@ -132,7 +132,7 @@ If decommissioning entirely:
 fly apps list | rg 'cloudforge-api|cloudforge-db'
 
 # API endpoint should no longer respond successfully
-curl -s -o /dev/null -w "%{http_code}" https://api.cloudforge-demo.lvonguyen.com/health
+curl -s -o /dev/null -w "%{http_code}" https://api.cloudforge.lvonguyen.com/health
 
 # PuppyGraph containers should be gone
 docker ps --format '{{.Names}}' | rg 'puppy|postgres'
@@ -141,7 +141,7 @@ docker ps --format '{{.Names}}' | rg 'puppy|postgres'
 **Expected outcome:**
 - `cloudforge-api` is absent from `fly apps list`
 - `cloudforge-db` is absent if it was intentionally destroyed
-- `api.cloudforge-demo.lvonguyen.com` returns `000`, `404`, or a CDN/origin failure after DNS cleanup
+- `api.cloudforge.lvonguyen.com` returns `000`, `404`, or a CDN/origin failure after DNS cleanup
 - no local PuppyGraph demo containers remain running
 
 ---
@@ -162,5 +162,5 @@ psql "$AEGIS_DATABASE_URL" < cloudforge-backup-YYYYMMDD.sql
 
 After redeploy:
 - restore the API DNS record if it was removed
-- verify `https://api.cloudforge-demo.lvonguyen.com/health`
+- verify `https://api.cloudforge.lvonguyen.com/health`
 - verify frontend Pages builds still point at `/api/v1`

@@ -9,7 +9,7 @@
 
 Aegis is a reference architecture and implementation for an Internal Developer Platform (IDP) that enables self-service cloud resource provisioning with built-in governance, compliance guardrails, and exception management workflows.
 
-> **[Live Demo](https://cloudaegis-demo.lvonguyen.com)** | **[API](https://api.cloudforge-demo.lvonguyen.com/health)**
+> **[Live Demo](https://cloudforge.lvonguyen.com)** | **[API](https://api.cloudforge.lvonguyen.com/health)**
 
 > **About this project** — Aegis demonstrates enterprise security patterns designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains. The approach is project-based: assess current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — working systems backed by threat models and ADRs (the [20 ADRs](docs/core/architecture/adr/) capture the decision-making process used to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. The core discipline is security-focused systems design, with agentic coding workflows (Claude Code) as a force multiplier for delivery.
 >
@@ -19,6 +19,8 @@ Aegis is a reference architecture and implementation for an Internal Developer P
 
 ## [/] Implementation Status
 
+> **Last Updated:** 2026-04-03
+>
 > **Current State:** Active development (~92% feature-complete). Core API functional, GRC integration working, remediation dispatcher operational, CI/CD pipeline hardened with Lighthouse CI budgets, IaC deploy layer with multi-cloud Terraform modules and policy-as-code, self-service portal built and deployed with error states, accessibility, and performance optimizations.
 
 | Component | Status | Notes |
@@ -29,7 +31,7 @@ Aegis is a reference architecture and implementation for an Internal Developer P
 | Health endpoints | Done | `/health`, `/ready`, `/live` |
 | **GRC Integration** | | |
 | Provider abstraction | Done | Interface + factory pattern |
-| RSA Archer client | Done | Full workflow integration |
+| RSA Archer client | Stub | Interface implemented; all methods return error (instance-specific field mapping required) |
 | ServiceNow GRC | Done | Native integration |
 | PostgreSQL provider | Done | Lightweight option |
 | In-Memory provider | Done | For testing |
@@ -62,7 +64,7 @@ Aegis is a reference architecture and implementation for an Internal Developer P
 | Storage handlers | Done | S3 public access block |
 | Compute handlers | Done | IMDSv2 enforcement |
 | Identity handlers | Done | IAM key rotation (Tier 2) |
-| Secrets handlers | Done | Manual rotation guidance (no-op) |
+| Secrets handlers | Intentional no-op | Returns manual rotation guidance; automated secret rotation is unsafe by design |
 | Patching handlers | Done | SSM patch compliance (query-only, Tier 3) |
 | Rollback engine | Done | 48h rollback window, state snapshots |
 | Findings bridge | Done | Temporary bridge to cspm-aggregator types |
@@ -70,7 +72,8 @@ Aegis is a reference architecture and implementation for an Internal Developer P
 | **Security** | | |
 | Rate limiting | Done | Redis-backed, tier-based, wired into `/api/v1` routes |
 | JWT authentication | Done | HS256/RS256 validation, JWKS caching, wired into router |
-| OIDC provider integration | Done | Okta JWKS auto-derived from OKTA_DOMAIN, Entra ID provider interface; full SSO requires Okta app config |
+| JWT token validation | Done | HS256/RS256 validation, JWKS caching, wired into router |
+| OIDC login flow | Not implemented | Requires Okta/Entra app configuration; no authorization code flow or callback handler |
 | Authorization (RBAC) | Done | Role-based middleware (admin/operator/requester), dev header override with enum validation |
 | **IaC / Deploy** | | |
 | Terraform modules (compute) | Done | Cloud Run + ECS Fargate + Azure Container Apps |
@@ -82,9 +85,9 @@ Aegis is a reference architecture and implementation for an Internal Developer P
 | Environment configs | Done | Dev environment with GCS remote state |
 | **Portal** | | |
 | React SPA (frontend/) | Done | React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui |
-| 47 route pages | Done | Admin, Operator, Requester, and viewer role views + investigations, attack paths, and containers |
+| 37 route pages | Done | Admin, Operator, Requester, and viewer role views + investigations, attack paths, and containers |
 | Dark mode | Done | CSS variable overrides, anti-flash script |
-| Cloudflare Pages deploy | Done | cloudaegis-demo.lvonguyen.com |
+| Cloudflare Pages deploy | Done | cloudforge.lvonguyen.com |
 | API hook migration | Partial | MyRequests, useFindings (R2 fallback), useAttackPaths (mock fallback), useCostAnomalies cache fix, Execute/Retry mutations wired; remaining hooks fall back to mock on 401 in dev |
 | **Risk Intelligence** | | |
 | Contextual risk schema | Done | AttackPathContext, ToxicComboDetails, MITRE fields |
@@ -93,9 +96,9 @@ Aegis is a reference architecture and implementation for an Internal Developer P
 | Attack path computation | Done | In-memory BFS graph engine + ReactFlow DAG visualization (ADR-008) |
 | EPSS scoring | Done | HTTP client with 12h cache, batch fetching from FIRST API |
 | CISA KEV catalog | Done | In-memory catalog with auto-refresh from CISA feed |
-| GreyNoise integration | Done | HTTP client with 12h cache, classification enrichment |
+| GreyNoise integration | Done | HTTP client with 12h cache, classification enrichment; API key provisioned in 1Password |
 | **Testing** | | |
-| Unit tests | 2650+ passing | 47 Go packages (2,187 tests), 469 frontend tests (60 test files), 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
+| Unit tests | Passing | ~61 Go packages (~1,550 tests incl. subtests), 469 frontend tests (61 test files), 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
 | Integration tests | Done | 12-step server lifecycle + 34-subtest RBAC authorization matrix (`go test -tags=integration`) |
 
 ### Package Maturity
@@ -133,9 +136,9 @@ Aegis is a reference architecture and implementation for an Internal Developer P
 
 | Metric | Value |
 | ------ | ----- |
-| Go packages | 47 (all passing with `-race`) |
-| Go tests | 2,187 |
-| Frontend tests | 469 (60 test files) |
+| Go packages | ~61 (all passing with `-race`) |
+| Go tests | ~1,550 (incl. subtests) |
+| Frontend tests | 469 (61 test files) |
 | Benchmarks | 8 |
 | CI checks | 8 (lint, gosec, Trivy, vitest, npm audit, integration, Codecov, Lighthouse) |
 | Coverage thresholds | v8 lines: 70%, functions: 75%, branches: 65% (configured in frontend Vitest) |
@@ -146,7 +149,7 @@ Aegis is a reference architecture and implementation for an Internal Developer P
 This is a **platform reference implementation**, not production software:
 
 1. **Temporal Workflows** — In-memory workflow engine is wired (list, get, submit handlers); Temporal orchestration layer planned but not connected
-2. **Stub Packages** — secrets, waf modules have interfaces and mock implementations but no production wiring
+2. **Stub Packages** — RSA Archer GRC (interface only, all methods return error; ServiceNow demonstrates the full pattern), secrets (intentional no-op), waf, identity modules have interfaces and mock implementations but no production wiring
 3. **RoleViewer** — `RoleViewer` (rank 0) is implemented with read-only surface (`/findings`, `/compliance/frameworks`, `/agents` + traces); fine-grained per-resource viewer scoping is not yet enforced
 4. **Visual QA Residuals** — Core prod flows now pass live browser checks (landing, findings, investigations, attack paths, finding security graph). Remaining work is polish and broader route coverage, not basic operability.
 5. **OIDC Auth Flow** — JWT middleware is production-ready (HS256/RS256, JWKS); Okta JWKS URL auto-derives from `OKTA_DOMAIN` env var. Full SSO login flow requires Okta app configuration.
@@ -180,9 +183,30 @@ Aegis bridges these needs with a unified platform that provides:
 
 ## [/] Architecture
 
-<a href="docs/core/diagrams/architecture-figma.png">
-  <img src="docs/core/diagrams/architecture-figma.png" alt="Aegis Architecture">
-</a>
+```mermaid
+flowchart TD
+    Portal["Portal — React 19 / Vite 7"] --> API["API Server — Go 1.25 / 89+ endpoints"]
+    API --> Core["Core Engines\nCSPM · Remediation · Attack Path · SecGraph · ASM"]
+    Core --> Intel["Risk Intelligence\nEPSS · GreyNoise · HIBP · OTX · KEV"]
+    Core --> Policy["Policy Engine — OPA / Rego"]
+    Core --> FinOps["FinOps\nMulti-Cloud Cost · Anomaly · Chargeback"]
+    Core --> Integ["Integrations — Asana · Jira · Azure DevOps"]
+    Core --> Graph["Graph & Data — PuppyGraph · PostgreSQL"]
+    Policy --> Infra["Infrastructure\nTerraform · PostgreSQL · Redis · AWS / Azure / GCP"]
+    FinOps --> Infra
+
+    style Portal fill:#3b82f6,color:#fff,stroke:#1d4ed8
+    style API fill:#1e40af,color:#fff,stroke:#1e3a8a
+    style Core fill:#7c3aed,color:#fff,stroke:#5b21b6
+    style Intel fill:#dc2626,color:#fff,stroke:#991b1b
+    style Policy fill:#f59e0b,color:#fff,stroke:#b45309
+    style FinOps fill:#22c55e,color:#fff,stroke:#166534
+    style Infra fill:#64748b,color:#fff,stroke:#334155
+    style Integ fill:#0ea5e9,color:#fff,stroke:#0369a1
+    style Graph fill:#8b5cf6,color:#fff,stroke:#6d28d9
+```
+
+> [Detailed architecture diagram](docs/core/diagrams/architecture-figma.png) with all 42 component nodes across 9 tiers
 
 ---
 
@@ -572,7 +596,7 @@ Built-in support for 20+ frameworks:
 - [x] Rego policy gate for IaC validation (5 policies, 27 rules)
 - [x] Deploy scripts with dry-run-by-default and policy violation gate
 - [x] Container Dockerfiles (frontend nginx + backend Go)
-- [x] Self-service portal UI (React 19 / Vite 7 + shadcn/ui) — deployed to cloudaegis-demo.lvonguyen.com
+- [x] Self-service portal UI (React 19 / Vite 7 + shadcn/ui) — deployed to cloudforge.lvonguyen.com
 - [x] Temporal workflow testing and validation (23 tests, concurrent + lifecycle + error cases)
 - [x] Terraform networking module and staging/prod environments
 
@@ -602,9 +626,9 @@ Built-in support for 20+ frameworks:
 | Phase | Description |
 | ----- | ----------- |
 | **Phase 5: Risk Intelligence + FinOps** | EPSS/KEV/GreyNoise/HIBP/OTX threat intel, attack path BFS engine + ReactFlow viz, toxic combo detection, blast radius computation, PuppyGraph graph query integration, AWS Bedrock enrichment. FinOps multi-cloud cost aggregation, anomaly detection, chargeback engine, budget alerting |
-| **Phase 4: Frontend + QA Hardening** | Self-service portal (React 19 + Vite 7, 47 routes, 4 role views, dark mode), Cloudflare Pages deploy, investigation board, DSPM classification, kanban remediation pipeline, NLQ bar, demo mode hardening. Multi-pass QA reviews (quality 4.5+, security 4.5+, bugs 4.3+) |
+| **Phase 4: Frontend + QA Hardening** | Self-service portal (React 19 + Vite 7, 37 routes, 4 role views, dark mode), Cloudflare Pages deploy, investigation board, DSPM classification, kanban remediation pipeline, NLQ bar, demo mode hardening. Multi-pass QA reviews (quality 4.5+, security 4.5+, bugs 4.3+) |
 | **Phase 3: IaC + Security** | Multi-cloud Terraform modules (compute, database, redis, IAM, monitoring, secrets), 5 Rego policies (27 rules), policy gate script, resource-scoped RBAC, integrity hashing, audit logging, rollback encryption (AES-256-GCM), CI enforcement (gosec, Trivy, Codecov) |
-| **Phase 2: Remediation + AI Governance** | 10 remediation handlers across 8 domains, batch executor with dry-run + 48h rollback, AI governance module (embedded OPA, agent registry, STRIDE/ATLAS threat models), JWT auth (HS256/RS256 + JWKS), RBAC middleware, security fixes SEC-001 through SEC-012 |
+| **Phase 2: Remediation + AI Governance** | 17 remediation handlers across 12 domains, batch executor with dry-run + 48h rollback, AI governance module (embedded OPA, agent registry, STRIDE/ATLAS threat models), JWT auth (HS256/RS256 + JWKS), RBAC middleware, security fixes SEC-001 through SEC-012 |
 | **Phase 1: Core Platform** | API server, GRC provider abstraction (Archer, ServiceNow, PostgreSQL), 20+ compliance frameworks, OPA/Rego policy engine, AI provider abstraction (Claude/OpenAI), identity module (Okta + Entra ID), container security, structured logging (zap), PostgreSQL migrations, architecture docs (HLD, DDD, 20 ADRs, DR/BC, 9 runbooks) |
 
 ---

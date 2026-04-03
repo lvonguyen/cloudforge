@@ -172,7 +172,7 @@ These are set in `fly.toml` for the Fly.io deployment:
 | `GRC_PROVIDER` | `memory` | In-memory GRC backend |
 | `APP_ENV` | `production` | Production mode |
 | `RATE_LIMIT_ENABLED` | `true` | Rate limiting on |
-| `CORS_ALLOWED_ORIGINS` | `https://cloudaegis-demo.lvonguyen.com,https://cloudguard.lvonguyen.com` | Allowed web origins for the Fly API |
+| `CORS_ALLOWED_ORIGINS` | `https://cloudforge.lvonguyen.com,https://cloudguard.lvonguyen.com` | Allowed web origins for the Fly API |
 
 ## Observability / Tracing
 

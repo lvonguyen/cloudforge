@@ -38,14 +38,12 @@ module "okta_spa" {
   okta_app_label = "Cloud Aegis Demo"
 
   redirect_uris = [
-    "https://cloudforge-demo.lvonguyen.com/callback",
-    "https://cloudaegis-demo.lvonguyen.com/callback",
+    "https://cloudforge.lvonguyen.com/callback",
     "http://localhost:5173/callback",
   ]
 
   post_logout_redirect_uris = [
-    "https://cloudforge-demo.lvonguyen.com",
-    "https://cloudaegis-demo.lvonguyen.com",
+    "https://cloudforge.lvonguyen.com",
     "http://localhost:5173",
   ]
 }

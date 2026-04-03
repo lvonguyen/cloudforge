@@ -16,7 +16,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 - [ ] VITE_STATIC_TOKEN must be a generated HS256 JWT, not the raw secret from 1P
 
 ### Frontend Build
-- [ ] `VITE_API_URL` must include `/api/v1` prefix (e.g., `https://api.cloudforge-demo.lvonguyen.com/api/v1`)
+- [ ] `VITE_API_URL` must include `/api/v1` prefix (e.g., `https://api.cloudforge.lvonguyen.com/api/v1`)
 - [ ] Without prefix: frontend calls `/findings` instead of `/api/v1/findings` -> 404
 - [ ] `VITE_DEMO_MODE=true` required for portfolio demo build
 - [ ] JWT generation at build time:
@@ -90,7 +90,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 
 ### CF Pages
 - [ ] **cloudguard** (personal demo): auto-deploys from GH on push to `main`. Root: `frontend/`, build: `npx vite build`, output: `dist`
-- [ ] **cloudforge-demo** (portfolio Pages project backing `cloudaegis-demo.lvonguyen.com`): auto-deploys from GH. Env: `VITE_API_URL` + `VITE_DEMO_MODE=true`
+- [ ] **cloudforge-demo** (portfolio Pages project backing `cloudforge.lvonguyen.com`): auto-deploys from GH. Env: `VITE_API_URL` + `VITE_DEMO_MODE=true`
 - [ ] JWT: add `JWT_SECRET` as encrypted env var in CF Pages settings, update build command to generate token inline
 - [ ] Cloudflare token refs in Development: `op://Development/cf-pages-deploy/credential` (Pages deploy), `op://Development/cf-gbl-api-token/credential` (global key), `op://Development/cf-gbl-api-token/username` (email)
 - [ ] Verified 2026-03-31: the scoped Pages token can read both `cloudguard` and `cloudforge-demo`
@@ -258,7 +258,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 | Raw secret as JWT | "Redirecting to login..." loop | Generate JWT from secret at build time |
 | ADO push timeout | Post-commit hook hangs | Kill background task, commit still lands on GH/GL |
 | gorilla/mux preflight | CORS 405 on OPTIONS | Outer CORS handler chain before mux router |
-| Stale Fly.io hostname | 502 on aegis-api.fly.dev | Use `cloudforge-api.fly.dev` or `api.cloudforge-demo.lvonguyen.com` |
+| Stale Fly.io hostname | 502 on aegis-api.fly.dev | Use `cloudforge-api.fly.dev` or `api.cloudforge.lvonguyen.com` |
 | JWT secret mismatch | API 401 with valid JWT | Ensure SM secret matches 1P secret used at build |
 | PuppyGraph default creds | Login 401 | Set PUPPYGRAPH_PASSWORD env var, not default creds |
 | Gremlin HTTP POST | "Invalid WebSocket handshake" | Use WebSocket client on port 8182, not HTTP |
@@ -274,9 +274,9 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 
 ### Personal Demo
 - Frontend: `https://cloudguard.lvonguyen.com` (CF Pages)
-- API: `https://api.cloudforge-demo.lvonguyen.com` (Fly.io)
+- API: `https://api.cloudforge.lvonguyen.com` (Fly.io)
 - PuppyGraph: `http://localhost:8081` (local Docker via `docker-compose.puppygraph.yml`; EC2 terminated 2026-03-28)
 
 ### Portfolio Demo
-- Frontend: `https://cloudaegis-demo.lvonguyen.com` (CF Pages)
-- API: `https://api.cloudforge-demo.lvonguyen.com` (Fly.io)
+- Frontend: `https://cloudforge.lvonguyen.com` (CF Pages)
+- API: `https://api.cloudforge.lvonguyen.com` (Fly.io)

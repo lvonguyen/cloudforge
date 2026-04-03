@@ -374,7 +374,7 @@ curl -s -X POST "http://opa-server:8181/v1/data/aegis/provisioning?explain=notes
 **Diagnosis**:
 ```bash
 # Check embedded engine evaluate endpoint
-curl -s -X POST https://api.cloudforge-demo.lvonguyen.com/api/v1/policies/evaluate \
+curl -s -X POST https://api.cloudforge.lvonguyen.com/api/v1/policies/evaluate \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"namespace": "aegis.ai.access_control", "input": {"agent_id": "agent-001", "action": "read_secrets"}}' | jq .

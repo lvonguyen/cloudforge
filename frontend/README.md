@@ -2,7 +2,7 @@
 
 Self-service cloud governance portal — React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui.
 
-**Live:** [cloudaegis-demo.lvonguyen.com](https://cloudaegis-demo.lvonguyen.com)
+**Live:** [cloudforge.lvonguyen.com](https://cloudforge.lvonguyen.com)
 
 ---
 
@@ -41,7 +41,7 @@ src/
 
 ## Deploy
 
-Hosted on Cloudflare Pages (`cloudforge-demo` project, custom domain `cloudaegis-demo.lvonguyen.com`).
+Hosted on Cloudflare Pages (`cloudforge-demo` project, custom domain `cloudforge.lvonguyen.com`).
 
 ```bash
 npm run deploy    # Uses wrangler@latest
