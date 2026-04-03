@@ -80,6 +80,7 @@ These variables control which provider implementation each subsystem uses. All d
 
 | Variable | Default | Required | Description |
 |----------|---------|----------|-------------|
+| `FINDINGS_SOURCE` | `mock` | No | Findings data source (`mock` for in-memory 500-finding set, `postgres` for database-backed findings). Requires `AEGIS_DATABASE_URL` when set to `postgres` |
 | `WORKFLOW_ENGINE` | `memory` | No | Workflow engine backend (`temporal` for real workflows) |
 | `WAF_PROVIDER` | `memory` | No | WAF backend (`aws`, `cloudflare` for real WAF rules) |
 | `SECRETS_PROVIDER` | `memory` | No | Secrets scanner backend (`aws`, `azure`, `gcp` for real vault scanning) |
@@ -115,6 +116,13 @@ These variables control which provider implementation each subsystem uses. All d
 | `FINOPS_PROVIDER` | `memory` | No | FinOps backend (`aws` for real Cost Explorer) |
 | `FINOPS_AWS_REGION` | `us-east-1` | No | AWS region for Cost Explorer API |
 
+## Attack Path Engine
+
+| Variable | Default | Required | Description |
+|----------|---------|----------|-------------|
+| `ATTACK_PATH_MAX_FINDINGS` | `5000` | No | Maximum findings to process in deferred attack path computation |
+| `ATTACK_PATH_MAX_PER_ACCOUNT` | `125` | No | Maximum findings per account for attack path analysis |
+
 ## Encryption / Remediation
 
 | Variable | Default | Required | Description |
@@ -135,6 +143,9 @@ These variables control which provider implementation each subsystem uses. All d
 | `ASANA_WORKSPACE_GID` | *(empty)* | No | Asana workspace GID |
 | `ASANA_DEFAULT_PROJECT_GID` | *(empty)* | No | Default Asana project for ticket creation |
 | `ASANA_WEBHOOK_TOKEN` | *(empty)* | If Asana webhooks | Pre-shared token for Asana webhook handshake auth |
+| `ADO_ORG_URL` | *(empty)* | If ADO | Azure DevOps organization URL (e.g., `https://dev.azure.com/org`). Enables ADO ticket provider |
+| `ADO_PAT` | *(empty)* | If ADO | Azure DevOps Personal Access Token |
+| `ADO_PROJECT` | *(empty)* | If ADO | Azure DevOps project name |
 | `GITLEAKS_LICENSE` | *(empty)* | CI only | Gitleaks license key (CI action) |
 
 ## GRC Provider Credentials

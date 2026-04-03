@@ -131,7 +131,7 @@ flowchart TB
 | Attack Path Engine | In-memory BFS graph computation | Go + ReactFlow (frontend) |
 | Toxic Combo Detector | 4-pattern toxic combination detection | Go |
 | Threat Intelligence | EPSS, CISA KEV, GreyNoise enrichment | Go (HTTP clients with caching) |
-| Remediation Dispatcher | Automated security fix execution with rollback | Go (10 handlers, 8 domains, 3 tiers) |
+| Remediation Dispatcher | Automated security fix execution with rollback | Go (18 handlers, 12 domains, 3 tiers) |
 | FinOps Aggregator | Multi-cloud cost aggregation and budget alerting | Go (AWS/Azure/GCP cost APIs) |
 | WAF Module | Golden templates and compliance scanning | Go |
 | Container Security | Image scanning, admission control | Go |
@@ -259,18 +259,28 @@ The remediation dispatcher provides automated security fix execution with a tier
 | T2 (Verify) | Compute config, IAM key rotation | 5 parallel | 120s |
 | T3 (Change Window) | OS patching, key rotation | 2 parallel | 600s |
 
-### 6.2 Handlers (10 across 8 domains)
+### 6.2 Handlers (18 across 12 domains)
 
-| Domain | Handler | Cloud Provider |
-|--------|---------|---------------|
-| Network | BlockPublicSSH (SSH/RDP) | AWS |
-| Storage | S3PublicAccessBlock | AWS |
-| Compute | IMDSv2Enforcement | AWS |
-| Identity | IAMKeyRotation | AWS |
-| Security Services | GuardDutyEnablement | AWS |
-| Security Services | AzureDefender (stub) | Azure |
-| Secrets | RotationGuidance (manual) | Multi-cloud |
-| Patching | SSMPatchCompliance (query-only) | AWS |
+| Domain | Handler | Tier | Cloud Provider |
+|--------|---------|------|---------------|
+| Network | BlockPublicSSH | T1 | AWS (EC2 Security Groups) |
+| Network | BlockOpenPort | T1 | AWS (EC2 Security Groups) |
+| Network | RestrictDefaultSG | T1 | AWS (EC2 Security Groups) |
+| Network | EnforceSSL | T2 | AWS (RDS/ELB) |
+| Storage | BlockPublicS3 | T1 | AWS (S3) |
+| Compute | EnforceIMDSv2 | T2 | AWS (EC2) |
+| Identity | RotateIAMKeys | T2 | AWS (IAM) |
+| Identity | RestrictExcessivePerms | T2 | AWS (IAM) |
+| Security Services | GuardDutyEnablement | T1 | AWS (GuardDuty) |
+| Security Services | AzureDefender (stub) | T1 | Azure (Defender for Storage) |
+| Monitoring | EnableCloudTrail | T2 | AWS (CloudTrail) |
+| Monitoring | EnableGCPAuditLogs | T2 | GCP (Cloud Audit Logs) |
+| Config | EnableAWSConfig | T2 | AWS (Config) |
+| Container | DisablePrivilegedPods | T2 | Kubernetes |
+| Database | EnableRDSEncryption | T3 | AWS (RDS) |
+| Encryption | RotateKMSKey | T3 | AWS (KMS) |
+| Secrets | RotateExposedSecret (manual) | T3 | Multi-cloud |
+| Patching | OSPatch (query-only) | T3 | AWS (SSM) |
 
 ### 6.3 Rollback
 

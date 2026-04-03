@@ -59,18 +59,28 @@ The executor (`pkg/remediation/`) manages:
 - 48-hour rollback window
 - Structured logging via zap for audit trail
 
-### 4. Handlers (10 across 8 domains)
+### 4. Handlers (18 across 12 domains)
 
 | Domain | Handler | Tier | Cloud Provider |
 |--------|---------|------|---------------|
 | Network | BlockPublicSSH | T1 | AWS (EC2 Security Groups) |
-| Storage | S3PublicAccessBlock | T1 | AWS (S3) |
-| Compute | IMDSv2Enforcement | T2 | AWS (EC2) |
-| Identity | IAMKeyRotation | T2 | AWS (IAM) |
+| Network | BlockOpenPort | T1 | AWS (EC2 Security Groups) |
+| Network | RestrictDefaultSG | T1 | AWS (EC2 Security Groups) |
+| Network | EnforceSSL | T2 | AWS (RDS/ELB) |
+| Storage | BlockPublicS3 | T1 | AWS (S3) |
+| Compute | EnforceIMDSv2 | T2 | AWS (EC2) |
+| Identity | RotateIAMKeys | T2 | AWS (IAM) |
+| Identity | RestrictExcessivePerms | T2 | AWS (IAM) |
 | Security Services | GuardDutyEnablement | T1 | AWS (GuardDuty) |
-| Security Services | AzureDefender | T1 | Azure (stub) |
-| Secrets | RotationGuidance | T3 | Multi-cloud (manual) |
-| Patching | SSMPatchCompliance | T3 | AWS (SSM, query-only) |
+| Security Services | AzureDefender | T1 | Azure (Defender for Storage, stub) |
+| Monitoring | EnableCloudTrail | T2 | AWS (CloudTrail) |
+| Monitoring | EnableGCPAuditLogs | T2 | GCP (Cloud Audit Logs) |
+| Config | EnableAWSConfig | T2 | AWS (Config) |
+| Container | DisablePrivilegedPods | T2 | Kubernetes |
+| Database | EnableRDSEncryption | T3 | AWS (RDS) |
+| Encryption | RotateKMSKey | T3 | AWS (KMS) |
+| Secrets | RotateExposedSecret | T3 | Multi-cloud (manual guidance) |
+| Patching | OSPatch | T3 | AWS (SSM, query-only) |
 
 ## Consequences
 
@@ -113,8 +123,23 @@ No tier distinction, all remediations execute automatically.
 
 **Rejected because**: IAM changes and OS patching carry material risk. A single misconfigured IAM key rotation could lock out service accounts. Tiered execution provides a safety gradient.
 
+## Implementation Update (2026-04-03)
+
+Since this ADR was accepted, handler coverage expanded from 10 to 18 across 12 domains (up from 8). Key additions:
+
+- **Network** grew from 1 handler (SSH) to 4 (SSH, open port, default SG, SSL enforcement)
+- **Identity** added `RestrictExcessivePerms` for IAM policy right-sizing
+- **Monitoring** added CloudTrail and GCP Audit Logs enablement
+- **Config** added AWS Config enablement
+- **Container** added Kubernetes privileged pod remediation
+- **Database** added RDS encryption enforcement
+- **Encryption** added KMS key rotation
+- **Private cloud** handlers (ESXi SSH, K8s privileged pods) are designed but not yet implemented — see `internal/remediation/private_cloud/README.md`
+
+The `AzureDefender` and multi-cloud `RotateExposedSecret` handlers remain stubs pending production Azure tenant access. All other handlers have full dry-run, validation, and rollback support.
+
 ## References
 
 - `pkg/remediation/` — Executor engine, Remediator interface, types
-- `internal/remediation/` — Domain handler implementations (8 subdirectories)
+- `internal/remediation/` — Domain handler implementations (12 active subdirectories + private_cloud planned)
 - Runbook: [05-remediation-operations.md](../../runbooks/05-remediation-operations.md)

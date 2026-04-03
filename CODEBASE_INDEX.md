@@ -1,13 +1,13 @@
 # Cloud Aegis Codebase Index
 
-Compressed context for AI agents. Updated: 2026-03-26.
+Compressed context for AI agents. Updated: 2026-04-03.
 
 ## Repository Structure
 
 ```
 cloudforge/
   cmd/
-    server/           # Main HTTP server — composition root, routes, 65 routes (89 operations)
+    server/           # Main HTTP server — composition root, routes, ~68 routes (91 operations)
     cspm-aggregator/  # CSPM finding aggregation CLI
     cspm-testgen/     # Test data generator
     remediation-dispatcher/  # Remediation execution runner
@@ -68,7 +68,7 @@ cloudforge/
       types/          # compliance, attack-path, remediation, catalog, dashboard, deploy,
                       # dspm, finops, grc, investigation, policy, security-graph, ai-governance
     public/           # Static assets, mock data (trimmed 500 findings)
-  migrations/         # SQL migration files (001-008, incl. security graph + assignment context)
+  migrations/         # SQL migration files (001-010, incl. security graph, assignment context, tickets, integration state)
   policies/           # OPA .rego policy files
   docs/               # ADRs, architecture, threat models, QA codex, sprint docs
     api/              # OpenAPI 3.1 specification
@@ -90,6 +90,10 @@ cloudforge/
 | `004_seed_data.sql` | Initial seed data |
 | `005_tenant_isolation.sql` | Adds `tenant_id`/`tenant_name` columns (ADR-019) |
 | `006_graph_support.sql` | Creates `resources` table (PuppyGraph vertex source) + backfill |
+| `007_security_graph.sql` | Security graph schema (controls, issues, evaluations, edges) |
+| `008_findings_assignment_context.sql` | Findings assignment context columns |
+| `009_finding_tickets.sql` | Finding-to-ticket association table |
+| `010_integration_runtime_state.sql` | Integration runtime state tracking |
 
 ## Scripts
 
@@ -163,11 +167,11 @@ Layer key format: `"group:value"` — parsed via `parseLayerKey()`, built via `l
 - **TerminalHandler**: xterm.js WebSocket with ticket nonce auth (SA-002), command whitelist
 - **GraphHandler**: PuppyGraph Gremlin/Cypher query proxy
 - **Handler files**: `handlers_api.go`, `handlers_grc.go`, `handlers_attackpath.go`, `handlers_nlq.go`, `handlers_containers.go`, `handlers_integration.go`, `handlers_terminal.go` (via internal/terminal), `handlers_graph.go`, `handlers_finops.go`, `handlers_secrets.go`, `handlers_secrets_orgscan.go`, `handlers_waf.go`, `handlers_identity.go`, `handlers_webhooks.go`, `handlers_rql.go`, `handlers_asm.go`, `handlers_deploy.go`, `handlers_search.go`, `handlers_ingest.go`, `handlers_compliance.go`, `handlers_config.go`, `handlers_comments.go`, `handlers_workflow.go`, `service_enrichment.go`, `service_identity.go`, `mockdata.go`
-- **Routes**: gorilla/mux with auth → tenant → rate-limit → RBAC middleware chain (65 routes, 89 operations per OpenAPI spec)
+- **Routes**: gorilla/mux with auth → tenant → rate-limit → RBAC middleware chain (~68 routes, 91 operations per OpenAPI spec)
 - **Tenant middleware**: resolves from JWT `tenant_id` → X-Tenant-ID header → subdomain
 - **Config endpoint**: `GET /api/v1/config` + `/config.json` (unauthenticated, tenant-aware branding)
 
-## API Surface (65 routes / 89 operations)
+## API Surface (~68 routes / 91 operations)
 
 | Domain | Endpoints | Auth | Notes |
 |--------|-----------|------|-------|
@@ -228,5 +232,5 @@ Layer key format: `"group:value"` — parsed via `parseLayerKey()`, built via `l
 ## Test Infrastructure
 
 - **Frontend**: Vitest + jsdom + @testing-library/react, 447 tests across 52 files
-- **Backend**: Go standard testing, ~1500 tests across 39 packages, -race clean
+- **Backend**: Go standard testing, ~1550 tests across 47 packages, -race clean
 - **CI**: GitHub Actions — Frontend Checks, Build & Test, Lint, Security Scan, OPA Policy Test, Cloudflare Pages, SBOM (CycloneDX)
