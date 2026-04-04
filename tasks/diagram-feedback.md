@@ -1,37 +1,33 @@
-# Diagram Design Feedback (from orchestrator, 2026-04-04)
+# Diagram Coordination (orchestrator, 2026-04-04)
 
-## Apply to ALL Draw.io diagrams (D1 + D2)
+## [!] Session Roles (FINAL)
 
-### Design Direction
-- Icons need to be **way bigger** — 64x64 minimum standalone, 48x48 in node cards
-- More **color** — use the full palette from DIAGRAM_STYLE_GUIDE.md, don't be conservative
-- **Less text heavy** — reduce label verbosity, let the visual hierarchy speak
-- First drafts are too cramped — prioritize whitespace and readability over detail density
+| Session | Owns | Action |
+|---------|------|--------|
+| **D1+** | Figma pages (native MCP build) | Build diagrams directly in Figma via figma-create tools. Plugin connected, channel `72snjfrt`. Do NOT import — construct natively. |
+| **D2+** | Draw.io exports (README, portfolio, docs-site) | Commit .drawio + exported SVG/PNG. These are the web/git assets. Figma is NOT your concern. |
+| **D3+** | STAND DOWN | D1+ owns Figma now. Your JPEG imports were placeholders — D1+ will overwrite with native vector construction. Focus on handoff or help D2 commit. |
 
-### [!] Icon Export Fix (D2 SOLVED)
+## [!] Import Pipeline is Dead
 
-**Root cause:** NOT Electron stripping SVGs. It's **semicolon collision** in Draw.io's style parser.
+All approaches failed for Figma import:
+- `set_image` → aspect ratio distortion (extreme ratios from Mermaid/Draw.io)
+- Plugin API `createImage(bytes)` → 50K code limit, JPEG compression, low quality
+- SVG import → viewBox/viewport misinterpretation, content crammed into horizontal strip
 
-`data:image/png;base64,...` contains a literal `;` which Draw.io's style attribute parser splits on as a property delimiter, breaking the data URI into two invalid fragments.
+**The only path that works:** Build directly in Figma using `create_frame`, `create_text`, `set_fill_color`, `set_svg` via figma-create MCP. This is what diagram-builder agent was designed for.
 
-**Fix:** URL-encode the semicolon → `data:image/png%3Bbase64,...`
+## Design Direction (all outputs)
 
-This works for ANY MIME type (PNG and SVG both):
-- `image=data:image/png%3Bbase64,iVBOR...` 
+- Icons **way bigger** — 64x64 minimum standalone, 48x48 in node cards
+- More **color** — use the full palette from DIAGRAM_STYLE_GUIDE.md
+- **Less text heavy** — reduce label verbosity, let visuals speak
+- Prioritize whitespace and readability over detail density
+
+## Draw.io `%3B` Fix (reference)
+
+Draw.io style parser splits on `;`. URL-encode to `%3B` in data URIs:
+- `image=data:image/png%3Bbase64,iVBOR...`
 - `image=data:image/svg+xml%3Bbase64,PHN2...`
 
-D2 confirmed: all 12 icons rendering perfectly with `%3B` encoding.
-
-### Source Reference
-- diagram-builder agent: `.claude/agents/diagram-builder.md` (Figma-native, not Draw.io)
-- Style guide: `docs/DIAGRAM_STYLE_GUIDE.md`
-- Icon cascade: local filesystem → GitHub repos → Brandfetch → icon-library MCP
-
-## C2-deep: Untracked Files
-
-You have D2 output files in your worktree that belong in D2's commit:
-- `docs/core/diagrams/dual-opa-architecture.drawio`
-- `docs/core/diagrams/dual-opa-architecture-drawio.png`
-- `docs/core/diagrams/dual-opa-architecture-drawio.svg`
-
-Do NOT commit these — let D2 handle them. `git checkout -- <file>` or leave untracked.
+Documented in `docs/DIAGRAM_STYLE_GUIDE.md` v1.1 and `diagram-builder.md` agent.
