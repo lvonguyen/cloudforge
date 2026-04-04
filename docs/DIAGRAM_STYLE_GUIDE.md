@@ -311,7 +311,18 @@ Tier frames must **fill the parent frame** with consistent padding:
 - No tier should have >20% internal empty space (resize the tier frame to fit content)
 - If the frame has >100px of unused space at the bottom, shrink the frame height to match
 
-### G6: Connector Label Legibility
+### G6: Vertical-First Layout
+
+Diagrams MUST default to **vertical (top-down) flow** unless the user explicitly requests horizontal:
+
+- **Tier stacking:** Tiers stack vertically (Portal at top → Cloud Providers at bottom)
+- **Component detail:** When a tier has >4 components, stack them in rows within the tier rather than stretching horizontally
+- **Split sections:** Side-by-side sections within a tier are acceptable (e.g., Threat Intel + Policy Engine), but the tiers themselves flow top-to-bottom
+- **Why:** Vertical layouts survive downscaling for README/DOCX (scrolling context). Horizontal layouts require side-scrolling or extreme shrinkage.
+
+This applies to BOTH presentation frames (1920px) and README frames (900px). Horizontal tier-to-tier flow requires explicit opt-in.
+
+### G7: Connector Label Legibility
 
 Arrow labels must be:
 
@@ -348,4 +359,4 @@ The Mermaid SVGs support CSS edge animation (`stroke-dasharray` + `@keyframes da
 |---------|------|---------|
 | 1.0 | 2026-03-24 | Initial release — BBG style research + CloudForge implementation |
 | 1.1 | 2026-04-04 | Added Draw.io icon embedding section — semicolon trap + `%3B` fix, icon sizing table, battle-tested workflow |
-| 1.2 | 2026-04-04 | Added [!] Visual Polish Guardrails (G1-G6) — icon placement, tier completeness, split-tier dividers, spacing, dead space, connector labels |
+| 1.2 | 2026-04-04 | Added [!] Visual Polish Guardrails (G1-G7) — icon placement, tier completeness, split-tier dividers, spacing, dead space, vertical-first layout, connector labels |
