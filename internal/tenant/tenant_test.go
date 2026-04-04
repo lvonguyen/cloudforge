@@ -59,12 +59,12 @@ func TestMemoryStore_GetByDomain(t *testing.T) {
 	ctx := context.Background()
 
 	cfg := &Config{
-		ID:   "haea",
-		Name: "HAEA Security",
+		ID:   "acme",
+		Name: "Acme Corp",
 		Branding: Branding{
-			CompanyName: "HAEA",
+			CompanyName: "Acme Corp",
 			ProductName: "SecureCloud",
-			EmailDomain: "haea.io",
+			EmailDomain: "acme.example.com",
 		},
 	}
 
@@ -73,12 +73,12 @@ func TestMemoryStore_GetByDomain(t *testing.T) {
 	}
 
 	// Get by domain (tenant ID = subdomain by default)
-	got, err := store.GetByDomain(ctx, "haea")
+	got, err := store.GetByDomain(ctx, "acme")
 	if err != nil {
 		t.Fatalf("GetByDomain: %v", err)
 	}
-	if got.Name != "HAEA Security" {
-		t.Errorf("Name = %q, want %q", got.Name, "HAEA Security")
+	if got.Name != "Acme Corp" {
+		t.Errorf("Name = %q, want %q", got.Name, "Acme Corp")
 	}
 }
 
@@ -96,7 +96,7 @@ func TestMemoryStore_List(t *testing.T) {
 
 	tenants := []Config{
 		{ID: "contoso", Name: "Contoso"},
-		{ID: "haea", Name: "HAEA"},
+		{ID: "fabrikam", Name: "Fabrikam"},
 		{ID: "acme", Name: "Acme Corp"},
 	}
 	for i := range tenants {

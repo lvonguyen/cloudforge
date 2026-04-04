@@ -459,13 +459,13 @@ func seedTenants(logger *zap.Logger) tenant.Store {
 	})
 
 	_ = store.Upsert(ctx, &tenant.Config{
-		ID:   "haea",
-		Name: "HAEA Security",
+		ID:   "acme",
+		Name: "Acme Corp",
 		Branding: tenant.Branding{
-			CompanyName:  "HAEA Security",
+			CompanyName:  "Acme Corp",
 			ProductName:  "SecureCloud",
-			LogoPath:     "/haea-logo.svg",
-			EmailDomain:  "haea.io",
+			LogoPath:     "/acme-logo.svg",
+			EmailDomain:  "acme.example.com",
 			PrimaryColor: "#22c55e",
 			AccentColor:  "#16a34a",
 		},

@@ -74,8 +74,8 @@ var MockOutputs = map[string]string{
 	"aws organizations list-accounts": `{
     "Accounts": [
         {"Id": "431330216246", "Name": "lvn-personal", "Status": "ACTIVE", "Email": "aws-personal@lvonguyen.io"},
-        {"Id": "831926608679", "Name": "haea-security", "Status": "ACTIVE", "Email": "security@haeaus.com"},
-        {"Id": "607322091941", "Name": "kna-prod", "Status": "ACTIVE", "Email": "aws-kna@haeaus.com"}
+        {"Id": "831926608679", "Name": "acme-security", "Status": "ACTIVE", "Email": "security@acme.example.com"},
+        {"Id": "607322091941", "Name": "kna-prod", "Status": "ACTIVE", "Email": "aws-kna@acme.example.com"}
     ]
 }`,
 
@@ -130,7 +130,7 @@ roles/iam.securityAdmin          Security Admin                   GA`,
     "alertDisplayName": "Suspicious authentication activity",
     "severity": "High",
     "status": "Active",
-    "compromisedEntity": "user@haeaus.com",
+    "compromisedEntity": "user@acme.example.com",
     "startTimeUtc": "2026-03-24T18:30:00Z"
   }
 ]`,
@@ -190,8 +190,8 @@ alb_dns = "aegis-alb-1234567890.us-east-1.elb.amazonaws.com"`,
 
 	"terraform workspace list": `  default
 * personal
-  haea-dev
-  haea-staging`,
+  acme-dev
+  acme-staging`,
 
 	"terraform version": `Terraform v1.7.5
 on darwin_arm64

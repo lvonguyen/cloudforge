@@ -28,13 +28,13 @@ func newTestServerWithTenants(t *testing.T) (*Server, tenant.Store) {
 		EnabledModules: []string{"cspm", "grc"},
 	})
 	_ = store.Upsert(context.Background(), &tenant.Config{
-		ID:   "haea",
-		Name: "HAEA Security",
+		ID:   "acme",
+		Name: "Acme Corp",
 		Branding: tenant.Branding{
-			CompanyName:  "HAEA Security",
+			CompanyName:  "Acme Corp",
 			ProductName:  "SecureCloud",
-			LogoPath:     "/haea-logo.svg",
-			EmailDomain:  "haea.io",
+			LogoPath:     "/acme-logo.svg",
+			EmailDomain:  "acme.example.com",
 			PrimaryColor: "#22c55e",
 			AccentColor:  "#16a34a",
 		},
@@ -78,14 +78,14 @@ func TestHandleConfig_DefaultTenant(t *testing.T) {
 	}
 }
 
-func TestHandleConfig_HAEATenant(t *testing.T) {
+func TestHandleConfig_AcmeTenant(t *testing.T) {
 	srv, store := newTestServerWithTenants(t)
 
-	// Simulate tenant middleware having resolved HAEA
-	haeCfg, _ := store.Get(context.Background(), "haea")
+	// Simulate tenant middleware having resolved Acme
+	acmeCfg, _ := store.Get(context.Background(), "acme")
 
 	req := httptest.NewRequest("GET", "/api/v1/config", nil)
-	req = req.WithContext(tenant.WithContext(req.Context(), haeCfg))
+	req = req.WithContext(tenant.WithContext(req.Context(), acmeCfg))
 	rr := httptest.NewRecorder()
 
 	srv.handleConfig(rr, req)
@@ -99,20 +99,20 @@ func TestHandleConfig_HAEATenant(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if resp.CompanyName != "HAEA Security" {
-		t.Errorf("expected company name 'HAEA Security', got %q", resp.CompanyName)
+	if resp.CompanyName != "Acme Corp" {
+		t.Errorf("expected company name 'Acme Corp', got %q", resp.CompanyName)
 	}
 	if resp.ProductName != "SecureCloud" {
 		t.Errorf("expected product name 'SecureCloud', got %q", resp.ProductName)
 	}
-	if resp.EmailDomain != "haea.io" {
-		t.Errorf("expected email domain 'haea.io', got %q", resp.EmailDomain)
+	if resp.EmailDomain != "acme.example.com" {
+		t.Errorf("expected email domain 'acme.example.com', got %q", resp.EmailDomain)
 	}
 	if resp.Theme["primaryColor"] != "#22c55e" {
 		t.Errorf("expected primary color '#22c55e', got %q", resp.Theme["primaryColor"])
 	}
-	if resp.StoragePrefix != "haea" {
-		t.Errorf("expected storage prefix 'haea', got %q", resp.StoragePrefix)
+	if resp.StoragePrefix != "acme" {
+		t.Errorf("expected storage prefix 'acme', got %q", resp.StoragePrefix)
 	}
 }
 

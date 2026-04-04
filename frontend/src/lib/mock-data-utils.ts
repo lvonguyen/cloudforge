@@ -65,7 +65,7 @@ export function brandRegistryRefs(text: string): string {
  * Creates a branded email address using the tenant's email domain.
  * Use this for generating new mock emails in component code.
  *
- * @example brandEmail('operator1') => 'operator1@haea.io'
+ * @example brandEmail('operator1') => 'operator1@acme.example.com'
  */
 export function brandEmail(localPart: string): string {
   return `${localPart}@${branding.emailDomain}`

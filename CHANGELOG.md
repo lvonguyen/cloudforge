@@ -125,7 +125,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- **Sprint E**: Real-data transform pipeline — 9000 anonymized HAEA findings; uploaded to R2 bucket; test fixture IDs updated (Sprint E)
+- **Sprint E**: Real-data transform pipeline — 9000 anonymized enterprise findings; uploaded to R2 bucket; test fixture IDs updated (Sprint E)
 - **Sprint E**: `POST /api/v1/secrets/scan` — changed from GET with query param to POST with body (content in body) (Sprint E)
 - Resource-scoped RBAC (ADR-013 Accepted): `ResourceScope` in JWT claims with `Scopeable` interface — findings and attack paths filtered by account, region, environment, business unit (Sprint 8B)
 - Finding ingestion endpoint: `POST /api/v1/findings/ingest` with SHA-256 dedup cache, 24h TTL, admin-only (Sprint 9A)

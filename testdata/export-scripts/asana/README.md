@@ -56,4 +56,4 @@ python remediation-utils/sync_findings_generic.py --csv unified_findings.csv --u
 
 **Data Flow:** Raw Export → Cleansing → Unified CSV → Asana Import → Remediation Tracking
 
-**Owner:** HAEA Security TFT | **Prepared For:** CS.01 L2 Signoff (Dec 12, 2025)
+**Owner:** Enterprise Security TFT | **Prepared For:** CS.01 L2 Signoff (Dec 12, 2025)

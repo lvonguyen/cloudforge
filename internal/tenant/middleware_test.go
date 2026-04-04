@@ -27,12 +27,12 @@ func seedStore(t *testing.T) Store {
 		t.Fatal(err)
 	}
 	if err := store.Upsert(context.Background(), &Config{
-		ID:   "haea",
-		Name: "HAEA Security",
+		ID:   "acme",
+		Name: "Acme Corp",
 		Branding: Branding{
-			CompanyName:  "HAEA Security",
+			CompanyName:  "Acme Corp",
 			ProductName:  "SecureCloud",
-			LogoPath:     "/haea-logo.svg",
+			LogoPath:     "/acme-logo.svg",
 			PrimaryColor: "#22c55e",
 		},
 	}); err != nil {
@@ -72,8 +72,8 @@ func TestMiddleware_HeaderFallback(t *testing.T) {
 		if cfg == nil {
 			t.Fatal("expected tenant config from X-Tenant-ID header")
 		}
-		if cfg.ID != "haea" {
-			t.Errorf("expected tenant ID 'haea', got %q", cfg.ID)
+		if cfg.ID != "acme" {
+			t.Errorf("expected tenant ID 'acme', got %q", cfg.ID)
 		}
 		if cfg.Branding.ProductName != "SecureCloud" {
 			t.Errorf("expected product name 'SecureCloud', got %q", cfg.Branding.ProductName)
@@ -82,7 +82,7 @@ func TestMiddleware_HeaderFallback(t *testing.T) {
 	}))
 
 	req := httptest.NewRequest("GET", "/test", nil)
-	req.Header.Set("X-Tenant-ID", "haea")
+	req.Header.Set("X-Tenant-ID", "acme")
 	// Header fallback requires admin role — non-admin users cannot switch tenant via header.
 	ctx := context.WithValue(req.Context(), api.ClaimsContextKey, &api.Claims{
 		Subject: "test-admin",
@@ -129,15 +129,15 @@ func TestMiddleware_JWTClaim(t *testing.T) {
 		if cfg == nil {
 			t.Fatal("expected tenant config from JWT claim")
 		}
-		if cfg.ID != "haea" {
-			t.Errorf("expected tenant ID 'haea', got %q", cfg.ID)
+		if cfg.ID != "acme" {
+			t.Errorf("expected tenant ID 'acme', got %q", cfg.ID)
 		}
 		w.WriteHeader(http.StatusOK)
 	}))
 
 	// Simulate JWT claims in context
 	req := httptest.NewRequest("GET", "/test", nil)
-	claims := &api.Claims{TenantID: "haea"}
+	claims := &api.Claims{TenantID: "acme"}
 	ctx := context.WithValue(req.Context(), api.ClaimsContextKey, claims)
 	req = req.WithContext(ctx)
 
@@ -175,7 +175,7 @@ func TestExtractSubdomain(t *testing.T) {
 		host string
 		want string
 	}{
-		{"haea.aegis.io", "haea"},
+		{"acme.aegis.io", "acme"},
 		{"contoso.aegis.io:8080", "contoso"},
 		{"aegis.io", ""},
 		{"localhost:8080", ""},

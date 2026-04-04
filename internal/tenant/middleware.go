@@ -71,7 +71,7 @@ func Middleware(store Store, logger *zap.Logger) func(http.Handler) http.Handler
 }
 
 // extractSubdomain returns the first subdomain from a host string.
-// For example, "haea.aegis.io" returns "haea".
+// For example, "acme.aegis.io" returns "acme".
 // Returns empty string for bare domains (no subdomain).
 func extractSubdomain(host string) string {
 	// Strip port

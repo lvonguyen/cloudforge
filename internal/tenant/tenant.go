@@ -21,10 +21,10 @@ var tenantCtxKey = contextKey{}
 
 // Config holds per-tenant configuration.
 type Config struct {
-	// ID is the unique tenant identifier (e.g., "contoso", "haea").
+	// ID is the unique tenant identifier (e.g., "contoso", "acme").
 	ID string `json:"id"`
 
-	// Name is the display name (e.g., "Contoso Inc.", "HAEA Security").
+	// Name is the display name (e.g., "Contoso Inc.", "Acme Corp").
 	Name string `json:"name"`
 
 	// Branding holds UI customization values served via /config.json.

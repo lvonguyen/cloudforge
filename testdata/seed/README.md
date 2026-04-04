@@ -33,7 +33,7 @@ All resources follow the 56-service taxonomy with sanitized CBU names:
 | `ns`     | Northstar    | hma  | 25%    | ns-product-search-prd |
 | `mr`     | Meridian     | kus  | 20%    | mr-claims-mgmt-stg |
 | `pl`     | Polaris      | hacc | 15%    | pl-identity-svc-dev |
-| `nx`     | Nexus        | haea | 30%    | nx-security-hub-prd |
+| `nx`     | Nexus        | acme | 30%    | nx-security-hub-prd |
 | `sm`     | Summit       | hmgma| 10%    | sm-workflow-engine-sbx |
 
 Resource naming pattern: `{type-prefix}-{service-id}-{env}-{seq}`
