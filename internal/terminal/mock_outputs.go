@@ -213,7 +213,7 @@ Total: 3 (HIGH: 2, CRITICAL: 1)
 └─────────────────┴───────────────┴──────────┴───────────────────┴───────────────┘`,
 
 	// --- aegis (internal CLI) ---
-	"aegis status": `Cloud Aegis Platform Status
+	"aegis status": `CloudForge Platform Status
 ═══════════════════════════════════════
 API Server:     HEALTHY  (v2.4.1, uptime 3d 14h)
 Database:       HEALTHY  (PostgreSQL 16.2, 9.5K findings)

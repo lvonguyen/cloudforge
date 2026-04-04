@@ -65,7 +65,7 @@ module "redis" {
   region         = var.region
 }
 
-# ─── Compute: Cloud Aegis API ───────────────────────────────────────────────
+# ─── Compute: CloudForge API ───────────────────────────────────────────────
 
 module "aegis_api" {
   source          = "../../modules/compute"

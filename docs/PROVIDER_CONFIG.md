@@ -1,6 +1,6 @@
 # Provider Configuration Reference
 
-Cloud Aegis uses a factory pattern for all provider packages. Each provider is
+CloudForge uses a factory pattern for all provider packages. Each provider is
 configured via an environment variable that selects the implementation.
 
 ## Provider Selection

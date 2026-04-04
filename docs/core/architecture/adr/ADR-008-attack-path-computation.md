@@ -5,7 +5,7 @@ Accepted
 
 ## Context
 
-Cloud Aegis aggregates security findings across multi-cloud environments (AWS, Azure, GCP). With 10K+ active findings in a typical enterprise deployment, individual finding triage creates alert fatigue. Industry-standard CSPM platforms demonstrate that graph-based attack path analysis collapses thousands of isolated findings into dozens of actionable chains — achieving ~98% noise reduction.
+CloudForge aggregates security findings across multi-cloud environments (AWS, Azure, GCP). With 10K+ active findings in a typical enterprise deployment, individual finding triage creates alert fatigue. Industry-standard CSPM platforms demonstrate that graph-based attack path analysis collapses thousands of isolated findings into dozens of actionable chains — achieving ~98% noise reduction.
 
 The project already has:
 - `AttackPathContext` struct in `internal/cspm/normalizer/schema.go` (score, blast radius, toxic combo flags)

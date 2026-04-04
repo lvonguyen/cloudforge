@@ -1,8 +1,8 @@
-# Cloud Aegis -- Codebase Cost Estimate
+# CloudForge -- Codebase Cost Estimate
 
 **Date:** 2026-03-18
 **Prepared for:** Portfolio ROI Analysis
-**Repository:** github.com/lvonguyen/cloudforge (renamed Cloud Aegis)
+**Repository:** github.com/lvonguyen/cloudforge (renamed CloudForge)
 **Methodology:** LOC scan + complexity scoring + industry rate cards
 
 ---
@@ -313,7 +313,7 @@
 
 ## [7] Conclusion
 
-Cloud Aegis represents ~94.5K lines of hand-written source code across Go, TypeScript, Rego, SQL, and shell scripts, plus ~90K lines of configuration, infrastructure, and documentation. The codebase scores 4.14/5 on complexity, with particular depth in backend security (4.5/5) and documentation maturity (4.5/5).
+CloudForge represents ~94.5K lines of hand-written source code across Go, TypeScript, Rego, SQL, and shell scripts, plus ~90K lines of configuration, infrastructure, and documentation. The codebase scores 4.14/5 on complexity, with particular depth in backend security (4.5/5) and documentation maturity (4.5/5).
 
 A traditional human team would require an estimated 3,488 loaded hours across 5 roles, costing $825,906 fully loaded. The AI-assisted approach delivered the same output in 2.5 months at $60,090 -- a 13.7x cost reduction and 8x calendar acceleration versus a solo developer.
 

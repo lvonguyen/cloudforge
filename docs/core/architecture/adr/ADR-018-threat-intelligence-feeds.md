@@ -14,7 +14,7 @@ Liem Vo-Nguyen
 
 ## Context
 
-Cloud Aegis performs AI-powered severity re-scoring on CSPM findings. To produce accurate risk assessments, the enrichment pipeline needs real-time threat intelligence from multiple external feeds:
+CloudForge performs AI-powered severity re-scoring on CSPM findings. To produce accurate risk assessments, the enrichment pipeline needs real-time threat intelligence from multiple external feeds:
 
 1. **EPSS** (Exploit Prediction Scoring System) — probability that a CVE will be exploited in the next 30 days
 2. **CISA KEV** (Known Exploited Vulnerabilities) — authoritative catalog of actively exploited CVEs

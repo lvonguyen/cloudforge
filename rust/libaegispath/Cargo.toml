@@ -2,7 +2,7 @@
 name = "aegispath"
 version = "0.1.0"
 edition = "2024"
-description = "Rust hot-path library for Cloud Aegis attack path computation"
+description = "Rust hot-path library for CloudForge attack path computation"
 
 [lib]
 crate-type = ["cdylib", "staticlib", "lib"]

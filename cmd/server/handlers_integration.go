@@ -404,7 +404,7 @@ func (h *IntegrationHandler) RemediateFinding(w http.ResponseWriter, r *http.Req
 	provider := h.selectProvider(body.Provider)
 	ticket, err := provider.CreateTicket(r.Context(), integrations.CreateTicketRequest{
 		FindingID:   findingID,
-		Title:       fmt.Sprintf("[Cloud Aegis] Remediate finding %s", findingID),
+		Title:       fmt.Sprintf("[CloudForge] Remediate finding %s", findingID),
 		Description: fmt.Sprintf("Priority: %s | Team: %s | SLA: %dh", decision.Priority, decision.Team, decision.SLAHours),
 		Priority:    decision.Priority,
 		Assignee:    body.Assignee,

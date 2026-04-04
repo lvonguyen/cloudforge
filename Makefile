@@ -10,7 +10,7 @@ CF_JWT_SECRET ?= $(shell op read "op://Development/aegis-dev-jwt-secret/password
 
 # Default target
 help:
-	@echo "Cloud Aegis - Enterprise Cloud Governance Platform"
+	@echo "CloudForge - Enterprise Cloud Governance Platform"
 	@echo ""
 	@echo "Usage:"
 	@echo "  make build        Build the binary"

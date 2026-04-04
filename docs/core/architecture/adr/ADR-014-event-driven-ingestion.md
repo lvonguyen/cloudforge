@@ -14,7 +14,7 @@ Accepted
 
 ## Context
 
-Cloud Aegis currently loads findings from JSON files at startup (`./findings/auto_remediation/*.json`). This architecture works for MVP and demo environments but has several production limitations:
+CloudForge currently loads findings from JSON files at startup (`./findings/auto_remediation/*.json`). This architecture works for MVP and demo environments but has several production limitations:
 
 ### Current Architecture Limitations
 
@@ -82,7 +82,7 @@ graph LR
 
 #### 1. Finding Normalizer
 
-**Purpose**: Convert CSPM-specific finding formats to Cloud Aegis's unified schema.
+**Purpose**: Convert CSPM-specific finding formats to CloudForge's unified schema.
 
 **Input**: Native finding format (SecurityHub JSON, Defender webhook payload, SCC Pub/Sub message)
 
@@ -202,7 +202,7 @@ Use Kafka as central event bus for all findings.
 
 ### Alternative 2: Direct API Push (Webhook)
 
-CSPM sources push findings directly to Cloud Aegis API endpoint.
+CSPM sources push findings directly to CloudForge API endpoint.
 
 **Pros**:
 - Simpler architecture (no queue)
@@ -375,17 +375,17 @@ resource "google_pubsub_subscription" "normalizer" {
 Support ingesting findings from 50+ AWS accounts, Azure subscriptions, and GCP projects.
 
 **AWS Multi-Account**:
-- Central account hosts Cloud Aegis infrastructure
+- Central account hosts CloudForge infrastructure
 - Member accounts send findings to central EventBridge bus via cross-account EventBridge
 - Normalizer Lambda uses STS AssumeRole to query resources in member accounts
 
 **Azure Multi-Subscription**:
-- Central subscription hosts Cloud Aegis infrastructure
+- Central subscription hosts CloudForge infrastructure
 - Member subscriptions send findings to central Event Hub via Azure Monitor
 - Normalizer uses Azure Lighthouse for cross-subscription access
 
 **GCP Multi-Project**:
-- Central project hosts Cloud Aegis infrastructure
+- Central project hosts CloudForge infrastructure
 - Member projects send findings to central Pub/Sub topic via Organization-level SCC export
 - Normalizer uses service account impersonation for cross-project access
 

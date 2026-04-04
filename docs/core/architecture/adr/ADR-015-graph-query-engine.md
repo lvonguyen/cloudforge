@@ -8,7 +8,7 @@
 
 ## Context
 
-Cloud Aegis currently uses three fragmented graph computation approaches:
+CloudForge currently uses three fragmented graph computation approaches:
 
 1. **libaegispath BFS** -- in-memory Go computation for attack path topology (`computeAttackPaths`)
 2. **Investigation Board** -- React Flow client-side graph from flat finding data

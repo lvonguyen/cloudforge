@@ -1,4 +1,4 @@
-// Package ai provides LLM integration for Cloud Aegis
+// Package ai provides LLM integration for CloudForge
 package ai
 
 import (

@@ -17,7 +17,7 @@ variable "region" {
 }
 
 variable "aegis_image" {
-  description = "Container image URI for Cloud Aegis API"
+  description = "Container image URI for CloudForge API"
   type        = string
   default     = "ghcr.io/lvonguyen/aegis:latest"
 }

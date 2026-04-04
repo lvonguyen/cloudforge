@@ -74,7 +74,7 @@ func NewMockOktaProvider() *MockOktaProvider {
 			"aegis-admin": {
 				ID:          "00g1aegisadmin",
 				Name:        "aegis-admin",
-				Description: "Cloud Aegis administrators",
+				Description: "CloudForge administrators",
 				Type:        "security",
 				MemberCount: 1,
 				CreatedAt:   now.Add(-365 * 24 * time.Hour),
@@ -82,7 +82,7 @@ func NewMockOktaProvider() *MockOktaProvider {
 			"aegis-operator": {
 				ID:          "00g2aegisoperator",
 				Name:        "aegis-operator",
-				Description: "Cloud Aegis operators (read + limited write)",
+				Description: "CloudForge operators (read + limited write)",
 				Type:        "security",
 				MemberCount: 1,
 				CreatedAt:   now.Add(-365 * 24 * time.Hour),
@@ -358,7 +358,7 @@ func NewMockEntraIDProvider() *MockEntraIDProvider {
 			"sg-aegis-admin": {
 				ID:          "11111111-2222-3333-4444-555555555555",
 				Name:        "sg-aegis-admin",
-				Description: "Cloud Aegis Administrators (Entra ID)",
+				Description: "CloudForge Administrators (Entra ID)",
 				Type:        "security",
 				MemberCount: 1,
 				CreatedAt:   now.Add(-400 * 24 * time.Hour),
@@ -366,7 +366,7 @@ func NewMockEntraIDProvider() *MockEntraIDProvider {
 			"sg-aegis-operator": {
 				ID:          "66666666-7777-8888-9999-aaaaaaaaaaaa",
 				Name:        "sg-aegis-operator",
-				Description: "Cloud Aegis Operators (Entra ID)",
+				Description: "CloudForge Operators (Entra ID)",
 				Type:        "security",
 				MemberCount: 1,
 				CreatedAt:   now.Add(-400 * 24 * time.Hour),

@@ -113,7 +113,7 @@ except APIError:
 
 **Date:** 2026-03-20
 
-For production enrichment workloads (finding risk scoring, remediation recommendations), Cloud Aegis uses **AWS Bedrock** (`anthropic.claude-haiku-4-5-20251001-v1:0`) as the managed inference provider. Bedrock eliminates the need to manage API keys for direct Anthropic/OpenAI access in production, uses IAM-based authentication (see `bedrock-sa` IAM user), and keeps inference traffic within the AWS network boundary.
+For production enrichment workloads (finding risk scoring, remediation recommendations), CloudForge uses **AWS Bedrock** (`anthropic.claude-haiku-4-5-20251001-v1:0`) as the managed inference provider. Bedrock eliminates the need to manage API keys for direct Anthropic/OpenAI access in production, uses IAM-based authentication (see `bedrock-sa` IAM user), and keeps inference traffic within the AWS network boundary.
 
 The provider abstraction (`AIProvider` interface) remains unchanged -- Bedrock is configured via `AEGIS_AI_ENABLED=true`, `AEGIS_AI_REGION=us-east-1`, and `AEGIS_AI_MODEL=anthropic.claude-haiku-4-5-20251001-v1:0` environment variables. The fallback chain is: Bedrock -> direct Anthropic API -> static analysis.
 

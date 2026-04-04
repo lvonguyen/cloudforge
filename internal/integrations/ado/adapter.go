@@ -25,7 +25,7 @@ func NewAdapter(client *Client, logger *zap.Logger) integrations.TicketProvider 
 func (a *Adapter) Name() string { return "ado" }
 
 func (a *Adapter) CreateTicket(ctx context.Context, req integrations.CreateTicketRequest) (*integrations.Ticket, error) {
-	description := fmt.Sprintf("Cloud Aegis Finding: %s\n\n%s", req.FindingID, req.Description)
+	description := fmt.Sprintf("CloudForge Finding: %s\n\n%s", req.FindingID, req.Description)
 	priority := mapPriorityToADO(req.Priority)
 
 	resp, err := a.client.CreateWorkItem(ctx, req.Title, description, priority, req.Assignee, req.Labels, req.DueDate)

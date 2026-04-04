@@ -14,7 +14,7 @@ Liem Vo-Nguyen
 
 ## Context
 
-Cloud Aegis handles multiple categories of secrets across its operational lifecycle:
+CloudForge handles multiple categories of secrets across its operational lifecycle:
 
 1. **Platform secrets** — JWT signing keys, database credentials, API keys for AI providers (Anthropic, OpenAI), cloud provider credentials (AWS/Azure/GCP)
 2. **Customer secrets** — API keys, OAuth tokens, and service account credentials discovered during CSPM scanning

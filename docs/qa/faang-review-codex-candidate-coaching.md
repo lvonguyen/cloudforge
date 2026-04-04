@@ -1,4 +1,4 @@
-# Cloud Aegis - Candidate Coaching Brief (Interview Variant)
+# CloudForge - Candidate Coaching Brief (Interview Variant)
 
 Date: 2026-03-13
 Coach: Codex CLI (based on repo evidence)
@@ -7,7 +7,7 @@ Coach: Codex CLI (based on repo evidence)
 
 Lead with this framing:
 
-"Cloud Aegis is a portfolio-grade reference architecture that mirrors how I work in real engagements: assess gaps, design trade-offs, implement high-leverage slices end-to-end, and document a clear path from current state to production state. I intentionally shipped concrete slices first (auth, GRC integration, remediation controls) and documented forward-state controls in ADRs/threat models so a team can execute in phases."
+"CloudForge is a portfolio-grade reference architecture that mirrors how I work in real engagements: assess gaps, design trade-offs, implement high-leverage slices end-to-end, and document a clear path from current state to production state. I intentionally shipped concrete slices first (auth, GRC integration, remediation controls) and documented forward-state controls in ADRs/threat models so a team can execute in phases."
 
 This framing keeps you credible and avoids over-claiming.
 

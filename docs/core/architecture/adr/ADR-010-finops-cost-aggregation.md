@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-Enterprise cloud environments span AWS, Azure, and GCP. Cost visibility is fragmented across three billing portals with different data models, granularity, and API patterns. Cloud Aegis needs unified cost visibility to support:
+Enterprise cloud environments span AWS, Azure, and GCP. Cost visibility is fragmented across three billing portals with different data models, granularity, and API patterns. CloudForge needs unified cost visibility to support:
 
 1. Executive cost dashboards (multi-cloud summary)
 2. Budget tracking with proactive alerting

@@ -1,5 +1,5 @@
 # deploy/terraform/policies/ai-governance.rego
-# Ties into Cloud Aegis's AI governance module:
+# Ties into CloudForge's AI governance module:
 # - Validates model references against the approved allowlist
 # - Requires observability (logging, tracing) for any AI service deployment
 # - Blocks direct internet egress from AI agent containers

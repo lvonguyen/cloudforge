@@ -6,13 +6,13 @@ slug: /diagrams
 
 # Architecture Diagrams
 
-Visual reference for Aegis system architecture and data flows.
+Visual reference for CloudForge system architecture and data flows.
 
 ## System Architecture
 
 The main architecture diagram shows all platform components: Posture Management, AI risk scoring, policy engine, remediation dispatcher, and multi-cloud provider integrations.
 
-![Cloud Aegis Architecture](architecture-figma.png)
+![CloudForge Architecture](architecture-figma.png)
 
 ## Dual-OPA Architecture
 

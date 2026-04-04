@@ -1,5 +1,5 @@
 # policies/main.rego
-# Main entry point for Cloud Aegis policy evaluation
+# Main entry point for CloudForge policy evaluation
 package aegis
 
 import future.keywords.if

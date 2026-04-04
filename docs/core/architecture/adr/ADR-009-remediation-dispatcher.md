@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-Cloud Aegis aggregates findings from multiple cloud security tools (Security Hub, Defender for Cloud, SCC). Once findings are identified, the next step is automated remediation. Manual remediation at enterprise scale (10K+ findings) is impractical.
+CloudForge aggregates findings from multiple cloud security tools (Security Hub, Defender for Cloud, SCC). Once findings are identified, the next step is automated remediation. Manual remediation at enterprise scale (10K+ findings) is impractical.
 
 The architecture must:
 1. Support multiple remediation types across cloud providers

@@ -1,4 +1,4 @@
-# Detailed Design Document: Cloud Aegis Enterprise Cloud Governance Platform
+# Detailed Design Document: CloudForge Enterprise Cloud Governance Platform
 
 ---
 
@@ -38,7 +38,7 @@
 | 1.2 | Feb 20, 2026 | L. Vo-Nguyen | Added Section 3.5 AI Governance Module (merged from AgentGuard) |
 | 1.3 | Feb 25, 2026 | L. Vo-Nguyen | Added Section 3.6 IaC Deploy Layer |
 | 2.0 | Feb 27, 2026 | L. Vo-Nguyen | Added Section 3.7 Risk Intelligence (Planned); SLA updates; version bump |
-| 2.1 | Mar 20, 2026 | L. Vo-Nguyen | Rename sweep: CloudForge to Cloud Aegis; OPA namespace cloudforge.ai to aegis.ai |
+| 2.1 | Mar 20, 2026 | L. Vo-Nguyen | Rename sweep: CloudForge to CloudForge; OPA namespace cloudforge.ai to aegis.ai |
 
 ### Related Documents
 
@@ -55,7 +55,7 @@
 
 ### 1.1 Purpose
 
-This Detailed Design Document (DDD) provides comprehensive technical specifications for implementing the Cloud Aegis Enterprise Cloud Governance Platform. It supplements the High-Level Design (HLD) with implementation-level details.
+This Detailed Design Document (DDD) provides comprehensive technical specifications for implementing the CloudForge Enterprise Cloud Governance Platform. It supplements the High-Level Design (HLD) with implementation-level details.
 
 ### 1.2 Scope
 
@@ -718,11 +718,11 @@ as they already exist in `internal/compliance/`.
 
 #### 3.5.2 Dual-OPA Architecture
 
-Cloud Aegis runs two distinct OPA evaluation paths that are architecturally
+CloudForge runs two distinct OPA evaluation paths that are architecturally
 complementary:
 
 ```
-                 Cloud Aegis Platform
+                 CloudForge Platform
                          |
           +--------------+--------------+
           |                             |
@@ -1588,11 +1588,11 @@ Content-Type: application/json
 ### 6.1 Authentication Flow
 
 ```
-User → Cloud Aegis UI → OIDC Provider (Entra/Okta)
+User → CloudForge UI → OIDC Provider (Entra/Okta)
                               ↓
                          ID Token
                               ↓
-                    Cloud Aegis API Gateway
+                    CloudForge API Gateway
                               ↓
                     Token Validation + RBAC
                               ↓

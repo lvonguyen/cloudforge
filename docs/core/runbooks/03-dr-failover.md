@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers disaster recovery failover procedures for Cloud Aegis, including:
+This runbook covers disaster recovery failover procedures for CloudForge, including:
 - Pre-failover readiness checks
 - Automated and manual failover triggers
 - Per-CSP failover specifics (AWS, Azure, GCP)
@@ -95,7 +95,7 @@ curl -sf https://dr.aegis.io/health | jq .
 
 ## Automated Failover Triggers
 
-Cloud Aegis monitors the following conditions and triggers automated failover via the DR controller:
+CloudForge monitors the following conditions and triggers automated failover via the DR controller:
 
 ```promql
 # Primary region health score (triggers failover at <0.3)
@@ -416,13 +416,13 @@ kubectl scale deployment aegis-api \
 ### Initial Notification (T+0)
 
 ```
-Subject: [INCIDENT] Cloud Aegis DR Failover Initiated
+Subject: [INCIDENT] CloudForge DR Failover Initiated
 
 Severity: SEV1
 Started: YYYY-MM-DD HH:MM UTC
 Incident Channel: #incident-YYYYMMDD-XX
 
-We are initiating a DR failover for Cloud Aegis due to [reason].
+We are initiating a DR failover for CloudForge due to [reason].
 Estimated completion: 30 minutes.
 Expected impact: API unavailable for up to 5 minutes during DNS propagation.
 
@@ -442,7 +442,7 @@ Update [T+15]:
 ### Resolution Notice
 
 ```
-Subject: [RESOLVED] Cloud Aegis DR Failover Complete
+Subject: [RESOLVED] CloudForge DR Failover Complete
 
 Resolved: YYYY-MM-DD HH:MM UTC
 Duration: XX minutes

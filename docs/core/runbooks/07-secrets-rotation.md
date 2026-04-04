@@ -160,7 +160,7 @@ curl -sf https://api.cloudforge.lvonguyen.com/api/v1/providers \
 
 ```bash
 # 1. Create new client secret in Azure Portal
-# App registrations > Cloud Aegis > Certificates & secrets > New client secret
+# App registrations > CloudForge > Certificates & secrets > New client secret
 
 # 2. Update the 1Password item/ref
 # 3. Re-sync Fly secrets and verify protected API access

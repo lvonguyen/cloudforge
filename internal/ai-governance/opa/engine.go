@@ -1,7 +1,7 @@
 // Package opa provides an in-process OPA policy engine for AI agent governance.
 //
 // This engine evaluates tool access and data flow policies for AI agents using
-// embedded Rego policies. It complements Cloud Aegis's existing HTTP-based policy
+// embedded Rego policies. It complements CloudForge's existing HTTP-based policy
 // evaluator (internal/policy/) which handles cloud provisioning governance.
 //
 // Migrated from AgentGuard — selective merge of the in-process OPA evaluation
@@ -133,7 +133,7 @@ func (e *Engine) LoadPolicies(ctx context.Context, paths []string) error {
 
 	// Key by the first path so each policy group is independently addressable.
 	e.queries[paths[0]] = &pq
-	// Default is last-writer-wins. In Cloud Aegis, LoadPolicies is called once
+	// Default is last-writer-wins. In CloudForge, LoadPolicies is called once
 	// at startup; if called again, the last-loaded policy becomes the fallback
 	// for any unregistered policyPath in Evaluate.
 	e.queries["default"] = &pq

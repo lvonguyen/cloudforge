@@ -9,7 +9,7 @@
 
 ## 1. Scope
 
-This threat model covers the **remediation dispatcher** and **AI enrichment pipeline** within Cloud Aegis, specifically:
+This threat model covers the **remediation dispatcher** and **AI enrichment pipeline** within CloudForge, specifically:
 
 - Finding ingestion from CSPM sources (Security Hub, Defender, SCC)
 - Contextual risk scoring using AI (Anthropic Claude, OpenAI GPT-4)

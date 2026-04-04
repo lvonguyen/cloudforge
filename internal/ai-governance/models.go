@@ -1,4 +1,4 @@
-// Package aigovernance provides AI agent governance models for Cloud Aegis.
+// Package aigovernance provides AI agent governance models for CloudForge.
 //
 // These models support AI agent registry, observability, threat modeling (STRIDE
 // + MITRE ATLAS), and maturity assessment. Migrated from AgentGuard — only

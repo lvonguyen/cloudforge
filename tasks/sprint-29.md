@@ -112,7 +112,7 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 
 ### WS-7: Figma MCP Value Exploration
 - [DONE: session-28-parallel] **CLOSED — NOT WORTH IT**
-- Evaluated by parallel session. Verdict: Figma MCP integration does not add meaningful value for Cloud Aegis's use case (ops console, not component design system). SVG diagrams rendered via mmdc are sufficient. All 4 "missing" diagrams already exist as .mmd+.svg pairs (rendered session 27).
+- Evaluated by parallel session. Verdict: Figma MCP integration does not add meaningful value for CloudForge's use case (ops console, not component design system). SVG diagrams rendered via mmdc are sufficient. All 4 "missing" diagrams already exist as .mmd+.svg pairs (rendered session 27).
 - **Deliverable:** Decision recorded. No further action.
 
 ---
@@ -134,7 +134,7 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 
 ### WS-10: LLM Observability (Langfuse-style)
 - [ ] **UNCLAIMED**
-- Cloud Aegis has OTel but no LLM-specific tracing
+- CloudForge has OTel but no LLM-specific tracing
 - `RoutingProvider` already tracks `UsageStats` — expose via dashboard or Langfuse integration
 - Track: token counts per tier, latency, cost per request, cache hit rate
 - **Deliverable:** Dashboard component or Langfuse integration

@@ -14,7 +14,7 @@ Liem Vo-Nguyen
 
 ## Context
 
-Cloud Aegis manages infrastructure across AWS, Azure, and GCP where containerized workloads (EKS, AKS, GKE) constitute a significant attack surface. Container images may contain:
+CloudForge manages infrastructure across AWS, Azure, and GCP where containerized workloads (EKS, AKS, GKE) constitute a significant attack surface. Container images may contain:
 
 - Known CVEs in base images or application dependencies
 - Misconfigured K8s RBAC or pod security standards

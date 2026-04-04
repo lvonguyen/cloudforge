@@ -1,4 +1,4 @@
-# Cloud Aegis - FAANG L6 Executive One-Pager (Codex)
+# CloudForge - FAANG L6 Executive One-Pager (Codex)
 
 Date: 2026-03-13
 Reviewer: Codex CLI (automated)
@@ -74,7 +74,7 @@ Reviewer: Codex CLI (automated)
 
 ## 60-Second Interview Opening
 
-"Cloud Aegis is a portfolio-grade reference architecture that demonstrates how I lead cloud security programs end-to-end: assess gaps, design trade-offs, implement critical vertical slices, and provide a concrete production roadmap. I intentionally shipped hard controls first in auth, remediation safety, and GRC integration, and documented remaining controls with explicit ADR and threat-model traceability so teams can execute in phases with measurable risk reduction."
+"CloudForge is a portfolio-grade reference architecture that demonstrates how I lead cloud security programs end-to-end: assess gaps, design trade-offs, implement critical vertical slices, and provide a concrete production roadmap. I intentionally shipped hard controls first in auth, remediation safety, and GRC integration, and documented remaining controls with explicit ADR and threat-model traceability so teams can execute in phases with measurable risk reduction."
 
 ## Bottom Line
 

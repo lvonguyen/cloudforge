@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Based on:** ByteByteGo system design visual language + CLAUDE.md palette
-**Applies to:** All Cloud Aegis architecture diagrams (Figma + Mermaid SVG)
+**Applies to:** All CloudForge architecture diagrams (Figma + Mermaid SVG)
 
 ---
 
@@ -96,7 +96,7 @@
 | Inside node card (left) | 24x24px | Per-component icon (ByteByteGo standard) |
 | Standalone (diagram) | 48x48px | Hero/focal point icons |
 
-### Icon Mapping (Cloud Aegis)
+### Icon Mapping (CloudForge)
 
 | Component | Icon | Provider |
 |-----------|------|----------|
@@ -222,4 +222,4 @@ The Mermaid SVGs support CSS edge animation (`stroke-dasharray` + `@keyframes da
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0 | 2026-03-24 | Initial release — BBG style research + Cloud Aegis implementation |
+| 1.0 | 2026-03-24 | Initial release — BBG style research + CloudForge implementation |

@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-A primary programming language must be selected for Cloud Aegis that supports:
+A primary programming language must be selected for CloudForge that supports:
 - High-performance API services
 - Concurrent processing of security findings
 - Strong typing for complex compliance data structures

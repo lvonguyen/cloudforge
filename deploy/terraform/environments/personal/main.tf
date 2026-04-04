@@ -1,4 +1,4 @@
-# Cloud Aegis — Personal Demo Environment
+# CloudForge — Personal Demo Environment
 # STATUS: DECOMMISSIONED 2026-03-27. All resources destroyed.
 # This file is retained as architecture reference only. Do NOT run terraform apply.
 # Original target: lvn-personal (431330216246), us-east-1.

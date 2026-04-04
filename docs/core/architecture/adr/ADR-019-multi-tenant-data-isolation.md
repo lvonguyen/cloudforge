@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-Cloud Aegis supports multi-tenancy via a middleware layer that resolves the tenant from JWT claims, HTTP headers, or subdomain, and injects a `tenant.Config` into the request context. However, **no database query enforces tenant isolation**. All SQL queries operate without a `WHERE tenant_id = ?` filter, meaning:
+CloudForge supports multi-tenancy via a middleware layer that resolves the tenant from JWT claims, HTTP headers, or subdomain, and injects a `tenant.Config` into the request context. However, **no database query enforces tenant isolation**. All SQL queries operate without a `WHERE tenant_id = ?` filter, meaning:
 
 1. A compromised or misconfigured middleware allows full cross-tenant data access.
 2. Internal service calls that bypass HTTP middleware (background jobs, event handlers) have no tenant boundary.

@@ -1,4 +1,4 @@
-// Command server is the Cloud Aegis API server — the primary HTTP entry point
+// Command server is the CloudForge API server — the primary HTTP entry point
 // that registers all route handlers, middleware, and background workers.
 package main
 
@@ -729,12 +729,12 @@ func main() {
 	// Start server in goroutine
 	go func() {
 		if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
-			logger.Info("Cloud Aegis API server starting with TLS", zap.String("port", cfg.Port))
+			logger.Info("CloudForge API server starting with TLS", zap.String("port", cfg.Port))
 			if err := httpServer.ListenAndServeTLS(cfg.TLSCertFile, cfg.TLSKeyFile); err != nil && err != http.ErrServerClosed {
 				logger.Fatal("Server error", zap.Error(err))
 			}
 		} else {
-			logger.Warn("Cloud Aegis API server starting without TLS", zap.String("port", cfg.Port))
+			logger.Warn("CloudForge API server starting without TLS", zap.String("port", cfg.Port))
 			if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				logger.Fatal("Server error", zap.Error(err))
 			}

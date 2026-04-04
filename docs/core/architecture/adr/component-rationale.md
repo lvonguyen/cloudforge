@@ -5,7 +5,7 @@
 | Version | 1.0 |
 | Author | Liem Vo-Nguyen |
 | Date | January 2026 |
-| Project | Cloud Aegis |
+| Project | CloudForge |
 
 ---
 

@@ -20,7 +20,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo "[*] Cloud Aegis Deploy"
+echo "[*] CloudForge Deploy"
 echo "    Environment : ${ENV}"
 echo "    Provider    : ${PROVIDER}"
 echo "    Execute     : ${EXECUTE}"

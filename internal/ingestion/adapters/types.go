@@ -1,5 +1,5 @@
 // Package adapters provides scanner-specific parsers that normalise third-party
-// scan output (Prowler, Trivy, AWS Config) into Cloud Aegis's finding format.
+// scan output (Prowler, Trivy, AWS Config) into CloudForge's finding format.
 package adapters
 
 import (
@@ -14,7 +14,7 @@ type ScannerAdapter interface {
 }
 
 // NormalizedFinding is the scanner-agnostic finding representation produced by
-// each adapter. It maps 1:1 to Cloud Aegis's internal Finding schema.
+// each adapter. It maps 1:1 to CloudForge's internal Finding schema.
 type NormalizedFinding struct {
 	Title         string            `json:"title"`
 	Description   string            `json:"description"`

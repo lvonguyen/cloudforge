@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * aegis-seed.mjs — Unified finding seed generator for Cloud Aegis
+ * aegis-seed.mjs — Unified finding seed generator for CloudForge
  *
  * Merges real multi-cloud findings, deduplicates, sanitizes with 56-service
  * taxonomy, enriches with compliance/AI/MITRE data, and outputs the unified

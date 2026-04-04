@@ -24,7 +24,7 @@ type Config struct {
 }
 
 // NewProvider creates a GRC provider based on the given configuration.
-// This factory pattern allows Cloud Aegis to work with different GRC platforms
+// This factory pattern allows CloudForge to work with different GRC platforms
 // without changing the core business logic.
 func NewProvider(cfg Config) (GRCProvider, error) {
 	switch cfg.Type {

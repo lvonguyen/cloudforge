@@ -35,7 +35,7 @@ provider "cloudflare" {
 
 module "okta_spa" {
   source         = "../../modules/okta"
-  okta_app_label = "Cloud Aegis Demo"
+  okta_app_label = "CloudForge Demo"
 
   redirect_uris = [
     "https://cloudforge.lvonguyen.com/callback",
@@ -60,7 +60,7 @@ module "cloudflare_pages" {
   build_root_dir          = ""
 
   env_vars = {
-    VITE_PRODUCT_NAME    = "Cloud Aegis"
+    VITE_PRODUCT_NAME    = "CloudForge"
     VITE_COMPANY_NAME    = "Contoso"
     VITE_STORAGE_PREFIX  = "aegis"
     VITE_ENABLED_MODULES = "aegis,cspm-aggregator"

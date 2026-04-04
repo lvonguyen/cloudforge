@@ -1,4 +1,4 @@
-# Contributing to Cloud Aegis
+# Contributing to CloudForge
 
 ## Development Setup
 

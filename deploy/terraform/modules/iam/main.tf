@@ -14,7 +14,7 @@ locals {
 resource "google_service_account" "app" {
   count        = var.cloud_provider == "gcp" ? 1 : 0
   account_id   = "${var.project_name}-${var.environment}-app"
-  display_name = "Cloud Aegis ${var.environment} application service account"
+  display_name = "CloudForge ${var.environment} application service account"
 }
 
 resource "google_project_iam_member" "app_roles" {
@@ -27,7 +27,7 @@ resource "google_project_iam_member" "app_roles" {
 resource "google_service_account" "cost_reader" {
   count        = var.cloud_provider == "gcp" && var.enable_finops ? 1 : 0
   account_id   = "${var.project_name}-${var.environment}-finops"
-  display_name = "Cloud Aegis ${var.environment} FinOps cost reader"
+  display_name = "CloudForge ${var.environment} FinOps cost reader"
 }
 
 resource "google_project_iam_member" "cost_reader" {

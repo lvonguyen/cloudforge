@@ -180,8 +180,8 @@ const CBUS = {
 - nx-bc-azure-asr: Azure Site Recovery (cloud)
 - nx-bc-backup-vault: Cross-Region Backup Vault (cloud)
 
-**Cloud Aegis Platform (self)**
-- nx-aegis-api: Cloud Aegis API Gateway (cloud)
+**CloudForge Platform (self)**
+- nx-aegis-api: CloudForge API Gateway (cloud)
 - nx-aegis-opa: Aegis OPA Policy Engine (cloud)
 - nx-aegis-ingest: Findings Ingestion Pipeline (cloud)
 - nx-aegis-webapp: Aegis Web Console (saas/cloudflare)

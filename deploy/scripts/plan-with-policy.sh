@@ -43,7 +43,7 @@ for tool in terraform conftest jq; do
     fi
 done
 
-echo "[*] Cloud Aegis Policy-Gated Plan"
+echo "[*] CloudForge Policy-Gated Plan"
 echo "    Environment : ${ENV}"
 echo "    Provider    : ${PROVIDER}"
 echo "    Policy dir  : ${POLICY_DIR}"
@@ -94,7 +94,7 @@ else
     echo ""
     echo "    Common remediation paths:"
     echo "    - SECURITY-*: Review encryption/public IP/TLS settings in module variables"
-    echo "    - COST-*:     Downsize instance type or submit exception via Cloud Aegis UI"
+    echo "    - COST-*:     Downsize instance type or submit exception via CloudForge UI"
     echo "    - NAMING-*:   Ensure resource names follow {project}-{env}-{service}"
     echo "    - NETWORK-*:  Restrict security group CIDRs; move databases to private subnets"
     echo "    - AI-GOV-*:   Set AI_MODEL to approved model; add observability env vars"

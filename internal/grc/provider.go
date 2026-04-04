@@ -1,5 +1,5 @@
 // Package grc provides abstraction layer for GRC (Governance, Risk, Compliance) platform integrations.
-// This allows Cloud Aegis to work with various enterprise GRC tools like RSA Archer, ServiceNow GRC,
+// This allows CloudForge to work with various enterprise GRC tools like RSA Archer, ServiceNow GRC,
 // or a simple PostgreSQL-based solution for smaller organizations.
 package grc
 

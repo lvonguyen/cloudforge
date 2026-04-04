@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Cloud Aegis are documented in this file.
+All notable changes to CloudForge are documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
@@ -10,12 +10,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Relicensed CloudForge from MIT to Apache License 2.0 and added a project NOTICE file
 - **Sprint O**: Finding-detail analyst workspaces — dedicated attack path and security graph investigation surfaces, nested directly under `FindingDetail`, with remediation/investigation workflow polish and keyboard navigation
 - **Sprint O**: Global theme controls — explicit light/dark/auto mode support across the ops UI
 - **Sprint O**: Remediation integration parity — durable finding-ticket persistence, provider selection / assignee controls, webhook-driven ticket refresh, Jira comment readback, and `/api/v1/providers` integration-readiness reporting
 - **Sprint O**: D19 operator preflight — `scripts/fly-findings-seed-preflight.mjs` plus an explicit Fly/Postgres full-seed runbook
 - **Sprint K**: ADR-016 (Container Scanning Architecture), ADR-017 (Secrets Management), ADR-018 (Threat Intelligence Feeds) — 18 ADRs total
-- **Sprint K**: Documentation overhaul — docs reorg into `docs/core/`, `docs/research/`, `docs/archive/`; Mermaid syntax fixes; CloudForge-to-Cloud Aegis rename in HLD and DR-BC
+- **Sprint K**: Documentation overhaul — docs reorg into `docs/core/`, `docs/research/`, `docs/archive/`; Mermaid syntax fixes; CloudForge-to-CloudForge rename in HLD and DR-BC
 - **Sprint K**: DR-BC v2.1 — updated branding, deployment tier naming refresh
 - **Sprint K**: Diagrams README updated with architecture.mmd source reference
 - **Sprint K**: Runbook and component-rationale branding updates
@@ -28,7 +29,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Sprint O**: Attack-path analysis surfaces now carry richer analyst context instead of relying only on the older standalone graph treatment
 - **Sprint O**: Deployment checklist, Fly runbook, and `make migrate` now reflect the real ordered Postgres migration + seed workflow for D19
 - **Sprint K**: README updated — 18 ADR count, corrected test counts (1,474 Go / 420+ frontend / 51 test files), updated docs tree structure
-- **Sprint K**: HLD v3.0 ADR cross-reference updated (14 -> 18 ADRs), title renamed to Cloud Aegis
+- **Sprint K**: HLD v3.0 ADR cross-reference updated (14 -> 18 ADRs), title renamed to CloudForge
 - **Sprint K**: risk-intelligence-pipeline.mmd — fixed node/subgraph ID collision for mermaid v10+ compatibility
 - **Sprint K**: Diagrams README — added architecture.mmd as source for architecture.svg
 
@@ -60,7 +61,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- Renamed CloudForge to Cloud Aegis across README, ADRs, and frontend README (Sprint N+6)
+- Renamed CloudForge to CloudForge across README, ADRs, and frontend README (Sprint N+6)
 - Custom domain updated to cloudforge.lvonguyen.com (Sprint N+6)
 
 ### Added (prior sprints)
@@ -241,7 +242,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - STRIDE + ATLAS threat models — structured threat modeling structs per registered agent type
 - Maturity assessment — governance readiness scoring across 5 maturity dimensions
 - AI governance OPA policies — example YAML policies for tool access and data-flow control (`internal/ai-governance/policies/examples/`)
-- MIT License
+- MIT License (initial licensing before Apache 2.0 relicense)
 
 ### Fixed
 

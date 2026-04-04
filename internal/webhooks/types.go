@@ -1,4 +1,4 @@
-// Package webhooks provides an outbound webhook delivery engine for Cloud Aegis events.
+// Package webhooks provides an outbound webhook delivery engine for CloudForge events.
 package webhooks
 
 import "time"

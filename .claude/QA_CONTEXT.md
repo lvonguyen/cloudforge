@@ -1,4 +1,4 @@
-# Cloud Aegis QA Context
+# CloudForge QA Context
 
 ## Application URL
 http://localhost:5173/
@@ -82,6 +82,6 @@ Three roles available via header dropdown (RoleSwitcher component, dev mode).
 
 ## Rename Validation (2026-03-18)
 - Verify NO "CloudForge" text appears in any UI element (nav, headings, footer, title bar)
-- Verify "Cloud Aegis" appears where product name is expected
+- Verify "CloudForge" appears where product name is expected
 - Verify logo loads from /icons/aegis-logo.svg
 - Verify sessionStorage keys use "aegis_" prefix (not "cloudforge_")

@@ -13,7 +13,7 @@ Three projects need real-time event streaming with overlapping requirements but 
 
 | Project | Current Implementation | Pain Point |
 |---------|----------------------|------------|
-| **Cloud Aegis** | `useDeployPreview` — client-side `setTimeout` simulation | No real backend stream; ExecutionTracePanel can't show live remediation or agent trace data |
+| **CloudForge** | `useDeployPreview` — client-side `setTimeout` simulation | No real backend stream; ExecutionTracePanel can't show live remediation or agent trace data |
 | **lvn-clopusgotchi** | `StreamServer` (TS) + `SyncMCPClient` (TS→Go) | Two independent SSE paths with independent reconnection chains; 100+ LOC manual SSE parser; cold-start stale window |
 | **Stellar AIO** | Not yet built | Needs broadcast-by-topic for real-time collaboration |
 
@@ -23,7 +23,7 @@ Each project has built (or will build) its own connection management, heartbeat,
 
 ## 2. Consumers & Their Needs
 
-### 2.1 Cloud Aegis — Execution Trace Streaming
+### 2.1 CloudForge — Execution Trace Streaming
 
 **Current state:** `TracePanelProvider` (React context) drives `ExecutionTracePanel` with three modes:
 - `streaming` — fed by `useDeployPreview` which simulates events via `setTimeout`
@@ -171,7 +171,7 @@ type Authenticator interface {
 
 | Strategy | Use Case | Implementation |
 |----------|----------|----------------|
-| **JWT Bearer** | Cloud Aegis API, Stellar | `Authorization: Bearer <token>` header on WS upgrade |
+| **JWT Bearer** | CloudForge API, Stellar | `Authorization: Bearer <token>` header on WS upgrade |
 | **Ticket** | Clopusgotchi (EventSource can't set headers) | `POST /api/session/ticket` → 60s nonce → `?ticket=<nonce>` on connect |
 | **API Key** | Service-to-service (sync-mcp↔daemon) | `?token=<key>` query param |
 | **None** | Development / localhost | Configurable bypass |
@@ -209,7 +209,7 @@ Client                          Hub                           Room
 
 ### 3.5 SSE Transport
 
-SSE uses the same `Room` model as WS but over `text/event-stream`. This is Cloud Aegis's most practical first integration — `ExecutionTracePanel` already consumes a stream of `DeployEvent` objects, and SSE maps directly to `EventSource` in the browser.
+SSE uses the same `Room` model as WS but over `text/event-stream`. This is CloudForge's most practical first integration — `ExecutionTracePanel` already consumes a stream of `DeployEvent` objects, and SSE maps directly to `EventSource` in the browser.
 
 ```go
 // SSE handler — shares rooms with WS connections
@@ -223,7 +223,7 @@ func (h *Hub) ServeSSE(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-**D12 prerequisite:** `gzipResponseWriter` in Cloud Aegis's middleware.go must implement:
+**D12 prerequisite:** `gzipResponseWriter` in CloudForge's middleware.go must implement:
 ```go
 func (w *gzipResponseWriter) Flush() {
     if f, ok := w.Writer.(http.Flusher); ok { f.Flush() }
@@ -272,7 +272,7 @@ func (c *Conn) write(data []byte) {
 
 ## 4. Integration Plan by Consumer
 
-### 4.1 Cloud Aegis (highest value — unblocks ExecutionTracePanel)
+### 4.1 CloudForge (highest value — unblocks ExecutionTracePanel)
 
 **Phase 1: SSE endpoint (no wskit dependency)**
 1. Fix D12: add `Flush()` + `Hijack()` to `gzipResponseWriter`
@@ -281,7 +281,7 @@ func (c *Conn) write(data []byte) {
 4. Replace `useDeployPreview` setTimeout chain with real SSE events
 
 **Phase 2: wskit adoption**
-1. Import `pkg/wskit` into Cloud Aegis's `go.mod`
+1. Import `pkg/wskit` into CloudForge's `go.mod`
 2. Replace hand-rolled SSE endpoint with `hub.ServeSSE()`
 3. Add WS endpoint alongside SSE for bidirectional use cases (terminal, AI chat)
 
@@ -341,9 +341,9 @@ id: evt-042
 ```
 {domain}:{scope}
 
-deploy:{executionId}     — Cloud Aegis deploy preview
-trace:{agentId}          — Cloud Aegis agent traces
-remediation:{findingId}  — Cloud Aegis remediation progress
+deploy:{executionId}     — CloudForge deploy preview
+trace:{agentId}          — CloudForge agent traces
+remediation:{findingId}  — CloudForge remediation progress
 sync:{repoPath}          — Clopusgotchi sync-mcp events
 agent:{agentId}          — Clopusgotchi agent registry
 ci:{repoPath}            — Clopusgotchi CI events
@@ -378,7 +378,7 @@ function useChannel(channel: string, opts?: { transport?: "sse" | "ws" }): {
 ```
 pkg/wskit (Go library, zero external deps beyond nhooyr.io/websocket)
     │
-    ├── Cloud Aegis cmd/server
+    ├── CloudForge cmd/server
     │     └── SSE endpoint → TracePanelProvider.appendEvent
     │
     ├── sync-mcp (shared/tools/sync-mcp)
@@ -397,7 +397,7 @@ pkg/wskit (Go library, zero external deps beyond nhooyr.io/websocket)
 
 | Feature | Reason to defer |
 |---------|-----------------|
-| `router.go` (JSON message dispatcher) | Stellar uses broadcast, Cloud Aegis SSE is unidirectional — no routing needed yet |
+| `router.go` (JSON message dispatcher) | Stellar uses broadcast, CloudForge SSE is unidirectional — no routing needed yet |
 | Message persistence / replay beyond in-memory ring buffer | sync-mcp has SQLite for durable events; wskit handles ephemeral streams |
 | Multi-node hub (Redis pub/sub) | All consumers are single-instance today |
 | Binary protocol (protobuf/msgpack) | JSON is fine at current event volumes (<100/s) |
@@ -414,7 +414,7 @@ pkg/wskit (Go library, zero external deps beyond nhooyr.io/websocket)
 | 3 | Heartbeat reaps dead connections | Unit test: client stops responding to pings, reaped after `MaxMissed` |
 | 4 | Backpressure evicts slow clients | Unit test: slow consumer evicted after 5 buffer-full signals |
 | 5 | JWT + Ticket auth both work | Integration test: valid/invalid tokens, expired tickets |
-| 6 | Cloud Aegis SSE endpoint streams deploy events | E2E: trigger deploy preview, verify `EventSource` receives events in order |
+| 6 | CloudForge SSE endpoint streams deploy events | E2E: trigger deploy preview, verify `EventSource` receives events in order |
 | 7 | D12 gzip fix doesn't break existing responses | Regression: all existing API tests pass with gzip enabled |
 | 8 | Clopusgotchi WS replaces SyncMCPClient SSE | Integration: daemon connects to sync-mcp via WS, receives events without manual parsing |
 | 9 | Cold-start reconnect < 3s (was 3-60s) | Timed test: restart sync-mcp, measure time until daemon receives first event |
@@ -425,16 +425,16 @@ pkg/wskit (Go library, zero external deps beyond nhooyr.io/websocket)
 
 | Phase | Work | Depends On | Consumer |
 |-------|------|------------|----------|
-| **0** | Fix D12 (`gzipResponseWriter` Flush/Hijack) | — | Cloud Aegis |
+| **0** | Fix D12 (`gzipResponseWriter` Flush/Hijack) | — | CloudForge |
 | **1** | `pkg/wskit/server.go` + `room.go` + `heartbeat.go` + `auth.go` | — | All |
-| **2** | `pkg/wskit/sse.go` | Phase 1 | Cloud Aegis |
-| **3** | Cloud Aegis SSE endpoint + `useChannel` hook | Phase 0 + 2 | Cloud Aegis |
+| **2** | `pkg/wskit/sse.go` | Phase 1 | CloudForge |
+| **3** | CloudForge SSE endpoint + `useChannel` hook | Phase 0 + 2 | CloudForge |
 | **4** | `pkg/wskit/client.go` | Phase 1 | Clopusgotchi |
 | **5** | sync-mcp WS hub + daemon migration | Phase 4 | Clopusgotchi |
 | **6** | `internal/stellar/handler.go` | Phase 1 | Stellar |
 | **7** | `pkg/wskit/message.go` (envelope, serialization) | Phase 1 | All |
 
-Phases 0-2 are Cloud Aegis-critical. Phases 4-5 are medium priority (do when sync-mcp gets its next touch). Phase 6 is greenfield (Stellar timeline).
+Phases 0-2 are CloudForge-critical. Phases 4-5 are medium priority (do when sync-mcp gets its next touch). Phase 6 is greenfield (Stellar timeline).
 
 ---
 
@@ -443,6 +443,6 @@ Phases 0-2 are Cloud Aegis-critical. Phases 4-5 are medium priority (do when syn
 | Document | Description |
 |----------|-------------|
 | [Terminal VPS Brief](./terminal-vps-brief.md) | WS terminal server on shared VPS (Node.js, port 8088) |
-| [HLD](./HLD.md) | Cloud Aegis high-level architecture |
+| [HLD](./HLD.md) | CloudForge high-level architecture |
 | [ADR-014](adr/ADR-014-event-driven-ingestion.md) | Event-driven ingestion (Accepted) |
 | sync-mcp README | Go MCP server with SSE event bus |

@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-Cloud Aegis needs to support whitelabel deployment for MSP (Managed Security Provider) customers who resell the platform under their own brand. This requires configurable branding without forking the codebase.
+CloudForge needs to support whitelabel deployment for MSP (Managed Security Provider) customers who resell the platform under their own brand. This requires configurable branding without forking the codebase.
 
 The platform already has:
 - A React 19 SPA deployed to Cloudflare Pages
@@ -35,8 +35,8 @@ All branding values are read from environment variables at build time:
 ```typescript
 // frontend/src/lib/branding.ts
 export const branding = {
-  companyName: import.meta.env.VITE_COMPANY_NAME || 'Cloud Aegis',
-  productName: import.meta.env.VITE_PRODUCT_NAME || 'Cloud Aegis',
+  companyName: import.meta.env.VITE_COMPANY_NAME || 'CloudForge',
+  productName: import.meta.env.VITE_PRODUCT_NAME || 'CloudForge',
   tagline: import.meta.env.VITE_TAGLINE || 'Enterprise Cloud Governance',
   // ...
 }

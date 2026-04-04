@@ -1,17 +1,17 @@
 # CloudForge
 
 ![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-Apache_2.0-blue)
 ![Development Status](https://img.shields.io/badge/status-active%20development-blue)
 ![Implementation](https://img.shields.io/badge/implementation-92%25-blue)
 
 ## Enterprise Cloud Governance Platform with Self-Service Provisioning
 
-CloudForge is a reference architecture and implementation for an Internal Developer Platform (IDP) that enables self-service cloud resource provisioning with built-in governance, compliance guardrails, and exception management workflows.
+CloudForge is an open reference implementation for an Internal Developer Platform (IDP) that enables self-service cloud resource provisioning with built-in governance, compliance guardrails, and exception management workflows.
 
 > **[Live Demo](https://cloudforge.lvonguyen.com)** | **[API](https://api.cloudforge.lvonguyen.com/health)**
 
-> **About this project** — CloudForge demonstrates enterprise security patterns designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains. The approach is project-based: assess current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — working systems backed by threat models and ADRs (the [21 ADRs](docs/core/architecture/adr/) capture the decision-making process used to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. The core discipline is security-focused systems design, with agentic coding workflows (Claude Code) as a force multiplier for delivery.
+> **About this project** — CloudForge demonstrates enterprise security patterns designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains. The approach is project-based: assess current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — working systems backed by threat models and ADRs (the [21 ADRs](docs/core/architecture/adr/) capture the decision-making process used to brief a CISO or engineering VP). It is an **open reference implementation with production-oriented slices**, not a turnkey SaaS offering — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others remain intentionally documented stubs that show the target design. The core discipline is security-focused systems design, with agentic coding workflows (Claude Code) as a force multiplier for delivery.
 >
 > **Development rigor** — Code quality is enforced through a layered toolchain: `golangci-lint` with `gosec`/`gocritic`/`revive` in CI, shared coding standards governing Go patterns, error handling, and security rules across all repos, pre-commit hooks blocking credential leaks, and systematic multi-pass QA reviews (quality, security, bug discovery) before merge. The emphasis is on elegant, maintainable code paired with comprehensive documentation and detailed architecture diagrams — minimizing tech debt throughout the SDLC rather than accruing it for later.
 
@@ -146,7 +146,7 @@ CloudForge is a reference architecture and implementation for an Internal Develo
 
 ## [!] Known Limitations
 
-This is a **platform reference implementation**, not production software:
+This is an **open reference implementation**, not a turnkey production deployment:
 
 1. **Temporal Workflows** — In-memory workflow engine is wired (list, get, submit handlers); Temporal orchestration layer planned but not connected
 2. **Stub Packages** — RSA Archer GRC (interface only, all methods return error; ServiceNow demonstrates the full pattern), secrets (intentional no-op), waf, identity modules have interfaces and mock implementations but no production wiring
@@ -185,7 +185,7 @@ CloudForge bridges these needs with a unified platform that provides:
 
 ```mermaid
 flowchart TD
-    Portal["Portal — React 19 / Vite 7"] --> API["API Server — Go 1.25 / 89+ endpoints"]
+    Portal["Portal — React 19 / Vite 7"] --> API["API Server — Go 1.25 / 91 operations"]
     API --> Core["Core Engines\nCSPM · Remediation · Attack Path · SecGraph · ASM"]
     Core --> Intel["Risk Intelligence\nEPSS · GreyNoise · HIBP · OTX · KEV"]
     Core --> Policy["Policy Engine — OPA / Rego"]
@@ -206,7 +206,13 @@ flowchart TD
     style Graph fill:#8b5cf6,color:#fff,stroke:#6d28d9
 ```
 
-> [Detailed architecture diagram](docs/core/diagrams/architecture-figma.png) with all 42 component nodes across 9 tiers
+<p align="center">
+  <a href="docs/core/diagrams/architecture-figma.png">
+    <img src="docs/core/diagrams/architecture-figma.png" alt="CloudForge Architecture — 42 component nodes across 9 tiers" width="100%">
+  </a>
+</p>
+
+> Click the diagram to view full-size. [Mermaid source](docs/core/diagrams/architecture.mmd) | [All diagrams](docs/core/diagrams/)
 
 ---
 
@@ -344,9 +350,11 @@ Pluggable providers for enterprise GRC platforms:
 - **Deploy scripts** — dry-run-by-default deployment with policy violation gate and human-readable remediation guidance
 - **Container images** — multi-stage Dockerfiles for frontend (nginx + SPA routing) and backend (Go + healthcheck)
 
-<a href="docs/core/diagrams/dual-opa-architecture-figma.png">
-  <img src="docs/core/diagrams/dual-opa-architecture-figma.png" alt="Dual-OPA Architecture">
-</a>
+<p align="center">
+  <a href="docs/core/diagrams/dual-opa-architecture-figma.png">
+    <img src="docs/core/diagrams/dual-opa-architecture-figma.png" alt="Dual-OPA Architecture — cloud provisioning (HTTP) vs AI governance (embedded)" width="100%">
+  </a>
+</p>
 
 ### Risk Intelligence
 
@@ -636,7 +644,7 @@ Built-in support for 20+ frameworks:
 
 ## [*] License
 
-MIT License - See [LICENSE](LICENSE)
+Apache License 2.0 - See [LICENSE](LICENSE) and [NOTICE](NOTICE)
 
 ---
 
@@ -646,4 +654,4 @@ Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
 
 ---
 
-**Note:** This is a reference architecture demonstrating enterprise cloud governance patterns. Production deployments require additional hardening, testing, and customization for your organization's specific requirements.
+**Note:** CloudForge is an open reference implementation for enterprise cloud governance patterns. Production deployments still require additional hardening, testing, and customization for your organization's specific requirements.

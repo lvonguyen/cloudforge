@@ -15,7 +15,7 @@ func TestMemoryStore_Upsert_and_Get(t *testing.T) {
 		Name: "Contoso Inc.",
 		Branding: Branding{
 			CompanyName: "Contoso",
-			ProductName: "Cloud Aegis",
+			ProductName: "CloudForge",
 			EmailDomain: "contoso.dev",
 		},
 		EnabledModules: []string{"aegis", "cspm-aggregator"},

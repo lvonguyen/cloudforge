@@ -103,7 +103,7 @@ func ScopeGuard() func(http.Handler) http.Handler {
 	}
 }
 
-// Role represents a Cloud Aegis authorization role.
+// Role represents a CloudForge authorization role.
 type Role string
 
 const (

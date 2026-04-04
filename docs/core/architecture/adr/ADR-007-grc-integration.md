@@ -5,7 +5,7 @@ Accepted
 
 ## Context
 
-Cloud Aegis needs to integrate with enterprise GRC (Governance, Risk, Compliance) platforms to manage policy exceptions. When users request cloud resources that violate policy (e.g., unapproved region, oversized instance), they must submit exception requests that go through a risk assessment and approval workflow.
+CloudForge needs to integrate with enterprise GRC (Governance, Risk, Compliance) platforms to manage policy exceptions. When users request cloud resources that violate policy (e.g., unapproved region, oversized instance), they must submit exception requests that go through a risk assessment and approval workflow.
 
 Different organizations use different GRC tools:
 - **RSA Archer** - Common in large enterprises, especially financial services
@@ -16,7 +16,7 @@ The architecture must:
 1. Support multiple GRC backends
 2. Allow organizations to swap providers without code changes
 3. Provide a fallback for orgs without enterprise GRC
-4. Maintain a consistent API for the rest of Cloud Aegis
+4. Maintain a consistent API for the rest of CloudForge
 
 ## Decision
 
@@ -77,7 +77,7 @@ grc:
 - **Flexibility**: Organizations can use their existing GRC tools
 - **Testability**: In-memory provider enables fast unit/integration tests
 - **Gradual adoption**: Start with Postgres, migrate to enterprise GRC later
-- **Consistent API**: Core Cloud Aegis code doesn't change regardless of GRC backend
+- **Consistent API**: Core CloudForge code doesn't change regardless of GRC backend
 
 ### Negative
 
@@ -89,7 +89,7 @@ grc:
 
 - **Archer field IDs**: RSA Archer uses numeric field IDs that vary per installation. Implementation requires per-deployment configuration.
 - **ServiceNow customization**: ServiceNow GRC module can be heavily customized. May need org-specific adapters.
-- **Sync issues**: If exception status changes in GRC tool outside Cloud Aegis, reconciliation is required.
+- **Sync issues**: If exception status changes in GRC tool outside CloudForge, reconciliation is required.
 
 ## Alternatives Considered
 
@@ -99,7 +99,7 @@ Build only for one GRC platform (e.g., ServiceNow).
 **Rejected because**: Limits addressable market, no option for orgs without enterprise GRC.
 
 ### 2. Webhook-Based Integration
-GRC tools call Cloud Aegis webhooks on status changes.
+GRC tools call CloudForge webhooks on status changes.
 
 **Partially adopted**: This could complement the provider pattern for real-time sync, but doesn't replace the need to create/query exceptions.
 

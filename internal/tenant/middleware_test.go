@@ -19,7 +19,7 @@ func seedStore(t *testing.T) Store {
 		Name: "Contoso Inc.",
 		Branding: Branding{
 			CompanyName:  "Contoso Inc.",
-			ProductName:  "Cloud Aegis",
+			ProductName:  "CloudForge",
 			LogoPath:     "/logo.svg",
 			PrimaryColor: "#f59e0b",
 		},

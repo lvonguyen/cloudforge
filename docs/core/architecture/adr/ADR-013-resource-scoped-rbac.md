@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-Cloud Aegis implements role-based access control (RBAC) with four roles: `admin`, `operator`, `requester`, and `viewer`. This model works for small teams (5-10 users) but breaks down at enterprise scale (100+ operators across multiple business units).
+CloudForge implements role-based access control (RBAC) with four roles: `admin`, `operator`, `requester`, and `viewer`. This model works for small teams (5-10 users) but breaks down at enterprise scale (100+ operators across multiple business units).
 
 ### Current RBAC Model
 
@@ -250,7 +250,7 @@ Store access control list (ACL) per finding: `{"finding_id": "123", "allowed_use
 - ACL management UI needed
 - Doesn't scale: 1M findings × 10 users/finding = 10M ACL rows
 
-**Rejected because**: Too granular for the Cloud Aegis use case (business unit scoping is sufficient).
+**Rejected because**: Too granular for the CloudForge use case (business unit scoping is sufficient).
 
 ---
 

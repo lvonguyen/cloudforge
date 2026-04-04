@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Cloud Aegis API server
+  # CloudForge API server
   api:
     build: .
     ports:

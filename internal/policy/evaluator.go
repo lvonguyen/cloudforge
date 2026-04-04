@@ -1,4 +1,4 @@
-// Package policy provides OPA policy evaluation for Cloud Aegis
+// Package policy provides OPA policy evaluation for CloudForge
 package policy
 
 import (

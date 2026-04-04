@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers incident detection, triage, mitigation, and resolution for Cloud Aegis production issues.
+This runbook covers incident detection, triage, mitigation, and resolution for CloudForge production issues.
 
 ## Incident Classification
 

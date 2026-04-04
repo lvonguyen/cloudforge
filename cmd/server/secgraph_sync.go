@@ -132,7 +132,7 @@ func (d *secgraphTicketDispatcher) Dispatch(ctx context.Context, issue *secgraph
 	dueDate := decision.SLADeadline(time.Now().UTC())
 	ticket, err := d.provider.CreateTicket(ctx, integrations.CreateTicketRequest{
 		FindingID:   issue.ID,
-		Title:       fmt.Sprintf("[Cloud Aegis] Remediate issue %s", issue.ID),
+		Title:       fmt.Sprintf("[CloudForge] Remediate issue %s", issue.ID),
 		Description: buildSecgraphIssueTicketDescription(*issue, decision),
 		Priority:    decision.Priority,
 		Assignee:    issue.AssigneeID,

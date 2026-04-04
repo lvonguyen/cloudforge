@@ -8,7 +8,7 @@
 
 ## Context
 
-Cloud Aegis today has three disconnected layers that each touch "graph" concepts:
+CloudForge today has three disconnected layers that each touch "graph" concepts:
 
 1. **Heuristic attack paths** (`cmd/server/attackpath.go`) — in-memory BFS over flat finding lists. Edges are inferred from co-location (same account + region/resource-type = reachable). No actual infrastructure topology.
 2. **PuppyGraph query proxy** (`internal/graph/client.go`, `handlers_graph.go`) — generic read-only Gremlin/Cypher pass-through. Schema has 3 vertex types (finding, resource, compliance_framework) and 2 edge types (affects, maps_to).

@@ -1,5 +1,5 @@
 output "api_url" {
-  description = "Cloud Aegis API service URL"
+  description = "CloudForge API service URL"
   value       = module.aegis_api.service_url
 }
 

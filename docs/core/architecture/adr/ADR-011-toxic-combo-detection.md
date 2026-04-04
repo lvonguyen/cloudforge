@@ -12,7 +12,7 @@ Accepted
 
 Individual security findings often appear low-severity in isolation but become critical when combined. For example, a public S3 bucket (medium) combined with sensitive data classification (low) creates a data breach risk (critical). Industry-standard CSPM platforms (including GCP SCC v2) have adopted "toxic combination" detection as a core capability.
 
-Cloud Aegis already has:
+CloudForge already has:
 - Finding normalization across AWS/Azure/GCP
 - Attack path computation with BFS traversal
 - Per-finding severity scoring with AI enrichment
