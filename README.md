@@ -1,4 +1,4 @@
-# Aegis
+# CloudForge
 
 ![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -7,11 +7,11 @@
 
 ## Enterprise Cloud Governance Platform with Self-Service Provisioning
 
-Aegis is a reference architecture and implementation for an Internal Developer Platform (IDP) that enables self-service cloud resource provisioning with built-in governance, compliance guardrails, and exception management workflows.
+CloudForge is a reference architecture and implementation for an Internal Developer Platform (IDP) that enables self-service cloud resource provisioning with built-in governance, compliance guardrails, and exception management workflows.
 
 > **[Live Demo](https://cloudforge.lvonguyen.com)** | **[API](https://api.cloudforge.lvonguyen.com/health)**
 
-> **About this project** — Aegis demonstrates enterprise security patterns designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains. The approach is project-based: assess current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — working systems backed by threat models and ADRs (the [20 ADRs](docs/core/architecture/adr/) capture the decision-making process used to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. The core discipline is security-focused systems design, with agentic coding workflows (Claude Code) as a force multiplier for delivery.
+> **About this project** — CloudForge demonstrates enterprise security patterns designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains. The approach is project-based: assess current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — working systems backed by threat models and ADRs (the [21 ADRs](docs/core/architecture/adr/) capture the decision-making process used to brief a CISO or engineering VP). It is a **portfolio-grade reference architecture**, not a production SaaS product — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others are architectural stubs that document the design intent. The core discipline is security-focused systems design, with agentic coding workflows (Claude Code) as a force multiplier for delivery.
 >
 > **Development rigor** — Code quality is enforced through a layered toolchain: `golangci-lint` with `gosec`/`gocritic`/`revive` in CI, shared coding standards governing Go patterns, error handling, and security rules across all repos, pre-commit hooks blocking credential leaks, and systematic multi-pass QA reviews (quality, security, bug discovery) before merge. The emphasis is on elegant, maintainable code paired with comprehensive documentation and detailed architecture diagrams — minimizing tech debt throughout the SDLC rather than accruing it for later.
 
@@ -73,7 +73,7 @@ Aegis is a reference architecture and implementation for an Internal Developer P
 | Rate limiting | Done | Redis-backed, tier-based, wired into `/api/v1` routes |
 | JWT authentication | Done | HS256/RS256 validation, JWKS caching, wired into router |
 | JWT token validation | Done | HS256/RS256 validation, JWKS caching, wired into router |
-| OIDC login flow | Not implemented | Requires Okta/Entra app configuration; no authorization code flow or callback handler |
+| OIDC login flow | Partial | Frontend owns the Okta SPA PKCE `/callback` flow; backend validates bearer JWTs via HS256 or JWKS. No backend BFF authorize/callback routes today |
 | Authorization (RBAC) | Done | Role-based middleware (admin/operator/requester), dev header override with enum validation |
 | **IaC / Deploy** | | |
 | Terraform modules (compute) | Done | Cloud Run + ECS Fargate + Azure Container Apps |
@@ -98,7 +98,7 @@ Aegis is a reference architecture and implementation for an Internal Developer P
 | CISA KEV catalog | Done | In-memory catalog with auto-refresh from CISA feed |
 | GreyNoise integration | Done | HTTP client with 12h cache, classification enrichment; API key provisioned in 1Password |
 | **Testing** | | |
-| Unit tests | Passing | ~61 Go packages (~1,550 tests incl. subtests), 469 frontend tests (61 test files), 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
+| Unit tests | Passing | ~61 Go packages (~1,550 tests incl. subtests), 476 frontend tests (62 test files), 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
 | Integration tests | Done | 12-step server lifecycle + 34-subtest RBAC authorization matrix (`go test -tags=integration`) |
 
 ### Package Maturity
@@ -138,7 +138,7 @@ Aegis is a reference architecture and implementation for an Internal Developer P
 | ------ | ----- |
 | Go packages | ~61 (all passing with `-race`) |
 | Go tests | ~1,550 (incl. subtests) |
-| Frontend tests | 469 (61 test files) |
+| Frontend tests | 476 (62 test files) |
 | Benchmarks | 8 |
 | CI checks | 8 (lint, gosec, Trivy, vitest, npm audit, integration, Codecov, Lighthouse) |
 | Coverage thresholds | v8 lines: 70%, functions: 75%, branches: 65% (configured in frontend Vitest) |
@@ -152,11 +152,11 @@ This is a **platform reference implementation**, not production software:
 2. **Stub Packages** — RSA Archer GRC (interface only, all methods return error; ServiceNow demonstrates the full pattern), secrets (intentional no-op), waf, identity modules have interfaces and mock implementations but no production wiring
 3. **RoleViewer** — `RoleViewer` (rank 0) is implemented with read-only surface (`/findings`, `/compliance/frameworks`, `/agents` + traces); fine-grained per-resource viewer scoping is not yet enforced
 4. **Visual QA Residuals** — Core prod flows now pass live browser checks (landing, findings, investigations, attack paths, finding security graph). Remaining work is polish and broader route coverage, not basic operability.
-5. **OIDC Auth Flow** — JWT middleware is production-ready (HS256/RS256, JWKS); Okta JWKS URL auto-derives from `OKTA_DOMAIN` env var. Full SSO login flow requires Okta app configuration.
+5. **OIDC Auth Flow** — The frontend already implements an Okta SPA PKCE `/callback` flow. The backend validates bearer JWTs (HS256 demo/static tokens or RS256 via JWKS) but does not host server-managed authorize/callback routes, refresh-token storage, or session cookies.
 
 **Production Requirements:**
 
-- Wire Okta/Entra ID OIDC application for full SSO login flow
+- Decide via [ADR-021](docs/core/architecture/adr/ADR-021-spa-pkce-vs-bff.md) whether to keep the current SPA PKCE model or introduce a real BFF/session layer
 - Expand RBAC with fine-grained permissions
 - Test and validate Temporal workflows
 
@@ -171,7 +171,7 @@ Enterprise cloud environments face a constant tension:
 - **Finance** requires cost controls, tagging, and chargeback
 - **Compliance** demands policy enforcement and exception documentation
 
-Aegis bridges these needs with a unified platform that provides:
+CloudForge bridges these needs with a unified platform that provides:
 
 - Self-service portal for requesting cloud resources
 - Policy-as-code guardrails (OPA/Rego)
@@ -270,7 +270,7 @@ cloudforge/
 ├── configs/                       # Configuration templates
 ├── frontend/                      # Self-service portal (React 19 + Vite 7)
 │   ├── src/
-│   │   ├── pages/                 # 47 route pages (admin, ops, portal, and viewer views)
+│   │   ├── pages/                 # 37 route pages (admin, ops, portal, and viewer views)
 │   │   ├── components/            # shadcn/ui component layer
 │   │   ├── hooks/                 # Custom hooks (deploy preview, etc.)
 │   │   ├── lib/                   # API client, auth, utilities
@@ -279,7 +279,7 @@ cloudforge/
 ├── docs/
 │   ├── core/
 │   │   ├── architecture/          # HLD, DDD, DR-BC, data models
-│   │   │   └── adr/               # Architecture Decision Records (20 ADRs)
+│   │   │   └── adr/               # Architecture Decision Records (21 ADRs)
 │   │   ├── diagrams/              # Architecture diagrams (SVG + Mermaid + Figma)
 │   │   └── runbooks/              # Operational procedures (9 runbooks)
 │   ├── api/                       # OpenAPI 3.1 specification (89 operations)
@@ -478,7 +478,7 @@ workflow:
 | [Remediation Dispatcher](docs/core/diagrams/remediation-dispatcher-flow.svg) | Automated remediation routing |
 | [Risk Intelligence Pipeline](docs/core/diagrams/risk-pipeline-figma.png) | Risk scoring data pipeline |
 
-### Architecture Decision Records (20 ADRs)
+### Architecture Decision Records (21 ADRs)
 
 | ADR | Decision |
 | --- | -------- |
@@ -502,6 +502,7 @@ workflow:
 | [ADR-018](docs/core/architecture/adr/ADR-018-threat-intelligence-feeds.md) | Threat Intelligence Feed Integration |
 | [ADR-019](docs/core/architecture/adr/ADR-019-multi-tenant-data-isolation.md) | Multi-Tenant Data Isolation |
 | [ADR-020](docs/core/architecture/adr/ADR-020-security-graph-architecture.md) | Security Graph Architecture |
+| [ADR-021](docs/core/architecture/adr/ADR-021-spa-pkce-vs-bff.md) | Keep SPA PKCE for frontend auth; defer BFF until requirements justify it |
 
 ### Runbooks
 

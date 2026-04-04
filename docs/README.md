@@ -1,4 +1,4 @@
-# Aegis Documentation
+# CloudForge Documentation
 
 ## Architecture
 
@@ -10,7 +10,7 @@
 | [component-rationale.md](core/architecture/adr/component-rationale.md) | Technology selection and cost analysis |
 | [performance-baseline.md](core/performance-baseline.md) | Go vs Rust benchmark comparison |
 
-## Architecture Decision Records (20 ADRs)
+## Architecture Decision Records (21 ADRs)
 
 | ADR | Decision | Status |
 |-----|----------|--------|
@@ -34,10 +34,11 @@
 | [ADR-018](core/architecture/adr/ADR-018-threat-intelligence-feeds.md) | Threat Intelligence Feed Integration | Accepted |
 | [ADR-019](core/architecture/adr/ADR-019-multi-tenant-data-isolation.md) | Multi-Tenant Data Isolation | Accepted |
 | [ADR-020](core/architecture/adr/ADR-020-security-graph-architecture.md) | Security Graph Architecture | Accepted |
+| [ADR-021](core/architecture/adr/ADR-021-spa-pkce-vs-bff.md) | SPA PKCE vs BFF Auth Decision | Accepted |
 
 ## Operational Runbooks
 
-See [runbooks/README.md](core/runbooks/README.md) -- 9 runbooks covering deployment, incident response, DR failover, performance, remediation, policy management, secrets rotation, FinOps alerts, and identity provider setup.
+See [runbooks/README.md](core/runbooks/README.md) -- 9 core runbooks covering deployment, incident response, DR failover, performance, remediation, policy management, secrets rotation, FinOps alerts, and identity provider setup, plus a legacy [48-hour teardown appendix](runbooks/48hr-teardown.md) for short-lived demo environments.
 
 ## Diagrams
 
@@ -70,7 +71,7 @@ One-time planning documents moved to [archive/](archive/):
 
 ## Related: Posture Management
 
-See [cspm/](cspm/) -- Posture Management module documentation (legacy `cspm-aggregator` naming on disk, shared lineage with Aegis).
+See [cspm/](cspm/) -- Posture Management module documentation (legacy `cspm-aggregator` naming on disk, shared lineage with CloudForge).
 
 ---
 

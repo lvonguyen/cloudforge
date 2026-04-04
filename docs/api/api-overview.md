@@ -6,7 +6,12 @@ slug: /api
 
 # API Reference
 
-Aegis exposes 89 REST API operations across 21 domains. The full specification is available as an OpenAPI 3.1.0 document.
+CloudForge exposes 89 REST API operations across 21 domains. The full specification is available as an OpenAPI 3.1.0 document.
+
+Current docs-site mode:
+- the committed `openapi.yaml` is the source of truth
+- the markdown endpoint reference stays human-readable in Docusaurus
+- an interactive OpenAPI explorer remains deferred until the plugin path is re-evaluated on a stable docs-site toolchain
 
 ## Quick Access
 

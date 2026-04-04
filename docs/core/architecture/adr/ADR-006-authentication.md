@@ -28,6 +28,15 @@ Secure authentication and authorization is required for:
 
 **OIDC/SAML federation** for human users and **API keys with scopes** for machine access were selected, with role-based access control.
 
+## Implementation Update (2026-04-03)
+
+The currently deployed auth model is narrower than the original target architecture:
+- The frontend implements a browser-owned Okta SPA PKCE flow and handles `/callback` directly.
+- The backend validates bearer JWTs via HS256 or RS256/JWKS and enforces RBAC.
+- Backend-managed authorize/callback routes, refresh-token custody, and cookie-backed sessions are not implemented today.
+
+See [ADR-021](ADR-021-spa-pkce-vs-bff.md) for the explicit decision to keep SPA PKCE unless BFF requirements are accepted.
+
 ## Identity Providers
 
 ### Supported Providers
@@ -138,4 +147,3 @@ Beyond roles, support ABAC for:
 
 - ADR-005: Rate Limiting (per-client enforcement)
 - ADR-007: GRC Integration Pattern
-

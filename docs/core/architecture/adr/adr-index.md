@@ -6,7 +6,7 @@ slug: /adr
 
 # Architecture Decision Records
 
-Aegis maintains 20 ADRs documenting key technical decisions. Each record captures the context, decision, and consequences of an architectural choice.
+CloudForge maintains 21 ADRs documenting key technical decisions. Each record captures the context, decision, and consequences of an architectural choice.
 
 | ADR | Title | Status |
 |-----|-------|--------|
@@ -30,4 +30,5 @@ Aegis maintains 20 ADRs documenting key technical decisions. Each record capture
 | [ADR-018](ADR-018-threat-intelligence-feeds.md) | Threat Intelligence Feed Integration | Accepted |
 | [ADR-019](ADR-019-multi-tenant-data-isolation.md) | Multi-Tenant Data Isolation | Accepted |
 | [ADR-020](ADR-020-security-graph-architecture.md) | Security Graph Architecture | Accepted |
+| [ADR-021](ADR-021-spa-pkce-vs-bff.md) | Frontend Auth Model: SPA PKCE vs Backend-for-Frontend | Accepted |
 | [Component Rationale](component-rationale.md) | Build vs Buy Decisions | Supplementary |

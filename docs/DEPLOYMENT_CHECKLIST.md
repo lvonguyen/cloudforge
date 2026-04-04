@@ -89,8 +89,8 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 - [ ] Wait for health check to pass before validating frontend/API flows
 
 ### CF Pages
-- [ ] **cloudguard** (personal demo): auto-deploys from GH on push to `main`. Root: `frontend/`, build: `npx vite build`, output: `dist`
 - [ ] **cloudforge-demo** (portfolio Pages project backing `cloudforge.lvonguyen.com`): auto-deploys from GH. Env: `VITE_API_URL` + `VITE_DEMO_MODE=true`
+- [ ] `cloudguard` is a legacy Pages project name that may still exist in the account; do not treat it as the active frontend target
 - [ ] JWT: add `JWT_SECRET` as encrypted env var in CF Pages settings, update build command to generate token inline
 - [ ] Cloudflare token refs in Development: `op://Development/cf-pages-deploy/credential` (Pages deploy), `op://Development/cf-gbl-api-token/credential` (global key), `op://Development/cf-gbl-api-token/username` (email)
 - [ ] Verified 2026-03-31: the scoped Pages token can read both `cloudguard` and `cloudforge-demo`
@@ -258,7 +258,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 | Raw secret as JWT | "Redirecting to login..." loop | Generate JWT from secret at build time |
 | ADO push timeout | Post-commit hook hangs | Kill background task, commit still lands on GH/GL |
 | gorilla/mux preflight | CORS 405 on OPTIONS | Outer CORS handler chain before mux router |
-| Stale Fly.io hostname | 502 on aegis-api.fly.dev | Use `cloudforge-api.fly.dev` or `api.cloudforge.lvonguyen.com` |
+| Stale Fly.io hostname | 502 on old Fly hostname | Use `cloudforge-api.fly.dev` or `api.cloudforge.lvonguyen.com` |
 | JWT secret mismatch | API 401 with valid JWT | Ensure SM secret matches 1P secret used at build |
 | PuppyGraph default creds | Login 401 | Set PUPPYGRAPH_PASSWORD env var, not default creds |
 | Gremlin HTTP POST | "Invalid WebSocket handshake" | Use WebSocket client on port 8182, not HTTP |
@@ -273,7 +273,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 ## Environment URLs
 
 ### Personal Demo
-- Frontend: `https://cloudguard.lvonguyen.com` (CF Pages)
+- Frontend: `https://cloudforge.lvonguyen.com` (CF Pages)
 - API: `https://api.cloudforge.lvonguyen.com` (Fly.io)
 - PuppyGraph: `http://localhost:8081` (local Docker via `docker-compose.puppygraph.yml`; EC2 terminated 2026-03-28)
 

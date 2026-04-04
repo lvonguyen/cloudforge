@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Aegis API
+  title: CloudForge API
   version: 1.0.0-beta
   description: |
     Multi-cloud CSPM platform API providing security findings, compliance posture,

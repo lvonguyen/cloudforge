@@ -1,6 +1,10 @@
-# Aegis Configuration Reference
+# CloudForge Configuration Reference
 
 All configuration is via environment variables. Defaults are tuned for local development.
+
+Legacy compatibility note:
+- Many backend env vars intentionally retain the `AEGIS_*` prefix.
+- Frontend defaults still use the `aegis` storage prefix and `/icons/aegis-logo.svg` asset name unless you override them with Vite env vars.
 
 ## Server
 
@@ -22,6 +26,11 @@ All configuration is via environment variables. Defaults are tuned for local dev
 | `JWT_AUDIENCE` | *(empty)* | No | Expected `aud` claim value |
 | `TLS_CERT_FILE` | *(empty)* | No | Path to TLS certificate (enables HTTPS) |
 | `TLS_KEY_FILE` | *(empty)* | No | Path to TLS private key |
+
+Current auth split:
+- Frontend SSO is a direct Okta SPA PKCE flow when `VITE_OKTA_ISSUER` and `VITE_OKTA_CLIENT_ID` are set.
+- Backend auth is bearer-token validation only: HS256 demo/static tokens or RS256 via JWKS.
+- Backend authorize/callback routes, refresh-token storage, and cookie-backed sessions are not implemented today.
 
 ## AI / Enrichment
 
@@ -183,7 +192,7 @@ These are set in `fly.toml` for the Fly.io deployment:
 | `GRC_PROVIDER` | `memory` | In-memory GRC backend |
 | `APP_ENV` | `production` | Production mode |
 | `RATE_LIMIT_ENABLED` | `true` | Rate limiting on |
-| `CORS_ALLOWED_ORIGINS` | `https://cloudforge.lvonguyen.com,https://cloudguard.lvonguyen.com` | Allowed web origins for the Fly API |
+| `CORS_ALLOWED_ORIGINS` | `https://cloudforge.lvonguyen.com` | Allowed web origins for the Fly API |
 
 ## Observability / Tracing
 
@@ -207,22 +216,26 @@ These variables are embedded at build time via Vite's `import.meta.env`:
 |----------|---------|-------------|
 | `VITE_API_URL` | `/api/v1` | API base URL override (e.g., `http://localhost:8080`) |
 | `VITE_DEMO_MODE` | *(empty)* | Set `true` to enable demo access and mock fallbacks |
+| `VITE_ENABLE_MOCK_FALLBACK` | *(empty)* | Set `true` to allow API hooks to fall back to mock data outside full demo mode |
 | `VITE_OKTA_ISSUER` | *(empty)* | Okta OIDC issuer URL for frontend auth |
 | `VITE_OKTA_CLIENT_ID` | *(empty)* | Okta OIDC client ID |
 | `VITE_WS_URL` | *(empty)* | WebSocket server URL for SSE events |
+| `VITE_STATIC_TOKEN` | *(empty)* | Pre-signed JWT baked into the build for demo/static auth |
 | `VITE_DEV_TOKEN` | *(empty)* | Dev-mode auth token override |
 | `VITE_COMPANY_NAME` | `Contoso` | White-label company name |
-| `VITE_PRODUCT_NAME` | `Aegis` | White-label product name |
-| `VITE_LOGO_PATH` | `/icons/aegis-logo.svg` | Path to logo SVG |
+| `VITE_PRODUCT_NAME` | `CloudForge` | White-label product name |
+| `VITE_LOGO_PATH` | `/icons/aegis-logo.svg` | Path to logo SVG (legacy filename retained for compatibility) |
 | `VITE_EMAIL_DOMAIN` | `contoso.dev` | Domain used in demo email addresses |
 | `VITE_REPO_PREFIX` | `github.com/contoso` | Repository URL prefix |
-| `VITE_ENABLED_MODULES` | `aegis,cspm-aggregator` | Comma-separated enabled module list |
-| `VITE_STORAGE_PREFIX` | `aegis` | sessionStorage/localStorage key prefix |
+| `VITE_ENABLED_MODULES` | `cloudforge,posture-management,threat-intel,remediation-engine,ops-center` | Comma-separated enabled module list |
+| `VITE_STORAGE_PREFIX` | `aegis` | `sessionStorage`/`localStorage` key prefix (legacy default retained) |
 | `VITE_BRAND_PRIMARY` | *(empty)* | Primary brand color override (hex) |
 | `VITE_BRAND_SECONDARY` | *(empty)* | Secondary brand color override (hex) |
 | `VITE_BRAND_ACCENT` | *(empty)* | Accent brand color override (hex) |
-| `VITE_THEME` | *(empty)* | Default theme (`light`, `dark`) |
+| `VITE_THEME` | `neutral` | Default theme preset |
 | `VITE_DEMO_ACCESS_ENABLED` | *(empty)* | Set `true` to enable demo access button |
+| `VITE_DEMO_VIEWER_EMAIL` | *(empty)* | Email pre-filled for demo Okta login |
+| `VITE_DEMO_VIEWER_PASSWORD` | *(empty)* | Demo password hint/content source for the landing page |
 
 ## Graceful Degradation
 

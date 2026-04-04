@@ -111,13 +111,12 @@ Cloudflare Pages is free, so cleanup is optional unless you want a fully blank s
 ```bash
 # Review recent Pages deployments before removing anything
 wrangler pages deployment list --project-name cloudforge-demo | head -5
-wrangler pages deployment list --project-name cloudguard | head -5
 ```
 
 DNS records to consider:
 - `api.cloudforge.lvonguyen.com` -> `cloudforge-api.fly.dev`
 - `cloudforge.lvonguyen.com` -> Cloudflare Pages project `cloudforge-demo`
-- `cloudguard.lvonguyen.com` -> Cloudflare Pages
+- `cloudguard.lvonguyen.com` -> legacy Cloudflare Pages hostname if it still exists in the account
 
 If decommissioning entirely:
 - remove the API CNAME after the Fly.io app is destroyed

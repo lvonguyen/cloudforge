@@ -3,8 +3,8 @@ import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'Aegis Docs',
-  tagline: 'Enterprise Cloud Governance Platform',
+  title: 'CloudForge Docs',
+  tagline: 'Cloud security operations and governance reference docs',
   favicon: undefined,
 
   url: 'https://docs.cloudforge.lvonguyen.com',
@@ -72,7 +72,7 @@ const config: Config = {
     },
 
     navbar: {
-      title: 'Aegis',
+      title: 'CloudForge',
       items: [
         {
           type: 'docSidebar',
@@ -82,7 +82,7 @@ const config: Config = {
         },
         {
           to: '/docs/api',
-          label: 'API',
+          label: 'API Schema',
           position: 'left',
         },
         {
@@ -105,7 +105,7 @@ const config: Config = {
           title: 'Documentation',
           items: [
             {label: 'Architecture', to: '/docs/core/architecture/HLD'},
-            {label: 'API Reference', to: '/docs/api'},
+            {label: 'API Schema', to: '/docs/api'},
             {label: 'Runbooks', to: '/docs/core/runbooks/deployment'},
           ],
         },

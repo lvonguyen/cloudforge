@@ -1,6 +1,10 @@
-# Aegis API Reference
+# CloudForge API Reference
 
 Base URL: `/api/v1` (all endpoints require JWT authentication unless noted)
+
+Auth note:
+- The API accepts bearer JWTs issued by the demo/static auth path or an external IdP.
+- Frontend Okta login is handled in the SPA; the API does not expose backend `/authorize` or `/callback` routes.
 
 ## Pagination Contract
 
