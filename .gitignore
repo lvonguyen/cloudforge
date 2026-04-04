@@ -100,7 +100,9 @@ __pycache__/
 # Playwright MCP screenshots
 *.png
 !docs/core/diagrams/*.png
+!docs-site/static/img/**/*.png
 .playwright-mcp/
+.playwright-cli/
 
 # Playwright test outputs
 frontend/playwright-report/
