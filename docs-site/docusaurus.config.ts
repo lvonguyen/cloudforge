@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'CloudForge Docs',
   tagline: 'Cloud security operations and governance reference docs',
-  favicon: undefined,
+  favicon: 'img/favicon.svg',
 
   url: 'https://docs.cloudforge.lvonguyen.com',
   baseUrl: '/',
