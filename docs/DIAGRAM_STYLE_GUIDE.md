@@ -46,6 +46,25 @@
 
 ---
 
+## [!] Canvas Width Rule (README / DOCX Litmus Test)
+
+**Design for the display context, not the authoring tool.**
+
+GitHub README content column: **~888px**. DOCX body at 150 DPI: **~975px**.
+
+| Canvas Width | Downscale at 888px | 14px text renders as | Verdict |
+|-------------|-------------------|---------------------|---------|
+| 3000px | 3.4x | 4.1px | Unreadable |
+| 1920px | 2.2x | 6.4px | Marginal |
+| 1200px | 1.4x | 10px | OK with bold |
+| **900px** | **1.0x** | **14px** | **Crisp** |
+
+**Rule:** All diagrams targeting README or DOCX embed must use a **900px canvas width** (or max 1200px with 20px+ font). This forces vertical stacking over wide side-by-side layouts — which is better for scrolling documents anyway.
+
+For Figma presentation frames (portfolio, slides), use 1920x1080 with proportionally larger text (28px+).
+
+---
+
 ## [+] Layout
 
 ### Composition Patterns
