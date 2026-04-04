@@ -27,7 +27,7 @@
 Workstream A (cloud API wiring — sequential):    Workstream B (frontend polish — parallel):
   F1: FinOps AWS Cost Explorer                     F2: Attack path stats/list fix
        |                                           F5: Control-level drill-down
-  F3: OIDC auth flow (Okta via haea-personal)      F7a: Keyboard shortcuts
+  F3: OIDC auth flow (Okta via enterprise-dev)      F7a: Keyboard shortcuts
        |                                           F7b: SLA computation
   F4: Container scanner output parser
 ```
@@ -49,9 +49,9 @@ Workstream A (cloud API wiring — sequential):    Workstream B (frontend polish
 **Closes:** README limitation #4 ("Cost aggregation interfaces defined, no cloud API integration yet")
 
 - Wire `GET /api/v1/costs/summary` to AWS Cost Explorer API
-- Use `haea-personal` AWS account (SSO via `aws sso login`)
+- Use `enterprise-dev` AWS account (SSO via `aws sso login`)
 - IAM: read-only Cost Explorer access (`ce:GetCostAndUsage`, `ce:GetCostForecast`)
-- 1Password: store credentials as `op://Development/aws-haea-personal-costexplorer/...`
+- 1Password: store credentials as `op://Development/aws-enterprise-dev-costexplorer/...`
 - Env vars: `FINOPS_PROVIDER=aws`, `AWS_COST_EXPLORER_REGION=us-east-1`
 - Response shape: daily/monthly spend by service, account, tag — matches existing `CostSummary` type
 - Fallback: mock `costs.json` when env vars absent (existing pattern)
@@ -82,7 +82,7 @@ Fix: ensure `useAttackPathStats` derives stats from the same paths array that `u
 
 - Okta provider code exists in `cmd/server/` (config-driven, `OKTA_DOMAIN` env var)
 - Wire into auth middleware: when `OKTA_DOMAIN` is set, validate JWT against Okta JWKS endpoint
-- Use `haea-personal` Okta tenant for testing
+- Use `enterprise-dev` Okta tenant for testing
 - Entra ID: similar pattern with `ENTRA_TENANT_ID` — wire if time permits, otherwise document
 - Mock fallback: current HS256 dev-mode auth when no OIDC env vars set
 
@@ -154,9 +154,9 @@ From prior Sprint F plan — still valid:
 ## Dependencies
 
 ```
-F1 (FinOps) -> needs haea-personal AWS SSO access
+F1 (FinOps) -> needs enterprise-dev AWS SSO access
 F2 (Stats fix) -> no deps
-F3 (OIDC) -> needs haea-personal Okta tenant
+F3 (OIDC) -> needs enterprise-dev Okta tenant
 F4 (Container) -> needs Trivy installed locally or a scan JSON file
 F5 (Drill-down) -> no deps
 F6 (README) -> no deps

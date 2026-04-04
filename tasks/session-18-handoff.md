@@ -60,7 +60,7 @@ Phase 1: Collect all sources (#1-9)
 Phase 2: Dedup (canonical_rule_id + resource_id + account_id) → ~300K unique
 Phase 3: Unified scrub
   - Re-ID: f-000001 through f-300000
-  - CBU remap: hma→ns, kus→mr, hacc→pl, haea→nx, hmgma→sm
+  - CBU remap: hma→ns, kus→mr, hacc→pl, nexus→nx, hmgma→sm
   - Account remap: account-hma-bldsearch-dev → account-ns-product-search-dev
   - Resource remap: {svc}-{cbu}-{app}-{env}-{seq} taxonomy
   - ARN scrub: replace real account IDs with synthetic 12-digit
@@ -96,7 +96,7 @@ const CBUS = {
   ns: 'Northstar',  // hma → consumer digital
   mr: 'Meridian',   // kus → operations/finance
   pl: 'Polaris',    // hacc → regional ops
-  nx: 'Nexus',      // haea → shared infra / ITSP
+  nx: 'Nexus',      // nexus → shared infra / ITSP
   sm: 'Summit',     // hmgma → group-level
 }
 

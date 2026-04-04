@@ -23,21 +23,21 @@ Data+network events enabled 2026-03-25 01:40 UTC. Revert after ~24hrs.
 # Count what accumulated
 aws cloudtrail start-query \
   --query-statement "SELECT eventCategory, count(*) as cnt FROM cd3bd797-a619-4063-94c9-3934798a32e4 WHERE eventTime > '2026-03-25 01:30:00' GROUP BY eventCategory" \
-  --profile haea-sso --region us-west-2
+  --profile enterprise-sso --region us-west-2
 
 # Export data+network events to local
-# (paginate get-query-results, save to data/haea-ct-events.ndjson)
+# (paginate get-query-results, save to data/enterprise-ct-events.ndjson)
 
 # Revert to management-only
 aws cloudtrail update-event-data-store \
   --event-data-store "arn:aws:cloudtrail:us-west-2:831926608679:eventdatastore/cd3bd797-a619-4063-94c9-3934798a32e4" \
   --advanced-event-selectors '[{"Name":"Management events","FieldSelectors":[{"Field":"eventCategory","Equals":["Management"]}]}]' \
-  --profile haea-sso --region us-west-2
+  --profile enterprise-sso --region us-west-2
 
 # Verify
 aws cloudtrail get-event-data-store \
   --event-data-store "arn:aws:cloudtrail:us-west-2:831926608679:eventdatastore/cd3bd797-a619-4063-94c9-3934798a32e4" \
-  --profile haea-sso --region us-west-2 --query 'AdvancedEventSelectors[*].Name'
+  --profile enterprise-sso --region us-west-2 --query 'AdvancedEventSelectors[*].Name'
 ```
 
 ### 2. Merge + deduplicate all exports into canonical files
@@ -47,7 +47,7 @@ aws cloudtrail get-event-data-store \
 Files to merge (by cloud):
 
 **AWS** — merge into `data/aws-findings-canonical.ndjson`:
-- `data/haea-findings-all.ndjson` (466k, 2.0GB) — my full export, NDJSON
+- `data/enterprise-findings-all.ndjson` (466k, 2.0GB) — my full export, NDJSON
 - `testdata/export-outputs/aws_securityhub_guardduty_20260324_190620.json` (237k, 1.3GB) — parallel, JSON array
 - `testdata/export-outputs/aws_securityhub_guardduty_20260324_183014.json` (partial, 47MB)
 - `testdata/export-outputs/aws_securityhub_guardduty_20260324_182857.json` (partial, 2.1MB)
@@ -65,10 +65,10 @@ Files to merge (by cloud):
 - Enrich every finding with: `Cloud`, `OrgId`, `OrgName`, `TenantId`, `TenantName`
 - Produce: `data/all-findings-enriched.ndjson` (single canonical file, ~500k findings)
 - **Delete intermediate files** after verifying canonical counts match:
-  - `data/haea-findings-raw.ndjson` (10k sample — superseded)
-  - `data/haea-findings-merged.ndjson` (407k — superseded by canonical)
-  - `data/haea-findings-enriched.ndjson` (407k — superseded by canonical)
-  - `data/haea-findings-all.ndjson` (466k — folded into canonical)
+  - `data/enterprise-findings-raw.ndjson` (10k sample — superseded)
+  - `data/enterprise-findings-merged.ndjson` (407k — superseded by canonical)
+  - `data/enterprise-findings-enriched.ndjson` (407k — superseded by canonical)
+  - `data/enterprise-findings-all.ndjson` (466k — folded into canonical)
   - `testdata/cspm/raw/aws_securityhub_findings.json` (duplicate of parallel export)
   - `testdata/cspm/raw/azure_defender_assessments.json` (duplicate)
   - `testdata/cspm/raw/gcp_scc_findings.json` (duplicate)
@@ -79,17 +79,17 @@ Files to merge (by cloud):
 
 | Export File Pattern | Cloud | OrgId | OrgName | TenantId (from account name) |
 |---|---|---|---|---|
-| aws_* / haea-findings-* | `aws` | `o-ug82f7kcwl` | `HMGNA` | Parse `account-{cbu}-*` prefix |
+| aws_* / enterprise-findings-* | `aws` | `o-ug82f7kcwl` | `HMGNA` | Parse `account-{cbu}-*` prefix |
 | azure_*_191728 | `azure` | `bd29b3ab-aaa2-425a-b882-9e7f73283ca6` | `HMGNA` | `hmgna` |
-| azure_*_190457 | `azure` | `5fed94a0-4129-44a0-b507-a83a5c9e6dac` | `Kia NA` | `kus` |
-| azure_*_190516 | `azure` | `becdc98a-bfc9-4ffa-ade6-892577ce9a58` | `Hyundai NA` | `hma` |
-| gcp_* | `gcp` | `654662756615` | `autoeveramerica.com` | `haea` |
+| azure_*_190457 | `azure` | `5fed94a0-...` | `Meridian` | `mr` |
+| azure_*_190516 | `azure` | `becdc98a-...` | `Northstar` | `ns` |
+| gcp_* | `gcp` | `654662756615` | `Nexus` | `nx` |
 
 Use `scripts/merge-findings.py` (already supports NDJSON + JSON array via ijson).
 
 ### 3. Design sanitization naming convention (DO NOT sanitize yet)
 
-Current HAEA naming (`account-{cbu}-{app}-{env}`) needs a cleaner demo equivalent.
+Current enterprise naming (`account-{cbu}-{app}-{env}`) needs a cleaner demo equivalent.
 Propose options in session 15, get approval, then build the sanitization pass.
 
 ### 4. DB scaling plan for 500k+ findings
@@ -166,14 +166,14 @@ chore: add findings export/merge scripts + gitignore data/
 | Profile | Account | Access | Region |
 |---------|---------|--------|--------|
 | `lvn-personal` | 431330216246 | Admin | us-east-1 |
-| `haea-sso` | 831926608679 | PowerUser | us-west-2 |
+| `enterprise-sso` | 831926608679 | PowerUser | us-west-2 |
 
 ## Key memory files
 
 | File | Content |
 |------|---------|
-| `reference_haea_account_catalogue.md` | 56 AWS accounts, 3 Az tenants, 1 GCP org, CBU mapping |
+| `reference_enterprise_account_catalogue.md` | 56 AWS accounts, 3 Az tenants, 1 GCP org, CBU mapping |
 | `reference_asana_integration.md` | PAT path, project GIDs, webhook handler location |
 | `reference_cloudtrail_lake.md` | Data store ARN, event selectors, query syntax |
 | `reference_cloudflare_api.md` | CF API key, zone ID, SSL mode |
-| `project_haea_aws_orgs.md` | 4 AWS orgs full inventory |
+| `project_enterprise_aws_orgs.md` | 4 AWS orgs full inventory |

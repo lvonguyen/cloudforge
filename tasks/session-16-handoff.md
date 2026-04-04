@@ -202,12 +202,12 @@ cross-validation. Must pass before merging or deploying the viewport redesign.
 - Run findings merge (script ready, ~9GB processing)
 - Build sanitization script (Option A naming convention approved)
 - Apply sanitization to canonical NDJSON files
-- Verify no real org names leak (`grep -i hyundai\|kia\|haea\|autoever`)
+- Verify no real org names leak (`grep -i real-org-names`)
 - Build ECS one-shot bulk loader (`pgx.CopyFrom` from R2/S3)
 - Apply gp3 TF change (`terraform apply`)
 - Load sanitized sample (20-50k stratified) into RDS
 - `/qa-visual -e` ensemble pass
-- **Teardown:** Delete `data/haea-findings-{raw,merged,enriched}.ndjson` after canonical verified
+- **Teardown:** Delete `data/enterprise-findings-{raw,merged,enriched}.ndjson` after canonical verified
 
 ### Sprint n+3: Findings persistence + query layer
 - Build DB write path for findings (currently in-memory only)
@@ -269,7 +269,7 @@ uv pip install ijson
 # AWS
 python3 scripts/merge-findings.py --cloud aws \
   --output data/aws-findings-canonical.ndjson \
-  data/haea-findings-all.ndjson \
+  data/enterprise-findings-all.ndjson \
   testdata/export-outputs/aws_securityhub_guardduty_20260324_190620.json
 
 # Azure
@@ -288,7 +288,7 @@ wc -l data/*-canonical.ndjson
 
 Expected: ~500k AWS + 38k Azure + 25k GCP.
 
-Delete after verification: `data/haea-findings-{raw,merged,enriched}.ndjson`,
+Delete after verification: `data/enterprise-findings-{raw,merged,enriched}.ndjson`,
 partial export-outputs files.
 
 ### Build sanitization script

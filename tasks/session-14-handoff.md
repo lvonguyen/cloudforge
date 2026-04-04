@@ -44,7 +44,7 @@ wiring, and real SecurityHub findings flowing through to the dashboard.
 ### 3. Wire Frontend to Live API
 - Update CF Pages project `cloudguard` environment variable:
   `VITE_API_URL=https://api-personal.lvonguyen.com`
-- Trigger a CF Pages rebuild (either via `npm run deploy:haea` or Wrangler CLI)
+- Trigger a CF Pages rebuild (either via `npm run deploy:enterprise` or Wrangler CLI)
 - The frontend code should already read `VITE_API_URL` for API calls — verify in
   `frontend/src/lib/` or similar
 

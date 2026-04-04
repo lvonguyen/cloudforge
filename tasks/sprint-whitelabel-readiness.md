@@ -4,7 +4,7 @@
 **Status:** DONE
 **Goal:** Standardize all 8 stub packages on the GRC factory pattern so CloudForge is config-driven provider selection away from production deployment. No real provider wiring — just the seam.
 **Estimated effort:** ~1 week (5-7 sessions)
-**Strategic context:** Positioning CloudForge as a whitelabel CSPM for HAEA pilot. Portfolio demo stays unchanged (mock providers selected by default). Production deployment only requires setting env vars.
+**Strategic context:** Positioning CloudForge as a whitelabel CSPM for enterprise pilot. Portfolio demo stays unchanged (mock providers selected by default). Production deployment only requires setting env vars.
 
 ---
 
@@ -178,7 +178,7 @@ Every package below must converge on this exact pattern.
 
 | Package | Reason |
 |---------|--------|
-| cicd/ | Not wired to server at all. 3-4 week effort to build handlers + routes. Not needed for HAEA pilot (they use GitHub Actions, not an in-app CI view). |
+| cicd/ | Not wired to server at all. 3-4 week effort to build handlers + routes. Not needed for enterprise pilot (they use GitHub Actions, not an in-app CI view). |
 | observability/ | Infrastructure-internal (health checks, telemetry). No provider abstraction needed — concrete struct is correct here. |
 
 ---
@@ -248,9 +248,9 @@ All W1-W6 are independent — can parallelize across 2-3 sessions.
 
 ---
 
-## Post-Sprint: HAEA Pilot Path
+## Post-Sprint: enterprise Pilot Path
 
-After this sprint, deploying to HAEA requires only:
+After this sprint, deploying to enterprise requires only:
 
 1. Set env vars: `IDENTITY_PROVIDER=okta`, `CONTAINER_SCANNER=trivy`, `FINOPS_PROVIDER=aws`
 2. Provide credentials: `OKTA_DOMAIN`, `OKTA_API_TOKEN`, `AWS_REGION`, etc.
