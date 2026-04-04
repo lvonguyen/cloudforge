@@ -1,11 +1,18 @@
 # Session Handoff
 
-**Generated:** 2026-03-31T19:30:00Z
+**Generated:** 2026-04-04T01:42:04Z
 **Repo:** cloudforge (CloudForge)
 **Branch:** main
 **Latest commits:** `8b3dbe41` command center drillthrough, `3d1d1e20` investigation realism, `eb92e5ed` docs refresh, `03acb311` TF env var fix
 
 ## What Was Done
+
+Session 37 — license + positioning refresh:
+
+- **Relicensed to Apache 2.0:** replaced MIT text in `LICENSE`, added root `NOTICE`, updated README license badge/section, and recorded the change in `CHANGELOG.md`
+- **README positioning tightened:** replaced "portfolio-grade" framing with "open reference implementation" / "production-oriented slices" language and clarified this is not a turnkey production deployment
+- **Vendor-specific agent wording removed:** README now says `agentic coding workflows` instead of naming a single tool
+- **Current working tree state:** local diffs are limited to `README.md`, this handoff file, and the untracked root `NOTICE` file. `LICENSE` and `CHANGELOG.md` already match the current branch state.
 
 Session 36 — 6-tier documentation audit + diagram enrichment:
 
@@ -132,6 +139,9 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 
 ## Context & Decisions
 
+- **Licensing optics:** top-level repo positioning is now aligned with Apache 2.0 and avoids over-signaling "portfolio project" or naming a single coding agent in public-facing copy
+- **Minimal-scope edit policy:** only public-facing README wording was updated for positioning; archive docs still contain historical `Claude Code` references and were intentionally left untouched
+
 - **nolint v2:** Must be on exact line reported, not parent statement
 - **Codex partial commits:** Verify committed tree compiles: `git stash && npx tsc --noEmit && git stash pop`
 - **Dependabot hook:** A push hook auto-restored config once. Watch for restoration.
@@ -142,6 +152,8 @@ Session 34 — CI repair, documentation refresh, diagram polish:
 
 ```bash
 cd /Users/lvonguyen/repos/gh/cloudforge
+git diff -- LICENSE NOTICE README.md CHANGELOG.md docs/core/diagrams/gallery.md
+git status --short
 go build ./... && golangci-lint run --timeout=5m
 gh run list --limit 1
 
