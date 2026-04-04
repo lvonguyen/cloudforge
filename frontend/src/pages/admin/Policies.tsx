@@ -12,6 +12,7 @@ import { useTracePanel } from '@/lib/trace-panel-context'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
+import { buildTraceTimeline } from '@/lib/trace-helpers'
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; className: string; label: string }> = {
   active: { icon: CheckCircle2, className: 'text-green-600 dark:text-green-400', label: 'Active' },
@@ -36,6 +37,7 @@ export default function Policies() {
   const { data: allPolicies = [], isLoading, isError } = usePolicies()
   const { openTimeline } = useTracePanel()
   const newPolicyCooldown = useActionCooldown({ key: 'new-policy', cooldownMs: 3_000 })
+  const evaluationCooldown = useActionCooldown({ key: 'policy-evaluation', cooldownMs: 3_000 })
   const { toasts, toast, dismiss } = useToast()
   const filtered = filter === 'all' ? allPolicies : allPolicies.filter(p => p.status === filter)
 
@@ -49,70 +51,93 @@ export default function Policies() {
           <h1 className="text-xl font-semibold">Policy Manager</h1>
           <p className="text-sm text-muted-foreground mt-0.5">OPA policies enforced at provisioning time</p>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="text-xs gap-1.5"
-          disabled={!newPolicyCooldown.canFire}
-          onClick={() => {
-            if (!newPolicyCooldown.canFire) return
-            const now = new Date()
-            openTimeline('New Policy', [
-              {
-                span_id: 'span-policy-1',
-                name: 'Initializing Rego template',
-                type: 'policy',
-                start_time: now.toISOString(),
-                end_time: new Date(now.getTime() + 150).toISOString(),
-                duration_ms: 150,
-                status: 'ok',
-                attributes: { step: 'init-rego' },
-                events: [],
-                data: {},
-              },
-              {
-                span_id: 'span-policy-2',
-                name: 'Validating policy namespace',
-                type: 'policy',
-                start_time: new Date(now.getTime() + 150).toISOString(),
-                end_time: new Date(now.getTime() + 350).toISOString(),
-                duration_ms: 200,
-                status: 'ok',
-                attributes: { step: 'validate-namespace' },
-                events: [],
-                data: {},
-              },
-              {
-                span_id: 'span-policy-3',
-                name: 'Registering in OPA engine',
-                type: 'policy',
-                start_time: new Date(now.getTime() + 350).toISOString(),
-                end_time: new Date(now.getTime() + 950).toISOString(),
-                duration_ms: 600,
-                status: 'ok',
-                attributes: { step: 'register-opa' },
-                events: [],
-                data: {},
-              },
-              {
-                span_id: 'span-policy-4',
-                name: 'Policy draft created',
-                type: 'policy',
-                start_time: new Date(now.getTime() + 950).toISOString(),
-                end_time: new Date(now.getTime() + 1050).toISOString(),
-                duration_ms: 100,
-                status: 'ok',
-                attributes: { step: 'draft-created' },
-                events: [],
-                data: {},
-              },
-            ])
-            newPolicyCooldown.fire()
-            setTimeout(() => toast('Policy draft created successfully'), 1050)
-          }}
-        >
-          <FileCode className="h-3.5 w-3.5" />{!newPolicyCooldown.canFire ? 'Creating\u2026' : 'New Policy'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs gap-1.5"
+            disabled={!evaluationCooldown.canFire}
+            onClick={() => {
+              if (!evaluationCooldown.canFire) return
+              evaluationCooldown.fire()
+              openTimeline('Policy Evaluation', buildTraceTimeline([
+                {
+                  id: 'policy-eval-root',
+                  name: 'policy-engine:evaluate-bundle',
+                  type: 'policy',
+                  durationMs: 180,
+                  attributes: { bundle: 'cloudforge-core', mode: 'dry-run' },
+                },
+                {
+                  parentSpanId: 'policy-eval-root',
+                  name: 'retrieval:load-active-rules',
+                  type: 'retrieval',
+                  durationMs: 120,
+                  attributes: { active_policies: filtered.length || allPolicies.length },
+                },
+                {
+                  parentSpanId: 'policy-eval-root',
+                  name: 'chain:compare-deny-delta',
+                  type: 'chain',
+                  durationMs: 140,
+                  attributes: { baseline: 'last-24h', candidate_denials: Math.max(filtered.length, 1) },
+                },
+                {
+                  parentSpanId: 'policy-eval-root',
+                  name: 'tool:publish-operator-summary',
+                  type: 'tool',
+                  durationMs: 90,
+                  attributes: { destination: 'trace-panel', action: 'preview' },
+                },
+              ]))
+            }}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />{!evaluationCooldown.canFire ? 'Running\u2026' : 'Run Evaluation'}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs gap-1.5"
+            disabled={!newPolicyCooldown.canFire}
+            onClick={() => {
+              if (!newPolicyCooldown.canFire) return
+              openTimeline('New Policy', buildTraceTimeline([
+                {
+                  id: 'policy-draft-root',
+                  name: 'policy-draft:create',
+                  type: 'policy',
+                  durationMs: 150,
+                  attributes: { step: 'init-rego' },
+                },
+                {
+                  parentSpanId: 'policy-draft-root',
+                  name: 'policy:validate-namespace',
+                  type: 'policy',
+                  durationMs: 200,
+                  attributes: { step: 'validate-namespace' },
+                },
+                {
+                  parentSpanId: 'policy-draft-root',
+                  name: 'tool:register-opa-draft',
+                  type: 'tool',
+                  durationMs: 600,
+                  attributes: { step: 'register-opa' },
+                },
+                {
+                  parentSpanId: 'policy-draft-root',
+                  name: 'policy:draft-created',
+                  type: 'policy',
+                  durationMs: 100,
+                  attributes: { step: 'draft-created' },
+                },
+              ]))
+              newPolicyCooldown.fire()
+              setTimeout(() => toast('Policy draft created successfully'), 1050)
+            }}
+          >
+            <FileCode className="h-3.5 w-3.5" />{!newPolicyCooldown.canFire ? 'Creating\u2026' : 'New Policy'}
+          </Button>
+        </div>
       </div>
 
       {/* Summary row */}

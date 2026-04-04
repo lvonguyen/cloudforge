@@ -153,7 +153,7 @@ export function FindingAttackPathWorkspace({
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(16rem,0.85fr)]">
             <div className="min-w-0">
-              <AttackPathMiniGraph paths={relatedPaths} resourceId={finding.resource_id} />
+              <AttackPathMiniGraph paths={relatedPaths} resourceId={finding.resource_id} focusFinding={finding} />
             </div>
             <div className="space-y-4">
               <Card className="border-border/80">

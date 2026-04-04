@@ -4,10 +4,13 @@ import '@xyflow/react/dist/style.css'
 import { BaseGraphView } from '@/components/ops/BaseGraphView'
 import { useFindings } from '@/hooks/useFindings'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Search, X, Shield, Server, Database, Key, Globe, ChevronRight, CalendarClock, UserRound, Route, FileCheck2, Link2, TriangleAlert, Sparkles } from 'lucide-react'
+import { Search, X, Shield, Server, Database, Key, Globe, ChevronRight, CalendarClock, UserRound, Route, FileCheck2, Link2, TriangleAlert, Sparkles, TimerReset } from 'lucide-react'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS } from '@/lib/severity'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
+import { useTracePanel } from '@/lib/trace-panel-context'
+import { buildTraceTimeline } from '@/lib/trace-helpers'
 import type { InvestigationEntityType } from '@/types/investigation'
 import type { Finding } from '@/types/compliance'
 
@@ -134,6 +137,7 @@ export default function Investigations() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const navigate = useNavigate()
+  const { openTimeline } = useTracePanel()
 
   const investigationCandidates = useMemo(
     () =>
@@ -163,6 +167,43 @@ export default function Investigations() {
     () => investigationCandidates.find(f => f.id === selectedFindingId) ?? null,
     [investigationCandidates, selectedFindingId],
   )
+  const openGraphQueryTimeline = useCallback(() => {
+    if (!selectedFinding) return
+
+    openTimeline(`Graph Query: ${selectedFinding.title}`, buildTraceTimeline([
+      {
+        id: 'investigation-root',
+        name: `agent:investigation-graph:${selectedFinding.id}`,
+        type: 'agent',
+        durationMs: 140,
+        attributes: { finding_id: selectedFinding.id, provider: selectedFinding.cloud_provider },
+      },
+      {
+        parentSpanId: 'investigation-root',
+        name: 'retrieval:load-owner-and-resource-context',
+        type: 'retrieval',
+        durationMs: 120,
+        attributes: { assignee: selectedFinding.assignee?.user_name ?? 'unassigned' },
+      },
+      {
+        parentSpanId: 'investigation-root',
+        name: 'chain:compose-investigation-graph',
+        type: 'chain',
+        durationMs: 160,
+        attributes: {
+          impacted_resources: selectedFinding.impacted_resources?.length ?? 0,
+          controls: selectedFinding.compliance_mappings?.length ?? 0,
+        },
+      },
+      {
+        parentSpanId: 'investigation-root',
+        name: 'policy:highlight-priority-signals',
+        type: 'policy',
+        durationMs: 80,
+        attributes: { exploit_available: selectedFinding.exploit_available },
+      },
+    ]))
+  }, [openTimeline, selectedFinding])
   const analystBrief = useMemo(() => {
     if (!selectedFinding) return null
     const contextualSeverity = deriveInvestigationSeverity(selectedFinding)
@@ -501,6 +542,18 @@ export default function Investigations() {
             <p className="mt-2 text-[11px] leading-relaxed text-foreground">
               Start from contextual critical and high cases only. Confirm owner, validate the primary resource, then trace control and downstream impact before opening the full case.
             </p>
+            {selectedFinding && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="mt-3 gap-1.5 text-[11px]"
+                onClick={openGraphQueryTimeline}
+              >
+                <TimerReset className="h-3.5 w-3.5" />
+                Trace graph query
+              </Button>
+            )}
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">

@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { ChevronDown, ChevronRight, Box, Server, Shield, AlertTriangle } from 'lucide-react'
 import { apiClient, ApiError } from '@/lib/api'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
+import { useTracePanel } from '@/lib/trace-panel-context'
+import { playStreamingTrace } from '@/lib/trace-helpers'
 
 interface ContainerVuln {
   cve_id: string
@@ -163,6 +166,7 @@ function VulnCountBadge({ count }: { count: number }) {
 
 export default function Containers() {
   const navigate = useNavigate()
+  const { openStreaming, appendEvent, setRunning } = useTracePanel()
   const { data, isLoading, isError } = useContainers()
   const [expandedClusters, setExpandedClusters] = useState<Set<string>>(new Set())
   const [expandedPods, setExpandedPods] = useState<Set<string>>(new Set())
@@ -198,11 +202,49 @@ export default function Containers() {
 
   return (
     <div className="space-y-6 max-w-5xl">
-      <div>
-        <h1 className="text-xl font-semibold">Container Security</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {stats.clusters} clusters · {stats.pods} pods · {stats.containers} containers
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">Container Security</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {stats.clusters} clusters · {stats.pods} pods · {stats.containers} containers
+          </p>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="gap-1.5 text-xs"
+          onClick={() => playStreamingTrace(
+            { openStreaming, appendEvent, setRunning },
+            'Container Image Scan',
+            [
+              {
+                phase: 'planning',
+                message: 'Enumerated clusters and live workloads',
+                detail: `${stats.clusters} clusters · ${stats.containers} containers`,
+              },
+              {
+                phase: 'creating',
+                message: 'Queued image SBOM and CVE correlation',
+              },
+              {
+                phase: 'configuring',
+                message: 'Matched registry metadata and fixed versions',
+              },
+              {
+                phase: 'verifying',
+                message: 'Published refreshed vulnerability inventory',
+              },
+              {
+                phase: 'complete',
+                message: 'Image scan trace complete',
+              },
+            ],
+          )}
+        >
+          <Shield className="h-3.5 w-3.5" />
+          Scan Images
+        </Button>
       </div>
 
       {/* Stats bar */}

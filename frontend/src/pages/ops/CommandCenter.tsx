@@ -24,14 +24,18 @@ import { useFindings, useFindingsStats } from '@/hooks/useFindings'
 import { useAttackPaths, useAttackPathStats } from '@/hooks/useAttackPaths'
 import { useRemediations } from '@/hooks/useRemediations'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS, SEVERITY_HEX, SEVERITY_NEUTRAL_HEX } from '@/lib/severity'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
+import { useTracePanel } from '@/lib/trace-panel-context'
+import { playStreamingTrace } from '@/lib/trace-helpers'
 import {
   ArrowLeft,
   ChevronRight,
   Layers,
   Shield,
   Sparkles,
+  TerminalSquare,
 } from 'lucide-react'
 import type { AttackPath } from '@/types/attack-path'
 import type { Finding } from '@/types/compliance'
@@ -425,6 +429,7 @@ function CenterPane({
 
 function CommandCenterShell() {
   const { state, dispatch, showDetailPanel } = useCommandCenter()
+  const { openStreaming, appendEvent, setRunning } = useTracePanel()
   const [queryFilters, setQueryFilters] = useState<Pick<NLQFilters, 'category' | 'status' | 'text'>>({})
 
   const enabledByGroup = useMemo(() => {
@@ -591,6 +596,40 @@ function CommandCenterShell() {
     dispatch({ type: 'SET_LAYERS', payload: layers })
   }, [dispatch])
 
+  const traceBulkRefresh = useCallback(() => {
+    const activeLayerCount = Object.values(state.activeLayers).filter(Boolean).length
+    playStreamingTrace(
+      { openStreaming, appendEvent, setRunning },
+      'Command Center Bulk Refresh',
+      [
+        {
+          phase: 'planning',
+          message: 'Resolved active operator filters',
+          detail: `${activeLayerCount} enabled data layers`,
+        },
+        {
+          phase: 'creating',
+          message: 'Queued findings and attack-path fetch',
+          detail: 'Bulk refresh fan-out started across queue, charts, and graph views',
+        },
+        {
+          phase: 'configuring',
+          message: 'Re-ranked investigation queue',
+          detail: 'Applied severity, provider, environment, and text filters',
+        },
+        {
+          phase: 'verifying',
+          message: 'Published refreshed operator workspace',
+          detail: 'Command center panels synchronized',
+        },
+        {
+          phase: 'complete',
+          message: 'Bulk refresh complete',
+        },
+      ],
+    )
+  }, [appendEvent, openStreaming, setRunning, state.activeLayers])
+
   if (findingsLoading) {
     return (
       <div className="flex items-center justify-center h-full bg-[#0a0a0f] text-gray-500 text-xs font-mono">
@@ -605,6 +644,16 @@ function CommandCenterShell() {
       {/* NLQ bar — GAP-03 */}
       <div className="px-3 py-2 border-b border-[#1e2330] flex items-center gap-2">
         <NLQueryBar onApplyFilters={handleNLQFilters} />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="gap-1.5 border-[#1e2330] bg-[#0d0d14] text-[11px] text-gray-300 hover:bg-[#161b22] hover:text-white"
+          onClick={traceBulkRefresh}
+        >
+          <TerminalSquare className="h-3.5 w-3.5" />
+          Trace bulk refresh
+        </Button>
         {isUsingMockData && (
           <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-amber-600 text-amber-400 shrink-0">
             Demo data

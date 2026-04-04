@@ -38,6 +38,14 @@ import { ProviderIcon } from '@/components/ui/ProviderIcon'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS, SEVERITY_HEX, SEVERITY_NEUTRAL_HEX } from '@/lib/severity'
 import {
+  buildAttackPathFindingLookup,
+  findAttackPathNodeFinding,
+  formatAttackPathCveLabel,
+  getAttackPathRemediationState,
+  getPrimaryAttackPathCve,
+} from '@/components/attack-path/context'
+import { formatWorkflowStatus } from '@/components/ops/finding-detail/helpers'
+import {
   formatAttackPathResourceType,
   getAttackPathEdgeSemantic,
   getAttackPathResourceIcon,
@@ -267,99 +275,118 @@ function pathToFlow(
   path: AttackPath,
   resolvedTone: ResolvedCanvasTone,
   chokePointIds?: Set<string>,
+  findingLookup?: ReturnType<typeof buildAttackPathFindingLookup>,
 ): { nodes: Node[]; edges: Edge[] } {
   const canvasTheme = CANVAS_THEME[resolvedTone]
-  const nodes: Node[] = path.nodes.map((n, i) => ({
-    id: n.id,
-    position: { x: i * 360, y: 0 },
-    data: {
-      label: (
-        <div className={`text-left px-3 py-3 ${canvasTheme.nodeTextClass}`}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 items-start gap-2.5">
-              {(() => {
-                const ResourceIcon = getAttackPathResourceIcon(n)
-                return (
-                  <div className={`relative mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${canvasTheme.iconWrapClass}`}>
-                    <ResourceIcon className="h-5 w-5" />
-                    <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-white/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
-                      <ProviderIcon provider={n.provider} className="h-3 w-3" />
+  const nodes: Node[] = path.nodes.map((n, i) => {
+    const nodeFinding = findAttackPathNodeFinding(n, findingLookup)
+    const remediationState = getAttackPathRemediationState(nodeFinding)
+    const primaryCve = getPrimaryAttackPathCve(nodeFinding)
+    const cveLabel = formatAttackPathCveLabel(primaryCve)
+
+    return {
+      id: n.id,
+      position: { x: i * 360, y: 0 },
+      data: {
+        label: (
+          <div className={`text-left px-3 py-3 ${canvasTheme.nodeTextClass}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-2.5">
+                {(() => {
+                  const ResourceIcon = getAttackPathResourceIcon(n)
+                  return (
+                    <div className={`relative mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${canvasTheme.iconWrapClass}`}>
+                      <ResourceIcon className="h-5 w-5" />
+                      <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-white/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                        <ProviderIcon provider={n.provider} className="h-3 w-3" />
+                      </div>
                     </div>
+                  )
+                })()}
+                <div className="min-w-0">
+                  <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${canvasTheme.roleClass}`}>
+                      {nodeRoleLabel(i, path.nodes.length)}
+                    </span>
+                    {chokePointIds?.has(n.resource_id) && (
+                      <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                        Choke
+                      </span>
+                    )}
+                    {isCrownJewelNode(n) && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-violet-300 bg-violet-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-200">
+                        <Crown className="h-2.5 w-2.5" />
+                        Crown jewel
+                      </span>
+                    )}
                   </div>
-                )
-              })()}
-              <div className="min-w-0">
-                <div className="mb-1 flex items-center gap-1.5">
-                  <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${canvasTheme.roleClass}`}>
-                    {nodeRoleLabel(i, path.nodes.length)}
-                  </span>
-                  {chokePointIds?.has(n.resource_id) && (
-                    <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
-                      Choke
+                  <div className="truncate text-sm font-semibold">{n.resource_name}</div>
+                  <div className={`mt-1 flex items-center gap-1.5 text-[10px] font-medium ${canvasTheme.mutedTextClass}`}>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 ${canvasTheme.chipClass}`}>
+                      {formatAttackPathResourceType(n.resource_type)}
                     </span>
-                  )}
-                  {isCrownJewelNode(n) && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-violet-300 bg-violet-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-200">
-                      <Crown className="h-2.5 w-2.5" />
-                      Crown jewel
+                    <span>{n.region}</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[9px]">
+                    <span className={`rounded-full border px-2 py-0.5 font-semibold uppercase tracking-wide ${remediationState.badgeClass}`}>
+                      {remediationState.label}
                     </span>
-                  )}
-                </div>
-                <div className="truncate text-sm font-semibold">{n.resource_name}</div>
-                <div className={`mt-1 flex items-center gap-1.5 text-[10px] font-medium ${canvasTheme.mutedTextClass}`}>
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 ${canvasTheme.chipClass}`}>
-                    {formatAttackPathResourceType(n.resource_type)}
-                  </span>
-                  <span>{n.region}</span>
+                    {cveLabel && (
+                      <span className="rounded-full border border-red-300 bg-red-50 px-2 py-0.5 font-semibold text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+                        {cveLabel}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${SEVERITY_COLORS[n.severity] ?? ''}`}>
+                  {n.severity}
+                </span>
+              </div>
             </div>
-            <div className="flex shrink-0 flex-col items-end gap-1">
-              <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${SEVERITY_COLORS[n.severity] ?? ''}`}>
-                {n.severity}
+            <div className={`mt-2 flex items-center gap-1.5 text-[10px] ${canvasTheme.mutedTextClass}`}>
+              <span className={`inline-flex items-center rounded-full px-2 py-0.5 ${canvasTheme.chipClass}`}>
+                {n.category}
+              </span>
+              <span className="inline-flex items-center gap-1 font-mono uppercase">
+                <ProviderIcon provider={n.provider} className="h-3 w-3" />
+                {n.provider}
               </span>
             </div>
+            <div className={`mt-2 text-[10px] ${canvasTheme.mutedTextClass}`}>
+              {isCrownJewelNode(n) ? getCrownJewelLabel(n) : `${path.nodes.length} resources in path`}
+              {` \u00b7 ${remediationState.detail}`}
+            </div>
           </div>
-          <div className={`mt-2 flex items-center gap-1.5 text-[10px] ${canvasTheme.mutedTextClass}`}>
-            <span className={`inline-flex items-center rounded-full px-2 py-0.5 ${canvasTheme.chipClass}`}>
-              {n.category}
-            </span>
-            <span className="inline-flex items-center gap-1 font-mono uppercase">
-              <ProviderIcon provider={n.provider} className="h-3 w-3" />
-              {n.provider}
-            </span>
-          </div>
-          <div className={`mt-2 text-[10px] ${canvasTheme.mutedTextClass}`}>
-            {isCrownJewelNode(n) ? getCrownJewelLabel(n) : `${path.nodes.length} resources in path`}
-          </div>
-        </div>
-      ),
-    },
-    sourcePosition: Position.Right,
-    targetPosition: Position.Left,
-    style: {
-      border: chokePointIds?.has(n.resource_id)
-        ? '3px dashed #f59e0b'
-        : isCrownJewelNode(n)
-          ? '2px solid #8b5cf6'
-          : `2px solid ${SEVERITY_HEX[n.severity] ?? SEVERITY_NEUTRAL_HEX}`,
-      borderRadius: '22px',
-      background: canvasTheme.nodeBackground,
-      padding: '0px',
-      width: 280,
-      boxShadow: isCrownJewelNode(n)
-        ? `${canvasTheme.nodeShadow}, 0 0 18px rgba(139, 92, 246, 0.25)`
-        : canvasTheme.nodeShadow,
-    },
-  }))
+        ),
+      },
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left,
+      style: {
+        border: chokePointIds?.has(n.resource_id)
+          ? '3px dashed #f59e0b'
+          : isCrownJewelNode(n)
+            ? '2px solid #8b5cf6'
+            : `2px solid ${SEVERITY_HEX[n.severity] ?? SEVERITY_NEUTRAL_HEX}`,
+        borderRadius: '22px',
+        background: canvasTheme.nodeBackground,
+        padding: '0px',
+        width: 280,
+        boxShadow: isCrownJewelNode(n)
+          ? `${canvasTheme.nodeShadow}, 0 0 18px rgba(139, 92, 246, 0.25)`
+          : canvasTheme.nodeShadow,
+      },
+    }
+  })
 
-  const edges: Edge[] = path.edges.map(e => {
+  const edges: Edge[] = path.edges.map((e, edgeIndex) => {
     const semantic = getAttackPathEdgeSemantic(e)
     return {
       id: e.id,
       source: e.source,
       target: e.target,
-      label: semantic.badge,
+      label: `Hop ${edgeIndex + 1}: ${semantic.badge}`,
       type: 'smoothstep',
       markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
       style: { strokeWidth: isPrivilegeEscalationEdge(e) ? 3.45 : 2.85, stroke: semantic.color ?? canvasTheme.edgeColor },
@@ -509,7 +536,16 @@ function HopSequence({ path }: { path: AttackPath }) {
               const EdgeIcon = edgeSemantic?.icon ?? ArrowRight
               return (
                 <div className="flex shrink-0 flex-col items-center gap-0.5">
+                  <span
+                    className="rounded-full border border-border/80 bg-background/90 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
+                    style={{ color: edgeSemantic?.color ?? undefined }}
+                  >
+                    Hop {i + 1}
+                  </span>
                   <EdgeIcon className="h-3.5 w-3.5" style={{ color: edgeSemantic?.color ?? undefined }} />
+                  {edgeSemantic && (
+                    <span className="text-[8px] font-medium text-muted-foreground">{edgeSemantic.badge}</span>
+                  )}
                   {edgeSemantic && isPrivEsc && (
                     <span className="text-[7px] font-bold uppercase tracking-wider text-amber-500">esc</span>
                   )}
@@ -545,9 +581,10 @@ function PathGraphView({
   const pathStory = useMemo(() => buildPathStory(path), [path])
   const crownJewelCount = useMemo(() => path.nodes.filter(isCrownJewelNode).length, [path])
   const privilegeEscalationCount = useMemo(() => path.edges.filter(isPrivilegeEscalationEdge).length, [path])
+  const findingLookup = useMemo(() => buildAttackPathFindingLookup(relatedFindings), [relatedFindings])
   const { nodes, edges } = useMemo(
-    () => pathToFlow(path, resolvedCanvasTone, chokePointIds),
-    [path, resolvedCanvasTone, chokePointIds],
+    () => pathToFlow(path, resolvedCanvasTone, chokePointIds, findingLookup),
+    [path, resolvedCanvasTone, chokePointIds, findingLookup],
   )
 
   const uniqueProviders = useMemo(() => [...new Set(path.nodes.map(n => n.provider))], [path])
@@ -771,6 +808,10 @@ function PathGraphView({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {path.nodes.map(n => {
                 const ResourceIcon = getAttackPathResourceIcon(n)
+                const nodeFinding = findAttackPathNodeFinding(n, findingLookup)
+                const remediationState = getAttackPathRemediationState(nodeFinding)
+                const primaryCve = getPrimaryAttackPathCve(nodeFinding)
+                const cveLabel = formatAttackPathCveLabel(primaryCve)
                 return (
                   <div key={n.id} className="border border-border/80 p-3 space-y-1 rounded-2xl bg-background/70">
                     <div className="flex items-center gap-2">
@@ -801,6 +842,17 @@ function PathGraphView({
                         </Link>
                       )}
                     </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className={`text-[9px] rounded-full ${remediationState.badgeClass}`}>
+                        {remediationState.label}
+                      </Badge>
+                      {cveLabel && (
+                        <Badge variant="outline" className="rounded-full border-red-300 bg-red-50 text-[9px] text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+                          {cveLabel}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">{remediationState.detail}</p>
                   </div>
                 )
               })}
@@ -858,7 +910,7 @@ function PathGraphView({
                       </p>
                     </div>
                     <div className="text-right text-[10px] text-muted-foreground">
-                      <div>{finding.workflow_status.replaceAll('_', ' ')}</div>
+                      <div>{formatWorkflowStatus(finding.workflow_status)}</div>
                       {finding.due_date && <div>Due {new Date(finding.due_date).toLocaleDateString()}</div>}
                     </div>
                   </div>

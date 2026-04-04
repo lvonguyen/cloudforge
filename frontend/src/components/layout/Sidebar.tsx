@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth, type Role } from '@/lib/auth'
-import { useTerminalPanel } from '@/lib/terminal-context'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -10,7 +9,7 @@ import {
   Activity, AlertTriangle, Wrench, DollarSign, Shield,
   Home, PlusCircle, List, Package, Box, Database, Search,
   ChevronLeft, ChevronRight, X, BarChart3, ListChecks, Link2,
-  KeyRound, Globe, Layers, Crosshair, TerminalSquare, type LucideIcon,
+  KeyRound, Globe, Layers, Crosshair, type LucideIcon,
 } from 'lucide-react'
 
 interface NavItem {
@@ -51,7 +50,6 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
         { to: '/ops', label: 'Command Center', icon: Activity },
         { to: '/ops/findings', label: 'Findings', icon: AlertTriangle },
         { to: '/ops/remediation', label: 'Remediation', icon: Wrench },
-        { to: '#terminal', label: 'Terminal', icon: TerminalSquare },
       ],
     },
     {
@@ -93,7 +91,6 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
 }
 
 function NavContent({ collapsed }: { collapsed: boolean }) {
-  const terminalPanel = useTerminalPanel()
   const { role } = useAuth()
   const location = useLocation()
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
@@ -175,27 +172,6 @@ function NavContent({ collapsed }: { collapsed: boolean }) {
               <ul className="space-y-0.5">
                 {section.items.map(item => {
                   const Icon = item.icon
-
-                  // Terminal toggle — opens panel instead of navigating.
-                  if (item.to === '#terminal') {
-                    return (
-                      <li key={item.to}>
-                        <button
-                          onClick={() => terminalPanel.toggle()}
-                          className={cn(
-                            'flex w-full items-center gap-2.5 rounded-none px-2 py-1.5 text-sm transition-colors',
-                            terminalPanel.state.isOpen
-                              ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                              : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                          )}
-                          title={collapsed ? item.label : undefined}
-                        >
-                          <Icon className="h-[18px] w-[18px] shrink-0" />
-                          {!collapsed && <span>{item.label}</span>}
-                        </button>
-                      </li>
-                    )
-                  }
 
                   const active = location.pathname === item.to ||
                     (item.to !== '/' && item.to !== '/admin' && item.to !== '/ops' && item.to !== '/portal' &&

@@ -28,6 +28,7 @@ import { FindingRemediationPlan } from '@/components/ops/finding-detail/FindingR
 import { FindingAttackPathWorkspace } from '@/components/ops/finding-detail/FindingAttackPathWorkspace'
 import { FindingSecurityGraphWorkspace } from '@/components/ops/finding-detail/FindingSecurityGraphWorkspace'
 import { formatDate, formatWorkflowStatus } from '@/components/ops/finding-detail/helpers'
+import { buildTraceTimeline } from '@/lib/trace-helpers'
 
 interface FindingDetailProps {
   mode?: 'page' | 'inline'
@@ -80,6 +81,122 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
       enriched_at: enrichment.enriched_at,
     }
   }, [enrichment])
+  const openInvestigationTimeline = () => {
+    if (!finding) return
+
+    const correlatedTargets = Array.from(
+      new Set(
+        relatedPaths
+          .map((path) => path.target.resource_name)
+          .filter(Boolean),
+      ),
+    ).slice(0, 3)
+    const relatedControls = Array.from(
+      new Set(investigationEnrichment?.related_controls ?? []),
+    ).slice(0, 4)
+    const retrievalCount = Math.max(relatedPaths.length, relatedControls.length, 1)
+    const topScores = [0.98, 0.94, 0.9].slice(0, Math.min(retrievalCount, 3))
+
+    openTimeline(
+      `Timeline: ${finding.title}`,
+      buildTraceTimeline([
+        {
+          id: 'finding-investigator',
+          name: `agent:FindingInvestigator:${finding.id}`,
+          type: 'agent',
+          durationMs: 900,
+          attributes: {
+            finding_id: finding.id,
+            severity: finding.severity,
+            workflow_status: finding.workflow_status,
+            resource: finding.resource_name,
+          },
+        },
+        {
+          id: 'finding-context',
+          parentSpanId: 'finding-investigator',
+          name: 'retrieval:finding-context',
+          type: 'retrieval',
+          durationMs: 560,
+          attributes: {
+            finding_id: finding.id,
+            related_path_count: relatedPaths.length,
+            related_control_count: relatedControls.length,
+          },
+          data: {
+            retrieval: {
+              vector_store: 'security-graph-index',
+              query: `${finding.title} ${finding.resource_name}`.trim(),
+              num_results: retrievalCount,
+              top_scores: topScores,
+              filter_applied: true,
+            },
+          },
+        },
+        {
+          id: 'finding-correlation',
+          parentSpanId: 'finding-investigator',
+          name: 'chain:graph-correlation',
+          type: 'chain',
+          durationMs: 640,
+          attributes: {
+            primary_target: correlatedTargets[0] ?? finding.resource_name,
+            correlated_targets: correlatedTargets,
+            ticket_linked: Boolean(ticket),
+            enrichment_present: Boolean(investigationEnrichment),
+          },
+        },
+        {
+          id: 'finding-brief',
+          parentSpanId: 'finding-investigator',
+          name: 'llm:claude-sonnet-4-6:containment-brief',
+          type: 'llm',
+          durationMs: 840,
+          attributes: {
+            model: 'claude-sonnet-4-6',
+            purpose: 'containment-brief',
+          },
+          data: {
+            llm: {
+              model: 'claude-sonnet-4-6',
+              provider: 'anthropic',
+              prompt_tokens: 1180,
+              completion_tokens: 260,
+              total_tokens: 1440,
+              temperature: 0.1,
+              max_tokens: 1024,
+              prompt_hash: `sha256:${finding.id}:containment-brief`,
+              finish_reason: 'stop',
+            },
+          },
+        },
+        {
+          id: 'finding-policy',
+          parentSpanId: 'finding-investigator',
+          name: 'policy:remediation-readiness',
+          type: 'policy',
+          durationMs: 420,
+          status: finding.auto_remediatable ? 'completed' : 'blocked',
+          attributes: {
+            auto_remediatable: finding.auto_remediatable,
+            related_controls: relatedControls,
+            ticket_linked: Boolean(ticket),
+          },
+          events: [
+            {
+              timestamp: new Date().toISOString(),
+              name: finding.auto_remediatable ? 'policy.allow' : 'policy.review',
+              attributes: {
+                reason: finding.auto_remediatable
+                  ? 'Auto-remediation path available for this finding.'
+                  : 'Manual review required before remediation can be executed.',
+              },
+            },
+          ],
+        },
+      ]),
+    )
+  }
 
   const openInvestigationView = (view: 'attack-path' | 'security-graph') => {
     setActiveTab('investigation')
@@ -492,7 +609,7 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
                       Open in finding investigation &rarr;
                     </button>
                   </div>
-                  <AttackPathMiniGraph paths={relatedPaths} resourceId={finding.resource_id} />
+                  <AttackPathMiniGraph paths={relatedPaths} resourceId={finding.resource_id} focusFinding={finding} />
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground">No attack paths include this finding&apos;s resource.</p>
@@ -748,7 +865,7 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
                 relatedPaths={relatedPaths}
                 enrichment={investigationEnrichment}
                 ticketLinked={Boolean(ticket)}
-                onOpenTimeline={() => openTimeline(`Timeline: ${finding.title}`, [])}
+                onOpenTimeline={openInvestigationTimeline}
                 onOpenAttackPath={() => {
                   if (!attackPathsRequested) setAttackPathsRequested(true)
                   setInvestigationView('attack-path')

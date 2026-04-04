@@ -14,6 +14,8 @@ import type { OrgScanResult, RepoResult, SecretUploadResult } from '@/hooks/useO
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
+import { useTracePanel } from '@/lib/trace-panel-context'
+import { playStreamingTrace } from '@/lib/trace-helpers'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
 
@@ -340,6 +342,7 @@ function UploadResults({ data }: { data: SecretUploadResult }) {
 
 export default function OrgSecretsScan() {
   useAuth()
+  const { openStreaming, appendEvent, setRunning } = useTracePanel()
   const [orgName, setOrgName] = useState('')
   const [repos, setRepos] = useState('')
   const [secretTypeFilter, setSecretTypeFilter] = useState<SecretTypeValue | 'all'>('all')
@@ -362,6 +365,31 @@ export default function OrgSecretsScan() {
     if (!orgName.trim() || !scanCooldown.canFire) return
     scanCooldown.fire()
     const repoList = repos.trim() ? repos.split(',').map(r => r.trim()).filter(Boolean) : undefined
+    playStreamingTrace(
+      { openStreaming, appendEvent, setRunning },
+      `Secrets Scan: ${orgName.trim()}`,
+      [
+        {
+          phase: 'planning',
+          message: 'Validated organization scope',
+          detail: repoList ? `${repoList.length} repositories targeted` : 'Scanning all visible repositories',
+        },
+        {
+          phase: 'creating',
+          message: 'Queued repository secret scans',
+          detail: secretTypeFilter === 'all' ? 'All secret detectors enabled' : `Filtering on ${secretTypeFilter}`,
+        },
+        {
+          phase: 'verifying',
+          message: 'Aggregating leak evidence',
+          detail: 'Exposure and rotation metadata attached to findings',
+        },
+        {
+          phase: 'complete',
+          message: 'Secrets scan completed',
+        },
+      ],
+    )
     scanMutation.mutate({
       org_name: orgName.trim(),
       repos: repoList,
@@ -372,6 +400,30 @@ export default function OrgSecretsScan() {
   function handleUpload() {
     if (!uploadContent.trim() || !uploadCooldown.canFire) return
     uploadCooldown.fire()
+    playStreamingTrace(
+      { openStreaming, appendEvent, setRunning },
+      `Secret Analysis: ${uploadType}`,
+      [
+        {
+          phase: 'planning',
+          message: 'Accepted suspected secret payload',
+          detail: 'Content retained in memory only for analysis',
+        },
+        {
+          phase: 'configuring',
+          message: 'Matched detector family',
+          detail: `Detector: ${uploadType}`,
+        },
+        {
+          phase: 'verifying',
+          message: 'Scored exposure and rotation urgency',
+        },
+        {
+          phase: 'complete',
+          message: 'Analysis trace complete',
+        },
+      ],
+    )
     uploadMutation.mutate(
       { secret_type: uploadType, content: uploadContent.trim() },
       {

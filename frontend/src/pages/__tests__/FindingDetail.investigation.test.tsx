@@ -43,9 +43,13 @@ vi.mock('@/lib/auth', () => ({
   useAuth: () => ({ user: { email: 'operator@example.com' } }),
 }))
 
-vi.mock('@/lib/trace-panel-context', () => ({
-  useTracePanel: () => ({ openTimeline: vi.fn() }),
-}))
+vi.mock('@/lib/trace-panel-context', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/trace-panel-context')>()
+  return {
+    ...actual,
+    useTracePanel: () => ({ openTimeline: vi.fn() }),
+  }
+})
 
 vi.mock('@/components/ops/finding-detail/FindingAttackPathWorkspace', () => ({
   FindingAttackPathWorkspace: () => <div>Attack Path Analyst View</div>,

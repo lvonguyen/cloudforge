@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import AttackPaths from '@/pages/ops/AttackPaths'
 import { renderWithProviders } from '@/test/utils'
@@ -9,7 +9,29 @@ import type { Finding } from '@/types/compliance'
 import type { AttackPath, AttackPathStats, PaginatedResponse } from '@/types/attack-path'
 
 vi.mock('@xyflow/react', () => ({
-  ReactFlow: ({ children }: { children?: ReactNode }) => <div data-testid="reactflow-mock">{children}</div>,
+  ReactFlow: ({
+    children,
+    nodes = [],
+    edges = [],
+  }: {
+    children?: ReactNode
+    nodes?: Array<{ id: string; data?: { label?: ReactNode } }>
+    edges?: Array<{ id: string; label?: ReactNode }>
+  }) => (
+    <div data-testid="reactflow-mock">
+      {nodes.map(node => (
+        <div key={node.id} data-testid={`mock-node-${node.id}`}>
+          {node.data?.label}
+        </div>
+      ))}
+      {edges.map(edge => (
+        <div key={edge.id} data-testid={`mock-edge-${edge.id}`}>
+          {edge.label}
+        </div>
+      ))}
+      {children}
+    </div>
+  ),
   Background: () => null,
   Controls: () => <div data-testid="reactflow-controls-mock" />,
   Position: { Left: 'left', Right: 'right', Top: 'top', Bottom: 'bottom' },
@@ -308,6 +330,10 @@ describe('AttackPaths readability controls', () => {
     expect(screen.getAllByText(/remove internet ingress and tighten the role trust policy/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/1 privesc hop/i)).toBeInTheDocument()
     expect(screen.getAllByText(/crown jewel/i).length).toBeGreaterThan(0)
+    expect(within(screen.getByTestId('mock-edge-edge-1')).getByText(/hop 1: privilege escalation/i)).toBeInTheDocument()
+    expect(within(screen.getByTestId('mock-edge-edge-2')).getByText(/hop 2: data access/i)).toBeInTheDocument()
+    expect(within(screen.getByTestId('mock-node-node-1')).getByText(/in progress/i)).toBeInTheDocument()
+    expect(within(screen.getByTestId('mock-node-node-1')).getByText(/cve-2026-0001/i)).toBeInTheDocument()
 
     expect(screen.getByText('Finding Context')).toBeInTheDocument()
     expect(screen.getByText(/public workload can reach sensitive orders database/i)).toBeInTheDocument()

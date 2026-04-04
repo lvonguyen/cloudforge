@@ -3,7 +3,10 @@ import { RoleSwitcher } from './RoleSwitcher'
 import { ThemeToggle } from './ThemeToggle'
 import { CommandPalette } from './CommandPalette'
 import { useAuth } from '@/lib/auth'
+import { useTerminalPanel } from '@/lib/terminal-context'
 import { branding } from '@/lib/branding'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useNavigate } from 'react-router-dom'
-import { Search, LogOut, User, Menu } from 'lucide-react'
+import { Search, LogOut, User, Menu, TerminalSquare } from 'lucide-react'
 
 const isDemo = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true'
 const ROLE_STYLES: Record<string, string> = {
@@ -31,8 +34,10 @@ function avatarLabel(user: { name: string; role: string }): string {
 
 export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
   const { user, logout } = useAuth()
+  const terminalPanel = useTerminalPanel()
   const navigate = useNavigate()
   const [cmdOpen, setCmdOpen] = useState(false)
+  const canAccessTerminal = user.role === 'operator' || user.role === 'admin'
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -86,6 +91,24 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
       {/* Right side */}
       <div className="ml-auto flex items-center gap-3">
         <ThemeToggle />
+        {canAccessTerminal && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={terminalPanel.toggle}
+            aria-label={terminalPanel.state.isOpen ? 'Hide terminal panel' : 'Show terminal panel'}
+            title="Cloud terminal"
+            className={cn(
+              'border border-transparent text-muted-foreground transition-colors',
+              terminalPanel.state.isOpen
+                ? 'border-border bg-accent text-accent-foreground'
+                : 'hover:border-border/60 hover:text-foreground',
+            )}
+          >
+            <TerminalSquare className="h-4 w-4" />
+          </Button>
+        )}
         {(import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true') && <RoleSwitcher />}
 
         <DropdownMenu>
