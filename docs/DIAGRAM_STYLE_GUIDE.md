@@ -197,6 +197,61 @@ figma:create_text (labels) → set_corner_radius → export_node_as_image
 
 ---
 
+## [!] Draw.io Icon Embedding
+
+### The Semicolon Trap
+
+Draw.io XML uses CSS-like style attributes: `style="key=value;key=value"` where `;` is the property delimiter. Data URIs contain a literal `;` in the MIME type (`data:image/png;base64,...`) which the style parser splits on **before** the image decoder sees it — silently breaking the icon.
+
+**Symptom:** Icons render in Draw.io desktop but disappear in CLI export (`--export --format png`).
+
+### Fix: URL-Encode the Semicolon
+
+Replace `;` with `%3B` in the data URI MIME separator:
+
+```
+WRONG:  image=data:image/png;base64,iVBOR...
+RIGHT:  image=data:image/png%3Bbase64,iVBOR...
+
+WRONG:  image=data:image/svg+xml;base64,PHN2...
+RIGHT:  image=data:image/svg+xml%3Bbase64,PHN2...
+```
+
+This works for **all** MIME types. Draw.io's image renderer URL-decodes `%3B` back to `;` after style parsing completes.
+
+### Icon Embedding Workflow
+
+```bash
+# 1. Get icon SVG from icon-library MCP or local filesystem
+#    search_icons("shield", provider="aws") → get_icon_base64(path)
+
+# 2. For PNG embedding (heroicons, rasterized icons):
+rsvg-convert -w 128 -h 128 icon.svg -o icon.png
+BASE64=$(base64 -i icon.png | tr -d '\n')
+
+# 3. For SVG embedding (CSP icons, vector):
+BASE64=$(base64 -i icon.svg | tr -d '\n')
+
+# 4. In Draw.io XML style attribute — NOTE THE %3B:
+# PNG:  style="shape=image;image=data:image/png%3Bbase64,${BASE64};..."
+# SVG:  style="shape=image;image=data:image/svg+xml%3Bbase64,${BASE64};..."
+```
+
+### Icon Sizing in Draw.io
+
+| Context | Width/Height | Notes |
+|---------|-------------|-------|
+| Standalone hero | 64x64 | Primary diagram icons |
+| Node card inline | 48x48 | Inside labeled containers |
+| Layer header badge | 36x36 | Top-right of tier frames |
+| Dense layouts (>15 icons) | 32x32 | Minimum readable size |
+
+### Battle-Tested: 2026-04-04
+
+Confirmed working with 12 heroicons (cloud, check-circle, cpu-chip, bolt, shield-check, server, etc.) across `dual-opa-architecture.drawio`. Both PNG and SVG URIs survive CLI export with `%3B` encoding.
+
+---
+
 ## [+] Mermaid Alignment
 
 When generating `.mmd` source files, use these theme variables to approximate the dark theme:
@@ -223,3 +278,4 @@ The Mermaid SVGs support CSS edge animation (`stroke-dasharray` + `@keyframes da
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-03-24 | Initial release — BBG style research + CloudForge implementation |
+| 1.1 | 2026-04-04 | Added Draw.io icon embedding section — semicolon trap + `%3B` fix, icon sizing table, battle-tested workflow |
