@@ -12,6 +12,8 @@ The earlier ECS/RDS rollout path has been retired. Do not use Kubernetes, ECS, o
 ## Process Flow
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+
 flowchart TD
     A[Start Deployment] --> B[Pre-Deployment Checklist]
     B --> C{Fly.io App Healthy?}

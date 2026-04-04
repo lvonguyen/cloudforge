@@ -52,6 +52,8 @@ An **event-driven ingestion pipeline** using cloud-native message queues (SQS fo
 ### Architecture Overview
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+
 graph LR
     A[SecurityHub] -->|Event| B[EventBridge Rule]
     C[Defender for Cloud] -->|Webhook| D[Azure Event Hub]

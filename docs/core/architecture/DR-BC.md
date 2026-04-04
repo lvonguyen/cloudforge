@@ -24,12 +24,15 @@ CloudForge manages cloud security posture, policy enforcement, and AI-driven rem
 | **MTBF** | 720 hours | Minimum mean time between failures |
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'actorTextColor': '#0f172a', 'actorBkg': '#e2e8f0', 'actorBorder': '#334155', 'signalColor': '#334155', 'noteBkgColor': '#fef3c7', 'noteTextColor': '#0f172a', 'noteBorderColor': '#f59e0b'}}}%%
+
 sequenceDiagram
-    participant M as Monitoring
-    participant T1 as Tier 1 (Primary)
-    participant T2 as Tier 2 (DR Standby)
-    participant DNS as Global DNS
-    participant OPS as On-Call
+    autonumber
+    participant M as fa:fa-heartbeat Monitoring
+    participant T1 as fa:fa-server Tier 1 (Primary)
+    participant T2 as fa:fa-shield-alt Tier 2 (DR Standby)
+    participant DNS as fa:fa-globe Global DNS
+    participant OPS as fa:fa-user-shield On-Call
 
     M->>T1: Health check fails (3 consecutive)
     M->>OPS: PagerDuty alert (P1)

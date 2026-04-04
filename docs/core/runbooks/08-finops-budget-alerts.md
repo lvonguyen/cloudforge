@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers operating Aegis's FinOps budget alerting system, including:
+This runbook covers operating CloudForge's FinOps budget alerting system, including:
 - Budget configuration and threshold management
 - Slack and PagerDuty alert channel setup
 - Responding to budget threshold breaches
@@ -17,7 +17,7 @@ This runbook covers operating Aegis's FinOps budget alerting system, including:
 
 ## Prerequisites
 
-- [ ] Aegis API token with `finops:manage` scope
+- [ ] CloudForge API token with `finops:manage` scope
 - [ ] `flyctl` authenticated against the `personal` org
 - [ ] Slack workspace with incoming webhook configured
 - [ ] PagerDuty service with Events API v2 integration key

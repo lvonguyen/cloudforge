@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers policy lifecycle operations for Aegis, including:
+This runbook covers policy lifecycle operations for CloudForge, including:
 - OPA policy lifecycle (create, test, deploy, monitor, retire)
 - Dual-OPA architecture operations (external server + embedded engine)
 - Policy bundle management and hot-reload
@@ -16,6 +16,8 @@ This runbook covers policy lifecycle operations for Aegis, including:
 ## Process Flow
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+
 flowchart TD
     A[Policy Request] --> B{Which Engine?}
     B -->|IaC Gate| C[Write Rego in provisioning namespace]
@@ -41,12 +43,12 @@ flowchart TD
 - [ ] OPA CLI installed (`opa version` >= 0.60.0)
 - [ ] conftest installed (`conftest --version` >= 0.47.0)
 - [ ] `flyctl` authenticated against the `personal` org
-- [ ] Aegis API token with `policy:manage` scope
+- [ ] CloudForge API token with `policy:manage` scope
 - [ ] Access to policy bundle S3 bucket
 
 ## Dual-OPA Architecture
 
-Aegis runs two policy paths serving distinct domains:
+CloudForge runs two policy paths serving distinct domains:
 
 | Instance | Type | Namespace | Purpose |
 |----------|------|-----------|---------|

@@ -27,6 +27,8 @@ This threat model covers the **remediation dispatcher** and **AI enrichment pipe
 ## 2. Data Flow Diagram
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+
 graph LR
     A[CSPM Finding Source] -->|JSON| B[Finding Normalizer]
     B --> C[Context Enricher]

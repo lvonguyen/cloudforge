@@ -13,6 +13,8 @@ This runbook covers disaster recovery failover procedures for CloudForge, includ
 ## Process Flow
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#ef4444', 'tertiaryColor': '#22c55e'}}}%%
+
 flowchart TD
     A[Incident Detected] --> B{Classify Incident}
     B -->|Region Outage| C[Full Failover]

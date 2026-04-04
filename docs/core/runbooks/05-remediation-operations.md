@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers operating Aegis's remediation dispatcher, including:
+This runbook covers operating CloudForge's remediation dispatcher, including:
 - Dispatcher architecture and executor model
 - Starting and monitoring remediation batches
 - Per-handler operations (network, storage, compute, identity, security services)
@@ -11,11 +11,13 @@ This runbook covers operating Aegis's remediation dispatcher, including:
 - Troubleshooting common failures
 - Reporting and SLA compliance
 
-> Runtime note (April 1, 2026): the public demo runs on Fly.io + Cloudflare Pages. Use `flyctl`, the Aegis API, and 1Password-backed secret refs for live operations. Any `kubectl` examples below apply only to a future self-managed deployment.
+> Runtime note (April 1, 2026): the public demo runs on Fly.io + Cloudflare Pages. Use `flyctl`, the CloudForge API, and 1Password-backed secret refs for live operations. Any `kubectl` examples below apply only to a future self-managed deployment.
 
 ## Process Flow
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+
 flowchart TD
     A[Remediation Request] --> B[Dry Run]
     B --> C{Review Changes}
@@ -41,7 +43,7 @@ flowchart TD
 
 - [ ] Write-access cloud credentials for the target account/subscription
 - [ ] `flyctl` authenticated against the `personal` org
-- [ ] Aegis API token with `remediation:execute` scope
+- [ ] CloudForge API token with `remediation:execute` scope
 - [ ] Runbook 02-incident-response.md reviewed if remediating an active incident
 - [ ] Change management approval for production remediations
 

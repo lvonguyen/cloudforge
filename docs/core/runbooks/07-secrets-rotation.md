@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers rotating secrets used by Aegis, including:
+This runbook covers rotating secrets used by CloudForge, including:
 - JWT signing keys
 - Cloud provider credentials (AWS, Azure, GCP)
 - Database connection strings

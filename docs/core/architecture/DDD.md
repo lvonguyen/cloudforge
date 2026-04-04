@@ -81,8 +81,10 @@ This document covers:
 ### 2.1 External Integrations
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+
 flowchart TB
-    subgraph Aegis["Aegis Platform"]
+    subgraph Aegis["CloudForge Platform"]
         API["API Server<br/>Go 1.25 · JWT · RBAC"]
         FE["Portal<br/>React 19 · Vite 7"]
         RE["Remediation<br/>17 Handlers"]
@@ -128,7 +130,7 @@ flowchart TB
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              Aegis                                           │
+│                           CloudForge                                         │
 └─────────────────────────────────────────────────────────────────────────────┘
          │              │              │              │              │
          ▼              ▼              ▼              ▼              ▼
