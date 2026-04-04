@@ -3,7 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import React from 'react'
-import { normalizeDemoFindings, useFindings, useFinding } from '@/hooks/useFindings'
+import { normalizeDemoFindings, useFindings, useFinding, useFindingEnrichment, useFindingsStats } from '@/hooks/useFindings'
 import { apiClient, ApiError } from '@/lib/api'
 import type { Finding } from '@/types/compliance'
 
@@ -164,11 +164,13 @@ function buildUniformR2Corpus(): Finding[] {
 describe('useFindings', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    sessionStorage.clear()
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
     vi.unstubAllEnvs()
+    sessionStorage.clear()
   })
 
   it('returns loading state initially', () => {
@@ -271,6 +273,38 @@ describe('useFindings', () => {
 
     expect(result.current.data).toHaveLength(1000)
     expect(result.current.total).toBe(1500)
+  })
+
+  it('derives findings stats from mock data in demo mode without probing the API', async () => {
+    vi.stubEnv('VITE_DEMO_MODE', 'true')
+    sessionStorage.setItem('aegis_findings_source', 'local')
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(mockFindings), { status: 200 }),
+    )
+
+    const { result } = renderHook(() => useFindingsStats(), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toMatchObject({
+      total: 1,
+      by_severity: { HIGH: 1 },
+      by_status: { open: 1 },
+      by_provider: { aws: 1 },
+      by_category: { MISCONFIGURATION: 1 },
+      sla_breached: 0,
+      auto_remedial: 1,
+    })
+    expect(vi.mocked(apiClient.get)).not.toHaveBeenCalled()
+  })
+
+  it('skips enrichment API calls in demo mode', async () => {
+    vi.stubEnv('VITE_DEMO_MODE', 'true')
+
+    const { result } = renderHook(() => useFindingEnrichment('f-001'), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toBeNull()
+    expect(vi.mocked(apiClient.post)).not.toHaveBeenCalled()
   })
 })
 

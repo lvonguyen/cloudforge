@@ -133,6 +133,20 @@ interface FindingsPageEnvelope {
   total_pages: number
 }
 
+export interface FindingsStats {
+  total: number
+  by_severity: Record<string, number>
+  by_status: Record<string, number>
+  by_provider: Record<string, number>
+  by_category?: Record<string, number>
+  sla_breached: number
+  auto_remedial: number
+}
+
+function isDemoMode(): boolean {
+  return import.meta.env.VITE_DEMO_MODE === 'true'
+}
+
 function compareFindings(a: Finding, b: Finding, field: string, order: 'asc' | 'desc' = 'asc'): number {
   const direction = order === 'desc' ? -1 : 1
   const severityRank: Record<string, number> = { INFO: 0, LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 }
@@ -216,7 +230,7 @@ function toFetchResult(payload: Finding[] | FindingsPageEnvelope, usingMockData:
 }
 
 async function fetchFindings(filters?: FindingsQueryParams): Promise<FetchFindingsResult> {
-  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+  if (isDemoMode()) {
     const data = await fetchMockFindings()
     return toFetchResult(paginateLocalFindings(data, filters), true)
   }
@@ -243,7 +257,7 @@ async function fetchFindings(filters?: FindingsQueryParams): Promise<FetchFindin
 }
 
 async function fetchFindingById(id: string): Promise<Finding | null> {
-  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+  if (isDemoMode()) {
     const findings = await fetchMockFindings()
     return findings.find((f) => f.id === id) ?? null
   }
@@ -278,6 +292,9 @@ export function useEnrichFinding() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (findingId: string) => {
+      if (isDemoMode()) {
+        return fetchFindingById(findingId)
+      }
       return apiClient.post<Finding>(`/findings/${findingId}/enrich`, {})
     },
     onSuccess: () => {
@@ -313,6 +330,7 @@ export function useFindingEnrichment(findingId: string) {
   return useQuery({
     queryKey: ['enrichment', findingId],
     queryFn: async () => {
+      if (isDemoMode()) return null
       return apiClient.post<FindingEnrichmentResponse>(`/findings/${findingId}/enrich`, {})
     },
     enabled: Boolean(findingId),
@@ -321,20 +339,45 @@ export function useFindingEnrichment(findingId: string) {
   })
 }
 
-export interface FindingsStats {
-  total: number
-  by_severity: Record<string, number>
-  by_status: Record<string, number>
-  by_provider: Record<string, number>
-  by_category?: Record<string, number>
-  sla_breached: number
-  auto_remedial: number
+function isTerminalFinding(finding: Finding): boolean {
+  return ['resolved', 'suppressed'].includes(finding.status) ||
+    ['closed', 'suppressed', 'false_positive', 'risk_accepted', 'wont_fix'].includes(finding.workflow_status)
+}
+
+function computeFindingsStats(findings: Finding[]): FindingsStats {
+  const now = Date.now()
+
+  return {
+    total: findings.length,
+    by_severity: countBy(findings, (finding) => finding.severity),
+    by_status: countBy(findings, (finding) => finding.status),
+    by_provider: countBy(findings, (finding) => finding.cloud_provider),
+    by_category: countBy(findings, (finding) => finding.category),
+    sla_breached: findings.filter((finding) => {
+      const breachDate = finding.sla_breach_date ?? finding.due_date
+      if (!breachDate || isTerminalFinding(finding)) return false
+
+      const breachTimestamp = Date.parse(breachDate)
+      return !Number.isNaN(breachTimestamp) && breachTimestamp <= now
+    }).length,
+    auto_remedial: findings.filter((finding) => finding.auto_remediatable).length,
+  }
 }
 
 export function useFindingsStats() {
   return useQuery({
     queryKey: ['findings', 'stats'],
     queryFn: async () => {
+      if (isDemoMode()) {
+        try {
+          const findings = await fetchMockFindings()
+          return computeFindingsStats(findings)
+        } catch {
+          console.warn('[useFindingsStats] Mock stats unavailable in demo mode')
+          return null
+        }
+      }
+
       try {
         return await apiClient.get<FindingsStats>('/findings/stats')
       } catch (err) {

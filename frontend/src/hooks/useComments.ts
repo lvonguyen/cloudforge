@@ -9,9 +9,11 @@ export interface FindingComment {
   created_at: string
 }
 
-const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true'
-
 const STORAGE_KEY = (findingId: string) => `aegis_comments_${findingId}`
+
+function isDemoMode(): boolean {
+  return import.meta.env.VITE_DEMO_MODE === 'true'
+}
 
 function getStoredComments(findingId: string): FindingComment[] {
   try {
@@ -61,26 +63,18 @@ export function useComments(findingId: string) {
   return useQuery({
     queryKey: ['comments', findingId],
     queryFn: async () => {
-      if (IS_DEMO) {
+      if (isDemoMode()) {
         seedIfEmpty(findingId)
+        return getStoredComments(findingId)
       }
 
-      let apiComments: FindingComment[] = []
       try {
-        apiComments = await apiClient.get<FindingComment[]>(`/findings/${findingId}/comments`)
+        return await apiClient.get<FindingComment[]>(`/findings/${findingId}/comments`)
       } catch (err) {
         if (err instanceof ApiError && err.status < 500) throw err
         console.warn('[useComments] API unavailable, using empty fallback')
+        return []
       }
-
-      if (IS_DEMO) {
-        const stored = getStoredComments(findingId)
-        const storedIds = new Set(stored.map((c) => c.id))
-        const merged = [...apiComments.filter((c) => !storedIds.has(c.id)), ...stored]
-        return merged
-      }
-
-      return apiComments
     },
     enabled: Boolean(findingId),
   })
@@ -90,7 +84,7 @@ export function useAddComment(findingId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (body: string) => {
-      if (IS_DEMO) {
+      if (isDemoMode()) {
         const comment: FindingComment = {
           id: `comment-${Date.now()}`,
           finding_id: findingId,

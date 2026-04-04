@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
@@ -55,6 +55,12 @@ const mockComments: FindingComment[] = [
 describe('useComments', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    sessionStorage.clear()
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    sessionStorage.clear()
   })
 
   it('returns comments from API', async () => {
@@ -72,6 +78,16 @@ describe('useComments', () => {
     expect(result.current.data).toEqual([])
   })
 
+  it('returns seeded local comments in demo mode without calling the API', async () => {
+    vi.stubEnv('VITE_DEMO_MODE', 'true')
+
+    const { result } = renderHook(() => useComments('f-123'), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toHaveLength(2)
+    expect(vi.mocked(apiClient.get)).not.toHaveBeenCalled()
+  })
+
   it('is disabled when findingId is empty', () => {
     const { result } = renderHook(() => useComments(''), { wrapper: makeWrapper() })
     expect(result.current.fetchStatus).toBe('idle')
@@ -81,6 +97,12 @@ describe('useComments', () => {
 describe('useAddComment', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    sessionStorage.clear()
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    sessionStorage.clear()
   })
 
   it('posts comment via apiClient', async () => {

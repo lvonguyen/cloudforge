@@ -56,6 +56,81 @@ const mockStats = {
   avg_exploitability: 0.65,
 }
 
+const mockDemoPath = {
+  id: 'ap-001',
+  title: 'IAM Privilege Escalation',
+  description: 'Demo attack path',
+  severity: 'CRITICAL',
+  score: 91,
+  hop_count: 2,
+  entry_point: {
+    id: 'n-001',
+    finding_id: 'f-001',
+    resource_id: 'res-001',
+    resource_name: 'User A',
+    resource_type: 'identity',
+    provider: 'aws',
+    account_id: '123456789012',
+    region: 'us-east-1',
+    severity: 'HIGH',
+    category: 'IDENTITY',
+    label: 'User A',
+  },
+  target: {
+    id: 'n-002',
+    finding_id: 'f-001',
+    resource_id: 'res-002',
+    resource_name: 'Role Admin',
+    resource_type: 'identity',
+    provider: 'aws',
+    account_id: '123456789012',
+    region: 'us-east-1',
+    severity: 'CRITICAL',
+    category: 'IDENTITY',
+    label: 'Role Admin',
+  },
+  nodes: [
+    {
+      id: 'n-001',
+      finding_id: 'f-001',
+      resource_id: 'res-001',
+      resource_name: 'User A',
+      resource_type: 'identity',
+      provider: 'aws',
+      account_id: '123456789012',
+      region: 'us-east-1',
+      severity: 'HIGH',
+      category: 'IDENTITY',
+      label: 'User A',
+    },
+    {
+      id: 'n-002',
+      finding_id: 'f-001',
+      resource_id: 'res-002',
+      resource_name: 'Role Admin',
+      resource_type: 'identity',
+      provider: 'aws',
+      account_id: '123456789012',
+      region: 'us-east-1',
+      severity: 'CRITICAL',
+      category: 'IDENTITY',
+      label: 'Role Admin',
+    },
+  ],
+  edges: [
+    {
+      id: 'edge-001',
+      source: 'n-001',
+      target: 'n-002',
+      label: 'AssumeRole',
+      edge_type: 'identity',
+    },
+  ],
+  mitre_tactics: ['Privilege Escalation'],
+  finding_ids: ['f-001'],
+  ai_enriched: false,
+}
+
 describe('useAttackPaths', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -63,6 +138,7 @@ describe('useAttackPaths', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllEnvs()
   })
 
   it('returns loading state initially', () => {
@@ -90,6 +166,22 @@ describe('useAttackPaths', () => {
 
     expect(vi.mocked(apiClient.get)).toHaveBeenCalledWith('/attack-paths?page=1&per_page=20')
   })
+
+  it('uses mock attack paths directly in demo mode without calling the API', async () => {
+    vi.stubEnv('VITE_DEMO_MODE', 'true')
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ paths: [mockDemoPath], stats: mockStats }), { status: 200 }),
+    )
+
+    const { result } = renderHook(() => useAttackPaths(), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toMatchObject({
+      data: [expect.objectContaining({ id: 'ap-001' })],
+      total: 1,
+    })
+    expect(vi.mocked(apiClient.get)).not.toHaveBeenCalled()
+  })
 })
 
 describe('useAttackPath', () => {
@@ -99,6 +191,7 @@ describe('useAttackPath', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllEnvs()
   })
 
   it('returns loading state initially when id is provided', () => {
@@ -140,6 +233,7 @@ describe('useAttackPathStats', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllEnvs()
   })
 
   it('returns loading state initially', () => {
@@ -166,5 +260,23 @@ describe('useAttackPathStats', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(vi.mocked(apiClient.get)).toHaveBeenCalledWith('/attack-paths/stats')
+  })
+
+  it('derives stats from mock attack paths in demo mode without calling the API', async () => {
+    vi.stubEnv('VITE_DEMO_MODE', 'true')
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ paths: [mockDemoPath], stats: mockStats }), { status: 200 }),
+    )
+
+    const { result } = renderHook(() => useAttackPathStats(), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toMatchObject({
+      total_paths: 1,
+      critical_paths: 1,
+      findings_in_paths: 1,
+      by_provider: { aws: 1 },
+    })
+    expect(vi.mocked(apiClient.get)).not.toHaveBeenCalled()
   })
 })

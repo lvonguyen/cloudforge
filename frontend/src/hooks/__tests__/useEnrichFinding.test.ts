@@ -46,10 +46,13 @@ function makeWrapper() {
 describe('useEnrichFinding', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    sessionStorage.clear()
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+    sessionStorage.clear()
   })
 
   it('calls POST /findings/{id}/enrich on mutate', async () => {
@@ -109,5 +112,23 @@ describe('useEnrichFinding', () => {
     })
 
     await waitFor(() => expect(result.current.isError).toBe(true))
+  })
+
+  it('reuses mock findings in demo mode instead of POSTing', async () => {
+    vi.stubEnv('VITE_DEMO_MODE', 'true')
+    sessionStorage.setItem('aegis_findings_source', 'local')
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([{ id: 'f-001', title: 'demo finding' }]), { status: 200 }),
+    )
+
+    const { result } = renderHook(() => useEnrichFinding(), { wrapper: makeWrapper() })
+
+    act(() => {
+      result.current.mutate('f-001')
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data).toMatchObject({ id: 'f-001' })
+    expect(vi.mocked(apiClient.post)).not.toHaveBeenCalled()
   })
 })

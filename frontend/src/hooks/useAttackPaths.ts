@@ -10,6 +10,10 @@ const EMPTY_STATS: AttackPathStats = {
   high_paths: 0, medium_paths: 0, by_provider: {},
 }
 
+function isDemoMode(): boolean {
+  return import.meta.env.VITE_DEMO_MODE === 'true'
+}
+
 // Singleflight cache: coalesces concurrent calls and allows invalidation
 let mockCachePromise: Promise<{ paths: AttackPath[]; stats: AttackPathStats }> | null = null
 
@@ -65,23 +69,31 @@ async function loadMockAttackPaths(): Promise<{ paths: AttackPath[]; stats: Atta
   }
 }
 
+function paginateMockPaths(paths: AttackPath[], page: number, perPage: number): PaginatedResponse<AttackPath> {
+  const start = (page - 1) * perPage
+  return {
+    data: paths.slice(start, start + perPage),
+    page,
+    per_page: perPage,
+    total: paths.length,
+    total_pages: Math.ceil(paths.length / perPage),
+  }
+}
+
 async function fetchAttackPaths(page: number, perPage: number): Promise<PaginatedResponse<AttackPath>> {
+  if (isDemoMode()) {
+    const { paths } = await getMockAttackPaths()
+    return paginateMockPaths(paths, page, perPage)
+  }
+
   try {
     return await apiClient.get<PaginatedResponse<AttackPath>>(`/attack-paths?page=${page}&per_page=${perPage}`)
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
-    if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'true') throw err
+    if (import.meta.env.PROD && !isDemoMode()) throw err
     console.warn('[useAttackPaths] API unavailable, using mock paths')
     const { paths } = await getMockAttackPaths()
-    const start = (page - 1) * perPage
-    const data = paths.slice(start, start + perPage)
-    return {
-      data,
-      page,
-      per_page: perPage,
-      total: paths.length,
-      total_pages: Math.ceil(paths.length / perPage),
-    }
+    return paginateMockPaths(paths, page, perPage)
   }
 }
 
@@ -123,11 +135,16 @@ function computeStatsFromPaths(paths: AttackPath[]): AttackPathStats {
 }
 
 async function fetchAttackPathStats(): Promise<AttackPathStats> {
+  if (isDemoMode()) {
+    const { paths } = await getMockAttackPaths()
+    return computeStatsFromPaths(paths)
+  }
+
   try {
     return await apiClient.get<AttackPathStats>('/attack-paths/stats')
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
-    if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'true') throw err
+    if (import.meta.env.PROD && !isDemoMode()) throw err
     console.warn('[useAttackPathStats] API unavailable, deriving stats from paths')
     const { paths } = await getMockAttackPaths()
     return computeStatsFromPaths(paths)
@@ -147,11 +164,16 @@ export function useAttackPath(id: string) {
   return useQuery({
     queryKey: ['attack-paths', id],
     queryFn: async () => {
+      if (isDemoMode()) {
+        const { paths } = await getMockAttackPaths()
+        return paths.find(p => p.id === id) ?? null
+      }
+
       try {
         return await apiClient.get<AttackPath>(`/attack-paths/${id}`)
       } catch (err) {
         if (err instanceof ApiError && err.status < 500) throw err
-        if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'true') throw err
+        if (import.meta.env.PROD && !isDemoMode()) throw err
         const { paths } = await getMockAttackPaths()
         return paths.find(p => p.id === id) ?? null
       }
