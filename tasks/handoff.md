@@ -1,169 +1,207 @@
-# Session Handoff
+# Parallel Session Handoff — Diagram E2E
 
-**Generated:** 2026-04-04T01:42:04Z
+**Generated:** 2026-04-04T03:45:00Z
 **Repo:** cloudforge (CloudForge)
 **Branch:** main
-**Latest commits:** `8b3dbe41` command center drillthrough, `3d1d1e20` investigation realism, `eb92e5ed` docs refresh, `03acb311` TF env var fix
+**Latest commit:** `751e65f5` (pushed to origin)
+**Working tree:** clean
 
-## What Was Done
+## What Just Landed (this session)
 
-Session 37 — license + positioning refresh:
+- `fc0bd47d` `docs: re-render diagrams with CloudForge branding + PNG exports` (43 files)
+- `96c0e028` `docs: Docusaurus overhaul — CloudForge branding, auth honesty, ADR-021` (21 files)
+- `01d0ea73` `feat: attack-path readability + trace helpers + ops UI polish` (18 files)
+- `39e4b992` `docs: complete Cloud Aegis -> CloudForge rename across 95 files`
+- `751e65f5` `docs: add CloudForge favicon to docs site + README diagram polish`
+- `.gitignore` fixed: PNG exception for `docs-site/static/img/**/*.png`, `.playwright-cli/` added
+- README diagram section: full-width `<img>` with click-to-zoom, endpoint count fixed
+- Docs-site favicon: shield+cloud+spark logo (`docs-site/static/img/favicon.svg`)
 
-- **Relicensed to Apache 2.0:** replaced MIT text in `LICENSE`, added root `NOTICE`, updated README license badge/section, and recorded the change in `CHANGELOG.md`
-- **README positioning tightened:** replaced "portfolio-grade" framing with "open reference implementation" / "production-oriented slices" language and clarified this is not a turnkey production deployment
-- **Vendor-specific agent wording removed:** README now says `agentic coding workflows` instead of naming a single tool
-- **Current working tree state:** local diffs are limited to `README.md`, this handoff file, and the untracked root `NOTICE` file. `LICENSE` and `CHANGELOG.md` already match the current branch state.
+All pushed to origin. CF Pages will auto-rebuild from main.
 
-Session 36 — 6-tier documentation audit + diagram enrichment:
+---
 
-- **Docs audit completed:** 4-module fan-out (Go, Frontend, Docs, Infra) with 12 structural integrity checks
-- **Squished README diagrams FIXED:** architecture-figma.png (7152x1101, 6.5:1) and dual-opa (7152x2322, 3:1) — removed `width="720"`, now render at natural width with click-to-expand links
-- **17 stale counts updated:** routes 36→37 (4 locations), Go tests 2146→2187, packages 45→47, frontend tests 452→469 (60 files), operations 82→89 (4 files), HLD v3→v4, ADR-015 Proposed→Accepted
-- **ADR-020 added** to README, docs/README, adr-index tables
-- **28 broken links fixed:** 20 adr-index slug links (→ .md), 8 gallery Docusaurus paths (→ relative), HLD ADR-007 filename
-- **Diagram enrichment:** Mermaid system context flowchart in DDD.md (1725L), failover sequence in DR-BC.md (1214L)
-- **Latent deploy failure FIXED (INF-23):** dev/staging/prod TF envs all had `DATABASE_URL` instead of `AEGIS_DATABASE_URL` — would crash on apply
-- **INF-22 FIXED (local):** prod tfvars `cloudforge_image` → `aegis_image` (was silently ignored by TF — wrong variable name)
-- **Personal env decommission notice** added to main.tf header
-- **Hook-propagated:** branding, CORS, search refactor, runtime config overlay
+## Session C1: Figma Diagram Upload
 
-Session 35 — live secgraph issue-surface stabilization:
+**Scope:** Figma MCP operations ONLY. Zero git file changes.
+**Owner:** figma-create MCP, chrome for visual verification
+**Conflict risk:** None (no file changes)
 
-- **D19 secgraph live fix landed:** issue-surface startup now accumulates in place, skips unnecessary ticket-state loads when auto-dispatch is off, persists issue-surface batches incrementally, and bulk-upserts evaluations/issues/issue_findings instead of row-by-row round-trips to Neon
-- **Prod secgraph rollout verified (2026-03-31):** first live issue-surface batch committed `77116` evaluations/issues/issue_findings at `2026-03-31T22:23:46Z`
-- **Prod issues API E2E verified (2026-03-31):** `GET /api/v1/issues/stats`, `GET /api/v1/issues?per_page=5&page=1`, and `GET /api/v1/issues/ISS-03327F6E1F1C` all succeeded through the public demo API with an operator JWT
+### Context
 
-Session 34 — CI repair, documentation refresh, diagram polish:
+All 9 Figma pages are broken/empty. Screenshots confirmed:
 
-- **CI fix (7 lint + 1 E2E):** exhaustive switch cases in secgraph materialize, goconst nolint exact-line placement, gosec SQL suppressions, ineffassign hops (wired depth-bounded CTE), revive indent-error-flow, Playwright role label mismatch
-- **Dependabot disabled:** 19 PRs closed, 19 branches deleted, config removed
-- **Diagrams refreshed:** Architecture switched to light-tinted containers. Dual-OPA edge labels shortened. Terraform icon fixed. Re-rendered via mmdc.
-- **Docs P0s fixed:** ADR count 19-20, package count 34-45, test count 1474-2146, secgraph added to README + CODEBASE_INDEX, migrations 001-008, stale cicd removed
-- **Codex partial-commit gaps fixed:** Pushed 5 unstaged local commits with missing symbol definitions
-- **Bug found via lint:** Neighborhood CTE unbounded BFS — hops never passed to query. Fixed with WHERE n.depth < $3.
-- **D10 + issues OpenAPI landed:** `e53357b0` split portal request flow into subcomponents and added issues endpoints to `docs/api/openapi.yaml`
-- **Runbook refresh landed:** `c3d987db` updated deployment and teardown docs for the current Fly.io + CF Pages topology
-- **D21 ticket parity slices landed:** `6d38c8e1` refreshes cached remediation tickets from provider webhooks and `2c2e363f` adds frontend provider selection / assignee controls
-- **D21 Jira comment parity landed:** `6489f888` adds Jira `ListComments` support so linked finding ticket activity no longer degrades on Jira-backed findings
-- **D21 provider readiness landed:** `95ad7f80` extends `/api/v1/providers` and OpenAPI so operators can verify active ticket providers, durable ticket storage, and Asana webhook readiness
-- **D19 preflight landed:** `f0bf363f` added `scripts/fly-findings-seed-preflight.mjs` plus secgraph godoc coverage
-- **D19 operator prep landed:** local docs/Makefile slice clarifies the full Fly/Postgres seed sequence, updates the runbook/checklist, and fixes `make migrate` so the preflight no longer flags a stale migration path
-- **D20 security-graph readability landed:** `a809c42f` moved the graph shell to a lighter analyst canvas and replaced the old scattered dark treatment with a more columnar left-to-right view
-- **D20 finding-detail shell landed:** `27774cf9` nests the attack-path and security-graph workspaces under finding detail so investigation stays in-context
-- **CHANGELOG catch-up landed:** `1aa11cd1` updates `CHANGELOG.md` for the recent D19/D20/D21/theme/readability slices
-- **Prod readiness check (2026-03-31):** `GET /health` is healthy and `GET /api/v1/providers` on `api.cloudforge-demo.lvonguyen.com` now returns the live `integrations` block with `default=asana`, `enabled=[asana,jira,mock]`, `ticket_store=durable`, and `asana_webhook=configured`
-- **Fly runtime probe (2026-03-31):** `fly status -a cloudforge-api` is healthy on the Postgres-backed image and the live app is serving the 300K seeded corpus from Neon
-- **D21 live mutation probe (2026-03-31):** public API mutation succeeded against both providers: Asana create/comment/resolve/sync and Jira create/comment/sync both completed with live tickets (`1213889865183970`, `CVRT-27`)
+| Page | Current State | Root Cause |
+|------|--------------|------------|
+| CF.1 Architecture | Garbled pixels | SVG 77KB exceeded MCP base64 limit |
+| CF.2 IaC Pipeline | Empty dark frame | Never uploaded |
+| CF.3 Failover | Empty dark frame | Never uploaded |
+| CF.4 Compliance | Empty white frame | SVG 70KB exceeded limit, silent fail |
+| CF.5 Remediation | Empty dark frame | Never uploaded |
+| CF.6 Architecture Overview | Stale "Cloud Aegis" | Old upload, wrong branding |
+| CF.7 Dual OPA | Partial, wrong size | SVG fit but dimensions wrong |
+| CF.8 Risk Intel | Empty dark frame | Never uploaded |
+| CF.9 IaC Light | Empty dark frame | Never uploaded |
 
-## Current State
+### Figma File
 
-- **Build:** Go clean, TS clean (tsc --noEmit passes)
-- **Tests:** Go 47 pkg / 2,187 tests pass. Frontend 469/469 vitest (60 files).
-- **CI:** other session reported 6/6 GREEN after the latest CI repair sweep
-- **Fly.io:** app version `88` healthy in `sjc`
-- **Fly.io secgraph live state (2026-03-31 22:24Z):** the public demo is serving Postgres-backed findings and incrementally materialized secgraph issues; first committed batch size is `77116`
-- **Prod provider probe (2026-03-31 20:35Z):** `https://api.cloudforge-demo.lvonguyen.com/api/v1/providers` reports the live `integrations` block and durable ticket storage
-- **D19 live state (2026-03-31):** `cloudforge-api` is running with `FINDINGS_SOURCE=postgres` against the dedicated Neon `cloudforge` database and serving the 300K seeded corpus
-- **Issues API live probe (2026-03-31 22:25Z):** `/api/v1/issues/stats`, `/api/v1/issues`, and `/api/v1/issues/{id}` all returned live operator data on the public demo
-- **D21 live mutation probe (2026-03-31 20:36Z):** Asana create/comment/resolve/sync succeeded on finding `f-005019`; Jira create/comment/sync succeeded on finding `f-003201`
-- **Uncommitted:** `frontend/src/pages/ops/AttackPaths.tsx` (other session / in-flight D20 visual work) and `frontend/src/pages/__tests__/FindingDetail.investigation.test.tsx` (other session / in-flight finding-detail work)
-- **Stash:** `stash@{0}` — mixed D10/D20 WIP. Has 4 TS errors. Do NOT pop blindly. Recover one file at a time, verify tsc after each.
-- **Open PRs:** None
+- **File key:** `2l5XrS7QRy5MYFI9PwcPmK`
+- **Channel:** `72snjfrt` (must `join_channel` first)
+- **9 pages:** CF.1-CF.9
+
+### Frame IDs (from registry)
+
+| Page | Page ID | Frame ID |
+|------|---------|----------|
+| CF.1 | 0:1 | 74:2 |
+| CF.2 | 1:2 | 74:3 |
+| CF.3 | 1:3 | 74:4 |
+| CF.4 | 1:4 | 74:5 |
+| CF.5 | 1:5 | 74:6 |
+| CF.6 | 1:6 | 61:2 |
+| CF.7 | 1:7 | 74:7 (SVG child: 68:18) |
+| CF.8 | 1:8 | 74:8 |
+| CF.9 | 1:9 | 74:9 |
+
+### Upload Strategy
+
+**MCP practical limit:** ~25KB base64 PNG for `set_image`. ~50KB for `set_svg` text. Larger payloads truncate silently or corrupt.
+
+**Step 1: Generate compact PNGs for MCP upload**
+```bash
+cd /Users/lvonguyen/repos/gh/cloudforge/docs/core/diagrams
+for f in architecture compliance-deployment-models failover-sequence iac-deploy-pipeline remediation-dispatcher-flow risk-intelligence-pipeline global-deployment-architecture dual-opa-architecture; do
+  mmdc -i ${f}.mmd -o /tmp/figma-${f}.png -w 960 -b '#0f172a' 2>/dev/null
+done
+ls -lhS /tmp/figma-*.png
+```
+
+**Step 2: Check which fit under 25KB** -- only those can use MCP `set_image`.
+
+**Step 3: For files that fit** -- upload via:
+```
+1. join_channel("72snjfrt")
+2. set_current_page(page_id)
+3. delete existing frame children (clean slate)
+4. set_image(frame_id, base64_png)
+```
+
+**Step 4: For files that don't fit** -- try `set_svg` with raw SVG content (higher text limit). If still too large, document which pages need manual import and provide instructions to user.
+
+**Step 5: For -figma.svg variants** (CF.6, CF.1) -- hand-crafted SVGs with branded headers. Try `set_svg` first. If too large, fall back to compact PNG.
+
+**Step 6: Verify** -- `export_node_as_image` or `get_screenshot` on each frame after upload.
+
+### Source File Sizes
+
+| Diagram | SVG | PNG | Notes |
+|---------|-----|-----|-------|
+| architecture | 77KB | 141KB | CF.1 + CF.6 (-figma variant) |
+| compliance-deployment-models | 70KB | 101KB | CF.4 |
+| dual-opa-architecture | 28KB | 319KB | CF.7 -- smallest SVG, best MCP candidate |
+| failover-sequence | 34KB | 343KB | CF.3 -- second smallest SVG |
+| global-deployment-architecture | 79KB | 408KB | CF.6 uses -figma.svg (54KB) |
+| iac-deploy-pipeline | 156KB | 161KB | CF.2 + CF.9 (light variant) |
+| remediation-dispatcher-flow | 464KB | 390KB | CF.5 -- largest, definitely manual |
+| risk-intelligence-pipeline | 111KB | 387KB | CF.8 |
+
+**Realistic expectation:** 2-3 diagrams via MCP (dual-opa, failover, maybe compliance). The rest need manual Figma import. Produce a clear list of pages needing manual import with exact file paths.
+
+### Manual Import Paths (for user)
+
+PNGs: `docs/core/diagrams/*.png`
+Figma PNGs: `docs/core/diagrams/*-figma.png`
+
+---
+
+## Session C2: Runbook Diagrams + Docs Audit
+
+**Scope:** docs/ file changes only. No Figma, no frontend.
+**Owner:** Mermaid CLI, file editing, /docs-audit skill
+**Conflict risk:** None (C1 makes zero file changes)
+
+### Task 1: Create 4 Missing Runbook Diagrams
+
+| Runbook | Diagram Type | Description |
+|---------|-------------|-------------|
+| 02-incident-response.md | Flowchart | Severity triage -> escalation -> containment -> resolution |
+| 04-performance-troubleshooting.md | Decision tree | Symptom -> diagnosis -> action branching |
+| 07-secrets-rotation.md | Sequence diagram | Detection -> rotation -> validation -> notification |
+| 08-finops-budget-alerts.md | Flowchart | Budget threshold -> alert routing -> remediation |
+
+**Process for each:**
+1. Read the runbook to extract procedure steps
+2. Create `docs/core/diagrams/{runbook-name}.mmd`
+3. Render: `mmdc -i {name}.mmd -o {name}.svg -w 2400 -b transparent`
+4. Export: `mmdc -i {name}.mmd -o {name}.png -w 2400 -b transparent -s 2`
+5. Copy to `docs-site/static/img/diagrams/`
+6. Embed `![diagram](../diagrams/{name}.svg)` in the runbook .md
+
+**Style (from DIAGRAM_STYLE_GUIDE.md):**
+- Core `#1e40af`, AWS `#f59e0b`, DR `#ef4444`, Infra `#8b5cf6`, GCP `#22c55e`
+- Transparent bg, 2400px width
+
+### Task 2: /docs-audit (comprehensive, max depth)
+
+```
+/docs-audit
+```
+
+Focus areas:
+- Remaining stale refs (bulk rename hit 95 files but SVGs and edge cases may remain)
+- Broken internal links (many file moves across 39 sessions)
+- Missing cross-references between ADRs, runbooks, HLD
+- Documentation completeness gaps
+
+### Task 3: HLD Diagram Quality
+
+User flagged HLD diagrams as "crude." Review:
+- `docs/core/architecture/HLD.md` embedded Mermaid diagrams
+- Simplify overly complex diagrams
+- Ensure consistent styling per diagram style guide
+- Consider splitting large diagrams into focused sub-diagrams
+
+### Task 4: Commit + Push
+
+```bash
+git add docs/core/diagrams/*.mmd docs/core/diagrams/*.svg docs/core/diagrams/*.png
+git add docs-site/static/img/diagrams/
+git add docs/core/runbooks/*.md
+git add -u  # any other doc fixes from audit
+git commit -m "docs: add runbook diagrams + docs-audit fixes"
+git push origin main
+```
+
+---
+
+## Verified State (at handoff)
+
+- Go: 47 pkg / ~1,550 tests (clean)
+- Frontend: 62 files / 476 vitest (clean)
+- Playwright: 19 passed, 1 skipped
+- Fly.io: v116 healthy, CORS live
+- Live docs: docs.cloudforge.lvonguyen.com (CloudForge branding)
+- GitHub README: CloudForge branding, full-width architecture diagram
 
 ## Key Files
 
-- `internal/secgraph/materialize.go` — Issue/control/evaluation materialization (ADR-020)
-- `internal/secgraph/queries.go` — Neighborhood CTE + Gremlin builder (depth-bounded)
-- `internal/secgraph/adjacency.go` — AdjacencySet for graph-native BFS
-- `cmd/server/secgraph_sync.go` — Startup sync: seed controls, materialize issues, reconcile
-- `cmd/server/handlers_issues.go` — Issues CRUD API (tenant-scoped)
-- `cmd/server/handlers_attackpath.go` — Attack path computation
-- `cmd/server/handlers_integration.go` — Remediation ticket create/get/sync/webhook flows
-- `docs/core/diagrams/architecture.mmd` — Light-theme architecture (uses ~~~ for horizontal layout)
-- `frontend/src/hooks/useIntegrations.ts` — Frontend ticket flows, cache semantics, demo fallback behavior
-- `scripts/fly-findings-seed-preflight.mjs` — D19 operator preflight for Fly/Postgres findings seed
+| Purpose | Path |
+|---------|------|
+| Diagram sources | `docs/core/diagrams/*.mmd` |
+| Diagram renders | `docs/core/diagrams/*.svg`, `*.png` |
+| Docs-site images | `docs-site/static/img/diagrams/` (24 files) |
+| Gallery page | `docs/core/diagrams/gallery.md` |
+| Style guide | `docs/DIAGRAM_STYLE_GUIDE.md` |
+| Figma registry | `~/.claude/projects/.../memory/reference_figma_file_registry.md` |
+| mmdc | `/usr/local/bin/mmdc` (v11.12.0) |
 
-## Pending Work
-
-### P1 — Should Fix
-
-- [x] `D19` Seed findings into Fly Postgres
-- [ ] `D20` Wiz-parity polish: attack-path icons/indicators, crown-jewel cues, richer remediation/CVE context, final analyst-layout polish
-- [ ] `D21` Complete webhook auto-refresh parity beyond the verified live Asana/Jira mutation path
-- [x] CHANGELOG catch-up
-
-### P2 — Backlog
-
-- [ ] `D1` Topology view in CommandCenter
-- [ ] `D2` Temporal scrubber + playback
-- [ ] `D8` Accessibility sweep
-- [ ] PuppyGraph multi-hop benchmarks
-
-### Parallel Candidate Claims (2026-03-31)
-
-- In-flight elsewhere right now: `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/pages/__tests__/FindingDetail.investigation.test.tsx`, the mixed `stash@{0}` D20 WIP, and this handoff file. Do not claim a parallel slice that edits those paths unless you are explicitly taking over that workstream.
-- Live assignments kicked off 2026-03-31:
-  - `Dirac` -> `P1-docs-runbook` -> landed in `c3d987db`
-  - `Gauss` -> `P1-secgraph-godoc` -> landed in `f0bf363f`
-  - `Nash` -> `D21-frontend-provider-controls` -> landed in `2c2e363f`
-  - `Herschel` -> `D19-preflight` (read-only) -> landed in `f0bf363f`
-  - `Mendel` -> `D21-backend-webhook-parity` -> landed in `6d38c8e1`
-  - `Zeno` -> `D20-attackpath-gap-audit` -> audit complete; main gap is finding-detail wiring, not missing graph components
-- `D20` progress snapshot:
-  - `a809c42f` completed the standalone `SecurityGraph` readability + left-to-right analyst shell
-  - `27774cf9` mounted `FindingAttackPathWorkspace` and `FindingSecurityGraphWorkspace` under `frontend/src/pages/ops/FindingDetail.tsx`
-  - richer finding-detail workspaces already exist in `frontend/src/components/ops/finding-detail/*`
-  - the highest-value remaining D20 slice is the standalone attack-path visual parity pass, not more finding-detail shell wiring
-- `D21` progress snapshot:
-  - `2c2e363f` landed frontend provider selection / assignee controls
-  - `6d38c8e1` landed backend webhook-driven ticket refresh
-  - `6489f888` landed Jira comment readback parity for finding-linked tickets
-  - `95ad7f80` landed operator visibility into active ticket providers / readiness via `/api/v1/providers`
-  - live `cloudforge-api` now reports the provider-readiness block publicly via `/api/v1/providers`
-  - live runtime has `ASANA_PAT`, `JIRA_URL`, `JIRA_API_TOKEN`, and `ASANA_WEBHOOK_TOKEN` deployed
-  - live mutation-path testing is now verified against both providers:
-    - Asana finding `f-005019` -> task `1213889865183970` create/comment/resolve/sync
-    - Jira finding `f-003201` -> issue `CVRT-27` create/comment/sync
-  - remaining D21 gap is webhook auto-refresh verification against a real external Asana callback, not basic provider mutation
-- `D19` progress snapshot:
-  - `f0bf363f` landed the local preflight script for the Fly/Postgres seed path
-  - local follow-up docs/Makefile slice aligns the runbook with the real `aegis-seed` -> `seed-postgres` -> `seed-resources` -> secgraph-backfill flow
-  - live Fly runtime now has `AEGIS_DATABASE_URL` and `FINDINGS_SOURCE=postgres` deployed
-  - the dedicated Neon `cloudforge` database is seeded and live on the public demo
-  - remaining D19 work is capacity/design follow-up for deferred warmup and full graph-edge secgraph materialization, not seed/cutover execution
-- Safe next parallel slice `D19-live-seed-execution`: operator-only runbook / checklist work based on `scripts/fly-findings-seed-preflight.mjs`. Do not use 1Password or live Fly secrets without an explicit handoff note and a clean operator window.
-- Safe next parallel slice `D20-attackpath-visuals`: own `frontend/src/pages/ops/AttackPaths.tsx`, `frontend/src/components/attack-path/*`, and dedicated attack-path tests only. Focus on icons, hop indicators, crown-jewel cues, and embedded remediation/finding context. The standalone east/west readability pass is already done for `SecurityGraph`.
-- Deferred-track closeout gates that must remain on the board:
-  - after the high-value deferred items are implemented, run `/qa-visual -e ensemble` against production and click through the completed surfaces end to end before closing the track
-  - ~~after the docs / diagrams session lands and the render outputs are stable, run `docs-audit` again before closing the track~~ **DONE session 36** (`eb92e5ed` + `03acb311`). Remaining P1s: frontend README env vars (FE-08), frontend hooks inventory (FE-06), config-reference 7 missing env vars (DOC-12), orphaned 48hr-teardown runbook (DOC-13).
-
-## Context & Decisions
-
-- **Licensing optics:** top-level repo positioning is now aligned with Apache 2.0 and avoids over-signaling "portfolio project" or naming a single coding agent in public-facing copy
-- **Minimal-scope edit policy:** only public-facing README wording was updated for positioning; archive docs still contain historical `Claude Code` references and were intentionally left untouched
-
-- **nolint v2:** Must be on exact line reported, not parent statement
-- **Codex partial commits:** Verify committed tree compiles: `git stash && npx tsc --noEmit && git stash pop`
-- **Dependabot hook:** A push hook auto-restored config once. Watch for restoration.
-- **Stash protocol:** `git checkout stash@{0} -- <file>` one at a time, verify tsc after each
-- **Mermaid ~~~:** Invisible links force horizontal node placement in TD flowcharts
-
-## How to Continue
+## Session Startup
 
 ```bash
 cd /Users/lvonguyen/repos/gh/cloudforge
-git diff -- LICENSE NOTICE README.md CHANGELOG.md docs/core/diagrams/gallery.md
-git status --short
-go build ./... && golangci-lint run --timeout=5m
-gh run list --limit 1
-
-# D10: split Request.tsx
-wc -l frontend/src/pages/portal/Request.tsx
-
-# D19 preflight
-node scripts/fly-findings-seed-preflight.mjs --json
-
-# Deferred-track exit gates
-# /qa-visual -e ensemble
-# docs-audit
+git pull origin main
+git status -sb  # should be clean
 ```
+
+**C1:** Open Figma file, run compact PNG generation, start uploads.
+**C2:** Read runbooks, create Mermaid sources, run /docs-audit.
