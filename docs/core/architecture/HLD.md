@@ -1,4 +1,4 @@
-# High-Level Design: Aegis Enterprise Cloud Governance Platform
+# High-Level Design: CloudForge Enterprise Cloud Governance Platform
 
 | Property | Value |
 | --- | --- |
@@ -23,7 +23,7 @@
 
 ## 1. Executive Summary
 
-Aegis is an enterprise cloud governance platform that provides:
+CloudForge is an enterprise cloud governance platform that provides:
 - Self-service cloud resource provisioning with built-in governance guardrails
 - Cloud Security Posture Management (CSPM) with multi-cloud aggregation
 - Multi-framework compliance mapping (CIS, NIST, ISO, PCI-DSS, HIPAA, etc.)
@@ -52,47 +52,49 @@ Aegis is an enterprise cloud governance platform that provides:
 ## 2. Architecture Overview
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+
 flowchart TB
-    subgraph Portal["Portal Layer"]
-        UI["React 19 SPA"]
-        API["REST API - gorilla/mux"]
+    subgraph Portal["fa:fa-desktop Portal Layer"]
+        UI["fa:fa-window-maximize React 19 SPA\nVite 7, Tailwind v4"]
+        API["fa:fa-server REST API\ngorilla/mux, Go 1.25"]
     end
 
-    subgraph Core["Core Platform"]
-        PolicyEngine["OPA/Rego Policy Engine"]
-        Orchestration["Temporal Workflows"]
-        AIAnalyzer["AI Risk Analyzer"]
-        ComplianceEngine["Compliance Framework Engine"]
-        RemediationEngine["Remediation Dispatcher"]
-        FinOpsEngine["FinOps Aggregator"]
+    subgraph Core["fa:fa-cogs Core Platform"]
+        PolicyEngine["fa:fa-gavel OPA Policy Engine\nRego bundles"]
+        Orchestration["fa:fa-sitemap Temporal Workflows"]
+        AIAnalyzer["fa:fa-brain AI Risk Analyzer\nClaude, GPT-4o"]
+        ComplianceEngine["fa:fa-clipboard-check Compliance Engine"]
+        RemediationEngine["fa:fa-wrench Remediation Dispatcher\n3-tier auto/manual/change"]
+        FinOpsEngine["fa:fa-chart-line FinOps Aggregator\nmulti-cloud cost"]
     end
 
-    subgraph CSPM["Posture Management"]
-        Normalizer["Multi-CSP Normalizer"]
-        AttackPath["Attack Path Engine"]
-        ToxicCombo["Toxic Combo Detector"]
-        ThreatIntel["Threat Intel - EPSS, KEV, GreyNoise"]
+    subgraph CSPM["fa:fa-shield-alt Posture Management"]
+        Normalizer["fa:fa-exchange-alt Multi-CSP Normalizer"]
+        AttackPath["fa:fa-route Attack Path Engine"]
+        ToxicCombo["fa:fa-exclamation-triangle Toxic Combo Detector"]
+        ThreatIntel["fa:fa-satellite-dish Threat Intel\nEPSS, KEV, GreyNoise"]
     end
 
-    subgraph Security["Security Modules"]
-        WAF["WAF Golden Templates"]
-        ContainerSec["Container Security"]
-        SecretsMgmt["Secrets Management"]
-        CICD["CI/CD Security"]
-        Identity["Identity / Zero Trust"]
-        AIGov["AI Governance - Embedded OPA"]
+    subgraph Security["fa:fa-lock Security Modules"]
+        WAF["fa:fa-shield-alt WAF Golden Templates"]
+        ContainerSec["fa:fa-box Container Security"]
+        SecretsMgmt["fa:fa-key Secrets Management"]
+        CICD["fa:fa-code-branch CI/CD Security"]
+        Identity["fa:fa-user-shield Identity / Zero Trust"]
+        AIGov["fa:fa-robot AI Governance\nEmbedded OPA"]
     end
 
-    subgraph Integrations["External Integrations"]
-        VCS["GitHub / GitLab / ADO"]
-        SAST["SonarQube / Veracode"]
-        IaC["Checkov / Terraform"]
-        GRC["Archer / ServiceNow"]
-        Cloud["AWS / Azure / GCP"]
-        IdP["Entra ID / Okta"]
+    subgraph Integrations["fa:fa-plug External Integrations"]
+        VCS["fa:fa-code GitHub / GitLab / ADO"]
+        SAST["fa:fa-search SonarQube / Veracode"]
+        IaC["fa:fa-cubes Checkov / Terraform"]
+        GRC["fa:fa-university Archer / ServiceNow"]
+        Cloud["fa:fa-cloud AWS / Azure / GCP"]
+        IdP["fa:fa-id-card Entra ID / Okta"]
     end
 
-    subgraph Compliance["Compliance Frameworks"]
+    subgraph Compliance["fa:fa-balance-scale Compliance Frameworks"]
         General["CIS / NIST / ISO"]
         Finance["PCI-DSS / SOX / GLBA"]
         Health["HIPAA / HITRUST"]
@@ -114,6 +116,20 @@ flowchart TB
     Security --> Integrations
     CSPM --> Cloud
     CSPM --> ThreatIntel
+
+    classDef portal fill:#3b82f6,stroke:#1e3a8a,color:#fff
+    classDef core fill:#7c3aed,stroke:#5b21b6,color:#fff
+    classDef cspm fill:#1e40af,stroke:#1e3a8a,color:#fff
+    classDef security fill:#dc2626,stroke:#991b1b,color:#fff
+    classDef integrations fill:#64748b,stroke:#475569,color:#fff
+    classDef compliance fill:#f59e0b,stroke:#b45309,color:#fff
+
+    class UI,API portal
+    class PolicyEngine,Orchestration,AIAnalyzer,ComplianceEngine,RemediationEngine,FinOpsEngine core
+    class Normalizer,AttackPath,ToxicCombo,ThreatIntel cspm
+    class WAF,ContainerSec,SecretsMgmt,CICD,Identity,AIGov security
+    class VCS,SAST,IaC,GRC,Cloud,IdP integrations
+    class General,Finance,Health,Gov,AIFramework compliance
 ```
 
 ### 2.1 Component Summary
@@ -303,7 +319,7 @@ In-memory BFS graph engine that builds an adjacency graph from loaded findings a
 
 ### 7.2 Graph Query Engine (PuppyGraph)
 
-For multi-hop traversal queries beyond the BFS engine (e.g., "find all findings reachable from identity X within 3 hops"), Aegis integrates PuppyGraph Enterprise as a zero-ETL graph query layer over the existing PostgreSQL data store. PuppyGraph supports both Gremlin and openCypher query languages and is accessed via `POST /api/v1/graph/query`. The existing Go BFS engine is retained as a fallback when the PuppyGraph service is unavailable (feature flag: `PUPPYGRAPH_URL`). See [ADR-015](./adr/ADR-015-graph-query-engine.md) for the full architecture decision.
+For multi-hop traversal queries beyond the BFS engine (e.g., "find all findings reachable from identity X within 3 hops"), CloudForge integrates PuppyGraph Enterprise as a zero-ETL graph query layer over the existing PostgreSQL data store. PuppyGraph supports both Gremlin and openCypher query languages and is accessed via `POST /api/v1/graph/query`. The existing Go BFS engine is retained as a fallback when the PuppyGraph service is unavailable (feature flag: `PUPPYGRAPH_URL`). See [ADR-015](./adr/ADR-015-graph-query-engine.md) for the full architecture decision.
 
 ### 7.3 API
 
@@ -345,27 +361,39 @@ See [ADR-010](./adr/ADR-010-finops-cost-aggregation.md) for the architecture dec
 ### 9.1 Multi-Cloud Support
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+
 flowchart LR
-    subgraph Primary["Primary - AWS"]
-        EKS["EKS Cluster"]
-        RDS[("RDS PostgreSQL")]
-        S3["S3 State"]
+    subgraph Primary["fa:fa-star Primary — AWS"]
+        EKS["fa:fa-dharmachakra EKS Cluster\nus-east-1"]
+        RDS[("fa:fa-database RDS PostgreSQL\nMulti-AZ")]
+        S3["fa:fa-archive S3 State\nVersioned"]
     end
 
-    subgraph DR["DR - Azure"]
-        AKS["AKS Cluster"]
-        PostgresAz[("Azure PostgreSQL")]
-        Blob["Blob Storage"]
+    subgraph DR["fa:fa-shield-alt DR — Azure"]
+        AKS["fa:fa-dharmachakra AKS Cluster\neastus"]
+        PostgresAz[("fa:fa-database Azure PostgreSQL\nGeo-Replica")]
+        Blob["fa:fa-archive Blob Storage\nGRS"]
     end
 
-    subgraph Tertiary["Tertiary - GCP"]
-        GKE["GKE Cluster"]
-        CloudSQL[("Cloud SQL")]
-        GCS["Cloud Storage"]
+    subgraph Tertiary["fa:fa-globe Tertiary — GCP"]
+        GKE["fa:fa-dharmachakra GKE Cluster\nus-central1"]
+        CloudSQL[("fa:fa-database Cloud SQL\nRead Replica")]
+        GCS["fa:fa-archive Cloud Storage\nMulti-Region"]
     end
 
-    EKS <-->|Cross-Region Sync| AKS
-    AKS <-->|Cross-Region Sync| GKE
+    EKS -->|Async CDC replication| AKS
+    AKS -->|Async CDC replication| GKE
+    EKS -.->|Failover: RTO 2h| AKS
+    AKS -.->|Failover: RTO 4h| GKE
+
+    classDef aws fill:#f59e0b,stroke:#b45309,color:#fff
+    classDef azure fill:#3b82f6,stroke:#1e40af,color:#fff
+    classDef gcp fill:#22c55e,stroke:#16a34a,color:#fff
+
+    class EKS,RDS,S3 aws
+    class AKS,PostgresAz,Blob azure
+    class GKE,CloudSQL,GCS gcp
 ```
 
 ### 9.2 Terraform Modules
@@ -510,14 +538,26 @@ See [Technical Runbooks](../runbooks/01-deployment.md) for detailed operational 
 The ingestion subsystem normalizes findings from multiple cloud security scanners into a canonical format and deduplicates them before persistence.
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+
 flowchart LR
-    Prowler["Prowler"] --> Adapter1["ProwlerAdapter"]
-    Trivy["Trivy"] --> Adapter2["TrivyAdapter"]
-    AWSConfig["AWS Config"] --> Adapter3["AWSConfigAdapter"]
-    Adapter1 --> Dedup["DedupCache"]
-    Adapter2 --> Dedup
-    Adapter3 --> Dedup
-    Dedup --> Store[("PostgreSQL")]
+    Prowler["fa:fa-search Prowler\nJSON parser"] -->|raw findings| Adapter1["fa:fa-exchange-alt ProwlerAdapter\nParse → NormalizedFinding"]
+    Trivy["fa:fa-box Trivy\ncontainer scan"] -->|raw findings| Adapter2["fa:fa-exchange-alt TrivyAdapter\nParse → NormalizedFinding"]
+    AWSConfig["fa:fa-cog AWS Config\nconfig rules"] -->|raw findings| Adapter3["fa:fa-exchange-alt AWSConfigAdapter\nParse → NormalizedFinding"]
+    Adapter1 -->|normalized| Dedup["fa:fa-filter DedupCache\nSHA-256 keyed, TTL eviction"]
+    Adapter2 -->|normalized| Dedup
+    Adapter3 -->|normalized| Dedup
+    Dedup -->|deduplicated| Store[("fa:fa-database PostgreSQL\ndurable persistence")]
+
+    classDef scanner fill:#64748b,stroke:#475569,color:#fff
+    classDef adapter fill:#7c3aed,stroke:#5b21b6,color:#fff
+    classDef dedup fill:#f59e0b,stroke:#b45309,color:#fff
+    classDef store fill:#1e40af,stroke:#1e3a8a,color:#fff
+
+    class Prowler,Trivy,AWSConfig scanner
+    class Adapter1,Adapter2,Adapter3 adapter
+    class Dedup dedup
+    class Store store
 ```
 
 ### 13.2 Scanner Adapters
@@ -577,7 +617,7 @@ Routing rules are first-match-wins with a configurable rule set (`RoutingRule` w
 
 ### 15.1 Architecture
 
-Outbound webhook engine delivers Aegis events to registered HTTP endpoints with HMAC-SHA256 signing.
+Outbound webhook engine delivers CloudForge events to registered HTTP endpoints with HMAC-SHA256 signing.
 
 ### 15.2 Event Types
 
@@ -611,18 +651,27 @@ Asynchronous fan-out: `DeliverAsync()` spawns goroutines per matching endpoint. 
 WebSocket-based interactive terminal for running read-only cloud CLI commands from the browser UI.
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'actorTextColor': '#0f172a', 'actorBkg': '#e2e8f0', 'actorBorder': '#334155', 'signalColor': '#334155', 'noteBkgColor': '#fef3c7', 'noteTextColor': '#0f172a', 'noteBorderColor': '#f59e0b'}}}%%
+
 sequenceDiagram
-    participant UI as Browser
-    participant API as REST API
-    participant WS as WebSocket Handler
-    participant Exec as Executor
+    autonumber
+    participant UI as fa:fa-window-maximize Browser
+    participant API as fa:fa-server REST API
+    participant WS as fa:fa-plug WebSocket Handler
+    participant Exec as fa:fa-terminal Executor
 
     UI->>API: POST /terminal/ticket (JWT)
+    Note over API: Validate JWT, create 60s nonce
     API-->>UI: 60s one-time nonce
+
     UI->>WS: WS upgrade (?ticket=nonce)
-    WS->>WS: Validate + consume nonce
+    Note over WS: Validate + consume nonce<br/>(single-use, prevents replay)
+    WS-->>UI: Connection established
+
     UI->>WS: {"command": "aws ec2 describe-instances"}
-    WS->>Exec: Validate whitelist + execute
+    Note over WS: Whitelist check:<br/>block rm, curl|bash, sudo, etc.
+    WS->>Exec: Execute validated command
+    Note over Exec: Read-only flags enforced<br/>Timeout: 30s per command
     Exec-->>WS: stdout/stderr/exit_code
     WS-->>UI: {"output": "...", "exitCode": 0}
 ```
@@ -751,11 +800,22 @@ LLM spans track token counts and cost. Retrieval spans track vector similarity s
 Tamper-evident, append-only audit logging with SHA-256 integrity hashes and multiple backend support.
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#22c55e', 'tertiaryColor': '#7c3aed'}}}%%
+
 flowchart LR
-    API["API Middleware"] --> Zap["ZapAuditLogger"]
-    Zap --> Composite["CompositeAuditLogger"]
-    Composite --> Memory["MemoryAuditLogger<br/>(fast reads / SSE)"]
-    Composite --> PG[("PostgresAuditLogger<br/>(durability)")]
+    API["fa:fa-server API Middleware\nHTTP request context"] -->|audit event| Zap["fa:fa-pen ZapAuditLogger\nstructured JSON + SHA-256"]
+    Zap -->|fan-out| Composite["fa:fa-code-branch CompositeAuditLogger\ndual-write"]
+    Composite -->|fast path| Memory["fa:fa-bolt MemoryAuditLogger\nring buffer, SSE stream"]
+    Composite -->|durable path| PG[("fa:fa-database PostgresAuditLogger\nappend-only, tamper-evident")]
+
+    classDef fast fill:#22c55e,stroke:#16a34a,color:#fff
+    classDef durable fill:#1e40af,stroke:#1e3a8a,color:#fff
+    classDef middleware fill:#7c3aed,stroke:#5b21b6,color:#fff
+
+    class API middleware
+    class Zap,Composite middleware
+    class Memory fast
+    class PG durable
 ```
 
 ### 21.2 Event Taxonomy
@@ -795,15 +855,35 @@ Policy exception lifecycle management via the `GRCProvider` interface (8 methods
 ### 22.2 Exception Lifecycle
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#22c55e', 'tertiaryColor': '#ef4444'}}}%%
+
 stateDiagram-v2
+    direction LR
     [*] --> PENDING: CreateException
-    PENDING --> APPROVED: All approvers approve
-    PENDING --> REJECTED: Any approver rejects
+
+    state approval_fork <<fork>>
+    PENDING --> approval_fork: Route to approvers
+
+    state approval_join <<join>>
+    approval_fork --> SECURITY_LEAD: Level 1
+    approval_fork --> GRC_ANALYST: Level 2
+    approval_fork --> CISO: Level 3
+    SECURITY_LEAD --> approval_join
+    GRC_ANALYST --> approval_join
+    CISO --> approval_join
+
+    approval_join --> APPROVED: All approve
+    PENDING --> REJECTED: Any rejects
+
     APPROVED --> EXPIRED: Past ExpirationDate
     APPROVED --> REVOKED: Manual revocation
+
     REJECTED --> [*]
     EXPIRED --> [*]
     REVOKED --> [*]
+
+    note right of PENDING: Empty approval chain\ndoes NOT auto-approve
+    note right of APPROVED: ValidateException()\ncalled before provisioning
 ```
 
 Approval chain: multi-level (SECURITY_LEAD → GRC_ANALYST → CISO). Empty approval chain does NOT auto-approve. `ValidateException()` is the integration point with the policy engine — called before provisioning.

@@ -10,6 +10,10 @@ This runbook covers rotating secrets used by Aegis, including:
 - AI provider API keys (Anthropic, OpenAI)
 - Identity provider secrets (Okta, Entra ID)
 
+## Rotation Sequence
+
+![Secrets Rotation Sequence](../diagrams/secrets-rotation.svg)
+
 > Runtime note (April 1, 2026): the public demo uses 1Password as the source of truth and syncs runtime secrets into Fly with `scripts/fly-sync-runtime-secrets.sh`. Kubernetes examples below are legacy guidance for a future self-managed deployment.
 
 ## Prerequisites

@@ -42,3 +42,14 @@ The following diagrams are rendered from Mermaid source files. Click to view ful
 | [Failover Sequence](../architecture/DR-BC.md) | DR failover steps and timing |
 | [IaC Deploy Pipeline](../architecture/HLD.md) | Terraform/conftest CI/CD flow |
 | [Remediation Dispatcher Flow](../architecture/HLD.md) | Automated remediation routing |
+
+## Runbook Diagrams
+
+Operational procedure visualizations embedded in their respective runbooks.
+
+| Diagram | Description |
+|---------|-------------|
+| [Incident Response](../runbooks/02-incident-response.md) | Severity triage, escalation, containment, resolution |
+| [Performance Troubleshooting](../runbooks/04-performance-troubleshooting.md) | Symptom diagnosis decision tree |
+| [Secrets Rotation](../runbooks/07-secrets-rotation.md) | Generate, deploy dual-key, validate, revoke |
+| [FinOps Budget Alerts](../runbooks/08-finops-budget-alerts.md) | Threshold monitoring, alert routing, remediation |

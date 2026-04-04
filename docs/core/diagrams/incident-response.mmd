@@ -1,0 +1,56 @@
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#ef4444', 'tertiaryColor': '#22c55e'}}}%%
+
+flowchart TD
+    START([fa:fa-bolt Incident Detected]) --> ASSESS{Assess Impact}
+
+    ASSESS -->|Users affected?<br/>Data at risk?| CLASSIFY{Classify Severity}
+
+    CLASSIFY -->|Service down / data loss| SEV1[fa:fa-circle-exclamation SEV1 — Critical]
+    CLASSIFY -->|Major degradation / 50%+ errors| SEV2[fa:fa-triangle-exclamation SEV2 — Major]
+    CLASSIFY -->|Minor degradation / single endpoint| SEV3[fa:fa-info-circle SEV3 — Minor]
+    CLASSIFY -->|UI cosmetic / low impact| SEV4[fa:fa-circle-info SEV4 — Low]
+
+    SEV1 --> PAGE[fa:fa-bell Page On-Call<br/>15 min SLA]
+    SEV2 --> PAGE
+    SEV3 --> ASSIGN[fa:fa-user Assign Engineer<br/>2h SLA]
+    SEV4 --> ASSIGN_BD[fa:fa-user Assign Engineer<br/>1 business day]
+
+    PAGE --> CHANNEL[Create #incident channel]
+    CHANNEL --> DIAGNOSE
+
+    ASSIGN --> DIAGNOSE
+    ASSIGN_BD --> DIAGNOSE
+
+    DIAGNOSE[fa:fa-magnifying-glass Diagnose Root Cause] --> DIAG_TYPE{Bottleneck?}
+
+    DIAG_TYPE -->|API errors / OOM| API_FIX[Scale pods / restart<br/>Check resource limits]
+    DIAG_TYPE -->|DB connection failure| DB_FIX[Kill idle connections<br/>Check pool & PgBouncer]
+    DIAG_TYPE -->|AI provider timeout| AI_FIX[Enable fallback provider<br/>Increase timeout]
+    DIAG_TYPE -->|Memory leak| MEM_FIX[Restart pods<br/>Reduce batch sizes]
+
+    API_FIX --> VERIFY
+    DB_FIX --> VERIFY
+    AI_FIX --> VERIFY
+    MEM_FIX --> VERIFY
+
+    VERIFY{fa:fa-check Verify Resolution} -->|Health OK| COMMS[Update Status Page]
+    VERIFY -->|Still failing| ESCALATE[fa:fa-arrow-up Escalate]
+
+    ESCALATE -->|SEV1 30min| EM[Engineering Manager]
+    ESCALATE -->|SEV1 1h| VP[VP Engineering]
+    ESCALATE -->|SEV2 30min| TL[Tech Lead]
+    EM --> DIAGNOSE
+    VP --> DIAGNOSE
+    TL --> DIAGNOSE
+
+    COMMS --> POSTMORTEM[fa:fa-file-lines Post-Mortem<br/>within 5 days]
+    POSTMORTEM --> ACTIONS[Create Action Items<br/>Update Monitoring]
+    ACTIONS --> DONE([fa:fa-circle-check Resolved])
+
+    style SEV1 fill:#dc2626,stroke:#991b1b,color:#fff
+    style SEV2 fill:#f59e0b,stroke:#b45309,color:#fff
+    style SEV3 fill:#3b82f6,stroke:#1e40af,color:#fff
+    style SEV4 fill:#64748b,stroke:#475569,color:#fff
+    style DONE fill:#22c55e,stroke:#16a34a,color:#fff
+    style PAGE fill:#dc2626,stroke:#991b1b,color:#fff
+    style ESCALATE fill:#ef4444,stroke:#dc2626,color:#fff

@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#22c55e', 'primaryTextColor': '#fff', 'primaryBorderColor': '#16a34a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#ef4444'}}}%%
+
+flowchart TD
+    START([fa:fa-money-bill-trend-up Budget Monitor<br/>Checks every 1h]) --> FETCH[Fetch cost data<br/>AWS + Azure + GCP]
+    FETCH --> AGG[MultiCloudAggregator<br/>Normalize to USD]
+    AGG --> COMPARE{Compare spend<br/>vs budget threshold}
+
+    COMPARE -->|< 50%| OK([fa:fa-circle-check Under Budget<br/>No action])
+
+    COMPARE -->|50% reached| SLACK_INFO[fa:fa-hashtag Slack: Informational<br/>Awareness only]
+
+    COMPARE -->|80% reached| SLACK_WARN[fa:fa-triangle-exclamation Slack: Warning]
+    SLACK_WARN --> REVIEW[Review spend by service<br/>GET /costs/summary]
+    REVIEW --> DRIVERS[Identify top cost drivers<br/>GET /costs/summary?group_by=resource]
+    DRIVERS --> ANOMALY{Anomaly<br/>detected?}
+    ANOMALY -->|Yes| INVESTIGATE[Investigate anomaly<br/>Check deployments + traffic]
+    ANOMALY -->|No| MONITOR_CLOSE[Continue monitoring]
+
+    COMPARE -->|90% reached| PD_WARN[fa:fa-bell PagerDuty: Action Required]
+    PD_WARN --> RIGHTSIZE[Review rightsizing<br/>GET /costs/recommendations]
+    RIGHTSIZE --> IDLE[Stop non-essential resources<br/>AWS CE idle check]
+    IDLE --> NOTIFY_OWNER[Notify budget owner<br/>via Slack thread]
+
+    COMPARE -->|100% reached| PD_CRIT[fa:fa-siren PagerDuty: Critical]
+    PD_CRIT --> FREEZE[Freeze non-critical<br/>provisioning]
+    FREEZE --> ESCALATE[Escalate to management<br/>chain]
+    ESCALATE --> MEETING[Schedule cost review<br/>within 24h]
+
+    INVESTIGATE --> FIX_ANOMALY{Correlates with<br/>deployment?}
+    FIX_ANOMALY -->|Yes| ROLLBACK[Consider rollback<br/>or resource adjustment]
+    FIX_ANOMALY -->|No| TUNE[Tune anomaly thresholds<br/>Update detection config]
+    ROLLBACK --> VERIFY
+    TUNE --> VERIFY
+
+    MEETING --> CHARGEBACK[Generate chargeback report<br/>GET /costs/chargeback]
+    NOTIFY_OWNER --> VERIFY
+    MONITOR_CLOSE --> START
+
+    VERIFY{fa:fa-check Spend<br/>stabilized?} -->|Yes| DONE([fa:fa-circle-check Resolved])
+    VERIFY -->|No| PD_CRIT
+
+    style OK fill:#22c55e,stroke:#16a34a,color:#fff
+    style DONE fill:#22c55e,stroke:#16a34a,color:#fff
+    style SLACK_INFO fill:#3b82f6,stroke:#1e40af,color:#fff
+    style SLACK_WARN fill:#f59e0b,stroke:#b45309,color:#fff
+    style PD_WARN fill:#f59e0b,stroke:#b45309,color:#fff
+    style PD_CRIT fill:#dc2626,stroke:#991b1b,color:#fff
+    style FREEZE fill:#ef4444,stroke:#dc2626,color:#fff
+    style ESCALATE fill:#ef4444,stroke:#dc2626,color:#fff

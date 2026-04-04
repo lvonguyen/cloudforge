@@ -9,6 +9,10 @@ This runbook covers operating Aegis's FinOps budget alerting system, including:
 - Cost anomaly investigation
 - Chargeback report generation
 
+## Alert Flow
+
+![FinOps Budget Alert Flow](../diagrams/finops-budget-alerts.svg)
+
 > Runtime note (April 1, 2026): the public demo runs on Fly.io and stores Slack/PagerDuty-style alert credentials in 1Password before syncing them to Fly secrets. `kubectl` configmap edits below are legacy examples for a future self-managed deployment.
 
 ## Prerequisites

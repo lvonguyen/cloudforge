@@ -1,0 +1,80 @@
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+
+flowchart TD
+    START([fa:fa-gauge-high Performance Issue Reported]) --> BASELINE{Check Baselines}
+
+    BASELINE -->|P99 > 500ms| LATENCY[fa:fa-clock High Latency]
+    BASELINE -->|CPU > 90%| CPU[fa:fa-microchip High CPU]
+    BASELINE -->|Memory > 95%| MEMORY[fa:fa-memory Memory Exhaustion]
+    BASELINE -->|Error rate > 5%| ERRORS[fa:fa-circle-exclamation Error Spike]
+    BASELINE -->|DB query > 1s| DBSLOW[fa:fa-database Slow Queries]
+
+    LATENCY --> PROFILE_CPU[CPU Profile<br/>pprof/profile 30s]
+    LATENCY --> CHECK_DB[Check pg_stat_statements<br/>slow query log]
+
+    CPU --> PROFILE_CPU
+    CPU --> GOROUTINE[Check goroutine count<br/>pprof/goroutine]
+
+    MEMORY --> HEAP[Heap Profile<br/>pprof/heap]
+    MEMORY --> BATCH[Review batch sizes<br/>Check slice growth]
+
+    ERRORS --> LOGS[Check error logs<br/>kubectl logs --tail=500]
+    ERRORS --> DEPS[Check downstream deps<br/>health endpoints]
+
+    DBSLOW --> EXPLAIN[EXPLAIN ANALYZE<br/>slow queries]
+    DBSLOW --> LOCKS[Check pg_locks<br/>for contention]
+
+    PROFILE_CPU --> CPU_DIAG{Root Cause?}
+    CPU_DIAG -->|JSON serialization| FIX_JSON[Switch to sonic/jsoniter]
+    CPU_DIAG -->|Regex recompilation| FIX_REGEX[Compile once at init]
+    CPU_DIAG -->|Hot loop| FIX_ALGO[Optimize algorithm]
+
+    GOROUTINE --> GR_DIAG{Root Cause?}
+    GR_DIAG -->|Leak — missing cancel| FIX_CTX[Add context cancellation]
+    GR_DIAG -->|Mutex contention| FIX_MUTEX[Reduce lock scope]
+    GR_DIAG -->|Channel blocking| FIX_CHAN[Add buffered channel / select]
+
+    HEAP --> MEM_DIAG{Root Cause?}
+    MEM_DIAG -->|Unbounded slice| FIX_STREAM[Use streaming / generators]
+    MEM_DIAG -->|String concat in loop| FIX_BUILDER[Use strings.Builder]
+    MEM_DIAG -->|Reference leak| FIX_REF[Nil stale references]
+
+    EXPLAIN --> DB_DIAG{Root Cause?}
+    DB_DIAG -->|Missing index| FIX_INDEX[CREATE INDEX CONCURRENTLY]
+    DB_DIAG -->|Table bloat| FIX_VACUUM[VACUUM ANALYZE]
+    DB_DIAG -->|Lock contention| FIX_LOCK[Reduce transaction scope]
+
+    LOCKS --> DB_DIAG
+    LOGS --> ERR_DIAG{Root Cause?}
+    ERR_DIAG -->|Downstream timeout| FIX_TIMEOUT[Increase timeout / add circuit breaker]
+    ERR_DIAG -->|Connection pool full| FIX_POOL[Increase pool / add PgBouncer]
+    DEPS --> ERR_DIAG
+    BATCH --> MEM_DIAG
+
+    FIX_JSON --> VERIFY
+    FIX_REGEX --> VERIFY
+    FIX_ALGO --> VERIFY
+    FIX_CTX --> VERIFY
+    FIX_MUTEX --> VERIFY
+    FIX_CHAN --> VERIFY
+    FIX_STREAM --> VERIFY
+    FIX_BUILDER --> VERIFY
+    FIX_REF --> VERIFY
+    FIX_INDEX --> VERIFY
+    FIX_VACUUM --> VERIFY
+    FIX_LOCK --> VERIFY
+    FIX_TIMEOUT --> VERIFY
+    FIX_POOL --> VERIFY
+
+    VERIFY{fa:fa-check Verify Fix} -->|Baselines met| DONE([fa:fa-circle-check Resolved])
+    VERIFY -->|Still degraded| SCALE[Scale horizontally<br/>as interim mitigation]
+    SCALE --> START
+
+    style START fill:#f59e0b,stroke:#b45309,color:#fff
+    style DONE fill:#22c55e,stroke:#16a34a,color:#fff
+    style LATENCY fill:#ef4444,stroke:#dc2626,color:#fff
+    style CPU fill:#ef4444,stroke:#dc2626,color:#fff
+    style MEMORY fill:#ef4444,stroke:#dc2626,color:#fff
+    style ERRORS fill:#ef4444,stroke:#dc2626,color:#fff
+    style DBSLOW fill:#ef4444,stroke:#dc2626,color:#fff
+    style SCALE fill:#f59e0b,stroke:#b45309,color:#fff

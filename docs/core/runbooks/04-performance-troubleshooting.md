@@ -4,6 +4,10 @@
 
 This runbook covers diagnosing and resolving performance issues in CloudForge, including slow API responses, high latency, and resource exhaustion.
 
+## Diagnosis Decision Tree
+
+![Performance Troubleshooting Decision Tree](../diagrams/performance-troubleshooting.svg)
+
 ## Prerequisites
 
 - [ ] Access to Grafana dashboards

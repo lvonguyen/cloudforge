@@ -4,6 +4,18 @@
 
 This runbook covers incident detection, triage, mitigation, and resolution for CloudForge production issues.
 
+## Process Overview
+
+![Incident Response Flow](../diagrams/incident-response.svg)
+
+## Prerequisites
+
+- [ ] PagerDuty access (on-call schedules)
+- [ ] Grafana dashboard access
+- [ ] kubectl access to production namespace (`aegis`)
+- [ ] Fly.io CLI (`flyctl`) authenticated against `personal` org
+- [ ] Access to status page for customer-facing updates
+
 ## Incident Classification
 
 | Severity | Description | Response Time | Examples |
