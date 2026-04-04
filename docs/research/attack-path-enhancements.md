@@ -1,19 +1,19 @@
-# Wiz Attack Path Analysis: Architecture Insights & Project Enhancement Roadmap
+# Cloud Security Landscape: Attack Path Architecture & Enhancement Roadmap
 
 **Author:** Liem Vo-Nguyen | **Date:** 2026-02-26
 **Targets:** csmp-aggregator, AgentGuard | **Context:** Enterprise multi-cloud (3,500+ envs)
 
 ---
 
-## 1. Wiz's Secret Sauce — Architecture Deep Dive
+## 1. Industry Landscape — Architecture Patterns
 
 ### Graph Database Foundation
-Wiz built their security platform on **Amazon Neptune** (managed graph DB), processing **1.2 billion asset relationships daily** across hundreds of Neptune clusters spanning 20+ AWS regions. The graph stores hundreds of billions of relationships representing the full cloud estate — workloads, identities, networks, data stores, and their interconnections.
+Market-leading CSPM platforms have converged on **graph databases** (Amazon Neptune, Neo4j) as the backbone for relationship-aware security analysis, processing billions of asset relationships daily across cloud estates. The graph stores relationships representing the full cloud estate — workloads, identities, networks, data stores, and their interconnections.
 
 **Why graph matters:** Traditional CSPM tools evaluate findings in isolation. A misconfigured S3 bucket is "medium." An overly permissive IAM role is "medium." A known CVE on an EC2 instance is "medium." But chain them together — internet-exposed EC2 with CVE → lateral movement via overprivileged role → exfiltrate from misconfigured S3 containing PII — and you have a **critical attack path**. Graph traversal finds these chains; relational queries cannot.
 
 ### Toxic Combinations Methodology
-Wiz's core differentiator is **toxic combination detection** — the insight that multiple low/medium-severity issues chained together create critical risk. This reduces noise dramatically: 10,000+ individual findings collapse to dozens of actionable attack paths prioritized by actual exploitability.
+The defining pattern across next-generation CSPM platforms is **toxic combination detection** — the insight that multiple low/medium-severity issues chained together create critical risk. This reduces noise dramatically: 10,000+ individual findings collapse to dozens of actionable attack paths prioritized by actual exploitability.
 
 The approach evaluates **7 risk dimensions** simultaneously:
 1. **Network exposures** — internet-facing assets, open ports, missing WAF/NACLs
@@ -25,7 +25,7 @@ The approach evaluates **7 risk dimensions** simultaneously:
 7. **Malware** — known malicious signatures, suspicious behaviors
 
 ### Contextual Risk Scoring (Beyond CVSS)
-Wiz scores risk using multiple contextual factors:
+Leading platforms score risk using multiple contextual factors beyond raw CVSS:
 - **Severity** of individual findings
 - **Asset criticality** (crown jewel proximity)
 - **Network exposure** (reachability from internet/other accounts)
@@ -35,19 +35,19 @@ Wiz scores risk using multiple contextual factors:
 - **Cloud context** (multi-account relationships, cross-cloud paths)
 
 ### Agentless + Runtime Hybrid
-Core scanning is **fully agentless** — API-based snapshot scanning of the entire stack. **Wiz Defend** adds optional eBPF-based runtime sensors for real-time threat detection, creating a hybrid model: agentless for posture + agent-based for runtime.
+The industry trend is **fully agentless** core scanning — API-based snapshot scanning of the entire stack — complemented by optional eBPF-based runtime sensors for real-time threat detection. This hybrid model delivers: agentless for posture + agent-based for runtime.
 
 ### Cross-Cloud Single Graph
 All clouds (AWS, Azure, GCP) feed into a **single unified graph**, enabling detection of cross-cloud and cross-account lateral movement paths that cloud-native tools miss entirely.
 
-### AI Security Graph (AI-SPM)
-Wiz extended the graph model for AI workloads — mapping AI models, training infrastructure, data pipelines, serving endpoints, and associated identities as interconnected graph nodes. This enables AI-specific attack path detection: compromised training data → poisoned model → production inference endpoint.
+### AI Security Posture Management (AI-SPM)
+The graph model extends naturally to AI workloads — mapping AI models, training infrastructure, data pipelines, serving endpoints, and associated identities as interconnected graph nodes. This enables AI-specific attack path detection: compromised training data → poisoned model → production inference endpoint.
 
 ---
 
-## 2. csmp-aggregator Enhancements
+## 2. CloudForge CSPM Enhancements
 
-### Current State (from CLAUDE.md)
+### Current State
 Go-based CSPM aggregator with Claude Opus 4.6 AI scoring. Aggregates findings across 3,500+ environments (multiple AWS Organizations, 350+ GCP projects, 750+ Azure subscriptions).
 
 ### Enhancement Roadmap
@@ -81,7 +81,7 @@ Go-based CSPM aggregator with Claude Opus 4.6 AI scoring. Aggregates findings ac
 #### E2: Toxic Combination Detection (High Priority)
 **What:** Implement graph traversal queries that identify multi-hop attack paths.
 
-**Why:** This is the core Wiz differentiator. Instead of presenting 10K findings to security teams, surface the 20-30 attack paths that actually matter. Directly supports the tier-based remediation model (T1/T2/T3).
+**Why:** This is the core value proposition of graph-based security. Instead of presenting 10K findings to security teams, surface the 20-30 attack paths that actually matter. Directly supports the tier-based remediation model (T1/T2/T3).
 
 **Implementation approach:**
 - Define attack path templates as Cypher query patterns:
@@ -101,7 +101,7 @@ Go-based CSPM aggregator with Claude Opus 4.6 AI scoring. Aggregates findings ac
 #### E3: Contextual Risk Scoring Enhancement (Medium Priority)
 **What:** Extend the existing Claude Opus 4.6 AI scoring with graph-derived context.
 
-**Why:** The AI scoring already differentiates csmp-aggregator. Adding graph context (relationship data, blast radius, crown jewel proximity) to the AI prompt gives the model richer signal for prioritization — moving from "how severe is this finding?" to "how dangerous is this finding given what it can reach?"
+**Why:** The AI scoring already differentiates CloudForge. Adding graph context (relationship data, blast radius, crown jewel proximity) to the AI prompt gives the model richer signal for prioritization — moving from "how severe is this finding?" to "how dangerous is this finding given what it can reach?"
 
 **Implementation approach:**
 - Before AI scoring, run graph queries to determine: blast radius (what can be reached from the affected resource), crown jewel proximity (hops to sensitive data/critical services), identity chain depth (how many role assumptions are possible)
@@ -127,15 +127,15 @@ Go-based CSPM aggregator with Claude Opus 4.6 AI scoring. Aggregates findings ac
 
 ---
 
-## 3. AgentGuard Enhancements
+## 3. AI Security Posture Enhancements
 
-### Current State (from CLAUDE.md)
+### Current State
 AI security governance — greenfield positioning project.
 
 ### Enhancement Roadmap
 
 #### A1: AI-SPM Graph Model (High Priority)
-**What:** Model AI workloads as graph nodes with security-relevant relationships, mirroring Wiz's AI Security Graph approach.
+**What:** Model AI workloads as graph nodes with security-relevant relationships, applying the same graph-based approach used for cloud infrastructure to AI workloads.
 
 **Why:** AI workloads have unique attack surfaces: training data poisoning, model supply chain compromise, inference endpoint abuse, prompt injection chains. Graph-based modeling enables attack path detection specific to AI infrastructure.
 
@@ -177,36 +177,18 @@ AI security governance — greenfield positioning project.
 
 ---
 
-## 4. Interview Talking Points
-
-### Connecting Wiz Knowledge to Enterprise CSPM Experience
-
-**"Why graph-based security matters at scale":**
-> "Managing CSPM across 3,500+ cloud environments — multiple AWS Organizations, 350+ GCP projects, 750+ Azure subscriptions — traditional finding-by-finding remediation doesn't scale. Achieving high closure rates requires tier-based automation, but the next evolution is relationship-aware prioritization. Wiz proved with their Neptune-backed graph processing 1.2B relationships daily that the real signal isn't individual findings — it's the toxic combinations. I'm building toward that with csmp-aggregator's graph layer."
-
-**"Toxic combinations reduce noise":**
-> "The challenge at enterprise scale isn't finding issues — it's prioritizing them. 10,000+ medium-severity findings across 3,500+ environments creates alert fatigue. Wiz's insight is that chaining those findings through graph traversal surfaces the 20-30 paths that actually represent breach risk. That's the difference between 'this S3 bucket is misconfigured' and 'this misconfigured S3 bucket containing PHI is reachable through a 3-hop role chain from an internet-exposed instance with a known CVE.'"
-
-**"Cross-cloud is the blind spot":**
-> "Most cloud-native tools operate within a single cloud's blast radius. Spanning AWS, GCP, and Azure simultaneously, cross-cloud trust relationships and lateral movement paths are invisible to single-cloud tools. That's why a unified graph approach — which Wiz pioneered — is essential for organizations with multi-cloud estates."
-
-**"AI-SPM is the next frontier":**
-> "With AgentGuard, I'm applying graph-based security modeling to AI workloads — mapping models, training data, serving endpoints, and identities as interconnected nodes. The same toxic combination logic applies: an overprivileged identity with write access to training data, connected to an auto-retrain pipeline, connected to a production serving endpoint is an attack path. Wiz recognized this with their AI Security Graph extension."
-
----
-
-## 5. Implementation Priority Matrix
+## 4. Implementation Priority Matrix
 
 | Enhancement | Project | Priority | Effort | Impact |
 |---|---|---|---|---|
-| E1: Graph DB Layer | csmp-aggregator | 🔴 High | Large | Foundation for all graph features |
-| E2: Toxic Combinations | csmp-aggregator | 🔴 High | Medium | Core differentiator |
-| A1: AI-SPM Graph | AgentGuard | 🔴 High | Medium | Greenfield positioning |
-| E3: Contextual AI Scoring | csmp-aggregator | 🟡 Medium | Small | Enhances existing AI scoring |
-| A2: AI Attack Patterns | AgentGuard | 🔴 High | Medium | Concrete governance value |
-| E4: Cross-Account Paths | csmp-aggregator | 🟡 Medium | Large | Multi-cloud differentiator |
-| A3: Governance Policies | AgentGuard | 🟡 Medium | Medium | Policy-as-code alignment |
-| E5: Finding Dedup | csmp-aggregator | 🟢 Low | Small | Operational efficiency |
+| E1: Graph DB Layer | csmp-aggregator | High | Large | Foundation for all graph features |
+| E2: Toxic Combinations | csmp-aggregator | High | Medium | Core differentiator |
+| A1: AI-SPM Graph | AgentGuard | High | Medium | Greenfield positioning |
+| E3: Contextual AI Scoring | csmp-aggregator | Medium | Small | Enhances existing AI scoring |
+| A2: AI Attack Patterns | AgentGuard | High | Medium | Concrete governance value |
+| E4: Cross-Account Paths | csmp-aggregator | Medium | Large | Multi-cloud differentiator |
+| A3: Governance Policies | AgentGuard | Medium | Medium | Policy-as-code alignment |
+| E5: Finding Dedup | csmp-aggregator | Low | Small | Operational efficiency |
 
 **Recommended sequence:** E1 → E2 → A1 → E3 → A2 → E4 → A3 → E5
 
@@ -215,8 +197,8 @@ E1 (graph DB layer) is the foundation — everything else builds on it. E2 (toxi
 ---
 
 ## References
-- Wiz Security Graph architecture (Amazon Neptune backend, 1.2B relationships/day)
-- Wiz toxic combinations methodology and 7 risk dimensions
-- Wiz Defend hybrid agentless + eBPF runtime architecture
-- Wiz AI-SPM and AI Security Graph capabilities
+- Graph-based security architecture patterns (Neptune, Neo4j backends)
+- Toxic combinations methodology and multi-dimensional risk scoring
+- Agentless + eBPF hybrid runtime architecture patterns
+- AI-SPM and AI Security Graph design approaches
 - Enterprise CSPM operational context: 3,500+ environments, tier-based remediation automation

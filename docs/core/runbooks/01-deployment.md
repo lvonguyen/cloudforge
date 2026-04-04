@@ -111,7 +111,7 @@ Notes:
 - `scripts/fly-sync-runtime-secrets.sh` can bootstrap `FLY_API_TOKEN` from `op://Development/flyio-org-deploy-token/credential`, so `--apply` does not depend on an existing `fly auth` session.
 - `scripts/fly-sync-runtime-secrets.sh` defaults to the personal demo context and resolves the JWT, Asana, Jira, GreyNoise, HIBP, OTX, and ThreatFox keys from 1Password.
 - Personal-context threat-intel refs: `op://Development/glzdciaetfnrafvhntwe6enymu/credential` (GreyNoise), `op://Development/itrqxidqwvzwviz357fqtpcdi4/credential` (HIBP), `op://Development/dy5ds2uttd35prezcbyb4753ra/credential` (OTX), `op://Development/qxi4xw27nzkw6diikdug4arose/wvvuolayxv6m7b75ldy4c52aiu` (abuse.ch ThreatFox Auth-Key).
-- For `HAEA` or any renamed 1Password items, override the `*_REF` env vars instead of editing the script.
+- For enterprise tenants or renamed 1Password items, override the `*_REF` env vars instead of editing the script.
 
 ### Database Migration
 

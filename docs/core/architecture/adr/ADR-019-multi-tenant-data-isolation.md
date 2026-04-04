@@ -22,7 +22,7 @@ The architecture grill assessment scored the resilience pillar at 2.8/5 and secu
 
 - **Compliance**: SOC 2 Type II and ISO 27001 require demonstrable data isolation controls.
 - **Defense in depth**: Middleware is a single layer; database-layer enforcement provides a second barrier.
-- **Whitelabel readiness**: HAEA deployment serves multiple business units (HMA, KNA, HMNA, HMGNA) — each needs data isolation.
+- **Whitelabel readiness**: Enterprise deployments serve multiple business units — each needs data isolation.
 
 ## Decision
 

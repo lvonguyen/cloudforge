@@ -1,7 +1,7 @@
 # Deployment Checklist
 
 Operational nuances discovered during personal demo deployment (March 2026).
-Apply to both personal (lvn-personal) and HAEA production environments.
+Apply to both personal (lvn-personal) and enterprise production environments.
 
 ---
 
@@ -172,7 +172,7 @@ Apply to both personal (lvn-personal) and HAEA production environments.
 - [ ] `path.module` references in schema files need fixing for nested module calls
 - [ ] For repeated deploys: add `var.use_marketplace_ami` toggle to TF module
   - Marketplace AMI: quick trials (30-day license), but ignores user_data + DuckDB default
-  - Vanilla EC2 + Docker: Amazon Linux 2, user_data installs Docker + pulls PuppyGraph image, env vars work correctly. Slower cold start (~60s) but fully controllable. Recommended for HAEA production.
+  - Vanilla EC2 + Docker: Amazon Linux 2, user_data installs Docker + pulls PuppyGraph image, env vars work correctly. Slower cold start (~60s) but fully controllable. Recommended for enterprise production.
 
 ### Cost & Teardown
 - [ ] r6i.2xlarge: ~$0.504/hr ($12/day, $363/mo)

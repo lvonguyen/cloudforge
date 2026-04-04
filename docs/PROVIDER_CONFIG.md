@@ -71,7 +71,7 @@ GRC_PROVIDER=postgres
 AEGIS_DATABASE_URL=postgres://user:pass@host:5432/aegis?sslmode=require
 
 # Identity (real providers)
-OKTA_DOMAIN=haea.okta.com
+OKTA_DOMAIN=acme.okta.com
 OKTA_API_TOKEN=xxxxxxxxxxxx
 ENTRA_TENANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ENTRA_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx

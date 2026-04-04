@@ -1,7 +1,7 @@
 # Security Graph Target Architecture
 
 **Date:** 2026-03-30  
-**Context:** Cloudforge graph/attack-path architecture follow-up after Wiz demo review
+**Context:** CloudForge graph/attack-path architecture follow-up after industry CSPM landscape review
 
 ## Executive Summary
 
@@ -11,7 +11,7 @@ The main gap is architectural:
 
 1. The repo already has a graph query surface and graph-adjacent UI.
 2. The current attack-path pipeline is still heuristic and finding-centric.
-3. A Wiz-like experience requires a live security graph, graph-native controls, and issue materialization before the attack-path visualization layer.
+3. A production-grade CSPM experience requires a live security graph, graph-native controls, and issue materialization before the attack-path visualization layer.
 
 ## Current State
 
@@ -64,7 +64,7 @@ If Cloudforge wants live Controls -> Issues -> Attack Paths semantics, it still 
 
 Official AWS reference points worth carrying forward:
 
-- Wiz publicly describes a Neptune-backed security graph architecture in the AWS case study:
+- AWS published a Neptune-backed security graph case study showing the reference architecture:
   - https://aws.amazon.com/solutions/case-studies/wiz-neptune/
 - Neptune supports Gremlin and openCypher for property graph access:
   - https://docs.aws.amazon.com/neptune/latest/userguide/get-started-access-graph.html

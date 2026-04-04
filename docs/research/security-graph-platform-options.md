@@ -22,7 +22,7 @@ Keep **PuppyGraph** as:
 - an analyst exploration surface
 - a bridge while the graph-native Controls -> Issues model is defined
 
-Do **not** treat PuppyGraph as the long-term source of truth for a live Wiz-like security graph without first proving it can support:
+Do **not** treat PuppyGraph as the long-term source of truth for a production security graph without first proving it can support:
 
 - tenant-scoped low-latency updates
 - richer node/edge taxonomy
@@ -42,7 +42,7 @@ Recommended role split:
 
 ## Why
 
-Wiz's published architecture is closer to this split than to a single federated query layer:
+The industry-standard architecture for graph-based CSPM platforms is closer to this split than to a single federated query layer:
 
 - Neptune stores the security graph
 - Aurora stores high-volume data
@@ -66,7 +66,7 @@ Explore AWS-native eventing in `WG-C`:
 
 ## Source Links
 
-- AWS case study: <https://aws.amazon.com/solutions/case-studies/wiz-neptune/>
+- AWS Neptune CSPM case study: <https://aws.amazon.com/solutions/case-studies/wiz-neptune/>
 - Neptune Streams: <https://docs.aws.amazon.com/neptune/latest/userguide/streams-change-formats.html>
 - EventBridge Pipes: <https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-pipes.html>
 - PuppyGraph docs: <https://docs.puppygraph.com/getting-started/>

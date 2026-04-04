@@ -222,7 +222,7 @@ egress:
 
 | Alternative | Pros | Cons | Decision |
 |-------------|------|------|----------|
-| **Wiz/Orca** | Comprehensive CSPM | $100K+/year, no AI scoring customization | Pass |
+| **Commercial CSPM (SaaS)** | Comprehensive posture coverage | $100K+/year, no AI scoring customization | Pass |
 | **Prisma Cloud** | Multi-cloud native | Complex licensing, limited priority logic | Pass |
 | **Custom LLM (self-hosted)** | No API costs | Ops overhead, model quality | Pass |
 | **ServiceNow integration** | Enterprise ITSM | Requires license, complex setup | Future |
