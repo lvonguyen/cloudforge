@@ -46,7 +46,7 @@
 | P6 | `4173d79` | Image width/height + lazy loading on Landing.tsx |
 | P7 | `0156b12` | Mock data extraction — PolicyDetail 927→286L, highlightRego, exportCSV to lib/ |
 
-## Phase 2: Wiz Enhancements — DONE
+## Phase 2: CSPM UX Enhancements — DONE
 
 | Item | Commit | Summary |
 |------|--------|---------|

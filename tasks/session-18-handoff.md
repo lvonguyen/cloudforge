@@ -326,7 +326,7 @@ Personas across 5 teams × 5 roles × 2 seniority:
 
 ### TI Module
 
-- [ ] Research SaaS TI feed UX (Wiz, CrowdStrike Falcon Intel, Recorded Future, Mandiant)
+- [ ] Research SaaS TI feed UX (CrowdStrike Falcon Intel, Recorded Future, Mandiant)
 - [ ] Design drilldown view: recent entries, enrichment stats, query interface
 - [ ] Wire Command Center TI sidebar items (#14) to new module
 - [ ] Implement feed detail pages for EPSS, CISA KEV, GreyNoise, HIBP, OTX

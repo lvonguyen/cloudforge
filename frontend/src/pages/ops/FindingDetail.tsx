@@ -354,7 +354,7 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
 
       <Separator />
 
-      {/* Action Bar — quick-access actions inspired by Wiz finding detail */}
+      {/* Action Bar — quick-access actions for finding detail */}
       <div className="flex items-center gap-2 flex-wrap">
         <Button size="sm" variant="outline" className="text-xs gap-1.5"
           disabled={createTicket.isPending}
@@ -581,7 +581,7 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
             <FindingComplianceList mappings={finding.compliance_mappings} />
           )}
 
-          {/* Evidence — Attack Path Visualization (Wiz parity: inline on Overview) */}
+          {/* Evidence — Attack Path Visualization (inline on Overview tab) */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

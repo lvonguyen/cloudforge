@@ -8,8 +8,8 @@ import type { Finding } from "@/types/compliance";
 
 const SAMPLE_FINDING: Finding = {
   id: "f-001",
-  source: "wiz",
-  source_finding_id: "wiz-123",
+  source: "prowler",
+  source_finding_id: "prowler-123",
   type: "cloud",
   title: "Public workload can reach production database",
   description:

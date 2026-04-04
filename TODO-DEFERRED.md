@@ -281,14 +281,14 @@ second OPA gate is added (DRY).
 
 ---
 
-## D20: Wiz-Parity Investigation + Remediation Polish
+## D20: CSPM-Parity Investigation + Remediation Polish
 
-**Context:** Investigation Board and Finding Detail are functional but lack the depth and visual polish of Wiz's equivalent views. Key gaps identified during session 33 visual QA.
+**Context:** Investigation Board and Finding Detail are functional but lack the depth and visual polish of leading CSPM platform views. Key gaps identified during session 33 visual QA.
 
 **Investigation Board gaps:**
 - No expandable node detail on click (inline panel within graph with evidence + timeline)
 - Generic box shapes for all node types — need distinct icons (shield=finding, server=resource, lock=compliance, user=assignee)
-- Force-directed layout — Wiz uses hierarchical (entry points top, targets bottom)
+- Force-directed layout — industry standard uses hierarchical (entry points top, targets bottom)
 - No compliance mapping cluster grouping
 - Edge labels lack directional arrows and clean typography
 

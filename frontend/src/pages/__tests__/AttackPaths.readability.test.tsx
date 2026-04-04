@@ -162,8 +162,8 @@ const SAMPLE_STATS: AttackPathStats = {
 
 const SAMPLE_FINDING: Finding = {
   id: 'f-001',
-  source: 'wiz',
-  source_finding_id: 'wiz-123',
+  source: 'prowler',
+  source_finding_id: 'prowler-123',
   type: 'vulnerability',
   title: 'Public workload can reach sensitive orders database',
   description: 'A public-facing workload can pivot into a production database through an over-privileged role.',

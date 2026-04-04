@@ -17,8 +17,8 @@ const mockUseFindings = vi.mocked(useFindings)
 
 const SAMPLE_FINDING: Finding = {
   id: 'f-invest-001',
-  source: 'wiz',
-  source_finding_id: 'wiz-001',
+  source: 'prowler',
+  source_finding_id: 'prowler-001',
   type: 'misconfiguration',
   title: 'Public workload can reach the order database role chain',
   description: 'Internet ingress plus a broad trust policy creates a reachable path into a production role.',

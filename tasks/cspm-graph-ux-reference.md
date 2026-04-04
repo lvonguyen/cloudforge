@@ -1,6 +1,6 @@
-# Wiz Security Graph — UX Reference Specification
+# CSPM Security Graph — UX Reference Specification
 
-**Source:** Wiz Operating Platform Full Demo (https://vimeo.com/805151197, 10:12 duration)
+**Source:** Industry CSPM platform demo reference (public demo recording)
 **Observed:** 2026-03-17
 **Purpose:** UX pattern reference for CloudForge Security Graph implementation (F-02 / Sprint E)
 
@@ -95,7 +95,7 @@ Each node is a **circle** with:
 - **VPC**: connected boxes icon (network topology)
 - **VPC Subnet**: gear/settings icon
 - **Network Interface (ENI)**: cloud upload icon
-- **EC2 Instance**: square/VM icon (Wiz custom icon for compute)
+- **EC2 Instance**: square/VM icon (reference platform custom icon for compute)
 - **IAM Role**: crown icon (signifying privilege/permissions)
 - **AWS Secret Key**: key icon (padlock/key)
 - **AWS Account**: cloud outline icon
@@ -220,7 +220,7 @@ The active tab is underlined/highlighted. This provides deep context on a specif
 
 ### 5c. Viewing Node in Context — Network Tab
 
-When viewing a resource's Network tab within its detail page, Wiz shows a **Network Exposure Paths** mini-graph that embeds the same Security Graph visualization scoped to that resource.
+When viewing a resource's Network tab within its detail page, reference platform shows a **Network Exposure Paths** mini-graph that embeds the same Security Graph visualization scoped to that resource.
 
 Left toolbar controls for this embedded graph:
 - Hierarchy/layout icon
@@ -368,7 +368,7 @@ Overview                              [compact icon] [table icon] [view on graph
 
 For IAM/permission issues: shows a **Permission Suggestion** diff view:
 - Left: current policy (AdministratorAccess with wildcard `"Action": ["*"]`)
-- Right: suggested reduced policy (WizReduced-AdministratorAccess with specific services)
+- Right: suggested reduced policy (reference platformReduced-AdministratorAccess with specific services)
 - Green highlighting on the new/added lines in the suggested policy
 
 **Related Entities** section:
@@ -379,7 +379,7 @@ For IAM/permission issues: shows a **Permission Suggestion** diff view:
 
 ## 9. "View on Graph" Navigation Pattern
 
-A key interaction pattern throughout Wiz:
+A key interaction pattern throughout reference platform:
 
 1. **From Inventory list**: "View on graph" button (top-right of inventory page) — opens Security Graph pre-filtered to the selected technology type
 2. **From Issue detail**: "View on Graph" button/link in the Evidence section — opens Security Graph pre-filtered to show the nodes related to that specific issue
@@ -409,7 +409,7 @@ All "view on graph" transitions navigate to the Security Graph Explorer with the
 |------|-------------|-------|
 | IAM Role | `AdminAccessEc2 / AWS IAM Role` | Purple |
 | IAM Role | `AcmeFuncAdmin` | Purple |
-| IAM User | `wiz-exchange-user` | Purple |
+| IAM User | `svc-exchange-user` | Purple |
 
 ### AWS Secrets
 | Node | Label Format | Color |
@@ -486,7 +486,7 @@ Not observed in this demo. Node interactions appear limited to single-click.
 
 5. **Right-side detail panel on click**: Single-click a node → compact summary panel; panel has "View Details >" to navigate to full resource page. Does not require navigating away from graph.
 
-6. **Toxic combinations shown as focus overlays**: Instead of trying to color-code the entire graph for a finding, Wiz uses a white-card overlay that isolates the relevant subgraph within the full context.
+6. **Toxic combinations shown as focus overlays**: Instead of trying to color-code the entire graph for a finding, reference platform uses a white-card overlay that isolates the relevant subgraph within the full context.
 
 7. **Query builder is categorized and discoverable**: Relations/properties are organized into categories (Application, Compute, Configuration, Data, Identity, Kubernetes, Management, Popular). The "Popular" category surfaces the most common security-relevant traversals.
 
@@ -520,7 +520,7 @@ Below the mini-graph, a **"Network Exposure" table** shows:
 
 ## 13. Relevance to CloudForge (F-02 Implementation Notes)
 
-**F-02 requirement**: Security graph embedded in finding detail Investigation tab (Wiz pattern), not standalone page of disconnected nodes.
+**F-02 requirement**: Security graph embedded in finding detail Investigation tab (reference platform pattern), not standalone page of disconnected nodes.
 
 Based on observed patterns:
 
