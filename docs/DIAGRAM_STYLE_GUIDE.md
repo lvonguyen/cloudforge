@@ -271,6 +271,56 @@ Confirmed working with 12 heroicons (cloud, check-circle, cpu-chip, bolt, shield
 
 ---
 
+## [!] Visual Polish Guardrails (Enforced)
+
+These rules are **mandatory** for all diagram outputs. Sessions that violate them must self-correct before marking a diagram complete.
+
+### G1: Icon Placement — Inline Left, Not Clustered Right
+
+Icons MUST be positioned **inside** their parent node card or tier, **left-aligned** with the component label text. The ByteByteGo pattern is: `[Icon 24px] [8px gap] [Label text]`.
+
+- **WRONG:** Icons clustered in a column on the right edge of the tier frame
+- **RIGHT:** Each icon sits left of its corresponding component name inside the node card
+- Layer-level header icons (36px, top-right of tier frame) are the only exception
+
+### G2: Tier Icon Completeness
+
+Every tier frame MUST contain at least one representative icon. If no specific service icon exists, use a generic shape (hexagon for cache, diamond for queue, circle for endpoint) or a colored rectangle placeholder — but **never leave a tier icon-less**.
+
+### G3: Split-Tier Dividers
+
+When two logical sections share a horizontal row (e.g., "Threat Intelligence" + "Policy Engine" side-by-side), they MUST have:
+
+- A **visible vertical divider** (1px `#334155` or tier stroke color at 50% alpha)
+- OR a **16px minimum gap** with distinct background fills
+- The divider must be visually distinct — not just a color shift
+
+### G4: Component Text Spacing
+
+All component names within a tier must use **consistent spacing**:
+
+- Minimum **24px horizontal gap** between adjacent component names
+- Text nodes must be baseline-aligned within their tier row
+- If components wrap to a second row, maintain the same left margin and gap
+
+### G5: No Dead Space
+
+Tier frames must **fill the parent frame** with consistent padding:
+
+- Bottom margin below the last tier: **same as top margin** (frame padding value, typically 40-64px)
+- No tier should have >20% internal empty space (resize the tier frame to fit content)
+- If the frame has >100px of unused space at the bottom, shrink the frame height to match
+
+### G6: Connector Label Legibility
+
+Arrow labels must be:
+
+- **10px minimum** font size (never smaller)
+- Positioned **above** the line with 6-8px offset (never overlapping the stroke)
+- Contrast ratio: label text must be readable against the background (use `#94a3b8` on dark, `#6b7280` on light)
+
+---
+
 ## [+] Mermaid Alignment
 
 When generating `.mmd` source files, use these theme variables to approximate the dark theme:
@@ -298,3 +348,4 @@ The Mermaid SVGs support CSS edge animation (`stroke-dasharray` + `@keyframes da
 |---------|------|---------|
 | 1.0 | 2026-03-24 | Initial release — BBG style research + CloudForge implementation |
 | 1.1 | 2026-04-04 | Added Draw.io icon embedding section — semicolon trap + `%3B` fix, icon sizing table, battle-tested workflow |
+| 1.2 | 2026-04-04 | Added [!] Visual Polish Guardrails (G1-G6) — icon placement, tier completeness, split-tier dividers, spacing, dead space, connector labels |
