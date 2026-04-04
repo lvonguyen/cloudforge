@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const defaultBaseURL = 'http://localhost:5175'
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || defaultBaseURL
+const isLocalTarget = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(baseURL)
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -10,7 +14,7 @@ export default defineConfig({
   timeout: 30_000,
 
   use: {
-    baseURL: 'http://localhost:5175',
+    baseURL,
     screenshot: 'only-on-failure',
     trace: 'on-first-retry',
   },
@@ -22,10 +26,12 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: 'npx vite --port 5175 --mode e2e',
-    url: 'http://localhost:5175',
-    reuseExistingServer: false,
-    timeout: 60_000,
-  },
+  webServer: isLocalTarget
+    ? {
+        command: 'npx vite --port 5175 --mode e2e',
+        url: defaultBaseURL,
+        reuseExistingServer: false,
+        timeout: 60_000,
+      }
+    : undefined,
 })

@@ -13,6 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
+    "e2e:prod": "PLAYWRIGHT_BASE_URL=https://cloudforge.lvonguyen.com playwright test e2e/landing.spec.ts e2e/findings.spec.ts e2e/compliance.spec.ts e2e/role-switcher.spec.ts",
+    "e2e:prod:full": "PLAYWRIGHT_BASE_URL=https://cloudforge.lvonguyen.com playwright test",
     "e2e:ui": "playwright test --ui"
   },
   "dependencies": {
