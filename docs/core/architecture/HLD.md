@@ -36,7 +36,16 @@ CloudForge is an enterprise cloud governance platform that provides:
 - FinOps cost management with budget alerting
 - AI governance with embedded OPA policy engine
 
-### 1.1 Business Drivers
+### 1.1 Runtime Scope: Current Portfolio vs Target Enterprise
+
+This document mixes two intentionally different views:
+
+- **Current portfolio implementation**: the public demo and the code in this repository. Today this runs as a lighter-weight deployment on Fly.io + Cloudflare Pages, uses the in-memory workflow engine provider, and focuses on the highest-signal implemented slices: posture management, attack paths, remediation safety, compliance, FinOps, AI governance, and the self-service portal.
+- **Target enterprise architecture**: the self-managed, multi-region, multi-cloud deployment model shown for production design discussions. This includes the Temporal-based orchestration target, multi-region failover topology, and heavier operational isolation patterns that are documented here but not fully wired into the public demo.
+
+Unless a section explicitly says otherwise, implementation details in `internal/`, `cmd/`, `pkg/`, and the live demo should be treated as the source of truth for current-state behavior.
+
+### 1.2 Business Drivers
 
 - Enable self-service infrastructure provisioning without bypassing security controls
 - Enforce policy-as-code guardrails across multi-cloud environments (AWS, Azure, GCP)
@@ -62,7 +71,7 @@ flowchart TB
 
     subgraph Core["fa:fa-cogs Core Platform"]
         PolicyEngine["fa:fa-gavel OPA Policy Engine\nRego bundles"]
-        Orchestration["fa:fa-sitemap Temporal Workflows"]
+        Orchestration["fa:fa-sitemap Workflow Engine\nIn-memory today, Temporal target"]
         AIAnalyzer["fa:fa-brain AI Risk Analyzer\nClaude, GPT-4o"]
         ComplianceEngine["fa:fa-clipboard-check Compliance Engine"]
         RemediationEngine["fa:fa-wrench Remediation Dispatcher\n3-tier auto/manual/change"]
@@ -138,7 +147,7 @@ flowchart TB
 | --- | --- | --- |
 | Portal Layer | Self-service UI for requests and dashboards | React 19 / Vite 7 / Tailwind CSS v4 / shadcn/ui |
 | REST API | HTTP API server with RBAC and rate limiting | Go 1.25 / gorilla/mux |
-| Orchestration Engine | Workflow management for approvals and provisioning | Temporal |
+| Orchestration Engine | Workflow management for approvals and provisioning | In-memory provider today; Temporal target |
 | Policy Engine | Evaluate requests against governance rules (dual-OPA) | OPA / Rego (external server + embedded Go library) |
 | AI Risk Analyzer | Contextual risk scoring, toxic combo detection | Claude Opus 4.6 / GPT-4 / AWS Bedrock |
 | Compliance Engine | Multi-framework compliance mapping and assessment | Go |
@@ -310,24 +319,46 @@ See [ADR-009](./adr/ADR-009-remediation-dispatcher.md) for the full architecture
 
 ### 7.1 Computation Engine
 
-In-memory BFS graph engine that builds an adjacency graph from loaded findings at startup:
+CloudForge computes attack paths with an in-memory BFS engine in the API tier:
 
-- **Nodes**: Resources extracted from findings (keyed by resource_id)
-- **Edges**: Inferred relationships (same account + compatible resource types)
-- **Traversal**: BFS from entry points (internet-exposed) to targets (data stores)
+- **Nodes**: Findings projected onto resource-centric attack-path nodes
+- **Edges**: Explicit secgraph resource adjacency from `graph_edges` when the database is configured (`same_account`, `same_region`); heuristic co-location remains the fallback when adjacency cannot be loaded
+- **Traversal**: BFS from entry points (internet-exposed / exploitable) to targets (data stores, secrets, encryption assets)
 - **Max depth**: 4 hops
+- **Large-corpus mode**: deferred/sampled execution is used on constrained Fly runtime profiles to avoid cold-start memory spikes
 
-### 7.2 Graph Query Engine (PuppyGraph)
+### 7.2 Security Graph (secgraph)
 
-For multi-hop traversal queries beyond the BFS engine (e.g., "find all findings reachable from identity X within 3 hops"), CloudForge integrates PuppyGraph Enterprise as a zero-ETL graph query layer over the existing PostgreSQL data store. PuppyGraph supports both Gremlin and openCypher query languages and is accessed via `POST /api/v1/graph/query`. The existing Go BFS engine is retained as a fallback when the PuppyGraph service is unavailable (feature flag: `PUPPYGRAPH_URL`). See [ADR-015](./adr/ADR-015-graph-query-engine.md) for the full architecture decision.
+The current implementation is backed by the `internal/secgraph` package and the startup / incremental sync path in `cmd/server/secgraph_sync.go`. This is the live graph-native issue surface used by the operator APIs today.
 
-### 7.3 API
+- **System of record**: PostgreSQL stores frameworks, controls, control evaluations, materialized issues, issue-finding links, and explicit `graph_edges`
+- **Node taxonomy**: `finding`, `resource`, `control`, `issue`, `account`, `compliance_framework`
+- **Edge taxonomy**: `affects`, `violates`, `maps_to`, `evaluated_by`, `materializes_to`, `belongs_to`, `same_account`, `same_region`
+- **Materialization flow**: findings are mapped through the compliance engine, converted into control failures, deduplicated into issues by `(control_id, resource_id, tenant_id)`, then persisted with graph edges
+- **Scoring and routing**: blast radius can use secgraph adjacency when available, and issue records can be auto-assigned / auto-ticketed through the existing integration routing layer
+- **Always-available queries**: when `AEGIS_DATABASE_URL` is configured, the Postgres CTE querier exposes typed neighborhood and graph stats endpoints without requiring PuppyGraph
+
+See [ADR-020](./adr/ADR-020-security-graph-architecture.md) for the full data model and migration plan.
+
+### 7.3 Graph Query Engine (PuppyGraph)
+
+For richer multi-hop traversal queries beyond the in-process BFS engine (for example, operator-driven graph exploration or investigation queries), CloudForge integrates PuppyGraph Enterprise as an optional zero-ETL graph query layer over PostgreSQL. PuppyGraph supports both Gremlin and openCypher and is exposed through `POST /api/v1/graph/query` when `PUPPYGRAPH_URL` is configured. When PuppyGraph is absent or unavailable, the structured Postgres querier and the Go attack-path BFS engine remain the source of truth for current runtime behavior.
+
+See [ADR-015](./adr/ADR-015-graph-query-engine.md) for the graph query layer decision.
+
+### 7.4 API
 
 | Endpoint | Method | Description |
 | --- | --- | --- |
 | /api/v1/attack-paths | GET | Paginated attack paths (default 20/page, max 100) |
 | /api/v1/attack-paths/{id} | GET | Single path with full finding details |
 | /api/v1/attack-paths/stats | GET | Coverage stats (findings in paths vs isolated) |
+| /api/v1/issues | GET | Paginated graph-native security issues |
+| /api/v1/issues/{id} | GET / PATCH | Issue detail and operator status updates |
+| /api/v1/issues/stats | GET | Aggregate issue counts by severity/status |
+| /api/v1/graph/neighborhood/{nodeType}/{nodeId} | GET | Typed subgraph within N hops (Postgres CTE querier) |
+| /api/v1/graph/stats | GET | Vertex and edge counts grouped by type |
+| /api/v1/graph/query | POST | Gremlin / openCypher proxy to PuppyGraph (feature-flagged) |
 
 See [ADR-008](./adr/ADR-008-attack-path-computation.md) for the architecture decision.
 
@@ -357,6 +388,8 @@ See [ADR-010](./adr/ADR-010-finops-cost-aggregation.md) for the architecture dec
 ---
 
 ## 9. Deployment Architecture
+
+This section describes the **target enterprise / self-managed deployment architecture**, not the current public portfolio runtime. The active public demo uses Fly.io for the API tier and Cloudflare Pages for the frontend; the multi-cloud topology below is the forward-state reference model.
 
 ### 9.1 Multi-Cloud Support
 
@@ -411,7 +444,7 @@ flowchart LR
 
 Environments: `dev`, `staging`, `prod` in `deploy/terraform/environments/`.
 
-### 9.3 High Availability
+### 9.3 High Availability (Target State)
 
 - Active-Active across 2+ regions
 - Database replication with automatic failover

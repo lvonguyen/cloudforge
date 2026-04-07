@@ -10,6 +10,8 @@ sequenceDiagram
     participant DB as fa:fa-database DB Replica
     participant SM as fa:fa-vial Smoke Tests
 
+    Note over HC,SM: Reference runbook for self-managed multi-region deployment
+
     HC->>HC: GET /health every 10s
     HC->>HC: 3 consecutive failures detected
     HC->>PD: Alert: Primary region unhealthy

@@ -10,7 +10,7 @@ flowchart TD
         B5["fa:fa-user-lock IAM Scope\nBlast radius via role chaining"]
         B6["fa:fa-network-wired GreyNoise\nIP Intelligence"]
         B7["fa:fa-user-secret HIBP\nBreach Lookup"]
-        B8["fa:fa-satellite-dish OTX\nPulse Matching"]
+        B8["fa:fa-satellite-dish OTX + ThreatFox\nIOC Matching"]
     end
 
     L1 --> L2
@@ -18,7 +18,7 @@ flowchart TD
     subgraph L2 ["Layer 2: Pattern Matching"]
         direction LR
         C1["fa:fa-exclamation-circle Toxic Combination Detection\nMulti-finding chain analysis"]
-        C2["fa:fa-project-diagram Meta-Pattern Engine\n18 known toxic combos"]
+        C2["fa:fa-project-diagram Meta-Pattern Engine\nKnown toxic combos"]
         C3["fa:fa-bullseye Chokepoint Identification\nHigh-centrality graph nodes"]
     end
 
@@ -33,12 +33,14 @@ flowchart TD
         D5["fa:fa-ban GR-001: CRITICAL + Tier1-Prod\nhard floor -- never downgrade"]
         D6["fa:fa-lock GR-002: PCI/PII\nmin severity = MEDIUM"]
         D7["fa:fa-question-circle GR-003: Unknown package usage\ncap confidence at 0.70"]
+        D8["fa:fa-sliders-h GR-004: Severity / score alignment\nclamp score to severity band"]
         D1 -->|conf >= 0.70| D2
         D1 -->|conf < 0.70| D3
         D2 --> D4
         D4 --> D5
         D4 --> D6
         D4 --> D7
+        D4 --> D8
     end
 
     L3 --> E(["fa:fa-check-circle Adjusted Finding + Risk Score"])

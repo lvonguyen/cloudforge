@@ -330,6 +330,88 @@ Arrow labels must be:
 - Positioned **above** the line with 6-8px offset (never overlapping the stroke)
 - Contrast ratio: label text must be readable against the background (use `#94a3b8` on dark, `#6b7280` on light)
 
+### G8: README Zoom Verification (MANDATORY)
+
+After **any** visual edit to a Figma diagram frame (`set_svg`, `set_effects`, `set_fill_color`, `move_node`, `resize_node`, `set_image_fill`, `delete_node` followed by re-import), you MUST verify readability at the rendered scale before proceeding.
+
+**Step 1 — Read the frame width dynamically:**
+
+```
+frame_info = get_node_info(nodeId=<frame>)
+frame_width = frame_info.absoluteBoundingBox.width
+```
+
+**Step 2 — Validate frame is within acceptable embed range:**
+
+| Condition | Action |
+|-----------|--------|
+| `frame_width < 888` | No downscaling needed. Verify at `scale=1.0`. |
+| `888 <= frame_width <= 2400` | Normal range. Compute scale and verify. |
+| `frame_width > 2400` | **WARN:** Heavy downscaling will degrade readability. Consider reducing frame width or increasing font sizes proportionally. |
+
+**Step 3 — Compute scale and export:**
+
+```
+README_COLUMN = 888   # GitHub README content width in px
+scale = README_COLUMN / frame_width
+export_node_as_image(nodeId=<frame>, format="PNG", scale=scale)
+```
+
+**Step 4 — Derive minimum source sizes from scale:**
+
+```
+min_source_font = ceil(10 / scale)    # 10px rendered = readable threshold
+min_source_icon = ceil(24 / scale)    # 24px rendered = recognizable threshold
+```
+
+**Reference table (derived from formula, not hardcoded):**
+
+| Frame Width | Scale | Min Font | Min Icon |
+|-------------|-------|----------|----------|
+| 1920px | 0.46 | 22px | 53px |
+| 1440px | 0.62 | 17px | 39px |
+| 1200px | 0.74 | 14px | 33px |
+| 900px | 0.99 | 11px | 25px |
+
+**Step 5 — Verification checklist (must ALL pass at scaled export):**
+
+1. All tier labels readable (not blurred/aliased)
+2. All component text legible (individual words distinguishable)
+3. All icons recognizable (shape identifiable, not amorphous blobs)
+4. All arrows visible (direction clear, effects not washed out)
+5. Badge/watermark text at least partially readable
+
+**Enforcement:** This step is NOT optional. A diagram edit is not complete until the scaled verification export confirms readability. If any item fails, fix the source and re-verify before moving to the next edit.
+
+### G9: Icon Style Consistency
+
+All icons within a diagram frame MUST come from the same visual family:
+
+| Background | Icon Source | Fill Color | Example |
+|------------|-----------|------------|---------|
+| Dark (`#0f172a`) | `Res_48_Dark` | `#FFFFFF` (white monochrome) | Console, Shield, Metrics, Database |
+| Light (`#ffffff`) | `Res_48_Light` | `#232F3D` (charcoal monochrome) | Same glyphs, dark fill |
+
+**Rules:**
+
+- **NEVER** use `Arch_*` icons in tier frames — they have opaque colored square backgrounds that clash with card fills
+- **NEVER** mix colored service icons (pink CloudWatch, purple Aurora) with monochrome general icons
+- All 4 tier icons in CF.1 use the `Res_General-Icons` family: Console (T1), Shield (T6), Metrics (T8), Database (T10)
+- Light variants use identical glyph paths with `#232F3D` fill instead of `#FFFFFF`
+- Max **5 `icon-library` searches** per session — use the Res_48_Dark/Light inventory instead of ad-hoc searching
+
+### G10: Export Artifact Cleanup
+
+Verification exports from `export_node_as_image` are **ephemeral** — they exist only to confirm readability during the edit session.
+
+**Rules:**
+
+- One-time verification PNGs MUST NOT be committed to git
+- If `export_node_as_image` writes to disk (e.g., via save parameter), delete the file immediately after visual confirmation
+- Only **final production exports** (File > Export > PNG 2x from Figma desktop) belong in `docs/core/diagrams/`
+- The `export_node_as_image` tool returns inline image data by default — prefer this over disk writes for verification
+- If a verification PNG is found in the working tree during `git status`, remove it before committing
+
 ---
 
 ## [+] Mermaid Alignment
@@ -360,3 +442,4 @@ The Mermaid SVGs support CSS edge animation (`stroke-dasharray` + `@keyframes da
 | 1.0 | 2026-03-24 | Initial release — BBG style research + CloudForge implementation |
 | 1.1 | 2026-04-04 | Added Draw.io icon embedding section — semicolon trap + `%3B` fix, icon sizing table, battle-tested workflow |
 | 1.2 | 2026-04-04 | Added [!] Visual Polish Guardrails (G1-G7) — icon placement, tier completeness, split-tier dividers, spacing, dead space, vertical-first layout, connector labels |
+| 1.3 | 2026-04-06 | Added G8 (README zoom verification — mandatory), G9 (icon style consistency — Res_48_Dark/Light only), G10 (export artifact cleanup) |

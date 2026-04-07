@@ -31,7 +31,7 @@ export const branding: Branding = {
   logoPath: import.meta.env.VITE_LOGO_PATH || '/icons/aegis-logo.svg',
   emailDomain: import.meta.env.VITE_EMAIL_DOMAIN || 'contoso.dev',
   repoPrefix: import.meta.env.VITE_REPO_PREFIX || 'github.com/contoso',
-  enabledModules: (import.meta.env.VITE_ENABLED_MODULES || 'cloudforge,posture-management,threat-intel,remediation-engine,ops-center')
+  enabledModules: (import.meta.env.VITE_ENABLED_MODULES || 'cloudforge,posture-management,threat-intel,remediation-engine,ops-center,self-service,attack-paths,compliance,finops')
     .split(',')
     .map((s: string) => s.trim()),
   storagePrefix: import.meta.env.VITE_STORAGE_PREFIX || 'aegis',

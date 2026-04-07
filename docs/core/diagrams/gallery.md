@@ -8,29 +8,31 @@ slug: /diagrams
 
 Visual reference for CloudForge system architecture and data flows.
 
+Current-state portfolio diagrams and enterprise target/reference diagrams intentionally coexist here. The active public portfolio deployment is lighter than the self-managed multi-region enterprise references.
+
 ## System Architecture
 
-The main architecture diagram shows all platform components: Posture Management, AI risk scoring, policy engine, remediation dispatcher, and multi-cloud provider integrations.
+The main architecture diagram tracks the current portfolio implementation: posture management, AI risk scoring, policy engine, remediation dispatcher, graph/security analysis, and multi-cloud provider integrations.
 
-![CloudForge Architecture](architecture-figma.png)
+![CloudForge Architecture](architecture.png)
 
 ## Dual-OPA Architecture
 
 Cloud provisioning uses an external OPA server (HTTP POST), while AI governance uses an embedded OPA Go SDK (in-process). Both load from a shared Rego policy bundle.
 
-![Dual-OPA Architecture](dual-opa-architecture-figma.png)
+![Dual-OPA Architecture](dual-opa-architecture.png)
 
 ## Global Deployment
 
-Multi-region deployment topology with DR failover across AWS (primary), GCP (warm standby), and edge policy evaluation.
+Reference architecture for a self-managed enterprise rollout with multi-region DR, edge policy evaluation, and cross-cloud failover.
 
-![Global Deployment](global-deployment-figma.png)
+![Global Deployment](global-deployment-architecture.png)
 
 ## Risk Intelligence Pipeline
 
-End-to-end risk scoring pipeline: ingestion, normalization, AI enrichment, contextual scoring, and output to dashboards and ticketing.
+Current risk scoring pipeline: threat intel enrichment, contextual scoring, guardrails, and output to dashboards and ticketing.
 
-![Risk Intelligence Pipeline](risk-pipeline-figma.png)
+![Risk Intelligence Pipeline](risk-intelligence-pipeline.png)
 
 ## Mermaid Source Diagrams
 
@@ -38,8 +40,8 @@ The following diagrams are rendered from Mermaid source files. Click to view ful
 
 | Diagram | Description |
 |---------|-------------|
-| [Compliance Deployment Models](../architecture/HLD.md) | Multi-cloud compliance topology |
-| [Failover Sequence](../architecture/DR-BC.md) | DR failover steps and timing |
+| [Compliance Deployment Models](../architecture/HLD.md) | Enterprise compliance reference model |
+| [Failover Sequence](../architecture/DR-BC.md) | Self-managed DR failover reference sequence |
 | [IaC Deploy Pipeline](../architecture/HLD.md) | Terraform/conftest CI/CD flow |
 | [Remediation Dispatcher Flow](../architecture/HLD.md) | Automated remediation routing |
 

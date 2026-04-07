@@ -1,18 +1,20 @@
 # Diagrams Index
 
-| File | Description | Source |
-|------|-------------|--------|
-| [architecture.svg](architecture.svg) | System overview | [.mmd](architecture.mmd) |
-| [dual-opa-architecture.svg](dual-opa-architecture.svg) | Dual OPA engine layout | [.mmd](dual-opa-architecture.mmd) |
-| [compliance-deployment-models.svg](compliance-deployment-models.svg) | Multi-cloud compliance topology | [.mmd](compliance-deployment-models.mmd) |
-| [failover-sequence.svg](failover-sequence.svg) | DR failover sequence | [.mmd](failover-sequence.mmd) |
-| [global-deployment-architecture.svg](global-deployment-architecture.svg) | Multi-region deployment layout | [.mmd](global-deployment-architecture.mmd) |
-| [iac-deploy-pipeline.svg](iac-deploy-pipeline.svg) | Terraform/conftest CI/CD flow | [.mmd](iac-deploy-pipeline.mmd) |
-| [remediation-dispatcher-flow.svg](remediation-dispatcher-flow.svg) | Automated remediation routing | [.mmd](remediation-dispatcher-flow.mmd) |
-| [risk-intelligence-pipeline.svg](risk-intelligence-pipeline.svg) | Risk scoring data pipeline | [.mmd](risk-intelligence-pipeline.mmd) |
-| [architecture-figma.svg](architecture-figma.svg) | System overview (Figma) | Figma MCP |
-| [global-deployment-figma.svg](global-deployment-figma.svg) | Multi-region deployment layout (Figma) | Figma MCP |
-| [risk-pipeline-figma.svg](risk-pipeline-figma.svg) | Risk scoring data pipeline (Figma) | Figma MCP |
+| File | Description | Intent | Source |
+|------|-------------|--------|--------|
+| [architecture.svg](architecture.svg) | System overview | Current portfolio implementation | [.mmd](architecture.mmd) / Figma |
+| [dual-opa-architecture.svg](dual-opa-architecture.svg) | Dual OPA engine layout | Current portfolio implementation | [.mmd](dual-opa-architecture.mmd) / Figma |
+| [compliance-deployment-models.svg](compliance-deployment-models.svg) | Multi-cloud compliance topology | Enterprise target / reference model | [.mmd](compliance-deployment-models.mmd) / [.drawio](compliance-deployment-models.drawio) |
+| [failover-sequence.svg](failover-sequence.svg) | DR failover sequence | Enterprise target / self-managed DR reference | [.mmd](failover-sequence.mmd) / [.drawio](failover-sequence.drawio) |
+| [global-deployment-architecture.svg](global-deployment-architecture.svg) | Multi-region deployment layout | Enterprise target / self-managed deployment reference | [.mmd](global-deployment-architecture.mmd) / Figma |
+| [iac-deploy-pipeline.svg](iac-deploy-pipeline.svg) | Terraform/conftest CI/CD flow | Current implementation | [.mmd](iac-deploy-pipeline.mmd) |
+| [remediation-dispatcher-flow.svg](remediation-dispatcher-flow.svg) | Automated remediation routing | Current implementation | [.mmd](remediation-dispatcher-flow.mmd) |
+| [risk-intelligence-pipeline.svg](risk-intelligence-pipeline.svg) | Risk scoring data pipeline | Current portfolio implementation | [.mmd](risk-intelligence-pipeline.mmd) / Figma |
+| [incident-response.svg](incident-response.svg) | Severity triage, escalation, containment | Operational runbook | [.mmd](incident-response.mmd) |
+| [performance-troubleshooting.svg](performance-troubleshooting.svg) | Symptom diagnosis decision tree | Operational runbook | [.mmd](performance-troubleshooting.mmd) |
+| [secrets-rotation.svg](secrets-rotation.svg) | Generate, deploy dual-key, validate, revoke | Operational runbook | [.mmd](secrets-rotation.mmd) |
+| [finops-budget-alerts.svg](finops-budget-alerts.svg) | Threshold monitoring, alert routing | Operational runbook | [.mmd](finops-budget-alerts.mmd) |
 
-All diagrams rendered from Mermaid source via [mmdc](https://github.com/mermaid-js/mermaid-cli) or Figma MCP.
-`architecture.mmd` was added in Sprint K as the canonical Mermaid source for `architecture.svg`.
+Diagrams with Figma source are maintained in [Figma file `2l5XrS7QRy5MYFI9PwcPmK`](https://www.figma.com/design/2l5XrS7QRy5MYFI9PwcPmK). All others render from Mermaid or Draw.io source.
+
+The active public portfolio deployment is lighter than the enterprise deployment references shown here. In particular, the multi-region deployment, compliance, and DR/failover diagrams should be read as target-state reference material unless explicitly called out as current implementation.

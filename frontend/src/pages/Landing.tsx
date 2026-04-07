@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import {
   Shield, Cloud, Activity, Crosshair, Radar, Wrench,
   ArrowRight, GitBranch, Server, Eye, Copy, Check,
+  LayoutGrid, Route, ShieldCheck, TrendingUp,
 } from 'lucide-react'
 import { useState, useCallback } from 'react'
 import { branding } from '@/lib/branding'
@@ -117,6 +118,78 @@ const PROJECTS: ProjectCard[] = [
     ],
     link: '/ops',
     repo: `${branding.repoPrefix}/ops-center`,
+  },
+  {
+    name: 'Self-Service Portal',
+    slug: 'self-service',
+    tier: 'supporting',
+    description:
+      'Policy-as-code provisioning with OPA validation, Terraform deploy preview, and multi-step approval workflows backed by a browsable service catalog.',
+    icon: LayoutGrid,
+    color: 'text-teal-600 dark:text-teal-400',
+    bg: 'bg-teal-50 dark:bg-teal-900/30',
+    tags: ['OPA/Rego', 'Terraform', 'Multi-Step', 'Catalog', 'RBAC'],
+    stats: [
+      { label: 'Catalog Modules', value: '48' },
+      { label: 'Wizard Steps', value: '5' },
+      { label: 'Policy Checks', value: '12' },
+    ],
+    link: '/portal',
+    repo: `${branding.repoPrefix}/self-service`,
+  },
+  {
+    name: 'Attack Path Analysis',
+    slug: 'attack-paths',
+    tier: 'supporting',
+    description:
+      'Graph-based attack path computation with dual BFS engines (Go + Rust FFI), AI-powered enrichment via tiered model routing, and ReactFlow visualization.',
+    icon: Route,
+    color: 'text-orange-600 dark:text-orange-400',
+    bg: 'bg-orange-50 dark:bg-orange-900/30',
+    tags: ['BFS', 'ReactFlow', 'Rust FFI', 'AI Enrichment', 'Gremlin'],
+    stats: [
+      { label: 'Node Types', value: '6' },
+      { label: 'BFS Engines', value: '2' },
+      { label: 'Edge Types', value: '8' },
+    ],
+    link: '/ops/attack-paths',
+    repo: `${branding.repoPrefix}/attack-paths`,
+  },
+  {
+    name: 'Compliance Engine',
+    slug: 'compliance',
+    tier: 'supporting',
+    description:
+      'Multi-framework compliance posture scoring with control-level drill-down, AI-powered gap analysis, and automated finding-to-control mapping.',
+    icon: ShieldCheck,
+    color: 'text-indigo-600 dark:text-indigo-400',
+    bg: 'bg-indigo-50 dark:bg-indigo-900/30',
+    tags: ['NIST CSF', 'PCI-DSS', 'HIPAA', 'ISO 27001', 'TISAX'],
+    stats: [
+      { label: 'Frameworks', value: '6' },
+      { label: 'Controls', value: '280+' },
+      { label: 'AI Analyzers', value: '1' },
+    ],
+    link: '/ops/compliance',
+    repo: `${branding.repoPrefix}/compliance`,
+  },
+  {
+    name: 'FinOps Platform',
+    slug: 'finops',
+    tier: 'supporting',
+    description:
+      'Multi-cloud cost aggregation with anomaly detection, chargeback allocation by LOB, and budget alerting via Slack and PagerDuty channels.',
+    icon: TrendingUp,
+    color: 'text-emerald-600 dark:text-emerald-400',
+    bg: 'bg-emerald-50 dark:bg-emerald-900/30',
+    tags: ['AWS CUR', 'Azure Cost', 'GCP Billing', 'Anomaly', 'Chargeback'],
+    stats: [
+      { label: 'CSP Aggregators', value: '3' },
+      { label: 'Alert Channels', value: '2' },
+      { label: 'Budget Rules', value: '4' },
+    ],
+    link: '/ops/costs',
+    repo: `${branding.repoPrefix}/finops`,
   },
 ]
 

@@ -17,6 +17,8 @@ This directory contains operational runbooks for CloudForge. Each runbook provid
 | [07-secrets-rotation.md](./07-secrets-rotation.md) | JWT keys, DB passwords, API keys, IdP secrets rotation | High |
 | [08-finops-budget-alerts.md](./08-finops-budget-alerts.md) | Budget configuration, alert channels, anomaly investigation, chargeback | Medium |
 | [09-identity-provider-setup.md](./09-identity-provider-setup.md) | Okta/Entra ID OIDC setup, JWT validation, mock provider | High |
+| [10-attack-path-secgraph-ops.md](./10-attack-path-secgraph-ops.md) | Attack-path warmup, secgraph sync, issue APIs, PuppyGraph fallback | High |
+| [11-ingestion-pipeline-ops.md](./11-ingestion-pipeline-ops.md) | Startup finding sources, admin ingest, dedup, secgraph side effects | High |
 | [../../runbooks/48hr-teardown.md](../../runbooks/48hr-teardown.md) | Legacy appendix for short-lived Fly.io + Pages demo teardown | Medium |
 
 ## Runbook Template

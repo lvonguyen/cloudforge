@@ -98,7 +98,7 @@ CloudForge is an open reference implementation for an Internal Developer Platfor
 | CISA KEV catalog | Done | In-memory catalog with auto-refresh from CISA feed |
 | GreyNoise integration | Done | HTTP client with 12h cache, classification enrichment; API key provisioned in 1Password |
 | **Testing** | | |
-| Unit tests | Passing | ~61 Go packages (~1,550 tests incl. subtests), 476 frontend tests (62 test files), 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
+| Unit tests | Passing | ~61 Go packages (~1,550 tests incl. subtests), 482 frontend tests (62 test files), 8 benchmarks. 3 packages at 100% coverage (workflow, remediation/secrets, finops/aggregator). v8 coverage thresholds (lines: 70, functions: 75, branches: 65) |
 | Integration tests | Done | 12-step server lifecycle + 34-subtest RBAC authorization matrix (`go test -tags=integration`) |
 
 ### Package Maturity
@@ -121,7 +121,7 @@ CloudForge is an open reference implementation for an Internal Developer Platfor
 | `internal/rql` | Production | Resource Query Language parser and evaluator |
 | `internal/tenant` | Production | Multi-tenant context and isolation |
 | `internal/terminal` | Production | Server-side terminal with RBAC and audit |
-| `pkg/remediation` | Production | Executor engine, 17 handlers, rollback |
+| `pkg/remediation` | Production | Executor engine, 18 handlers across 12 domains, rollback |
 | `internal/secgraph` | Production | Security Graph engine — controls, issues, evaluations, edge materialization, adjacency BFS, issue lifecycle (ADR-020) |
 | `internal/finops` | Production | Cost aggregation (AWS Cost Explorer wirable via FINOPS_PROVIDER=aws), anomaly detection, chargeback |
 | `internal/container` | Production | K8s topology (Trivy parser wirable via TRIVY_OUTPUT_PATH), image scan interface |
@@ -138,7 +138,7 @@ CloudForge is an open reference implementation for an Internal Developer Platfor
 | ------ | ----- |
 | Go packages | ~61 (all passing with `-race`) |
 | Go tests | ~1,550 (incl. subtests) |
-| Frontend tests | 476 (62 test files) |
+| Frontend tests | 482 (62 test files) |
 | Benchmarks | 8 |
 | CI checks | 8 (lint, gosec, Trivy, vitest, npm audit, integration, Codecov, Lighthouse) |
 | Coverage thresholds | v8 lines: 70%, functions: 75%, branches: 65% (configured in frontend Vitest) |
@@ -158,7 +158,7 @@ This is an **open reference implementation**, not a turnkey production deploymen
 
 - Decide via [ADR-021](docs/core/architecture/adr/ADR-021-spa-pkce-vs-bff.md) whether to keep the current SPA PKCE model or introduce a real BFF/session layer
 - Expand RBAC with fine-grained permissions
-- Test and validate Temporal workflows
+- Decide whether to keep the current in-memory workflow engine or adopt Temporal orchestration
 
 ---
 
@@ -185,7 +185,7 @@ CloudForge bridges these needs with a unified platform that provides:
 
 ```mermaid
 flowchart TD
-    Portal["Portal — React 19 / Vite 7"] --> API["API Server — Go 1.25 / 91 operations"]
+    Portal["Portal — React 19 / Vite 7"] --> API["API Server — Go 1.25 / 89 operations"]
     API --> Core["Core Engines\nCSPM · Remediation · Attack Path · SecGraph · ASM"]
     Core --> Intel["Risk Intelligence\nEPSS · GreyNoise · HIBP · OTX · KEV"]
     Core --> Policy["Policy Engine — OPA / Rego"]
@@ -207,8 +207,8 @@ flowchart TD
 ```
 
 <p align="center">
-  <a href="docs/core/diagrams/architecture-figma.png">
-    <img src="docs/core/diagrams/architecture-figma.png" alt="CloudForge Architecture — 42 component nodes across 9 tiers" width="100%">
+  <a href="docs/core/diagrams/architecture.png">
+    <img src="docs/core/diagrams/architecture.png" alt="CloudForge Architecture — 61 component nodes across 11 tiers" width="100%">
   </a>
 </p>
 
@@ -252,7 +252,7 @@ cloudforge/
 │   │   └── storage/               # S3 public access blocking
 │   ├── secgraph/                  # Security Graph — controls, issues, evaluations, edges (ADR-020)
 │   ├── waf/                       # WAF golden templates and compliance scanner
-│   └── workflow/                  # Temporal workflow definitions
+│   └── workflow/                  # Workflow engine abstraction (in-memory provider today; Temporal planned)
 ├── pkg/
 │   └── remediation/               # Executor engine, Remediator interface, types
 ├── rust/
@@ -351,8 +351,8 @@ Pluggable providers for enterprise GRC platforms:
 - **Container images** — multi-stage Dockerfiles for frontend (nginx + SPA routing) and backend (Go + healthcheck)
 
 <p align="center">
-  <a href="docs/core/diagrams/dual-opa-architecture-figma.png">
-    <img src="docs/core/diagrams/dual-opa-architecture-figma.png" alt="Dual-OPA Architecture — cloud provisioning (HTTP) vs AI governance (embedded)" width="100%">
+  <a href="docs/core/diagrams/dual-opa-architecture.png">
+    <img src="docs/core/diagrams/dual-opa-architecture.png" alt="Dual-OPA Architecture — cloud provisioning (HTTP) vs AI governance (embedded)" width="100%">
   </a>
 </p>
 
@@ -477,14 +477,14 @@ workflow:
 | [Detailed Design](docs/core/architecture/DDD.md) | API specs, data models |
 | [DR/BC Plan](docs/core/architecture/DR-BC.md) | Disaster recovery procedures (v2.1) |
 | [Component Rationale](docs/core/architecture/adr/component-rationale.md) | Build vs buy decisions |
-| [Dual-OPA Architecture](docs/core/diagrams/dual-opa-architecture-figma.png) | Cloud provisioning OPA (HTTP) vs AI governance OPA (embedded) |
+| [Dual-OPA Architecture](docs/core/diagrams/dual-opa-architecture.png) | Cloud provisioning OPA (HTTP) vs AI governance OPA (embedded) |
 | [Attack Path Enhancements](docs/research/attack-path-enhancements.md) | Graph-based attack path analysis roadmap |
-| [Compliance Deployment Models](docs/core/diagrams/compliance-deployment-models.svg) | Multi-cloud compliance topology |
-| [Failover Sequence](docs/core/diagrams/failover-sequence.svg) | DR failover steps and timing |
-| [Global Deployment](docs/core/diagrams/global-deployment-figma.png) | Multi-region deployment layout |
+| [Compliance Deployment Models](docs/core/diagrams/compliance-deployment-models.svg) | Enterprise compliance reference model |
+| [Failover Sequence](docs/core/diagrams/failover-sequence.svg) | Self-managed DR failover reference sequence |
+| [Global Deployment](docs/core/diagrams/global-deployment-architecture.png) | Enterprise target deployment layout |
 | [IaC Deploy Pipeline](docs/core/diagrams/iac-deploy-pipeline.svg) | Terraform/conftest CI/CD flow |
 | [Remediation Dispatcher](docs/core/diagrams/remediation-dispatcher-flow.svg) | Automated remediation routing |
-| [Risk Intelligence Pipeline](docs/core/diagrams/risk-pipeline-figma.png) | Risk scoring data pipeline |
+| [Risk Intelligence Pipeline](docs/core/diagrams/risk-intelligence-pipeline.png) | Current risk scoring data pipeline |
 
 ### Architecture Decision Records (21 ADRs)
 
@@ -585,7 +585,7 @@ Built-in support for 20+ frameworks:
 
 - [x] Wire rate limiting to API routes
 - [x] CI/CD pipeline with security scanning
-- [x] Remediation dispatcher with 17 handlers across 13 domains
+- [x] Remediation dispatcher with 18 handlers across 12 domains
 - [x] Tiered execution model (auto-safe / verify / change window)
 - [x] 48-hour rollback state engine
 - [x] Unit tests — 30 packages, 590+ functions (cspm, grc, remediation, ai, compliance, finops, server benchmarks)
@@ -606,7 +606,7 @@ Built-in support for 20+ frameworks:
 - [x] Deploy scripts with dry-run-by-default and policy violation gate
 - [x] Container Dockerfiles (frontend nginx + backend Go)
 - [x] Self-service portal UI (React 19 / Vite 7 + shadcn/ui) — deployed to cloudforge.lvonguyen.com
-- [x] Temporal workflow testing and validation (23 tests, concurrent + lifecycle + error cases)
+- [x] Workflow engine testing and validation (23 tests, concurrent + lifecycle + error cases)
 - [x] Terraform networking module and staging/prod environments
 
 ### Phase 4: Risk Intelligence & Attack Path Analysis (Complete)

@@ -27,16 +27,13 @@ flowchart LR
     S5["fa:fa-rocket Step 5\nterraform apply\nplan.tfplan"]
     S5 --> DONE(["fa:fa-check Deploy Complete"])
 
-    subgraph POLICIES [Rego Policies Evaluated]
+    subgraph POLICIES [Representative Rego Policy Bundles]
         direction TB
-        P1["fa:fa-lock SECURITY-001\nEncryption at rest"]
-        P2["fa:fa-lock SECURITY-002\nS3 server-side encryption"]
-        P3["fa:fa-lock SECURITY-003\nNo public Cloud Run ingress"]
-        P4["fa:fa-lock SECURITY-004\nNo public EC2 IP"]
-        P5["fa:fa-lock SECURITY-005\nTLS 1.2+ on ALB"]
-        P6["fa:fa-lock SECURITY-006\nTLS 1.2+ on GCP SSL"]
-        P7["fa:fa-lock SECURITY-007\nNo default VPC usage"]
-        P8["fa:fa-lock SECURITY-008\nNo wildcard IAM actions"]
+        P1["fa:fa-lock security-baseline.rego\nEncryption, public IP, TLS, IAM wildcard checks"]
+        P2["fa:fa-network-wired network-isolation.rego\nSensitive ingress, DB privacy, internal-only OPA"]
+        P3["fa:fa-dollar-sign cost-guardrails.rego\nApproved sizes, storage caps, required tags"]
+        P4["fa:fa-tag naming-convention.rego\nProject / env / service naming rules"]
+        P5["fa:fa-robot ai-governance.rego\nApproved AI models and required observability"]
     end
 
     CT -.->|evaluates| POLICIES

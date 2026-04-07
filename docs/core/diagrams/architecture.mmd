@@ -3,129 +3,170 @@
 flowchart TD
     %% ── Portal tier ─────────────────────────────────────────────────────────
     subgraph Portal["Portal — React 19 / Vite 7"]
-        A1["fa:fa-th-list Self-Service\nCatalog"]
+        A1["fa:fa-columns Command\nCenter"]
         A2["fa:fa-shield-alt Findings &\nAttack Paths"]
         A3["fa:fa-check-circle Compliance\nDashboard"]
-        A4["fa:fa-dollar-sign Cost & Spend\nMgmt"]
-        A1 ~~~ A2 ~~~ A3 ~~~ A4
+        A4["fa:fa-dollar-sign Cost &\nSpend Mgmt"]
+        A5["fa:fa-th-list Self-Service\nPortal"]
+        A6["fa:fa-terminal Terminal\nInterface"]
+        A1 ~~~ A2 ~~~ A3 ~~~ A4 ~~~ A5 ~~~ A6
     end
 
-    %% ── API tier ────────────────────────────────────────────────────────────
-    subgraph API["API Server — Go 1.25"]
+    %% ── API Gateway tier ────────────────────────────────────────────────────
+    subgraph API["API Gateway — Go 1.25"]
         B1["fa:fa-lock JWT Auth\n+ RBAC"]
         B2["fa:fa-tachometer-alt Rate Limit\n+ CORS"]
-        B3["fa:fa-code Handlers\n91 operations"]
-        B4["fa:fa-heartbeat Health &\nObs"]
-        B5["fa:fa-database Audit Log\nPostgres"]
+        B3["fa:fa-code Router\n89 operations"]
+        B4["fa:fa-id-badge Identity\nProvider"]
+        B5["fa:fa-database Audit\nLog"]
         B1 ~~~ B2 ~~~ B3 ~~~ B4 ~~~ B5
     end
 
-    %% ── Core tier ───────────────────────────────────────────────────────────
+    %% ── Core Engines tier ───────────────────────────────────────────────────
     subgraph Core["Core Engines"]
         C1["fa:fa-exclamation-triangle CSPM Risk\nScorer"]
-        C2["fa:fa-wrench Remediation\nDispatcher"]
-        C3["fa:fa-project-diagram Attack Path\nBFS"]
-        C4["fa:fa-robot AI Gov\nOPA"]
-        C5["fa:fa-project-diagram Security\nGraph"]
-        C6["fa:fa-search ASM\nScanner"]
-        C1 ~~~ C2 ~~~ C3 ~~~ C4 ~~~ C5 ~~~ C6
+        C2["fa:fa-wrench Remediation\n18 handlers / 12 domains"]
+        C3["fa:fa-clipboard-check Compliance\nEngine"]
+        C4["fa:fa-robot AI Governance\nDual OPA"]
+        C1 ~~~ C2 ~~~ C3 ~~~ C4
+        C5["fa:fa-search ASM\nScanner"]
+        C6["fa:fa-box Container\nSecurity"]
+        C7["fa:fa-key Secrets\nMgmt"]
+        C8["fa:fa-shield-alt WAF\nTemplates"]
+        C5 ~~~ C6 ~~~ C7 ~~~ C8
+        C9["fa:fa-balance-scale GRC\nExceptions"]
+        C10["fa:fa-tasks Workflow\nEngine (memory)"]
+        C9 ~~~ C10
+    end
+
+    %% ── Attack Path + Security Graph tier (NEW) ─────────────────────────────
+    subgraph AttackPath["Attack Path + Security Graph"]
+        D1["fa:fa-route BFS Engine\nGo + Rust FFI"]
+        D2["fa:fa-project-diagram SecGraph\nMaterializer"]
+        D3["fa:fa-brain AI Enrichment\nOpus / Sonnet"]
+        D4["fa:fa-database PuppyGraph\nGremlin"]
+        D5["fa:fa-comment-dots NLQ +\nHybrid Search"]
+        D1 ~~~ D2 ~~~ D3 ~~~ D4 ~~~ D5
     end
 
     %% ── Intelligence tier ───────────────────────────────────────────────────
     subgraph Intel["Risk Intelligence"]
-        D1["fa:fa-bug EPSS +\nCISA KEV"]
-        D2["fa:fa-network-wired GreyNoise\nIP Intel"]
-        D3["fa:fa-exclamation-circle Toxic Combo\nDetection"]
-        D4["fa:fa-bullseye Blast Radius\nCompute"]
-        D5["fa:fa-satellite-dish OTX\nPulse"]
-        D6["fa:fa-user-secret HIBP\nBreach"]
-        D1 ~~~ D2 ~~~ D3 ~~~ D4 ~~~ D5 ~~~ D6
+        E1["fa:fa-bug EPSS +\nCISA KEV"]
+        E2["fa:fa-network-wired GreyNoise\nIP Intel"]
+        E3["fa:fa-exclamation-circle Toxic Combo\nDetection"]
+        E4["fa:fa-bullseye Blast Radius\nCompute"]
+        E5["fa:fa-satellite-dish OTX +\nThreatFox"]
+        E6["fa:fa-user-secret HIBP\nBreach"]
+        E1 ~~~ E2 ~~~ E3 ~~~ E4 ~~~ E5 ~~~ E6
     end
 
     %% ── Policy tier ─────────────────────────────────────────────────────────
     subgraph Policy["Policy — OPA / Rego"]
-        E1["fa:fa-globe Region &\nCost"]
-        E2["fa:fa-network-wired Network &\nExceptions"]
-        E3["fa:fa-robot AI Agent\nGuardrails"]
-        E4["fa:fa-file-code IaC\nValidation"]
-        E1 ~~~ E2 ~~~ E3 ~~~ E4
+        F1["fa:fa-globe Region &\nCost"]
+        F2["fa:fa-network-wired Network &\nExceptions"]
+        F3["fa:fa-robot AI Agent\nGuardrails"]
+        F4["fa:fa-file-code IaC\nValidation"]
+        F1 ~~~ F2 ~~~ F3 ~~~ F4
     end
 
     %% ── FinOps tier ─────────────────────────────────────────────────────────
     subgraph FinOps["FinOps Platform"]
-        F1["fa:fa-cloud Multi-Cloud\nCost Agg"]
-        F2["fa:fa-chart-line Anomaly\nDetect"]
-        F3["fa:fa-file-invoice-dollar Chargeback\nEngine"]
-        F4["fa:fa-bell Budget\nAlerts"]
-        F1 ~~~ F2 ~~~ F3 ~~~ F4
+        G1["fa:fa-cloud Multi-Cloud\nCost Agg"]
+        G2["fa:fa-chart-line Anomaly\nDetect"]
+        G3["fa:fa-file-invoice-dollar Chargeback\nEngine"]
+        G4["fa:fa-bell Budget\nAlerts"]
+        G1 ~~~ G2 ~~~ G3 ~~~ G4
     end
 
-    %% ── Infrastructure tier ─────────────────────────────────────────────────
-    subgraph Infra["Infrastructure"]
-        G1["fa:fa-layer-group Terraform\nModules"]
-        G2["fa:fa-clock Temporal\nWorkflows"]
-        G3["fa:fa-database PostgreSQL\n+ Redis"]
-        G4["fa:fa-cloud AWS / Azure\n/ GCP"]
-        G5["fa:fa-plug Webhook\nEngine"]
-        G6["fa:fa-download Ingestion\nPipeline"]
-        G1 ~~~ G2 ~~~ G3 ~~~ G4 ~~~ G5 ~~~ G6
+    %% ── Observability tier ────────────────────────────────────────────────────
+    subgraph Observability["Observability"]
+        J1["fa:fa-chart-bar Prometheus\nMetrics"]
+        J2["fa:fa-project-diagram OTel\nTracing"]
+        J3["fa:fa-file-alt Structured\nLogging"]
+        J4["fa:fa-heartbeat Health\nChecks"]
+        J1 ~~~ J2 ~~~ J3 ~~~ J4
     end
 
-    %% ── Integrations tier ───────────────────────────────────────────────────
-    subgraph Integrations["Integrations"]
-        H1["fa:fa-ticket-alt Asana"]
-        H2["fa:fa-ticket-alt Jira"]
-        H3["fa:fa-code-branch Azure\nDevOps"]
-        H1 ~~~ H2 ~~~ H3
+    %% ── Multi-Tenancy tier ──────────────────────────────────────────────────
+    subgraph Tenant["Multi-Tenancy"]
+        K1["fa:fa-building Tenant\nMiddleware"]
+        K2["fa:fa-toggle-on Module\nGating"]
+        K3["fa:fa-paint-brush Branding\nEngine"]
+        K1 ~~~ K2 ~~~ K3
     end
 
-    %% ── Graph tier ──────────────────────────────────────────────────────────
-    subgraph Graph["Graph & Data Layer"]
-        I1["fa:fa-project-diagram PuppyGraph"]
-        I2["fa:fa-database PostgreSQL"]
-        I3["fa:fa-memory Redis /\nCache"]
-        I4["fa:fa-balance-scale ALB"]
-        I1 ~~~ I2 ~~~ I3 ~~~ I4
+    %% ── Data + Infrastructure tier ──────────────────────────────────────────
+    subgraph Infra["Data + Infrastructure"]
+        H1["fa:fa-database PostgreSQL"]
+        H2["fa:fa-memory Redis"]
+        H3["fa:fa-search BM25 +\nSemantic"]
+        H4["fa:fa-layer-group Terraform\nModules"]
+        H5["fa:fa-plug Webhook\nEngine"]
+        H6["fa:fa-download Ingestion\nPipeline"]
+        H1 ~~~ H2 ~~~ H3 ~~~ H4 ~~~ H5 ~~~ H6
+    end
+
+    %% ── Cloud Providers + Integrations tier ─────────────────────────────────
+    subgraph CloudInt["Cloud Providers + Integrations"]
+        I1["fa:fa-cloud AWS"]
+        I2["fa:fa-cloud Azure"]
+        I3["fa:fa-cloud GCP"]
+        I4["fa:fa-ticket-alt Asana"]
+        I5["fa:fa-ticket-alt Jira"]
+        I6["fa:fa-code-branch Azure\nDevOps"]
+        I7["fa:fa-id-badge Okta"]
+        I8["fa:fa-id-badge Entra ID"]
+        I1 ~~~ I2 ~~~ I3 ~~~ I4 ~~~ I5 ~~~ I6 ~~~ I7 ~~~ I8
     end
 
     %% ── Connections ─────────────────────────────────────────────────────────
     Portal --> API --> Core
+    Core --> AttackPath
     Core --> Intel
     Core --> Policy
     Core --> FinOps
+    API --> Observability
+    API --> Tenant
+    AttackPath --> Infra
     Policy --> Infra
     FinOps --> Infra
-    Core --> Integrations
-    Core --> Graph
+    Core --> CloudInt
+    Tenant --> CloudInt
 
     %% ── Node styling ────────────────────────────────────────────────────────
     classDef portalNode   fill:#3b82f6,color:#fff,stroke:#1d4ed8,stroke-width:1px
     classDef apiNode      fill:#1e40af,color:#fff,stroke:#1e3a8a,stroke-width:1px
     classDef coreNode     fill:#7c3aed,color:#fff,stroke:#5b21b6,stroke-width:1px
+    classDef attackNode   fill:#f97316,color:#fff,stroke:#c2410c,stroke-width:1px
     classDef intelNode    fill:#dc2626,color:#fff,stroke:#991b1b,stroke-width:1px
     classDef policyNode   fill:#f59e0b,color:#fff,stroke:#b45309,stroke-width:1px
     classDef finopsNode   fill:#22c55e,color:#fff,stroke:#166534,stroke-width:1px
     classDef infraNode    fill:#64748b,color:#fff,stroke:#334155,stroke-width:1px
-    classDef integNode    fill:#0ea5e9,color:#fff,stroke:#0369a1,stroke-width:1px
-    classDef graphNode    fill:#8b5cf6,color:#fff,stroke:#6d28d9,stroke-width:1px
+    classDef cloudNode    fill:#0ea5e9,color:#fff,stroke:#0369a1,stroke-width:1px
+    classDef obsNode      fill:#06b6d4,color:#fff,stroke:#0e7490,stroke-width:1px
+    classDef tenantNode   fill:#a855f7,color:#fff,stroke:#7e22ce,stroke-width:1px
 
-    class A1,A2,A3,A4 portalNode
+    class A1,A2,A3,A4,A5,A6 portalNode
     class B1,B2,B3,B4,B5 apiNode
-    class C1,C2,C3,C4,C5,C6 coreNode
-    class D1,D2,D3,D4,D5,D6 intelNode
-    class E1,E2,E3,E4 policyNode
-    class F1,F2,F3,F4 finopsNode
-    class G1,G2,G3,G4,G5,G6 infraNode
-    class H1,H2,H3 integNode
-    class I1,I2,I3,I4 graphNode
+    class C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 coreNode
+    class D1,D2,D3,D4,D5 attackNode
+    class E1,E2,E3,E4,E5,E6 intelNode
+    class F1,F2,F3,F4 policyNode
+    class G1,G2,G3,G4 finopsNode
+    class H1,H2,H3,H4,H5,H6 infraNode
+    class I1,I2,I3,I4,I5,I6,I7,I8 cloudNode
+    class J1,J2,J3,J4 obsNode
+    class K1,K2,K3 tenantNode
 
     %% ── Subgraph styling (light containers) ─────────────────────────────────
     style Portal fill:#eff6ff,stroke:#3b82f6,stroke-width:2px,color:#1e3a8a
     style API fill:#eef2ff,stroke:#1e40af,stroke-width:2px,color:#1e3a8a
     style Core fill:#f5f3ff,stroke:#7c3aed,stroke-width:2px,color:#4c1d95
+    style AttackPath fill:#fff7ed,stroke:#f97316,stroke-width:2px,color:#9a3412
     style Intel fill:#fef2f2,stroke:#dc2626,stroke-width:2px,color:#991b1b
     style Policy fill:#fffbeb,stroke:#f59e0b,stroke-width:2px,color:#b45309
     style FinOps fill:#f0fdf4,stroke:#22c55e,stroke-width:2px,color:#166534
+    style Observability fill:#ecfeff,stroke:#06b6d4,stroke-width:2px,color:#0e7490
+    style Tenant fill:#faf5ff,stroke:#a855f7,stroke-width:2px,color:#7e22ce
     style Infra fill:#f8fafc,stroke:#64748b,stroke-width:2px,color:#334155
-    style Integrations fill:#f0f9ff,stroke:#0ea5e9,stroke-width:2px,color:#0369a1
-    style Graph fill:#faf5ff,stroke:#8b5cf6,stroke-width:2px,color:#6d28d9
+    style CloudInt fill:#f0f9ff,stroke:#0ea5e9,stroke-width:2px,color:#0369a1

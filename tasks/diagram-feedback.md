@@ -1,101 +1,83 @@
-# Diagram Coordination (orchestrator, 2026-04-04)
+# Diagram Coordination (orchestrator, 2026-04-04 — audit #3)
 
-## [!] Session Roles (ACTIVE — 3 parallel Figma-native sessions)
+## [!] Active Sessions (wave 4 — continuation)
 
-| Session | Owns | Status |
-|---------|------|--------|
-| **d1++ 1-3** | CF.2 + CF.3 | CF.2 ✓ DONE. CF.3 Failover Sequence IN PROGRESS. |
-| **d3++ 4-6** | CF.4 + CF.5 + CF.6 | CF.4 ✓ DONE. CF.5 + CF.6 IN PROGRESS. |
-| **d2++ 7-9** | CF.7 + CF.8 + CF.9 | CF.6 ✓, CF.7 ✓, CF.8 ✓ DONE. CF.9 IaC Light Theme IN PROGRESS. |
+| Session | Tokens | Working On | Status |
+|---------|--------|-----------|--------|
+| **cf E diagrams 1-3** | 151K | CF.1-3 ALL DONE | COMPLETE (218 ops, all dark+light synced) |
+| **cf E diagrams e+ 1-3** | 290K | CF.1 icons+align, CF.2 overflow fixes, CF.3 icons+boxes+arrows | COMPLETE — handoff at tasks/handoff-e1plus-13.md. 8 CF.2 bugs remain. |
+| **cf E diagrams 4-6** | 133K | CF.4/5/6 polish | Loading context |
+| **cf E diagrams 7-8** | 147K | CF.7 Dark readability fix | Starting |
 
-All sessions on channel `72snjfrt`, building via figma-create MCP. Handoff: `tasks/handoff-figma-diagrams.md`.
+## [!] Current Page Status (13 Figma pages)
 
-## [!] Enforced Guardrails (G1-G7) — READ BEFORE VERIFICATION
+| Page | ID | Dark | Light | Verdict |
+|------|----|------|-------|---------|
+| CF.1 | 0:1 | DONE (text 56/34/26, 3 brand logos 80x80, 3 new icons, arrows 28x16, frame 1920x1300) | 85:671 — DONE (synced: text+icons+logos+arrows+frame) | PASS |
+| CF.2 | 1:2 | DONE (readability overhaul: 37 text bumps, shield 80px, checkmark, arrows 16x28) | 85:738 — DONE (synced: text+shield+arrows+check) | PASS |
+| CF.3 | 1:3 | DONE (text bump +4px on 19 steps, labels 26, summary 28, 5 icons 34) | 85:819 — DONE (synced: same bumps) | PASS |
+| CF.4 | 1:4 | Structure + arrows done, cards need repositioning, ZERO icons | NOT STARTED | IN PROGRESS (4-6) |
+| CF.5 | 1:5 | DONE (frame shrunk, icons, arrows, text alignment fixed) | NOT STARTED | DARK PASS |
+| CF.6 | 1:6 | Structure + partial arrows, needs icons + text bump | NOT STARTED | IN PROGRESS (4-6) |
+| CF.7 | 1:7 | Icons+arrows present but ALL TEXT TOO SMALL, right-shifted | 85:1087 — created, not colored | IN PROGRESS (7-8) |
+| CF.8 | 1:8 | Icons+arrows present but ALL TEXT TOO SMALL | Light created | NEEDS READABILITY PASS (7-8) |
+| CF.9 | 1:9 | N/A | Renamed [OLD] | SUPERSEDED by CF.2L |
 
-Codified in `docs/DIAGRAM_STYLE_GUIDE.md` v1.2 and `diagram-builder.md` agent. **All 7 must pass before marking a page complete:**
+### Completed (no further work needed)
+- **CF.1 dark + light** — PASS (session "cf E diagrams 1-3", 218 ops)
+- **CF.2 dark + light** — PASS (readability overhaul + sync, same session)
+- **CF.3 dark + light** — PASS (text +4px per user feedback, same session)
+- **CF.5 dark** — PASS (light variant still needed)
 
-| # | Rule | Common Violation |
-|---|------|-----------------|
-| G1 | Icons inline-left with labels, not clustered right | Icons pushed to right edge of tier |
-| G2 | Every tier MUST have at least one icon | **d2++ CF.7 + CF.8: ZERO icons** |
-| G3 | Split-tier sections need visible dividers | Color shift alone is not enough |
-| G4 | Consistent 24px+ spacing between component names | Inconsistent gaps between cards |
-| G5 | No dead space — bottom margin = top margin | >100px unused at bottom |
-| G6 | **Vertical-first layout default** for all frames | Sessions tried horizontal before being corrected |
-| G7 | Connector labels 10px+, above line, readable contrast | Labels too small to read at README scale |
+## [!] Per-Session Remaining Work
 
-## [!] ICON DEFICIT — d2++ CF.7, CF.8
+### 1-3: COMPLETE ✓ (+ e+ continuation)
+All CF.1/CF.2/CF.3 work done in session "cf E diagrams 1-3". Continuation session "e+ 1-3" added:
+- CF.1 Light: 19 text bumps, 5 icon resizes, 3 brand logos 80x80, 3 new icons (Portal dashboard, Threat Intel shield-alert, Policy Engine shield-check), 5 arrows 28x16, frame 1920x1300
+- CF.2 Dark: 37 text bumps (title 56, steps 28/24, gate 34, policies 22), shield 48→80, 9 arrows resized, checkmark icon added
+- CF.2 Light: Full sync (37 text + 9 arrows + shield + check)
+- CF.3 Dark+Light: 31 text bumps each (+4px on steps per user feedback: 20→24), 5 participant icons 28→34, summary 24→28
+- **e+ 1-3 continuation:** CF.1 Light subtitle sanitized ("7 Tenants/~270 Environments" → "Multi-Tenant/Multi-Environment"), T6 provider counts removed, icon column aligned to local x=1720 on both dark (2 moves: T3+T4 Policy) and light (3 moves: T1+T3+T4 Policy). No green artifacts found.
 
-Orchestrator audit (via Figma monitor): **CF.7 Dual OPA and CF.8 Risk Pipeline have ZERO icons.** Structure and layout are excellent, but Phase 2 (Icon Gathering) was skipped entirely. Before marking these pages complete:
+### 4-6: CF.4 cards + CF.6 icons + polish
+1. CF.5: Mark DONE (text alignment fix landed)
+2. CF.4: Reposition 26 cards to new grid, add framework icons (shield/lock/globe/medical/flag) at 48x48
+3. CF.6: Cloud provider icons (AWS/Azure/GCP), text size bump (24px titles, 18px subtitles)
+4. Drop shadows on CF.4/5/6 containers
+5. Light variants CF.4L/5L/6L (may need continuation)
 
-1. Search icon-library for: OPA/policy, Terraform, shield/security, EPSS, GreyNoise, brain/AI
-2. Place icons inline-left in node cards per G1
-3. Add layer-header icons (36px, top-right) per style guide
+### 7-8: CF.7 + CF.8 readability pass
+1. CF.7 Dark: Widen step boxes 480→700px, titles 18→24px bold, subtitles 12→18px, transition labels 10→16px bold, icons 24→48px, vertical gaps 15→35px, fix right-column centering, grow frame to ~1600px
+2. CF.7 Light (85:1087): Apply same fixes + color swap
+3. CF.8 Dark: Same readability treatment — all text +50%, icons to 48px, 35px gaps
+4. CF.8 Light: Apply same fixes + color swap
 
-## [!] LIGHT THEME VARIANTS — ALL DIAGRAMS
+## [!] Enforced Guardrails (G1-G7)
 
-User directive: **Every diagram needs a light theme variant for Docusaurus** (`https://docs.cloudforge.lvonguyen.com/`).
+| # | Rule | Key Violations |
+|---|------|---------------|
+| G1 | Icons inline-left | CF.7 icons present but small |
+| G2 | Every tier has icon | CF.4 ✗, CF.6 ✗ |
+| G3 | Visible dividers | All OK |
+| G4 | 24px+ spacing | CF.7 ✗ (15px gaps) |
+| G5 | No dead space | CF.1 ✓ (trimmed 1300), CF.4 ✗ (bottom) |
+| G6 | Vertical-first | All OK |
+| G7 | Connector labels 10px+ | CF.7 ✗ (10px), CF.8 ✗ |
 
-Light theme spec (from DIAGRAM_STYLE_GUIDE.md):
-- Background: `#ffffff`
-- Card fill: `#f5f5f5`
-- Text primary: `#1f2937`
-- Text secondary: `#6b7280`
-- Arrow color: `#9ca3af`
-- Layer stroke: layer color @ 30% alpha
+## Readability Calculator Reference
 
-Options:
-- CF.9 already IS a light variant of CF.2 (d2++ building now)
-- Remaining pages need light variants added — can be a follow-up session after all dark themes are complete
+| Frame Width | Scale | Min Source Font |
+|-------------|-------|----------------|
+| 1920px | 0.46x | 22px |
+| 1440px | 0.62x | 16px |
+| 900px | 1.0x | 10px |
 
-## [!] 46% README Litmus Test Results (ALL PAGES)
+## Color Swap Reference (Dark → Light)
 
-Viewed at 46% zoom (= GitHub README display for 1920px frames). Scale: `888/1920 = 0.46x`.
-
-| Page | Verdict | Title | Card Labels | Subtitles | Icons | Dead Space | Fix Priority |
-|------|---------|-------|-------------|-----------|-------|------------|-------------|
-| CF.1 | PASS | ✓ | ✓ | ✓ | ✓ (5 SVGs) | Minimal | — |
-| CF.2 | PASS | ✓ | ✓ | ✓ | ✓ (Terraform, Shield) | Minimal | — |
-| CF.3 | NEEDS WORK | ✓ | Marginal | Too small | None | **30%+ empty** | HIGH — shrink frame, increase step text, add icons |
-| CF.4 | MARGINAL | ✓ | Too small | Too small | None | OK | MED — increase card content font to 16px+, add icons |
-| CF.5 | NEEDS WORK | ✓ | ✓ | Too small | None | **25% empty** | HIGH — shrink frame, increase transition labels, add icons |
-| CF.7 | GOOD | ✓ | ✓ | Marginal | **NONE** | Moderate | MED — add icons (OPA, Terraform, AI), increase connector labels |
-| CF.8 | GOOD | ✓ | ✓ | Marginal | **NONE** | Moderate | MED — add icons (EPSS, GreyNoise, brain/AI), card subtitle 11px→14px |
-| CF.9 | IN PROGRESS | ✓ | Truncated | N/A | None | Large | HIGH — text truncation on step labels, needs completion |
-
-### Common Issues Across Pages
-
-1. **Zero icons on CF.3, CF.4, CF.5, CF.7, CF.8** — G2 violation. Every page needs process shapes, brand/service icons, and visual polish (decision diamonds, state circles, flow arrows). Not just text in boxes.
-2. **Subtitle/metadata text too small** — 11px source × 0.46 = 5px rendered. Minimum 14px source for any secondary text on 1920px frames (→ 6.4px, still tight but readable bold).
-3. **Dead space** — CF.3 and CF.5 have 25-30% empty frame at bottom. Shrink frame height to fit content.
-4. **Connector/transition labels too small** — CF.3 step text, CF.5 state transitions, CF.7 protocol labels all need 14px+ source.
-
-### Per-Page Action Items
-
-**CF.3 (d1++):** Shrink frame from 1920x1600 to ~1920x1100. Increase step text to 16px. Add icons: heart/health, bell/alert, globe/DNS, server, database. Fill the yellow summary bar.
-
-**CF.4 (d3++):** Increase requirement card body text from current ~11px to 16px. Add compliance framework icons (shield, lock, certificate). The 1440px canvas helps (0.62x scale) but body text is still too small.
-
-**CF.5 (d3++):** Shrink frame from 1440x1800 to ~1440x1200. Increase transition labels to 14px. Add state machine shapes (circles for start/end, diamonds for decisions). Legend text needs 14px+.
-
-**CF.7 (d2++):** Add icons: OPA logo, Terraform, cloud/shield, AI brain. Increase connector labels from ~10px to 14px. Otherwise structure is excellent.
-
-**CF.8 (d2++):** Add icons: EPSS badge, GreyNoise, HIBP, brain/AI, shield. Increase card subtitle from 11px to 14px. Layer alignment is solid (verified via node positions — consistent 20px/40px gaps).
-
-**CF.9 (d2++):** Fix truncated step labels ("plan-with-pol..." → full text). Light theme colors look correct (F8FAFC bg). Needs same icon set as CF.2.
-
-## Design Direction (all outputs)
-
-- Icons **way bigger** — 64x64 minimum standalone, 48x48 in node cards
-- More **color** — use the full palette from DIAGRAM_STYLE_GUIDE.md
-- **Less text heavy** — reduce label verbosity, let visuals speak
-- **Vertical-first** — tiers stack top-to-bottom. Horizontal only with explicit opt-in.
-- Prioritize whitespace and readability over detail density
-
-## Draw.io `%3B` Fix (reference)
-
-Draw.io style parser splits on `;`. URL-encode to `%3B` in data URIs:
-- `image=data:image/png%3Bbase64,iVBOR...`
-- `image=data:image/svg+xml%3Bbase64,PHN2...`
-
-Documented in `docs/DIAGRAM_STYLE_GUIDE.md` v1.1 and `diagram-builder.md` agent.
+| Element | Dark RGB (0-1) | Light RGB (0-1) |
+|---------|---------------|-----------------|
+| Frame bg | 0.059, 0.09, 0.165 | 1, 1, 1 |
+| Tile fill | 0.118, 0.161, 0.231 | 0.945, 0.961, 0.976 |
+| Primary text | 0.886, 0.91, 0.941 | 0.118, 0.161, 0.231 |
+| Secondary text | 0.58, 0.639, 0.722 | 0.278, 0.333, 0.412 |
+| Stroke | 0.2, 0.255, 0.333 | 0.796, 0.835, 0.882 |

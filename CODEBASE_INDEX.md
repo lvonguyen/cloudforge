@@ -111,16 +111,20 @@ cloudforge/
 
 ## Diagrams (`docs/core/diagrams/`)
 
-| Source (.mmd) | SVG | Figma Export | README |
-|---------------|-----|-------------|--------|
-| `architecture.mmd` | `architecture.svg` | `architecture-figma.svg/.png` | PNG |
-| `compliance-deployment-models.mmd` | `compliance-deployment-models.svg` | — | SVG |
-| `dual-opa-architecture.mmd` | `dual-opa-architecture.svg` | `dual-opa-architecture-figma.svg/.png` | PNG |
-| `failover-sequence.mmd` | `failover-sequence.svg` | — | SVG |
-| `global-deployment-architecture.mmd` | `global-deployment-architecture.svg` | `global-deployment-figma.svg/.png` | PNG |
-| `iac-deploy-pipeline.mmd` | `iac-deploy-pipeline.svg` | — | SVG |
-| `remediation-dispatcher-flow.mmd` | `remediation-dispatcher-flow.svg` | — | SVG |
-| `risk-intelligence-pipeline.mmd` | `risk-intelligence-pipeline.svg` | `risk-pipeline-figma.svg/.png` | PNG |
+| Source (.mmd) | Render (.svg/.png) | Best Source | README |
+|---------------|-------------------|-------------|--------|
+| `architecture.mmd` | `architecture.svg/.png` | Figma | PNG |
+| `compliance-deployment-models.mmd` | `compliance-deployment-models.svg/.png` | Draw.io | SVG |
+| `dual-opa-architecture.mmd` | `dual-opa-architecture.svg/.png` | Figma | PNG |
+| `failover-sequence.mmd` | `failover-sequence.svg/.png` | Draw.io | SVG |
+| `global-deployment-architecture.mmd` | `global-deployment-architecture.svg/.png` | Figma | PNG |
+| `iac-deploy-pipeline.mmd` | `iac-deploy-pipeline.svg/.png` | Mermaid | SVG |
+| `remediation-dispatcher-flow.mmd` | `remediation-dispatcher-flow.svg/.png` | Mermaid | SVG |
+| `risk-intelligence-pipeline.mmd` | `risk-intelligence-pipeline.svg/.png` | Figma | PNG |
+| `incident-response.mmd` | `incident-response.svg/.png` | Mermaid | SVG |
+| `performance-troubleshooting.mmd` | `performance-troubleshooting.svg/.png` | Mermaid | SVG |
+| `secrets-rotation.mmd` | `secrets-rotation.svg/.png` | Mermaid | SVG |
+| `finops-budget-alerts.mmd` | `finops-budget-alerts.svg/.png` | Mermaid | SVG |
 
 CSPM diagrams (`docs/cspm/diagrams/`): `hld_architecture.svg`, `dfd_scoring_pipeline.svg`, `dfd_priority_matrix.svg` (SVG-only, no .mmd sources).
 

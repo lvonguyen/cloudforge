@@ -26,7 +26,7 @@ stateDiagram-v2
     VALIDATING_RESULT --> FAILED : handler error
 
     COMPLETED --> ROLLBACK_ELIGIBLE : within 48h window
-    ROLLBACK_ELIGIBLE --> ROLLED_BACK : rollback triggered
+    ROLLBACK_ELIGIBLE --> ROLLED_BACK : registered rollback path executed
     ROLLED_BACK --> [*]
 
     SKIPPED --> [*]
@@ -36,10 +36,11 @@ stateDiagram-v2
     note right of TIER_GATE
         T1: always auto-safe
         T2: needs AutoRemediationReady=true
-        T3: full change approval + window
+        T3: manual approval + change window
     end note
 
     note right of COMPLETED
         RollbackState captured pre-remediation
+        Registered handlers support rollback
         Window expires after 48h
     end note
