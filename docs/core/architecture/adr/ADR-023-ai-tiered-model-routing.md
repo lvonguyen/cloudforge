@@ -28,6 +28,16 @@ Without routing, all calls go to a single provider (originally Anthropic Claude 
 
 Implement a **three-tier routing provider** (`RoutingProvider`) that wraps the existing `Provider` interface, adding tier selection, a fallback chain, and a monthly cost budget guard.
 
+## Implementation Status
+
+As of 2026-04-06, this ADR is **accepted and partially wired**:
+
+- `internal/ai/router.go`, `internal/ai/config.go`, and tier-aware handler call sites exist
+- `cmd/server/handlers_nlq.go` and attack-path enrichment can use `RoutingProvider` when one is supplied
+- the default server bootstrap still initializes a single provider via `initAIProvider`, so tiered routing is not yet the runtime default
+
+Treat this ADR as the accepted routing design plus supporting implementation pieces, not as proof that all live AI calls already flow through the tiered router.
+
 ### Tier Definitions
 
 | Tier | Constant | Models | Cost | Use Case |

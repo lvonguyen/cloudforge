@@ -24,6 +24,16 @@ A secondary hot path is JSON loading: the server startup deserializes 42MB of fi
 
 Maintain **two BFS engine implementations** — Go (pure, portable) and Rust (FFI, high-performance) — selectable at build time via Go build tags. This is not a migration; both engines are permanent.
 
+## Implementation Status
+
+As of 2026-04-06, this ADR is **accepted and partially implemented**:
+
+- the Rust crate, CGo bridge, build targets, and benchmarks exist on disk
+- the Go BFS engine remains the active server runtime path in `cmd/server/attackpath.go`
+- the documented `AEGIS_RUST_PATHS` activation path is not yet wired into the live request/runtime bootstrap
+
+Treat this ADR as the accepted dual-engine design and code path, not as evidence that production requests already execute through Rust by default.
+
 ### Architecture
 
 ```

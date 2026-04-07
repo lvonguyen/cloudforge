@@ -4,7 +4,7 @@ import styles from './index.module.css';
 
 const highlights = [
   {value: '89', label: 'OpenAPI operations'},
-  {value: '17', label: 'Remediation handlers'},
+  {value: '18', label: 'Remediation handlers'},
   {value: '300K', label: 'Public demo corpus'},
   {value: '4', label: 'Ticket providers incl. mock'},
 ];
@@ -42,7 +42,7 @@ export default function Home(): JSX.Element {
         <section className={styles.hero}>
           <div className={styles.heroCopy}>
             <p className={styles.eyebrow}>CloudForge standardized docs</p>
-            <h1>Platform docs for the current CloudForge deployment model.</h1>
+            <h1>Docs for the current CloudForge platform.</h1>
             <p className={styles.summary}>
               This site is the operational and architectural source of truth for CloudForge:
               Cloudflare Pages frontend, Fly.io API, frontend-owned Okta SPA PKCE, backend JWT validation,

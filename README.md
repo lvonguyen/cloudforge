@@ -11,7 +11,7 @@ CloudForge is an open reference implementation for an Internal Developer Platfor
 
 > **[Live Demo](https://cloudforge.lvonguyen.com)** | **[API](https://api.cloudforge.lvonguyen.com/health)**
 
-> **About this project** — CloudForge demonstrates enterprise security patterns designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains. The approach is project-based: assess current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — working systems backed by threat models and ADRs (the [21 ADRs](docs/core/architecture/adr/) capture the decision-making process used to brief a CISO or engineering VP). It is an **open reference implementation with production-oriented slices**, not a turnkey SaaS offering — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others remain intentionally documented stubs that show the target design. The core discipline is security-focused systems design, with agentic coding workflows as a force multiplier for delivery.
+> **About this project** — CloudForge demonstrates enterprise security patterns designed, built, and operated across identity, infrastructure, governance, and software lifecycle domains. The approach is project-based: assess current state gaps, design a solution mapped to business requirements, present trade-offs to leadership, then drive implementation hands-on across infra, dev, and ops teams through to production handoff. This project reflects that same end-to-end ownership — working systems backed by threat models and ADRs (the [23 ADRs](docs/core/architecture/adr/) capture the decision-making process used to brief a CISO or engineering VP). It is an **open reference implementation with production-oriented slices**, not a turnkey SaaS offering — select vertical slices (ServiceNow GRC, JWT auth, S3/SSH remediation) are fully implemented while others remain intentionally documented stubs that show the target design. The core discipline is security-focused systems design, with agentic coding workflows as a force multiplier for delivery.
 >
 > **Development rigor** — Code quality is enforced through a layered toolchain: `golangci-lint` with `gosec`/`gocritic`/`revive` in CI, shared coding standards governing Go patterns, error handling, and security rules across all repos, pre-commit hooks blocking credential leaks, and systematic multi-pass QA reviews (quality, security, bug discovery) before merge. The emphasis is on elegant, maintainable code paired with comprehensive documentation and detailed architecture diagrams — minimizing tech debt throughout the SDLC rather than accruing it for later.
 
@@ -153,6 +153,8 @@ This is an **open reference implementation**, not a turnkey production deploymen
 3. **RoleViewer** — `RoleViewer` (rank 0) is implemented with read-only surface (`/findings`, `/compliance/frameworks`, `/agents` + traces); fine-grained per-resource viewer scoping is not yet enforced
 4. **Visual QA Residuals** — Core prod flows now pass live browser checks (landing, findings, investigations, attack paths, finding security graph). Remaining work is polish and broader route coverage, not basic operability.
 5. **OIDC Auth Flow** — The frontend already implements an Okta SPA PKCE `/callback` flow. The backend validates bearer JWTs (HS256 demo/static tokens or RS256 via JWKS) but does not host server-managed authorize/callback routes, refresh-token storage, or session cookies.
+6. **Rust BFS Activation** — The Rust FFI bridge, library, and benchmarks exist, but the active server runtime still computes attack paths through the Go engine. `AEGIS_RUST_PATHS` is documented and benchable, not yet wired into the live request path.
+7. **AI Tiered Routing Activation** — `internal/ai/router.go` and the tiered routing ADR exist, but default startup still initializes a single provider via `initAIProvider`. Tier-aware routing is available once bootstrap is switched to the routing provider/config path.
 
 **Production Requirements:**
 
@@ -285,7 +287,7 @@ cloudforge/
 ├── docs/
 │   ├── core/
 │   │   ├── architecture/          # HLD, DDD, DR-BC, data models
-│   │   │   └── adr/               # Architecture Decision Records (21 ADRs)
+│   │   │   └── adr/               # Architecture Decision Records (23 ADRs)
 │   │   ├── diagrams/              # Architecture diagrams (SVG + Mermaid + Figma)
 │   │   └── runbooks/              # Operational procedures (11 runbooks + legacy appendix)
 │   ├── api/                       # OpenAPI 3.1 specification (89 operations)
@@ -322,7 +324,7 @@ cloudforge/
 
 Pluggable providers for enterprise GRC platforms:
 
-- **RSA Archer** - Full exception workflow integration
+- **RSA Archer** - Provider/interface stub; instance-specific field mapping still required
 - **ServiceNow GRC** - Native ServiceNow integration
 - **PostgreSQL** - Lightweight option for smaller orgs
 - **In-Memory** - For demos and testing
@@ -361,7 +363,7 @@ Pluggable providers for enterprise GRC platforms:
 - **Contextual risk scoring** — LLM-powered severity re-scoring that considers asset tier, environment (prod/dev/sandbox), internet exposure, blast radius, and compensating controls
 - **Severity normalization** — per-CSP normalization (AWS ASFF normalized scores, Azure severity labels, GCP attack exposure scores) into unified severity taxonomy
 - **Threat intel enrichment** — EPSS scoring (FIRST API, 12h cache) and CISA KEV catalog (auto-refresh) integrated into risk pipeline; GreyNoise IP classification enrichment (12h cache)
-- **Attack path schema** — `AttackPathContext` with blast radius count, IAM escalation path, chokepoint detection, toxic combination flag (graph computation engine in roadmap)
+- **Attack path runtime** — `AttackPathContext` plus live Go BFS path computation, secgraph-backed adjacency when available, heuristic fallback when it is not, and ReactFlow visualization
 - **MITRE ATT&CK mapping** — tactic and technique fields on findings for kill-chain context
 
 ### Multi-Cloud Support
@@ -374,7 +376,7 @@ Pluggable providers for enterprise GRC platforms:
 ### Automated Remediation
 
 - **Tiered Execution**: Tier 1 (auto-safe), Tier 2 (requires verification), Tier 3 (change window)
-- **17 Handlers**: GuardDuty, SSH/RDP blocking, S3 public access, IMDSv2, IAM key rotation, Azure Defender, secrets guidance, OS patching, container CVE, database encryption, config drift, monitoring enablement, encryption enforcement
+- **18 Handlers**: GuardDuty, SSH/RDP blocking, S3 public access, IMDSv2, IAM key rotation, Azure Defender, secrets guidance, OS patching, container CVE, database encryption, config drift, monitoring enablement, encryption enforcement
 - **Dry-Run Default**: All remediations preview actions before execution
 - **48-Hour Rollback**: State snapshots for every remediation with automated rollback scripts
 - **Concurrent Batch Execution**: Semaphore-controlled parallel processing
@@ -393,14 +395,14 @@ Pluggable providers for enterprise GRC platforms:
 | --------- | ---------- | ------- |
 | API Server | [Go 1.25](https://go.dev/) | Core platform API |
 | Portal | [React 19](https://react.dev/) / [Vite 7](https://vitejs.dev/) | Self-service SPA — Tailwind CSS v4, shadcn/ui, Cloudflare Pages |
-| Workflows | [Temporal](https://temporal.io/) | Orchestration, approvals |
+| Workflows | In-memory engine / [Temporal](https://temporal.io/) target | Orchestration, approvals |
 | Policies | [OPA / Rego](https://www.openpolicyagent.org/) | Guardrails, validation |
 | IaC | [Terraform](https://www.terraform.io/) | Resource provisioning |
 | Database | [PostgreSQL 16](https://www.postgresql.org/) | State, audit logs |
 | Cache | [Redis](https://redis.io/) | Session, caching |
 | AI | [Anthropic Claude](https://www.anthropic.com/) | Intelligence services |
 | Identity | OIDC (Okta/Entra ID) | Authentication |
-| Attack Path Engine | [Rust](https://www.rust-lang.org/) / CGo FFI | High-performance BFS computation via `libaegispath` (`rust/bridge.go`) |
+| Attack Path Engine | Go BFS runtime / [Rust](https://www.rust-lang.org/) FFI path | Live runtime uses the Go engine today; Rust bridge exists under `rust/bridge.go` |
 | Observability | [OpenTelemetry](https://opentelemetry.io/) | Tracing, metrics |
 
 ---
@@ -477,6 +479,7 @@ workflow:
 | [Detailed Design](docs/core/architecture/DDD.md) | API specs, data models |
 | [DR/BC Plan](docs/core/architecture/DR-BC.md) | Disaster recovery procedures (v2.1) |
 | [Component Rationale](docs/core/architecture/adr/component-rationale.md) | Build vs buy decisions |
+| [Attack Path + SecGraph Runtime](docs/core/diagrams/attack-path-secgraph-runtime.png) | Current attack-path and secgraph runtime flow |
 | [Dual-OPA Architecture](docs/core/diagrams/dual-opa-architecture.png) | Cloud provisioning OPA (HTTP) vs AI governance OPA (embedded) |
 | [Attack Path Enhancements](docs/research/attack-path-enhancements.md) | Graph-based attack path analysis roadmap |
 | [Compliance Deployment Models](docs/core/diagrams/compliance-deployment-models.svg) | Enterprise compliance reference model |
@@ -486,7 +489,7 @@ workflow:
 | [Remediation Dispatcher](docs/core/diagrams/remediation-dispatcher-flow.svg) | Automated remediation routing |
 | [Risk Intelligence Pipeline](docs/core/diagrams/risk-intelligence-pipeline.png) | Current risk scoring data pipeline |
 
-### Architecture Decision Records (21 ADRs)
+### Architecture Decision Records (23 ADRs)
 
 | ADR | Decision |
 | --- | -------- |
@@ -511,6 +514,8 @@ workflow:
 | [ADR-019](docs/core/architecture/adr/ADR-019-multi-tenant-data-isolation.md) | Multi-Tenant Data Isolation |
 | [ADR-020](docs/core/architecture/adr/ADR-020-security-graph-architecture.md) | Security Graph Architecture |
 | [ADR-021](docs/core/architecture/adr/ADR-021-spa-pkce-vs-bff.md) | Keep SPA PKCE for frontend auth; defer BFF until requirements justify it |
+| [ADR-022](docs/core/architecture/adr/ADR-022-dual-bfs-engine.md) | Dual BFS engine: Go runtime plus Rust FFI acceleration path |
+| [ADR-023](docs/core/architecture/adr/ADR-023-ai-tiered-model-routing.md) | AI tiered model routing and budget-aware fallback design |
 
 ### Runbooks
 
@@ -525,6 +530,8 @@ workflow:
 | [07-secrets-rotation](docs/core/runbooks/07-secrets-rotation.md) | Secrets rotation procedures |
 | [08-finops-budget-alerts](docs/core/runbooks/08-finops-budget-alerts.md) | FinOps budget alerting |
 | [09-identity-provider-setup](docs/core/runbooks/09-identity-provider-setup.md) | Okta/Entra ID setup |
+| [10-attack-path-secgraph-ops](docs/core/runbooks/10-attack-path-secgraph-ops.md) | Attack-path and secgraph operational checks |
+| [11-ingestion-pipeline-ops](docs/core/runbooks/11-ingestion-pipeline-ops.md) | Ingestion pipeline validation and failure handling |
 
 ---
 
@@ -638,7 +645,7 @@ Built-in support for 20+ frameworks:
 | **Phase 4: Frontend + QA Hardening** | Self-service portal (React 19 + Vite 7, 37 routes, 4 role views, dark mode), Cloudflare Pages deploy, investigation board, DSPM classification, kanban remediation pipeline, NLQ bar, demo mode hardening. Multi-pass QA reviews (quality 4.5+, security 4.5+, bugs 4.3+) |
 | **Phase 3: IaC + Security** | Multi-cloud Terraform modules (compute, database, redis, IAM, monitoring, secrets), 5 Rego policies (27 rules), policy gate script, resource-scoped RBAC, integrity hashing, audit logging, rollback encryption (AES-256-GCM), CI enforcement (gosec, Trivy, Codecov) |
 | **Phase 2: Remediation + AI Governance** | 18 remediation handlers across 12 domains, batch executor with dry-run + 48h rollback, AI governance module (embedded OPA, agent registry, STRIDE/ATLAS threat models), JWT auth (HS256/RS256 + JWKS), RBAC middleware, security fixes SEC-001 through SEC-012 |
-| **Phase 1: Core Platform** | API server, GRC provider abstraction (Archer, ServiceNow, PostgreSQL), 20+ compliance frameworks, OPA/Rego policy engine, AI provider abstraction (Claude/OpenAI), identity module (Okta + Entra ID), container security, structured logging (zap), PostgreSQL migrations, architecture docs (HLD, DDD, 21 ADRs, DR/BC, 11 runbooks) |
+| **Phase 1: Core Platform** | API server, GRC provider abstraction (Archer, ServiceNow, PostgreSQL), 20+ compliance frameworks, OPA/Rego policy engine, AI provider abstraction (Claude/OpenAI), identity module (Okta + Entra ID), container security, structured logging (zap), PostgreSQL migrations, architecture docs (HLD, DDD, 23 ADRs, DR/BC, 11 runbooks) |
 
 ---
 
