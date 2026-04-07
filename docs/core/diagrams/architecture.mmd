@@ -41,10 +41,10 @@ flowchart TD
 
     %% ── Attack Path + Security Graph tier (NEW) ─────────────────────────────
     subgraph AttackPath["Attack Path + Security Graph"]
-        D1["fa:fa-route BFS Engine\nGo + Rust FFI"]
+        D1["fa:fa-route BFS Engine\nGo + secgraph adjacency"]
         D2["fa:fa-project-diagram SecGraph\nMaterializer"]
-        D3["fa:fa-brain AI Enrichment\nOpus / Sonnet"]
-        D4["fa:fa-database PuppyGraph\nGremlin"]
+        D3["fa:fa-brain AI Enrichment\nContextual scoring"]
+        D4["fa:fa-database PuppyGraph\nOptional query path"]
         D5["fa:fa-comment-dots NLQ +\nHybrid Search"]
         D1 ~~~ D2 ~~~ D3 ~~~ D4 ~~~ D5
     end

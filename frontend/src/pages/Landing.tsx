@@ -142,14 +142,14 @@ const PROJECTS: ProjectCard[] = [
     slug: 'attack-paths',
     tier: 'supporting',
     description:
-      'Graph-based attack path computation with dual BFS engines (Go + Rust FFI), AI-powered enrichment via tiered model routing, and ReactFlow visualization.',
+      'Graph-based attack path computation with the Go BFS engine, secgraph-backed adjacency when available, heuristic fallback when it is not, and ReactFlow visualization.',
     icon: Route,
     color: 'text-orange-600 dark:text-orange-400',
     bg: 'bg-orange-50 dark:bg-orange-900/30',
-    tags: ['BFS', 'ReactFlow', 'Rust FFI', 'AI Enrichment', 'Gremlin'],
+    tags: ['Go BFS', 'ReactFlow', 'secgraph', 'Heuristic Fallback', 'PuppyGraph optional'],
     stats: [
       { label: 'Node Types', value: '6' },
-      { label: 'BFS Engines', value: '2' },
+      { label: 'Max Hops', value: '4' },
       { label: 'Edge Types', value: '8' },
     ],
     link: '/ops/attack-paths',

@@ -3,6 +3,7 @@
 | File | Description | Intent | Source |
 |------|-------------|--------|--------|
 | [architecture.svg](architecture.svg) | System overview | Current portfolio implementation | [.mmd](architecture.mmd) / Figma |
+| [attack-path-secgraph-runtime.svg](attack-path-secgraph-runtime.svg) | Current secgraph materialization and attack-path runtime flow | Current portfolio implementation | [.mmd](attack-path-secgraph-runtime.mmd) |
 | [dual-opa-architecture.svg](dual-opa-architecture.svg) | Dual OPA engine layout | Current portfolio implementation | [.mmd](dual-opa-architecture.mmd) / Figma |
 | [compliance-deployment-models.svg](compliance-deployment-models.svg) | Multi-cloud compliance topology | Enterprise target / reference model | [.mmd](compliance-deployment-models.mmd) / [.drawio](compliance-deployment-models.drawio) |
 | [failover-sequence.svg](failover-sequence.svg) | DR failover sequence | Enterprise target / self-managed DR reference | [.mmd](failover-sequence.mmd) / [.drawio](failover-sequence.drawio) |

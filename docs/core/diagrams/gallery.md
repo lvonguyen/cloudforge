@@ -16,6 +16,12 @@ The main architecture diagram tracks the current portfolio implementation: postu
 
 ![CloudForge Architecture](architecture.png)
 
+## Attack Path + SecGraph Runtime
+
+This detailed current-state diagram shows how findings materialize into secgraph data in PostgreSQL, how adjacency feeds the Go BFS attack-path engine, and where PuppyGraph remains optional rather than runtime-critical.
+
+![Attack Path + SecGraph Runtime](attack-path-secgraph-runtime.png)
+
 ## Dual-OPA Architecture
 
 Cloud provisioning uses an external OPA server (HTTP POST), while AI governance uses an embedded OPA Go SDK (in-process). Both load from a shared Rego policy bundle.

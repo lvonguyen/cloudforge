@@ -16,8 +16,8 @@
 | [Component Rationale](./adr/component-rationale.md) | Technology selection with cost analysis |
 | [DR/BC Plan](./DR-BC.md) | Disaster Recovery and Business Continuity |
 | [Pitch Deck](https://github.com/lvonguyen/cloudforge/blob/main/docs/archive/pitch-deck.md) | Executive presentation |
-| [ADRs](./adr/adr-index.md) | Architecture Decision Records (ADR-001 through ADR-020) |
-| [Runbooks](../runbooks/01-deployment.md) | Operational procedures (9 runbooks) |
+| [ADRs](./adr/adr-index.md) | Architecture Decision Records (ADR-001 through ADR-021) |
+| [Runbooks](../runbooks/01-deployment.md) | Operational procedures (11 core runbooks) |
 
 ---
 
@@ -316,6 +316,16 @@ See [ADR-009](./adr/ADR-009-remediation-dispatcher.md) for the full architecture
 ---
 
 ## 7. Attack Path Analysis
+
+Current-state runtime detail for attack-path computation, secgraph materialization, and the optional PuppyGraph query path:
+
+<p align="center">
+  <a href="../diagrams/attack-path-secgraph-runtime.png">
+    <img src="../diagrams/attack-path-secgraph-runtime.png" alt="Attack path and secgraph current runtime flow" width="100%">
+  </a>
+</p>
+
+> [Diagram source](../diagrams/attack-path-secgraph-runtime.mmd) | [Diagrams index](../diagrams/README.md)
 
 ### 7.1 Computation Engine
 

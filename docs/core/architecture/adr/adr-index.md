@@ -6,7 +6,7 @@ slug: /adr
 
 # Architecture Decision Records
 
-CloudForge maintains 21 ADRs documenting key technical decisions. Each record captures the context, decision, and consequences of an architectural choice.
+CloudForge maintains 23 ADRs documenting key technical decisions. Each record captures the context, decision, and consequences of an architectural choice.
 
 | ADR | Title | Status |
 |-----|-------|--------|
@@ -31,4 +31,6 @@ CloudForge maintains 21 ADRs documenting key technical decisions. Each record ca
 | [ADR-019](ADR-019-multi-tenant-data-isolation.md) | Multi-Tenant Data Isolation | Accepted |
 | [ADR-020](ADR-020-security-graph-architecture.md) | Security Graph Architecture | Accepted |
 | [ADR-021](ADR-021-spa-pkce-vs-bff.md) | Frontend Auth Model: SPA PKCE vs Backend-for-Frontend | Accepted |
+| [ADR-022](ADR-022-dual-bfs-engine.md) | Dual BFS Engine (Go + Rust FFI) | Accepted |
+| [ADR-023](ADR-023-ai-tiered-model-routing.md) | AI Tiered Model Routing | Accepted |
 | [Component Rationale](component-rationale.md) | Build vs Buy Decisions | Supplementary |

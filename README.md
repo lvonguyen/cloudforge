@@ -19,7 +19,7 @@ CloudForge is an open reference implementation for an Internal Developer Platfor
 
 ## [/] Implementation Status
 
-> **Last Updated:** 2026-04-03
+> **Last Updated:** 2026-04-06
 >
 > **Current State:** Active development (~92% feature-complete). Core API functional, GRC integration working, remediation dispatcher operational, CI/CD pipeline hardened with Lighthouse CI budgets, IaC deploy layer with multi-cloud Terraform modules and policy-as-code, self-service portal built and deployed with error states, accessibility, and performance optimizations.
 
@@ -191,7 +191,7 @@ flowchart TD
     Core --> Policy["Policy Engine — OPA / Rego"]
     Core --> FinOps["FinOps\nMulti-Cloud Cost · Anomaly · Chargeback"]
     Core --> Integ["Integrations — Asana · Jira · Azure DevOps"]
-    Core --> Graph["Graph & Data — PuppyGraph · PostgreSQL"]
+    Core --> Graph["Graph & Data — PostgreSQL / secgraph · PuppyGraph optional"]
     Policy --> Infra["Infrastructure\nTerraform · PostgreSQL · Redis · AWS / Azure / GCP"]
     FinOps --> Infra
 
@@ -287,7 +287,7 @@ cloudforge/
 │   │   ├── architecture/          # HLD, DDD, DR-BC, data models
 │   │   │   └── adr/               # Architecture Decision Records (21 ADRs)
 │   │   ├── diagrams/              # Architecture diagrams (SVG + Mermaid + Figma)
-│   │   └── runbooks/              # Operational procedures (9 runbooks)
+│   │   └── runbooks/              # Operational procedures (11 runbooks + legacy appendix)
 │   ├── api/                       # OpenAPI 3.1 specification (89 operations)
 │   ├── cspm/                      # CSPM aggregator HLD, DDD, schema reference
 │   ├── research/                  # Technical research and POC notes
@@ -634,11 +634,11 @@ Built-in support for 20+ frameworks:
 
 | Phase | Description |
 | ----- | ----------- |
-| **Phase 5: Risk Intelligence + FinOps** | EPSS/KEV/GreyNoise/HIBP/OTX threat intel, attack path BFS engine + ReactFlow viz, toxic combo detection, blast radius computation, PuppyGraph graph query integration, AWS Bedrock enrichment. FinOps multi-cloud cost aggregation, anomaly detection, chargeback engine, budget alerting |
+| **Phase 5: Risk Intelligence + FinOps** | EPSS/KEV/GreyNoise/HIBP/OTX/ThreatFox threat intel, attack path BFS engine + ReactFlow viz, toxic combo detection, blast radius computation, optional PuppyGraph graph query integration, AI enrichment. FinOps multi-cloud cost aggregation, anomaly detection, chargeback engine, budget alerting |
 | **Phase 4: Frontend + QA Hardening** | Self-service portal (React 19 + Vite 7, 37 routes, 4 role views, dark mode), Cloudflare Pages deploy, investigation board, DSPM classification, kanban remediation pipeline, NLQ bar, demo mode hardening. Multi-pass QA reviews (quality 4.5+, security 4.5+, bugs 4.3+) |
 | **Phase 3: IaC + Security** | Multi-cloud Terraform modules (compute, database, redis, IAM, monitoring, secrets), 5 Rego policies (27 rules), policy gate script, resource-scoped RBAC, integrity hashing, audit logging, rollback encryption (AES-256-GCM), CI enforcement (gosec, Trivy, Codecov) |
-| **Phase 2: Remediation + AI Governance** | 17 remediation handlers across 12 domains, batch executor with dry-run + 48h rollback, AI governance module (embedded OPA, agent registry, STRIDE/ATLAS threat models), JWT auth (HS256/RS256 + JWKS), RBAC middleware, security fixes SEC-001 through SEC-012 |
-| **Phase 1: Core Platform** | API server, GRC provider abstraction (Archer, ServiceNow, PostgreSQL), 20+ compliance frameworks, OPA/Rego policy engine, AI provider abstraction (Claude/OpenAI), identity module (Okta + Entra ID), container security, structured logging (zap), PostgreSQL migrations, architecture docs (HLD, DDD, 20 ADRs, DR/BC, 9 runbooks) |
+| **Phase 2: Remediation + AI Governance** | 18 remediation handlers across 12 domains, batch executor with dry-run + 48h rollback, AI governance module (embedded OPA, agent registry, STRIDE/ATLAS threat models), JWT auth (HS256/RS256 + JWKS), RBAC middleware, security fixes SEC-001 through SEC-012 |
+| **Phase 1: Core Platform** | API server, GRC provider abstraction (Archer, ServiceNow, PostgreSQL), 20+ compliance frameworks, OPA/Rego policy engine, AI provider abstraction (Claude/OpenAI), identity module (Okta + Entra ID), container security, structured logging (zap), PostgreSQL migrations, architecture docs (HLD, DDD, 21 ADRs, DR/BC, 11 runbooks) |
 
 ---
 

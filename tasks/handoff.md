@@ -288,8 +288,8 @@ Gaps: HLD.md embeds zero images (text refs only). portfolio-site only shows CF.1
 
 ### Docs P1s (separate session)
 - [x] HLD: Security Graph (secgraph) section
-- [ ] ADR-022: Dual BFS Engine (Go + Rust FFI)
-- [ ] ADR-023: AI Tiered Model Routing
+- [x] ADR-022: Dual BFS Engine (Go + Rust FFI)
+- [x] ADR-023: AI Tiered Model Routing
 - [x] HLD: Current/Target State framing
 - [x] Runbook-10: Attack Path / SecGraph ops
 - [x] Runbook-11: Ingestion Pipeline ops
