@@ -81,13 +81,13 @@ This document covers:
 ### 2.1 External Integrations
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia, serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
 
 flowchart TB
     subgraph Aegis["CloudForge Platform"]
         API["API Server<br/>Go 1.25 · JWT · RBAC"]
         FE["Portal<br/>React 19 · Vite 7"]
-        RE["Remediation<br/>17 Handlers"]
+        RE["Remediation<br/>18 Handlers"]
         RI["Risk Intelligence<br/>EPSS · KEV · GreyNoise"]
         PE["Policy Engine<br/>OPA / Rego"]
         GR["Graph Engine<br/>Gremlin · Cypher"]
@@ -659,44 +659,9 @@ type RemediationRecord struct {
 
 #### 3.4.10 Remediation State Machine
 
-```
-                  +----------+
-                  |  PENDING  |
-                  +----+------+
-                       |
-          [Execute called by dispatcher]
-                       |
-                       v
-                +-------------+
-                | IN_PROGRESS |
-                +------+------+
-                       |
-           +-----------+-----------+
-           |                       |
-     [handler error]         [handler success]
-           |                       |
-           v                       v
-       +--------+           +----------+
-       | FAILED |           | validate |
-       +--------+           +----+-----+
-                                 |
-                  +--------------+-------------+
-                  |                            |
-           [not compliant]              [compliant]
-                  |                            |
-                  v                            v
-              +--------+               +-----------+
-              | FAILED |               | COMPLETED |
-              +--------+               +-----------+
-                                            |
-                                   [within 48h window]
-                                            |
-                                            v
-                                      +----------+
-                                      | (rollback |
-                                      |  eligible)|
-                                      +----------+
-```
+![Remediation Dispatcher State Machine](../diagrams/remediation-dispatcher-flow.svg)
+
+> **Canonical diagram source:** [`docs/core/diagrams/remediation-dispatcher-flow.mmd`](../diagrams/remediation-dispatcher-flow.mmd) — rendered SVG at [`remediation-dispatcher-flow.svg`](../diagrams/remediation-dispatcher-flow.svg).
 
 Valid status values: `pending`, `in_progress`, `completed`, `failed`, `skipped`.
 
@@ -723,28 +688,9 @@ as they already exist in `internal/compliance/`.
 CloudForge runs two distinct OPA evaluation paths that are architecturally
 complementary:
 
-```
-                 CloudForge Platform
-                         |
-          +--------------+--------------+
-          |                             |
-          v                             v
-   [Cloud Provisioning Path]     [AI Governance Path]
-   internal/policy/evaluator.go  internal/ai-governance/opa/engine.go
-          |                             |
-          v                             v
-   HTTP REST to external         In-process (embedded)
-   OPA instance                  OPA via Go library
-          |                             |
-   Package namespace:            Package namespace:
-   terraform.*                   aegis.ai.*
-          |                             |
-   Governs:                       Governs:
-   - IaC plan evaluation          - Agent tool access
-   - Resource compliance          - Data flow controls
-   - Infrastructure drift         - Rate limiting
-   - Environment isolation        - Prompt injection detection
-```
+![Dual-OPA Architecture](../diagrams/dual-opa-architecture.svg)
+
+> **Canonical diagram source:** [`docs/core/diagrams/dual-opa-architecture.mmd`](../diagrams/dual-opa-architecture.mmd) — the Cloud Provisioning path uses HTTP REST to an external OPA instance (`terraform.*` namespace), while the AI Governance path uses the embedded OPA Go library in-process (`aegis.ai.*` namespace).
 
 The two paths are independent and non-conflicting: `internal/policy/evaluator.go`
 sends plan JSON to an external OPA HTTP endpoint; `internal/ai-governance/opa/engine.go`
@@ -1772,4 +1718,3 @@ compliance:
 3. [ISO/SAE 21434:2021](https://www.iso.org/standard/70918.html)
 4. [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/)
 5. [OpenTelemetry Specification](https://opentelemetry.io/docs/specs/)
-

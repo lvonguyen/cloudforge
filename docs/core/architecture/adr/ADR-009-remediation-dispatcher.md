@@ -143,3 +143,4 @@ The `AzureDefender` and multi-cloud `RotateExposedSecret` handlers remain stubs 
 - `pkg/remediation/` — Executor engine, Remediator interface, types
 - `internal/remediation/` — Domain handler implementations (12 active subdirectories + private_cloud planned)
 - Runbook: [05-remediation-operations.md](../../runbooks/05-remediation-operations.md)
+- State machine diagram: [`remediation-dispatcher-flow.svg`](../../../core/diagrams/remediation-dispatcher-flow.svg) ([Mermaid source](../../../core/diagrams/remediation-dispatcher-flow.mmd))
