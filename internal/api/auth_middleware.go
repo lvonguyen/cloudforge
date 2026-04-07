@@ -52,11 +52,38 @@ type ResourceScope struct {
 	AccountIDs    []string `json:"account_ids,omitempty"`
 }
 
+// AudienceClaim accepts either a single JWT audience string or the RFC-compliant
+// array form. Okta access tokens commonly emit a string audience.
+type AudienceClaim []string
+
+// UnmarshalJSON supports both `"aud":"api://default"` and
+// `"aud":["api://default"]`.
+func (a *AudienceClaim) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		*a = nil
+		return nil
+	}
+
+	var single string
+	if err := json.Unmarshal(data, &single); err == nil {
+		*a = AudienceClaim{single}
+		return nil
+	}
+
+	var multi []string
+	if err := json.Unmarshal(data, &multi); err == nil {
+		*a = AudienceClaim(multi)
+		return nil
+	}
+
+	return fmt.Errorf("invalid aud claim shape")
+}
+
 // Claims represents the JWT claims we validate.
 type Claims struct {
 	Subject       string         `json:"sub"`
 	Issuer        string         `json:"iss"`
-	Audience      []string       `json:"aud"`
+	Audience      AudienceClaim  `json:"aud"`
 	ExpiresAt     int64          `json:"exp"`
 	NotBefore     int64          `json:"nbf"`
 	IssuedAt      int64          `json:"iat"`

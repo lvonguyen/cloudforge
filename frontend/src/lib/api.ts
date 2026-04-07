@@ -51,12 +51,20 @@ export function isMockFallbackEnabled(): boolean {
   return import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.VITE_ENABLE_MOCK_FALLBACK === 'true'
 }
 
+export function shouldPreferLocalMockAssets(): boolean {
+  return (
+    import.meta.env.VITE_DEMO_MODE === 'true' ||
+    (import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_FALLBACK === 'true')
+  )
+}
+
 function authHeaders(): Record<string, string> {
   const isDev = import.meta.env.DEV
   const staticToken = import.meta.env.VITE_STATIC_TOKEN as string | undefined
+  const storedToken = sessionStorage.getItem(TOKEN_KEY)
   const token = isDev
     ? (import.meta.env.VITE_DEV_TOKEN as string | undefined)
-    : (staticToken ?? sessionStorage.getItem(TOKEN_KEY))
+    : (storedToken ?? staticToken)
   const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
 
   // In dev mode, forward the frontend role override so the backend

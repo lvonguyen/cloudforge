@@ -62,8 +62,8 @@ module "cloudflare_pages" {
   env_vars = {
     VITE_PRODUCT_NAME    = "CloudForge"
     VITE_COMPANY_NAME    = "Contoso"
-    VITE_STORAGE_PREFIX  = "aegis"
-    VITE_ENABLED_MODULES = "aegis,cspm-aggregator"
+    VITE_STORAGE_PREFIX  = "cloudforge"
+    VITE_ENABLED_MODULES = "cloudforge,posture-management,threat-intel,remediation-engine,ops-center,attack-paths,compliance,finops"
     NODE_VERSION         = "20"
   }
 }

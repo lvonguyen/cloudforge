@@ -179,6 +179,37 @@ describe('authHeaders (via apiClient)', () => {
     const headers = options.headers as Record<string, string>
     expect(headers['X-Aegis-Role']).toBeUndefined()
   })
+
+  it('prefers the stored session token over the static token in production', async () => {
+    vi.stubEnv('DEV', false)
+    vi.stubEnv('VITE_STATIC_TOKEN', 'static-viewer-token')
+    sessionStorage.setItem('aegis_access_token', 'session-admin-token')
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true }), { status: 200 })
+    )
+
+    await apiClient.get('/test')
+
+    const callArgs = vi.mocked(global.fetch).mock.calls[0]
+    const options = callArgs[1] as RequestInit
+    const headers = options.headers as Record<string, string>
+    expect(headers.Authorization).toBe('Bearer session-admin-token')
+  })
+
+  it('falls back to the static token when no stored session token exists', async () => {
+    vi.stubEnv('DEV', false)
+    vi.stubEnv('VITE_STATIC_TOKEN', 'static-viewer-token')
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true }), { status: 200 })
+    )
+
+    await apiClient.get('/test')
+
+    const callArgs = vi.mocked(global.fetch).mock.calls[0]
+    const options = callArgs[1] as RequestInit
+    const headers = options.headers as Record<string, string>
+    expect(headers.Authorization).toBe('Bearer static-viewer-token')
+  })
 })
 
 describe('apiClient.delete', () => {

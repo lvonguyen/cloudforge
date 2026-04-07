@@ -46,7 +46,7 @@ const VERIFIER_KEY = `${branding.storagePrefix}_pkce_verifier`
 export const STATE_KEY = `${branding.storagePrefix}_oauth_state`
 const NONCE_KEY = `${branding.storagePrefix}_oauth_nonce`
 export const LOGIN_RETURN_KEY = `${branding.storagePrefix}_login_return`
-const DEMO_SESSION_KEY = `${branding.storagePrefix}_demo_session`
+export const DEMO_SESSION_KEY = `${branding.storagePrefix}_demo_session`
 export const PREVIEW_ROLE_KEY = `${branding.storagePrefix}_preview_role`
 
 const OKTA_ISSUER = import.meta.env.VITE_OKTA_ISSUER as string | undefined
@@ -84,6 +84,22 @@ async function createPKCEChallenge(): Promise<{ verifier: string; challenge: str
 
 function getStoredToken(): string | null {
   return sessionStorage.getItem(TOKEN_KEY)
+}
+
+function hasDemoSession(): boolean {
+  if (typeof window === 'undefined') return false
+  return sessionStorage.getItem(DEMO_SESSION_KEY) === 'true'
+}
+
+function getPreferredAuthToken(staticToken?: string): string | null {
+  const storedToken = getStoredToken()
+  if (storedToken && !isTokenExpired(storedToken)) {
+    return storedToken
+  }
+  if (staticToken && !isTokenExpired(staticToken)) {
+    return staticToken
+  }
+  return null
 }
 
 export function parseJWTPayload(token: string): Record<string, unknown> | null {
@@ -148,6 +164,8 @@ export function userFromToken(token: string): User {
 interface AuthContextValue {
   user: User
   role: Role
+  isDemoSession: boolean
+  canSwitchRoles: boolean
   setRole: (role: Role) => void
   login: () => Promise<void>
   loginAsDemo: () => Promise<void>
@@ -160,12 +178,14 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const isDev = import.meta.env.DEV
-  const isDemo = import.meta.env.VITE_DEMO_MODE === 'true'
+  const isDemoBuild = import.meta.env.VITE_DEMO_MODE === 'true'
 
   const staticToken = import.meta.env.VITE_STATIC_TOKEN as string | undefined
+  const [isDemoSession, setIsDemoSession] = useState(() => hasDemoSession())
+  const canSwitchRoles = isDev || isDemoBuild || isDemoSession
 
   const [user, setUser] = useState<User>(() => {
-    const previewRole = getPreviewRoleOverride() ?? ((isDev || isDemo) ? getStoredPreviewRole() : null)
+    const previewRole = getPreviewRoleOverride() ?? ((isDev || isDemoBuild || hasDemoSession()) ? getStoredPreviewRole() : null)
     if (previewRole) {
       setPreviewRoleOverride(previewRole)
     }
@@ -174,21 +194,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ? { ...DEFAULT_USER, role: previewRole, name: ROLE_DISPLAY_NAMES[previewRole] }
         : DEFAULT_USER
     }
-    if (isDemo) {
+    if (isDemoBuild) {
       return previewRole
         ? { ...DEMO_USER, role: previewRole, name: ROLE_DISPLAY_NAMES[previewRole] }
         : DEMO_USER
     }
 
-    // Static token: pre-signed JWT for demo deployments without an IdP
-    if (staticToken && !isTokenExpired(staticToken)) {
-      return userFromToken(staticToken)
-    }
-
-    const token = getStoredToken()
-    if (token && !isTokenExpired(token)) {
+    const token = getPreferredAuthToken(staticToken)
+    if (token) {
       const nextUser = userFromToken(token)
-      return sessionStorage.getItem(DEMO_SESSION_KEY) === 'true'
+      return hasDemoSession()
         ? { ...nextUser, role: 'viewer' }
         : nextUser
     }
@@ -196,27 +211,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    if (isDev || isDemo) return true
-    if (staticToken && !isTokenExpired(staticToken)) return true
-    const token = getStoredToken()
-    return !!token && !isTokenExpired(token)
+    if (isDev || isDemoBuild) return true
+    return !!getPreferredAuthToken(staticToken)
   })
 
   useEffect(() => {
     // Clear any legacy persisted role override so old preview data cannot
     // leak across reloads or into authenticated flows.
     sessionStorage.removeItem(ROLE_KEY)
-    if (!isDev && !isDemo) {
+    if (!isDev && !isDemoBuild && !isDemoSession) {
       sessionStorage.removeItem(PREVIEW_ROLE_KEY)
       setPreviewRoleOverride(null)
     }
-  }, [isDemo, isDev])
+  }, [isDemoBuild, isDemoSession, isDev])
 
   const login = useCallback(async () => {
     if (!OKTA_ISSUER || !OKTA_CLIENT_ID) {
       console.warn('[auth] Okta not configured, skipping login')
       return
     }
+    sessionStorage.removeItem(DEMO_SESSION_KEY)
+    sessionStorage.removeItem(PREVIEW_ROLE_KEY)
+    setPreviewRoleOverride(null)
+    setIsDemoSession(false)
     const { verifier, challenge } = await createPKCEChallenge()
     sessionStorage.setItem(VERIFIER_KEY, verifier)
 
@@ -271,13 +288,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Flag this as a demo session for viewer-scoped access via Okta SSO
     sessionStorage.setItem(DEMO_SESSION_KEY, 'true')
+    setIsDemoSession(true)
 
     window.location.href = `${OKTA_ISSUER}/v1/authorize?${params}`
   }, [])
 
   const logout = useCallback(() => {
     const idToken = sessionStorage.getItem(ID_TOKEN_KEY)
-    const isDemo = sessionStorage.getItem(DEMO_SESSION_KEY) === 'true'
+    const isDemo = hasDemoSession()
 
     sessionStorage.removeItem(TOKEN_KEY)
     sessionStorage.removeItem(ID_TOKEN_KEY)
@@ -288,6 +306,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(DEMO_SESSION_KEY)
     sessionStorage.removeItem(PREVIEW_ROLE_KEY)
     setPreviewRoleOverride(null)
+    setIsDemoSession(false)
 
     // Always clear React state so UI reflects logged-out immediately,
     // even if the Okta redirect is slow or fails.
@@ -309,7 +328,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isDev])
 
   const setRole = useCallback((role: Role) => {
-    if (!isDev && !isDemo) return
+    if (!canSwitchRoles) return
     const maxRole = isDev ? DEFAULT_USER.role : 'admin' as Role
     const effective = ROLE_RANK[role] <= ROLE_RANK[maxRole] ? role : maxRole
     setPreviewRoleOverride(effective)
@@ -319,7 +338,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: effective,
       name: ROLE_DISPLAY_NAMES[effective],
     }))
-  }, [isDev, isDemo])
+  }, [canSwitchRoles, isDev])
 
   // Exchange authorization code for tokens (called from Callback page)
   const exchangeCode = useCallback(async (code: string) => {
@@ -370,9 +389,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Demo sessions default to viewer (read-only). Regular users derive
     // their role from group claims in the access token.
-    const isDemo = sessionStorage.getItem(DEMO_SESSION_KEY) === 'true'
+    const isDemo = hasDemoSession()
     const nextUser = userFromToken(data.access_token)
     setUser(isDemo ? { ...nextUser, role: 'viewer' } : nextUser)
+    setIsDemoSession(isDemo)
     setIsAuthenticated(true)
   }, [])
 
@@ -380,8 +400,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // The landing page (/) is public; protected routes trigger login on access.
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, role: user.role, setRole, login, loginAsDemo, logout, isAuthenticated, exchangeCode }),
-    [user, setRole, login, loginAsDemo, logout, isAuthenticated, exchangeCode],
+    () => ({ user, role: user.role, isDemoSession, canSwitchRoles, setRole, login, loginAsDemo, logout, isAuthenticated, exchangeCode }),
+    [user, isDemoSession, canSwitchRoles, setRole, login, loginAsDemo, logout, isAuthenticated, exchangeCode],
   )
 
   return createElement(AuthContext.Provider, { value }, children)

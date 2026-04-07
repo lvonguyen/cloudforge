@@ -112,6 +112,78 @@ func TestValidateToken_RS256_Success(t *testing.T) {
 	}
 }
 
+func TestValidateToken_RS256_StringAudience_Success(t *testing.T) {
+	kid := "test-key-aud-string"
+	jwksBody, privKey := makeJWKS(kid)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(jwksBody)
+	}))
+	defer srv.Close()
+
+	m := &AuthMiddleware{
+		config: AuthConfig{
+			Audience: "api://default",
+		},
+		jwksURL:    srv.URL,
+		skipPaths:  map[string]bool{},
+		httpClient: srv.Client(),
+		logger:     zap.NewNop(),
+	}
+
+	headerJSON := `{"alg":"RS256","typ":"JWT","kid":"` + kid + `"}`
+	exp := time.Now().Add(1 * time.Hour).Unix()
+	iat := time.Now().Unix()
+	claimsJSON := `{"sub":"user@example.com","aud":"api://default","exp":` + itoa(exp) + `,"iat":` + itoa(iat) + `}`
+	token := buildJWT(headerJSON, claimsJSON, privKey)
+
+	claims, err := m.validateToken(token)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if len(claims.Audience) != 1 || claims.Audience[0] != "api://default" {
+		t.Fatalf("audience = %#v, want [api://default]", claims.Audience)
+	}
+}
+
+func TestValidateToken_RS256_ArrayAudience_Success(t *testing.T) {
+	kid := "test-key-aud-array"
+	jwksBody, privKey := makeJWKS(kid)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(jwksBody)
+	}))
+	defer srv.Close()
+
+	m := &AuthMiddleware{
+		config: AuthConfig{
+			Audience: "api://default",
+		},
+		jwksURL:    srv.URL,
+		skipPaths:  map[string]bool{},
+		httpClient: srv.Client(),
+		logger:     zap.NewNop(),
+	}
+
+	headerJSON := `{"alg":"RS256","typ":"JWT","kid":"` + kid + `"}`
+	exp := time.Now().Add(1 * time.Hour).Unix()
+	iat := time.Now().Unix()
+	claimsJSON := `{"sub":"user@example.com","aud":["api://default","other"],"exp":` + itoa(exp) + `,"iat":` + itoa(iat) + `}`
+	token := buildJWT(headerJSON, claimsJSON, privKey)
+
+	claims, err := m.validateToken(token)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if len(claims.Audience) != 2 || claims.Audience[0] != "api://default" {
+		t.Fatalf("audience = %#v, want [api://default other]", claims.Audience)
+	}
+}
+
 // TestValidateToken_RS256_NoJWKSURL verifies RS256 tokens are rejected when no JWKS URL is set.
 func TestValidateToken_RS256_NoJWKSURL(t *testing.T) {
 	kid := "test-key-1"
