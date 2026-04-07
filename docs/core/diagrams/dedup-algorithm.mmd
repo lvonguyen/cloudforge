@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia, serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+
+flowchart TD
+    A(["fa:fa-exclamation-triangle Incoming Finding"]) --> B["fa:fa-key GenerateDedupKey\nSHA-256(source ‖ sourceFindingID ‖\nresourceID ‖ accountID)"]
+
+    B --> C{"DedupCache\nCheckOrInsert"}
+
+    C -->|key exists, TTL valid| D["fa:fa-copy Duplicate\nreturn existing entry"]
+    C -->|key absent or expired| E["fa:fa-plus New Entry\ninsert with FirstSeen=now"]
+
+    E --> F{"Map to\ncanonical rule?"}
+
+    F -->|equivalence mapping exists| G["fa:fa-exchange-alt Map Rule\ne.g. s3-bucket-public → S3.1 + CKV_AWS_19"]
+    F -->|no mapping| H["fa:fa-check-circle Keep Original Rule"]
+
+    G --> I["fa:fa-sort-amount-up Priority Hierarchy\nkeep most specific rule"]
+    I --> J["fa:fa-link Link Related Rules\nas references on finding"]
+    H --> J
+
+    J --> K(["fa:fa-database Persist Finding"])
+
+    D --> L(["fa:fa-ban Skip — already ingested"])
+
+    subgraph cache ["In-Memory DedupCache"]
+        direction LR
+        M["fa:fa-clock TTL eviction\nbackground goroutine"]
+        N["fa:fa-lock sync.RWMutex\nconcurrency-safe"]
+    end
+
+    C -.-> cache
+
+    style A fill:#374151,color:#fff
+    style D fill:#f59e0b,color:#000
+    style K fill:#22c55e,color:#fff
+    style L fill:#ef4444,color:#fff
+    style cache fill:#f8fafc,stroke:#64748b,stroke-width:1px

@@ -1,0 +1,23 @@
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia, serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+
+flowchart TD
+    A["fa:fa-exclamation-triangle Findings\nmock corpus or postgres"] --> B["fa:fa-clipboard-check Compliance mapping\nframeworks, controls, failures"]
+    B --> C["fa:fa-project-diagram secgraph materialization\nissues + issue links + graph_edges"]
+    C --> D["fa:fa-database PostgreSQL\nsource of truth"]
+    D --> E["fa:fa-sitemap Adjacency loader\nsame_account + same_region"]
+    E --> F["fa:fa-route Go BFS attack paths\nmax depth 4"]
+    E -. load failure .-> G["fa:fa-random Heuristic fallback\nco-location inference"]
+    G --> F
+    F --> H["fa:fa-project-diagram /api/v1/attack-paths\nReactFlow UI"]
+    D --> I["fa:fa-bug /api/v1/issues\nmaterialized issue surface"]
+    D --> J["fa:fa-chart-bar /api/v1/graph/stats\n/api/v1/graph/neighborhood"]
+    D --> K{PUPPYGRAPH_URL}
+    K -->|unset| L["fa:fa-minus-circle No /graph/query proxy"]
+    K -->|set| M["fa:fa-search PuppyGraph proxy\n/api/v1/graph/query"]
+
+    style D fill:#64748b,color:#fff
+    style F fill:#f59e0b,color:#000
+    style H fill:#22c55e,color:#fff
+    style I fill:#1e40af,color:#fff
+    style J fill:#1e40af,color:#fff
+    style M fill:#7c3aed,color:#fff

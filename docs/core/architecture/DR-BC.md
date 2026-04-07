@@ -24,7 +24,7 @@ CloudForge manages cloud security posture, policy enforcement, and AI-driven rem
 | **MTBF** | 720 hours | Minimum mean time between failures |
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'actorTextColor': '#0f172a', 'actorBkg': '#e2e8f0', 'actorBorder': '#334155', 'signalColor': '#334155', 'noteBkgColor': '#fef3c7', 'noteTextColor': '#0f172a', 'noteBorderColor': '#f59e0b'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia, serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'actorTextColor': '#0f172a', 'actorBkg': '#e2e8f0', 'actorBorder': '#334155', 'signalColor': '#334155', 'noteBkgColor': '#fef3c7', 'noteTextColor': '#0f172a', 'noteBorderColor': '#f59e0b'}}}%%
 
 sequenceDiagram
     autonumber
@@ -278,6 +278,10 @@ GCP DR (us-east1)
 | Azure | GCP | pg_logical replication + Blob → GCS sync | Traffic Manager → Cloud DNS | 45-90 min |
 | GCP | AWS | pg_logical replication + GCS → S3 sync | Cloud DNS → Route 53 | 45-90 min |
 | AWS | GCP | pg_logical replication + S3 → GCS sync | Route 53 CNAME → Cloud DNS | 45-90 min |
+
+![Cross-cloud failover sequence](../diagrams/cross-cloud-failover.png)
+
+> [Diagram source](https://github.com/lvonguyen/cloudforge/blob/main/docs/core/diagrams/cross-cloud-failover.mmd) | [Diagrams index](/docs/diagrams)
 
 ### Cross-Cloud Failover: AWS → Azure
 
@@ -760,6 +764,10 @@ groups:
 ---
 
 ## Detailed Restore Procedures
+
+![Restore dependency DAG](../diagrams/restore-dependency-dag.png)
+
+> [Diagram source](https://github.com/lvonguyen/cloudforge/blob/main/docs/core/diagrams/restore-dependency-dag.mmd) | [Diagrams index](/docs/diagrams)
 
 ### 1. PostgreSQL Point-in-Time Recovery
 

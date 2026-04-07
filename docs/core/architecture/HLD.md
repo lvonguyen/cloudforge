@@ -16,7 +16,7 @@
 | [Component Rationale](./adr/component-rationale.md) | Technology selection with cost analysis |
 | [DR/BC Plan](./DR-BC.md) | Disaster Recovery and Business Continuity |
 | [Pitch Deck](https://github.com/lvonguyen/cloudforge/blob/main/docs/archive/pitch-deck.md) | Executive presentation |
-| [ADRs](./adr/adr-index.md) | Architecture Decision Records (ADR-001 through ADR-021) |
+| [ADRs](./adr/adr-index.md) | Architecture Decision Records (ADR-001 through ADR-023) |
 | [Runbooks](../runbooks/01-deployment.md) | Operational procedures (11 core runbooks) |
 
 ---
@@ -61,7 +61,7 @@ Unless a section explicitly says otherwise, implementation details in `internal/
 ## 2. Architecture Overview
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia, serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
 
 flowchart TB
     subgraph Portal["fa:fa-desktop Portal Layer"]
@@ -319,13 +319,9 @@ See [ADR-009](./adr/ADR-009-remediation-dispatcher.md) for the full architecture
 
 Current-state runtime detail for attack-path computation, secgraph materialization, and the optional PuppyGraph query path:
 
-<p align="center">
-  <a href="../diagrams/attack-path-secgraph-runtime.png">
-    <img src="../diagrams/attack-path-secgraph-runtime.png" alt="Attack path and secgraph current runtime flow" width="100%">
-  </a>
-</p>
+![Attack path and secgraph current runtime flow](../diagrams/attack-path-secgraph-runtime.png)
 
-> [Diagram source](../diagrams/attack-path-secgraph-runtime.mmd) | [Diagrams index](../diagrams/README.md)
+> [Diagram source](https://github.com/lvonguyen/cloudforge/blob/main/docs/core/diagrams/attack-path-secgraph-runtime.mmd) | [Diagrams index](/docs/diagrams)
 
 ### 7.1 Computation Engine
 
@@ -336,6 +332,7 @@ CloudForge computes attack paths with an in-memory BFS engine in the API tier:
 - **Traversal**: BFS from entry points (internet-exposed / exploitable) to targets (data stores, secrets, encryption assets)
 - **Max depth**: 4 hops
 - **Large-corpus mode**: deferred/sampled execution is used on constrained Fly runtime profiles to avoid cold-start memory spikes
+- **Rust acceleration path**: the Rust FFI bridge and benchmarks exist, but the active server request path still runs the Go BFS engine today
 
 ### 7.2 Security Graph (secgraph)
 
@@ -404,7 +401,7 @@ This section describes the **target enterprise / self-managed deployment archite
 ### 9.1 Multi-Cloud Support
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia, serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
 
 flowchart LR
     subgraph Primary["fa:fa-star Primary — AWS"]
@@ -581,7 +578,7 @@ See [Technical Runbooks](../runbooks/01-deployment.md) for detailed operational 
 The ingestion subsystem normalizes findings from multiple cloud security scanners into a canonical format and deduplicates them before persistence.
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia, serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#f59e0b', 'tertiaryColor': '#22c55e'}}}%%
 
 flowchart LR
     Prowler["fa:fa-search Prowler\nJSON parser"] -->|raw findings| Adapter1["fa:fa-exchange-alt ProwlerAdapter\nParse → NormalizedFinding"]
@@ -616,6 +613,10 @@ Each scanner implements the `ScannerAdapter` interface (`Parse(ctx, data) → []
 Severity is canonicalized to CRITICAL/HIGH/MEDIUM/LOW. INFORMATIONAL findings are intentionally dropped.
 
 ### 13.3 Deduplication
+
+![Deduplication algorithm flow](../diagrams/dedup-algorithm.png)
+
+> [Diagram source](https://github.com/lvonguyen/cloudforge/blob/main/docs/core/diagrams/dedup-algorithm.mmd) | [Diagrams index](/docs/diagrams)
 
 In-memory SHA-256 keyed cache with TTL-based eviction:
 
@@ -694,7 +695,7 @@ Asynchronous fan-out: `DeliverAsync()` spawns goroutines per matching endpoint. 
 WebSocket-based interactive terminal for running read-only cloud CLI commands from the browser UI.
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'actorTextColor': '#0f172a', 'actorBkg': '#e2e8f0', 'actorBorder': '#334155', 'signalColor': '#334155', 'noteBkgColor': '#fef3c7', 'noteTextColor': '#0f172a', 'noteBorderColor': '#f59e0b'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia, serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'actorTextColor': '#0f172a', 'actorBkg': '#e2e8f0', 'actorBorder': '#334155', 'signalColor': '#334155', 'noteBkgColor': '#fef3c7', 'noteTextColor': '#0f172a', 'noteBorderColor': '#f59e0b'}}}%%
 
 sequenceDiagram
     autonumber
@@ -843,7 +844,7 @@ LLM spans track token counts and cost. Retrieval spans track vector similarity s
 Tamper-evident, append-only audit logging with SHA-256 integrity hashes and multiple backend support.
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#22c55e', 'tertiaryColor': '#7c3aed'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia, serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#22c55e', 'tertiaryColor': '#7c3aed'}}}%%
 
 flowchart LR
     API["fa:fa-server API Middleware\nHTTP request context"] -->|audit event| Zap["fa:fa-pen ZapAuditLogger\nstructured JSON + SHA-256"]
@@ -898,7 +899,7 @@ Policy exception lifecycle management via the `GRCProvider` interface (8 methods
 ### 22.2 Exception Lifecycle
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, system-ui, sans-serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#22c55e', 'tertiaryColor': '#ef4444'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia, serif', 'fontSize': '14px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#22c55e', 'tertiaryColor': '#ef4444'}}}%%
 
 stateDiagram-v2
     direction LR

@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia, serif', 'fontSize': '15px', 'primaryColor': '#1e40af', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e3a8a', 'lineColor': '#64748b', 'secondaryColor': '#ef4444', 'tertiaryColor': '#22c55e', 'actorTextColor': '#0f172a', 'actorBkg': '#e2e8f0', 'actorBorder': '#334155', 'signalColor': '#334155', 'noteBkgColor': '#fef3c7', 'noteTextColor': '#0f172a', 'noteBorderColor': '#f59e0b'}}}%%
+
+sequenceDiagram
+    participant Mon as Monitoring
+    participant Ops as On-Call
+    participant DB as DR Database
+    participant CL as DR Cluster
+    participant DNS as Global DNS
+    participant Test as Smoke Tests
+
+    rect rgb(254, 242, 242)
+        Note over Mon,Test: Phase 1 — Detect + Page (2-5 min)
+        Mon->>Mon: Primary fails 3 health checks
+        Mon->>Ops: PagerDuty P1 alert
+        Ops->>Ops: Confirm regional incident
+    end
+
+    rect rgb(255, 251, 235)
+        Note over Mon,Test: Phase 2 — Promote Data (5-15 min)
+        Ops->>DB: Verify replica lag < 60s
+        DB-->>Ops: Replica healthy
+        Ops->>DB: Promote DR replica
+        Note right of DB: RDS promotion / SQL failover group / Cloud SQL promotion
+    end
+
+    rect rgb(239, 246, 255)
+        Note over Mon,Test: Phase 3 — Bring Up Compute (5-10 min)
+        Ops->>CL: Scale serving replicas in DR
+        CL-->>Ops: API, workers, OPA ready
+        Ops->>CL: Restore secrets and verify bundles
+    end
+
+    rect rgb(240, 253, 244)
+        Note over Mon,Test: Phase 4 — Cut Over + Verify (6-13 min)
+        Ops->>DNS: Move CNAME to DR LB
+        DNS-->>Ops: Propagated (TTL 30s)
+        Ops->>Test: Run synthetic smoke tests
+        Test-->>Ops: All checks pass
+        Ops->>Ops: Update status page
+    end
+
+    Note over Mon,Test: Total: 23-53 min (within 2h RTO)

@@ -47,9 +47,12 @@ The following diagrams are rendered from Mermaid source files. Click to view ful
 | Diagram | Description |
 |---------|-------------|
 | [Compliance Deployment Models](../architecture/HLD.md) | Enterprise compliance reference model |
+| [Cross-Cloud Failover](../architecture/DR-BC.md) | 4-phase failover sequence (detection → DB promotion → compute → DNS) |
+| [Deduplication Algorithm](../architecture/HLD.md) | SHA-256 keyed dedup with TTL eviction and rule equivalence mapping |
 | [Failover Sequence](../architecture/DR-BC.md) | Self-managed DR failover reference sequence |
 | [IaC Deploy Pipeline](../architecture/HLD.md) | Terraform/conftest CI/CD flow |
 | [Remediation Dispatcher Flow](../architecture/HLD.md) | Automated remediation routing |
+| [Restore Dependency DAG](../architecture/DR-BC.md) | 7-step restore ordering with dependency graph (DB → Redis/OPA → K8s → Temporal → Secrets → DNS) |
 
 ## Runbook Diagrams
 
