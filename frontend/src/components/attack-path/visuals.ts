@@ -48,9 +48,9 @@ export function getAttackPathResourceIcon(node: NodeVisualInput): LucideIcon {
   if (includesAny(tokens, ['s3', 'bucket', 'blob', 'storage', 'object', 'filestore', 'efs', 'fsx'])) return HardDrive
   if (includesAny(tokens, ['kubernetes', 'container', 'cluster', 'eks', 'ecs', 'gke', 'aks', 'pod', 'ecr', 'acr', 'artifact'])) return Boxes
   if (includesAny(tokens, ['lambda', 'function', 'cloudrun', 'serverless', 'appservice', 'runner'])) return Cpu
-  if (includesAny(tokens, ['network', 'vpc', 'subnet', 'gateway', 'cdn', 'apigateway', 'ingress', 'loadbalancer', 'frontdoor', 'firewall', 'security_group', 'nsg'])) return Globe
+  if (includesAny(tokens, ['network', 'vpc', 'subnet', 'gateway', 'cdn', 'apigateway', 'ingress', 'loadbalancer', 'frontdoor', 'firewall', 'security_group', 'nsg', 'dmz'])) return Globe
   if (includesAny(tokens, ['vulnerability', 'cve', 'exploit'])) return Bug
-  if (includesAny(tokens, ['misconfiguration', 'exposure', 'public'])) return ShieldAlert
+  if (includesAny(tokens, ['misconfiguration', 'exposure', 'public', 'internet_facing'])) return ShieldAlert
   if (includesAny(tokens, ['compute', 'instance', 'ec2', 'vm', 'server', 'node'])) return Server
   if (includesAny(tokens, ['route', 'path', 'hop'])) return Network
   if (tokens.includes('cloud')) return Cloud

@@ -1,12 +1,12 @@
 import { Cloud } from 'lucide-react'
 
 interface ProviderIconProps {
-  provider: string
+  provider?: string
   className?: string
 }
 
 export function ProviderIcon({ provider, className = 'h-4 w-4' }: ProviderIconProps) {
-  const p = provider.toLowerCase()
+  const p = provider?.trim().toLowerCase() ?? 'unknown'
 
   if (p === 'aws') {
     return (

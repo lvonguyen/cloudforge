@@ -177,6 +177,49 @@ func TestExtractIPsFromText(t *testing.T) {
 	}
 }
 
+func TestExtractFindingCodeToCloud_FromTags(t *testing.T) {
+	finding := &Finding{
+		ID: "finding-ctc-001",
+		Tags: map[string]string{
+			"repository_url":   "https://github.com/cloudforge/orders-api",
+			"branch":           "main",
+			"commit_sha":       "0123456789abcdef",
+			"build_system":     "github-actions",
+			"pipeline_name":    "deploy-orders",
+			"pipeline_run_id":  "4711",
+			"pipeline_run_url": "https://github.com/cloudforge/orders-api/actions/runs/4711",
+			"artifact":         "ghcr.io/cloudforge/orders-api:2026.04.07",
+		},
+	}
+
+	got := extractFindingCodeToCloud(finding)
+	if got == nil {
+		t.Fatal("extractFindingCodeToCloud() = nil, want context")
+	}
+	if got.RepositoryName != "cloudforge/orders-api" {
+		t.Fatalf("repository_name = %q, want cloudforge/orders-api", got.RepositoryName)
+	}
+	if got.RepositoryProvider != "github" {
+		t.Fatalf("repository_provider = %q, want github", got.RepositoryProvider)
+	}
+	if got.Branch != "main" {
+		t.Fatalf("branch = %q, want main", got.Branch)
+	}
+	if got.PipelineName != "deploy-orders" {
+		t.Fatalf("pipeline_name = %q, want deploy-orders", got.PipelineName)
+	}
+	if got.Artifact == "" {
+		t.Fatal("artifact must not be empty when tag is present")
+	}
+}
+
+func TestExtractFindingCodeToCloud_Empty(t *testing.T) {
+	got := extractFindingCodeToCloud(&Finding{ID: "finding-ctc-002"})
+	if got != nil {
+		t.Fatalf("extractFindingCodeToCloud() = %#v, want nil", got)
+	}
+}
+
 // --- EnrichmentService tests ---
 
 func TestEnrichmentService_Enabled(t *testing.T) {

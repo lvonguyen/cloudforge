@@ -10,7 +10,8 @@ export interface FindingSlaState {
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-export function formatWorkflowStatus(status: string): string {
+export function formatWorkflowStatus(status?: string): string {
+  if (!status) return 'Unknown'
   return status.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())
 }
 

@@ -27,11 +27,14 @@ vi.mock('@/lib/api', () => {
     apiClient: client,
     isMockFallbackEnabled: () =>
       import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.VITE_ENABLE_MOCK_FALLBACK === 'true',
+    shouldPreferLocalMockAssets: () =>
+      import.meta.env.VITE_DEMO_MODE === 'true' || (import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_FALLBACK === 'true'),
     unwrapPaginated: <T>(response: T[] | { data: T[] }): T[] => {
       if (Array.isArray(response)) return response
       return response.data
     },
-    fetchWithMockFallback: vi.fn(async (path, mockImport, _label) => {
+    fetchWithMockFallback: vi.fn(async (path, mockImport, label) => {
+      void label
       try { return await client.get(path) }
       catch (err) {
         if (err instanceof MockApiError && err.status < 500) throw err
@@ -226,6 +229,26 @@ describe('useFindings', () => {
     warnSpy.mockRestore()
   })
 
+  it('prefers bundled local findings before R2 when mock fallback is enabled in dev', async () => {
+    vi.stubEnv('VITE_ENABLE_MOCK_FALLBACK', 'true')
+    vi.mocked(apiClient.get).mockRejectedValue(new ApiError(500, 'Server Error'))
+
+    global.fetch = vi.fn((input: string | URL | Request) => {
+      const url = String(input)
+      if (url === '/mock/findings.json') {
+        return Promise.resolve(new Response(JSON.stringify(mockFindings), { status: 200 }))
+      }
+      return Promise.reject(new Error(`unexpected fetch: ${url}`))
+    }) as typeof fetch
+
+    const { result } = renderHook(() => useFindings(), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(global.fetch).toHaveBeenCalledWith('/mock/findings.json')
+    expect(global.fetch).not.toHaveBeenCalledWith(expect.stringContaining('r2.dev/mock/findings.json'))
+    expect(sessionStorage.getItem('aegis_findings_source')).toBe('local')
+  })
+
   it('surfaces 500 errors when mock fallback is not enabled', async () => {
     vi.mocked(apiClient.get).mockRejectedValue(new ApiError(500, 'Server Error'))
 
@@ -305,6 +328,31 @@ describe('useFindings', () => {
 
     expect(result.current.data).toBeNull()
     expect(vi.mocked(apiClient.post)).not.toHaveBeenCalled()
+  })
+
+  it('returns code-to-cloud provenance from the enrichment endpoint', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({
+      finding_id: 'f-001',
+      root_cause: 'Broad exposure path',
+      impact: 'Production data at risk',
+      remediation: 'Restrict ingress',
+      related_controls: ['CIS 4.1'],
+      code_to_cloud: {
+        repository_name: 'cloudforge/orders-api',
+        branch: 'main',
+        commit_sha: '0123456789abcdef',
+        pipeline_name: 'deploy-orders-api',
+        pipeline_run_id: '4711',
+      },
+      enriched_at: '2026-04-07T10:00:00Z',
+    })
+
+    const { result } = renderHook(() => useFindingEnrichment('f-001'), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(vi.mocked(apiClient.post)).toHaveBeenCalledWith('/findings/f-001/enrich', {})
+    expect(result.current.data?.code_to_cloud?.repository_name).toBe('cloudforge/orders-api')
+    expect(result.current.data?.code_to_cloud?.pipeline_run_id).toBe('4711')
   })
 })
 

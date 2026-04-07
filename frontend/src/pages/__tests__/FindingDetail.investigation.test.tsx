@@ -64,6 +64,14 @@ vi.mock('@/components/ops/finding-detail/FindingSecurityGraphWorkspace', () => (
   ),
 }))
 
+vi.mock('@/components/ops/finding-detail/FindingCodeToCloudWorkspace', () => ({
+  FindingCodeToCloudWorkspace: () => <div>Code to Cloud Workspace</div>,
+}))
+
+vi.mock('@/components/ops/finding-detail/FindingHistoryWorkspace', () => ({
+  FindingHistoryWorkspace: () => <div>Finding History Workspace</div>,
+}))
+
 vi.mock('@/components/ops/finding-detail/FindingOverviewCards', () => ({
   FindingOverviewCards: () => <div>Overview cards</div>,
 }))
@@ -296,7 +304,7 @@ beforeEach(() => {
 })
 
 describe('FindingDetail graph tabs', () => {
-  it('shows Attack Path and Security Graph entry points on the finding detail page', async () => {
+  it('shows the expanded finding-detail IA and routes into the new workspaces', async () => {
     renderWithProviders(
       <Routes>
         <Route path="/ops/findings/:id" element={<FindingDetail />} />
@@ -307,5 +315,8 @@ describe('FindingDetail graph tabs', () => {
     expect(await screen.findByText(/public workload can reach sensitive orders database/i, {}, { timeout: 10_000 })).toBeInTheDocument()
     expect(screen.getAllByText(/attack path/i).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/security graph/i).length).toBeGreaterThan(0)
+    expect(screen.getByRole('tab', { name: /code to cloud/i })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /history/i })).toBeInTheDocument()
+
   }, 10_000)
 })

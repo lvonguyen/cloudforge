@@ -12,19 +12,20 @@ export function ProviderBadge({
   size = 'lg',
   className,
 }: {
-  provider: string
+  provider?: string
   size?: 'sm' | 'md' | 'lg'
   className?: string
 }) {
+  const normalizedProvider = provider?.trim() || 'unknown'
   return (
     <span
       className={cn(
         'inline-flex items-center justify-center rounded-sm bg-transparent px-0.5 py-0.5',
         className,
       )}
-      title={provider.toUpperCase()}
+      title={normalizedProvider.toUpperCase()}
     >
-      <ProviderIcon provider={provider} className={SIZE_MAP[size]} />
+      <ProviderIcon provider={normalizedProvider} className={SIZE_MAP[size]} />
     </span>
   )
 }

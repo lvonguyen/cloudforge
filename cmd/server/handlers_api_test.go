@@ -106,6 +106,60 @@ func TestGetFinding_NotFound(t *testing.T) {
 	assertStatus(t, rr, http.StatusNotFound)
 }
 
+func TestEnrichFinding_IncludesCodeToCloudWhenTagsPresent(t *testing.T) {
+	srv, router := testServer(t)
+	srv.enrichmentSvc.AI = stubAIProvider{}
+
+	finding := srv.data.FindingsByID["f-00001"]
+	if finding == nil {
+		t.Fatal("expected fixture finding f-00001")
+	}
+	finding.Tags = map[string]string{
+		"repository_url":   "https://github.com/cloudforge/catalog-service",
+		"branch":           "release/2026-04-07",
+		"commit_sha":       "0123456789abcdef",
+		"build_system":     "github-actions",
+		"pipeline_name":    "deploy-catalog-service",
+		"pipeline_run_id":  "91234",
+		"pipeline_run_url": "https://github.com/cloudforge/catalog-service/actions/runs/91234",
+		"artifact":         "ghcr.io/cloudforge/catalog-service:2026.04.07",
+	}
+
+	rr := doRequest(t, router, "POST", "/api/v1/findings/f-00001/enrich", "", adminJWT(t))
+	assertStatus(t, rr, http.StatusOK)
+
+	var result struct {
+		FindingID   string `json:"finding_id"`
+		EnrichedAt  string `json:"enriched_at"`
+		CodeToCloud *struct {
+			RepositoryURL      string `json:"repository_url"`
+			RepositoryName     string `json:"repository_name"`
+			RepositoryProvider string `json:"repository_provider"`
+			Branch             string `json:"branch"`
+			CommitSHA          string `json:"commit_sha"`
+			BuildSystem        string `json:"build_system"`
+			PipelineName       string `json:"pipeline_name"`
+			PipelineRunID      string `json:"pipeline_run_id"`
+			PipelineRunURL     string `json:"pipeline_run_url"`
+			Artifact           string `json:"artifact"`
+		} `json:"code_to_cloud"`
+	}
+	assertJSON(t, rr, &result)
+
+	if result.CodeToCloud == nil {
+		t.Fatal("code_to_cloud = nil, want metadata")
+	}
+	if result.CodeToCloud.RepositoryName != "cloudforge/catalog-service" {
+		t.Fatalf("repository_name = %q, want cloudforge/catalog-service", result.CodeToCloud.RepositoryName)
+	}
+	if result.CodeToCloud.BuildSystem != "github-actions" {
+		t.Fatalf("build_system = %q, want github-actions", result.CodeToCloud.BuildSystem)
+	}
+	if result.CodeToCloud.PipelineRunID != "91234" {
+		t.Fatalf("pipeline_run_id = %q, want 91234", result.CodeToCloud.PipelineRunID)
+	}
+}
+
 func TestListFrameworks(t *testing.T) {
 	_, router := testServer(t)
 	jwt := adminJWT(t)

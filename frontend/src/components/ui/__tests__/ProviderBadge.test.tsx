@@ -35,6 +35,11 @@ describe('ProviderBadge', () => {
     expect(screen.getByTitle('UNKNOWN')).toBeInTheDocument()
   })
 
+  it('falls back safely when provider metadata is missing', () => {
+    renderWithProviders(<ProviderBadge provider={undefined} />)
+    expect(screen.getByTitle('UNKNOWN')).toBeInTheDocument()
+  })
+
   it('applies custom className', () => {
     const { container } = renderWithProviders(
       <ProviderBadge provider="aws" className="custom-class" />,

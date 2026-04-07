@@ -328,12 +328,14 @@ describe('AttackPaths readability controls', () => {
     expect(await screen.findByLabelText(/score 96 out of 100/i)).toBeInTheDocument()
     expect(screen.getByText(/ai remediation/i)).toBeInTheDocument()
     expect(screen.getAllByText(/remove internet ingress and tighten the role trust policy/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/public internet/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/security group \/ subnet/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/1 privesc hop/i)).toBeInTheDocument()
     expect(screen.getAllByText(/crown jewel/i).length).toBeGreaterThan(0)
-    expect(within(screen.getByTestId('mock-edge-edge-1')).getByText(/hop 1: privilege escalation/i)).toBeInTheDocument()
-    expect(within(screen.getByTestId('mock-edge-edge-2')).getByText(/hop 2: data access/i)).toBeInTheDocument()
-    expect(within(screen.getByTestId('mock-node-node-1')).getByText(/in progress/i)).toBeInTheDocument()
-    expect(within(screen.getByTestId('mock-node-node-1')).getByText(/cve-2026-0001/i)).toBeInTheDocument()
+    expect(within(screen.getByTestId('mock-edge-edge-1-0')).getByText(/hop 1: privilege escalation/i)).toBeInTheDocument()
+    expect(within(screen.getByTestId('mock-edge-edge-2-1')).getByText(/hop 2: data access/i)).toBeInTheDocument()
+    expect(within(screen.getByTestId('mock-node-node-1-0')).getByText(/in progress/i)).toBeInTheDocument()
+    expect(within(screen.getByTestId('mock-node-node-1-0')).getByText(/cve-2026-0001/i)).toBeInTheDocument()
 
     expect(screen.getByText('Finding Context')).toBeInTheDocument()
     expect(screen.getByText(/public workload can reach sensitive orders database/i)).toBeInTheDocument()
@@ -344,5 +346,34 @@ describe('AttackPaths readability controls', () => {
     ).toBe(true)
     expect(screen.getByText(/internet exposure plus privilege pivot reaches sensitive data/i)).toBeInTheDocument()
     expect(screen.getByText(/1\. remove public ingress/i)).toBeInTheDocument()
+  })
+
+  it('falls back to finding type when category metadata is missing in the detail view', async () => {
+    const findingWithoutCategory = {
+      ...SAMPLE_FINDING,
+      id: 'f-004',
+      title: 'Identity pivot without normalized category',
+      category: undefined,
+      workflow_status: undefined,
+      cves: [],
+      toxic_combo_details: undefined,
+      type: 'identity_risk',
+    } as unknown as Finding
+
+    mockUseFindingsByIds.mockReturnValue(({
+      queries: [],
+      data: [findingWithoutCategory],
+      isLoading: false,
+      isError: false,
+    }) as ReturnType<typeof useFindingsByIds>)
+
+    renderWithProviders(<AttackPaths />)
+
+    fireEvent.keyDown(document, { key: 'j' })
+
+    expect(await screen.findByText('Finding Context')).toBeInTheDocument()
+    expect(screen.getByText(/identity pivot without normalized category/i)).toBeInTheDocument()
+    expect(screen.getByText(/identity risk/i)).toBeInTheDocument()
+    expect(screen.getByText('Unknown')).toBeInTheDocument()
   })
 })

@@ -108,6 +108,9 @@ export interface Finding {
   resource_arn?: string
   hostname?: string
   ip_address?: string
+  internet_facing?: boolean
+  subnet?: string
+  network_boundary?: string
   platform: string
   cloud_provider: CloudProvider
   region: string

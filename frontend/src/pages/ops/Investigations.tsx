@@ -1,16 +1,18 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { type Node, type Edge, Position, MarkerType } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { BaseGraphView } from '@/components/ops/BaseGraphView'
 import { useFindings } from '@/hooks/useFindings'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Search, X, Shield, Server, Database, Key, Globe, ChevronRight, CalendarClock, UserRound, Route, FileCheck2, Link2, TriangleAlert, Sparkles, TimerReset } from 'lucide-react'
+import { Search, X, Shield, Server, Database, Key, Globe, ChevronRight, ChevronDown, CalendarClock, UserRound, Route, FileCheck2, Link2, TriangleAlert, Sparkles, TimerReset } from 'lucide-react'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS } from '@/lib/severity'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { buildTraceTimeline } from '@/lib/trace-helpers'
+import { inferFindingThreatContextSignals } from '@/lib/threat-context'
 import type { InvestigationEntityType } from '@/types/investigation'
 import type { Finding } from '@/types/compliance'
 
@@ -26,9 +28,11 @@ const FINDING_TYPE_ICONS: Record<string, typeof Shield> = {
 
 const EDGE_LABELS: Record<InvestigationEntityType, string> = {
   finding: '',
+  exposure_surface: 'enters through',
   assignee: 'assigned to',
   technical_contact: 'owned by',
   resource: 'affects',
+  network_boundary: 'bounded by',
   compliance_mapping: 'maps to',
   impacted_resource: 'impacts',
 }
@@ -42,23 +46,27 @@ const SEVERITY_BORDER_WEIGHT: Record<string, number> = {
 
 const ENTITY_COLORS: Record<InvestigationEntityType, { bg: string; border: string; text: string }> = {
   finding:            { bg: '#fff1f2', border: '#dc2626', text: '#991b1b' },
+  exposure_surface:   { bg: '#eff6ff', border: '#0284c7', text: '#0369a1' },
   assignee:           { bg: '#eff6ff', border: '#2563eb', text: '#1d4ed8' },
   technical_contact:  { bg: '#f5f3ff', border: '#7c3aed', text: '#6d28d9' },
   resource:           { bg: '#fffbeb', border: '#d97706', text: '#b45309' },
+  network_boundary:   { bg: '#ecfeff', border: '#0f766e', text: '#0f766e' },
   compliance_mapping: { bg: '#f0fdf4', border: '#16a34a', text: '#15803d' },
   impacted_resource:  { bg: '#fff7ed', border: '#ea580c', text: '#c2410c' },
 }
 
 const ENTITY_META: Record<InvestigationEntityType, { label: string; icon: typeof Shield; summary: string }> = {
   finding: { label: 'Finding', icon: Shield, summary: 'Anchor node. Start here, then validate owner, control coverage, and impact chain.' },
+  exposure_surface: { label: 'Exposure surface', icon: Globe, summary: 'Internet-reachable or externally reachable edge inferred from finding context.' },
   assignee: { label: 'Assignee', icon: UserRound, summary: 'Operational owner responsible for triage, execution, and SLA adherence.' },
   technical_contact: { label: 'Technical contact', icon: UserRound, summary: 'Domain contact who can confirm implementation details and remediation blast radius.' },
   resource: { label: 'Primary resource', icon: Server, summary: 'Primary asset carrying the finding. Use this to confirm scope and affected surface.' },
+  network_boundary: { label: 'Network boundary', icon: Shield, summary: 'Provider network controls that should be checked before assuming unrestricted reachability.' },
   compliance_mapping: { label: 'Control mapping', icon: FileCheck2, summary: 'Mapped policy or framework control that turns technical risk into audit exposure.' },
   impacted_resource: { label: 'Impacted resource', icon: Route, summary: 'Downstream asset touched by the same weakness, dependency, or reachable path.' },
 }
 
-const GRAPH_GUIDE: InvestigationEntityType[] = ['finding', 'assignee', 'resource', 'compliance_mapping', 'impacted_resource']
+const GRAPH_GUIDE: InvestigationEntityType[] = ['finding', 'exposure_surface', 'assignee', 'resource', 'network_boundary', 'compliance_mapping', 'impacted_resource']
 
 function formatDateLabel(value?: string) {
   if (!value) return 'Not set'
@@ -113,6 +121,8 @@ function describeNodeImportance(type: InvestigationEntityType, data: Record<stri
   switch (type) {
     case 'finding':
       return 'Use this node to decide whether the rest of the graph is ownership work, control work, or blast-radius work.'
+    case 'exposure_surface':
+      return 'This is the inferred edge of exposure. Validate whether the finding is really internet- or externally reachable before escalating blast radius.'
     case 'assignee':
       return data.name === 'Unassigned'
         ? 'This is a triage gap. Assigning ownership is the fastest way to reduce operator drag.'
@@ -121,6 +131,8 @@ function describeNodeImportance(type: InvestigationEntityType, data: Record<stri
       return 'Use the technical contact to validate whether the alert maps to the real service boundary and rollout path.'
     case 'resource':
       return 'This is the primary asset under investigation. Confirm its environment, provider, and exposure before escalating.'
+    case 'network_boundary':
+      return 'This inferred control boundary tells you what network policy or segmentation layer should be checked before you trust the attack narrative.'
     case 'compliance_mapping':
       return 'This shows which control narrative the finding will roll up into for audit and governance reporting.'
     case 'impacted_resource':
@@ -136,8 +148,11 @@ export default function Investigations() {
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(() => searchParams.get('findingId'))
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [summaryPanelPreference, setSummaryPanelPreference] = useState<'auto' | 'expanded' | 'collapsed'>('auto')
+  const [guidePanelPreference, setGuidePanelPreference] = useState<'auto' | 'expanded' | 'collapsed'>('auto')
   const navigate = useNavigate()
   const { openTimeline } = useTracePanel()
+  const isCompactBoard = useMediaQuery('(max-width: 1400px)')
 
   const investigationCandidates = useMemo(
     () =>
@@ -147,12 +162,7 @@ export default function Investigations() {
     [findings],
   )
 
-  // Auto-select first finding when none is selected and findings are loaded
-  useEffect(() => {
-    if (!selectedFindingId && investigationCandidates.length > 0) {
-      setSelectedFindingId(investigationCandidates[0].id)
-    }
-  }, [selectedFindingId, investigationCandidates])
+  const effectiveSelectedFindingId = selectedFindingId ?? investigationCandidates[0]?.id ?? null
 
   const filteredFindings = useMemo(() => {
     if (!searchQuery) return investigationCandidates.slice(0, 50)
@@ -164,9 +174,13 @@ export default function Investigations() {
     ).slice(0, 50)
   }, [investigationCandidates, searchQuery])
   const selectedFinding = useMemo(
-    () => investigationCandidates.find(f => f.id === selectedFindingId) ?? null,
-    [investigationCandidates, selectedFindingId],
+    () => investigationCandidates.find(f => f.id === effectiveSelectedFindingId) ?? null,
+    [effectiveSelectedFindingId, investigationCandidates],
   )
+  const summaryCollapsed =
+    summaryPanelPreference === 'auto' ? isCompactBoard : summaryPanelPreference === 'collapsed'
+  const guideCollapsed =
+    guidePanelPreference === 'auto' ? isCompactBoard : guidePanelPreference === 'collapsed'
   const openGraphQueryTimeline = useCallback(() => {
     if (!selectedFinding) return
 
@@ -215,20 +229,28 @@ export default function Investigations() {
         : 'Claim ownership first, then validate control coverage and impacted dependencies before opening the full finding.',
     }
   }, [selectedFinding])
+  const selectedThreatContext = useMemo(
+    () => selectedFinding ? inferFindingThreatContextSignals(selectedFinding) : null,
+    [selectedFinding],
+  )
 
   const { graphNodes, graphEdges } = useMemo(() => {
-    const finding = investigationCandidates.find(f => f.id === selectedFindingId)
+    const finding = investigationCandidates.find(f => f.id === effectiveSelectedFindingId)
     if (!finding) return { graphNodes: [], graphEdges: [] }
 
     const findingId = finding.id
+    const findingResourceType = finding.resource_type
     const contextualSeverity = deriveInvestigationSeverity(finding)
     const nodes: Node[] = []
     const edges: Edge[] = []
+    const nodePositions = new Map<string, { x: number; y: number }>()
     const laneIndex: Record<InvestigationEntityType, number> = {
       finding: 0,
+      exposure_surface: 0,
       assignee: 0,
       technical_contact: 0,
       resource: 0,
+      network_boundary: 0,
       compliance_mapping: 0,
       impacted_resource: 0,
     }
@@ -275,32 +297,58 @@ export default function Investigations() {
         },
         style: { padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
     })
+    nodePositions.set(findingId, { x: 120, y: 220 })
 
-    function addEntity(type: InvestigationEntityType, id: string, label: string, sublabel?: string, entityData?: Record<string, unknown>) {
+    function addEntity(
+      type: InvestigationEntityType,
+      id: string,
+      label: string,
+      sublabel?: string,
+      entityData?: Record<string, unknown>,
+      sourceId = findingId,
+    ) {
       const slot = laneIndex[type]
       laneIndex[type]++
 
       const laneConfig: Record<InvestigationEntityType, { x: number; y: number; step: number }> = {
         finding: { x: 120, y: 220, step: 0 },
-        assignee: { x: 430, y: 160, step: 120 },
-        technical_contact: { x: 430, y: 340, step: 120 },
-        resource: { x: 430, y: 40, step: 120 },
-        compliance_mapping: { x: 760, y: 40, step: 104 },
-        impacted_resource: { x: 760, y: 260, step: 104 },
+        exposure_surface: { x: 430, y: 70, step: 104 },
+        assignee: { x: 430, y: 240, step: 104 },
+        resource: { x: 760, y: 70, step: 104 },
+        network_boundary: { x: 760, y: 240, step: 104 },
+        technical_contact: { x: 760, y: 360, step: 104 },
+        compliance_mapping: { x: 1090, y: 70, step: 100 },
+        impacted_resource: { x: 1090, y: 250, step: 100 },
       }
       const config = laneConfig[type]
       const x = config.x
       const y = config.y + slot * config.step
+      const dx = x - 120
+      const dy = y - 220
+      const targetPosition =
+        Math.abs(dx) >= Math.abs(dy)
+          ? (dx >= 0 ? Position.Left : Position.Right)
+          : (dy >= 0 ? Position.Top : Position.Bottom)
+      const iconType = String(entityData?.type ?? findingResourceType).toLowerCase()
+      const EntityIcon =
+        type === 'resource' || type === 'impacted_resource'
+          ? (FINDING_TYPE_ICONS[iconType] ?? Server)
+          : ENTITY_META[type].icon
 
       const colors = ENTITY_COLORS[type]
       nodes.push({
         id,
         position: { x, y },
+        sourcePosition: dx >= 0 ? Position.Right : Position.Left,
+        targetPosition,
         data: {
           label: (
-            <div className="px-2 py-1.5 min-w-[150px]" style={{ background: colors.bg, border: `1px solid ${colors.border}` }}>
-              <div className="text-[9px] uppercase tracking-wide" style={{ color: colors.text }}>{type.replace('_', ' ')}</div>
-              <div className="text-[10px] text-slate-900 font-medium truncate">{label}</div>
+          <div className="px-2 py-1.5 min-w-[168px]" style={{ background: colors.bg, border: `1px solid ${colors.border}` }}>
+              <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-wide" style={{ color: colors.text }}>
+                <EntityIcon className="h-3 w-3" />
+                <span>{type.replace('_', ' ')}</span>
+              </div>
+              <div className="mt-0.5 text-[10px] text-slate-900 font-medium truncate">{label}</div>
               {sublabel && <div className="text-[9px] text-slate-500 truncate">{sublabel}</div>}
             </div>
           ),
@@ -309,12 +357,14 @@ export default function Investigations() {
         },
         style: { padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
       })
+      nodePositions.set(id, { x, y })
 
       const edgeLabel = EDGE_LABELS[type]
       edges.push({
-        id: `${findingId}->${id}`,
-        source: findingId,
+        id: `${sourceId}->${id}`,
+        source: sourceId,
         target: id,
+        type: 'smoothstep',
         label: edgeLabel || undefined,
         animated: true,
         style: { stroke: colors.border, strokeWidth: 2.2 },
@@ -337,17 +387,39 @@ export default function Investigations() {
       })
     }
 
+    const contextSignals = inferFindingThreatContextSignals(finding)
+    const resourceNodeId = `res-${finding.resource_id}`
+    let resourceSourceId = findingId
+
+    if (contextSignals.exposureSurface) {
+      const exposureId = `exposure-${findingId}`
+      addEntity('exposure_surface', exposureId, contextSignals.exposureSurface.label, contextSignals.exposureSurface.detail, {
+        ...contextSignals.exposureSurface,
+        provider: finding.cloud_provider,
+      }, findingId)
+      resourceSourceId = exposureId
+    }
+
+    if (contextSignals.networkBoundary) {
+      const boundaryId = `boundary-${findingId}`
+      addEntity('network_boundary', boundaryId, contextSignals.networkBoundary.label, contextSignals.networkBoundary.detail, {
+        ...contextSignals.networkBoundary,
+        provider: finding.cloud_provider,
+      }, resourceSourceId)
+      resourceSourceId = boundaryId
+    }
+
+    // Primary resource
+    addEntity('resource', resourceNodeId, finding.resource_name, finding.resource_type, {
+      name: finding.resource_name, type: finding.resource_type, region: finding.region, account_id: finding.account_id, finding_count: 1,
+    }, resourceSourceId)
+
     // Technical contact
     if (finding.technical_contact) {
       addEntity('technical_contact', `tc-${finding.technical_contact.email}`, finding.technical_contact.name, finding.technical_contact.team, {
         name: finding.technical_contact.name, email: finding.technical_contact.email, team: finding.technical_contact.team,
-      })
+      }, resourceNodeId)
     }
-
-    // Primary resource
-    addEntity('resource', `res-${finding.resource_id}`, finding.resource_name, finding.resource_type, {
-      name: finding.resource_name, type: finding.resource_type, region: finding.region, account_id: finding.account_id, finding_count: 1,
-    })
 
     // Compliance mappings (or inferred fallback)
     if (finding.compliance_mappings && finding.compliance_mappings.length > 0) {
@@ -355,7 +427,7 @@ export default function Investigations() {
         addEntity('compliance_mapping', `comp-${cm.framework_id}-${cm.control_id}`, `${cm.framework_name} ${cm.control_id}`, cm.control_title?.slice(0, 40), {
           framework_name: cm.framework_name, control_id: cm.control_id, control_title: cm.control_title,
           section: cm.section, subsection: cm.subsection, severity: cm.severity, url: cm.url,
-        })
+        }, resourceNodeId)
       }
     } else {
       // Infer compliance mapping from category
@@ -370,7 +442,7 @@ export default function Investigations() {
       const inferred = catMap[finding.resource_type] ?? catMap[finding.category] ?? { framework: 'NIST CSF', control: 'PR.IP-1', title: 'Security Baseline' }
       addEntity('compliance_mapping', `comp-inferred-${findingId}`, `${inferred.framework} ${inferred.control}`, inferred.title, {
         framework_name: inferred.framework, control_id: inferred.control, control_title: inferred.title, inferred: true,
-      })
+      }, resourceNodeId)
     }
 
     // Impacted resources
@@ -378,12 +450,12 @@ export default function Investigations() {
       for (const ir of finding.impacted_resources.slice(0, 3)) {
         addEntity('impacted_resource', `ir-${ir.resource_id}`, ir.resource_name, ir.resource_type, {
           name: ir.resource_name, type: ir.resource_type, relationship: ir.relationship, impact_level: ir.impact_level,
-        })
+        }, resourceNodeId)
       }
     }
 
     return { graphNodes: nodes, graphEdges: edges }
-  }, [investigationCandidates, selectedFindingId])
+  }, [effectiveSelectedFindingId, investigationCandidates])
 
   const handleNodeClick = useCallback((nodeId: string) => {
     setSelectedNodeId(prev => prev === nodeId ? null : nodeId)
@@ -452,6 +524,16 @@ export default function Investigations() {
             {field('Type', data.type)}
             {field('Region', data.region)}
             {field('Account', data.account_id)}
+          </div>
+        )
+      case 'exposure_surface':
+      case 'network_boundary':
+        return (
+          <div className="space-y-2 text-xs">
+            {field('Label', data.label)}
+            {field('Detail', data.detail)}
+            {field('Evidence', Array.isArray(data.evidence) ? data.evidence.join(' · ') : data.evidence)}
+            {field('Provider', data.provider)}
           </div>
         )
       case 'compliance_mapping':
@@ -563,8 +645,8 @@ export default function Investigations() {
               type="button"
               onClick={() => { setSelectedFindingId(f.id); setSelectedNodeId(null) }}
               onDoubleClick={() => navigate(`/ops/findings/${f.id}`)}
-              aria-pressed={selectedFindingId === f.id}
-              className={`w-full text-left px-4 py-2.5 border-b border-border hover:bg-muted/30 transition-colors group/item ${selectedFindingId === f.id ? 'bg-muted/50 border-l-2 border-l-primary' : ''}`}
+              aria-pressed={effectiveSelectedFindingId === f.id}
+              className={`w-full text-left px-4 py-2.5 border-b border-border hover:bg-muted/30 transition-colors group/item ${effectiveSelectedFindingId === f.id ? 'bg-muted/50 border-l-2 border-l-primary' : ''}`}
             >
               <div className="flex items-center gap-1.5 mb-0.5">
                 <Badge variant="outline" className={`text-[9px] px-1 py-0 ${SEVERITY_COLORS[deriveInvestigationSeverity(f)] ?? ''}`}>
@@ -596,86 +678,168 @@ export default function Investigations() {
 
       {/* Graph area */}
       <div className="flex-1 relative">
-        {selectedFindingId ? (
+        {effectiveSelectedFindingId ? (
           <>
             {selectedFinding && (
-              <div className="pointer-events-none absolute left-4 top-4 z-10 max-w-md rounded-[24px] border border-border/80 bg-background/95 p-4 shadow-[0_18px_48px_rgba(15,23,42,0.12)] backdrop-blur-sm">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${SEVERITY_COLORS[deriveInvestigationSeverity(selectedFinding)] ?? ''}`}>
-                    {deriveInvestigationSeverity(selectedFinding)}
-                  </Badge>
-                  <ProviderBadge provider={selectedFinding.cloud_provider} />
-                  <span className="text-[10px] font-mono text-muted-foreground">{selectedFinding.id}</span>
+              <div className={`pointer-events-auto absolute left-4 top-4 z-10 rounded-[24px] border border-border/80 bg-background/95 shadow-[0_18px_48px_rgba(15,23,42,0.12)] backdrop-blur-sm ${summaryCollapsed ? 'w-auto max-w-[14rem] p-3' : 'w-full max-w-sm p-4 xl:max-w-md'}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${SEVERITY_COLORS[deriveInvestigationSeverity(selectedFinding)] ?? ''}`}>
+                        {deriveInvestigationSeverity(selectedFinding)}
+                      </Badge>
+                      <ProviderBadge provider={selectedFinding.cloud_provider} />
+                      <span className="text-[10px] font-mono text-muted-foreground">{selectedFinding.id}</span>
+                    </div>
+                    <p className="mt-2 text-sm font-semibold leading-snug">{summaryCollapsed ? 'Case summary' : selectedFinding.title}</p>
+                    {summaryCollapsed ? (
+                      <p className="mt-1 text-[11px] text-muted-foreground">{selectedFinding.resource_name}</p>
+                    ) : (
+                      <p className="mt-1 text-xs text-muted-foreground">{selectedFinding.resource_name} · {selectedFinding.resource_type}</p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-expanded={!summaryCollapsed}
+                    aria-label={summaryCollapsed ? 'Expand case summary' : 'Collapse case summary'}
+                    onClick={() => setSummaryPanelPreference(current => {
+                      if (current === 'auto') return isCompactBoard ? 'expanded' : 'collapsed'
+                      return summaryCollapsed ? 'expanded' : 'collapsed'
+                    })}
+                    className="h-7 shrink-0 rounded-full px-2 text-[11px]"
+                  >
+                    {summaryCollapsed ? 'Show' : 'Hide'}
+                    <ChevronDown className={`ml-1 h-3.5 w-3.5 transition-transform ${summaryCollapsed ? '-rotate-90' : ''}`} />
+                  </Button>
                 </div>
-                <p className="mt-2 text-sm font-semibold leading-snug">{selectedFinding.title}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{selectedFinding.resource_name} · {selectedFinding.resource_type}</p>
-                {analystBrief && (
+                {!summaryCollapsed && (
                   <>
-                    <div className="mt-3 rounded-xl border border-border/70 bg-muted/20 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Analyst briefing</p>
-                      <p className="mt-1 text-[11px] text-foreground">{analystBrief.posture}</p>
-                      <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">{analystBrief.rationale}</p>
+                    {analystBrief && (
+                      <>
+                        <div className="mt-3 rounded-xl border border-border/70 bg-muted/20 px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Analyst briefing</p>
+                          <p className="mt-1 text-[11px] text-foreground">{analystBrief.posture}</p>
+                          <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">{analystBrief.rationale}</p>
+                        </div>
+                        <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-200/80 bg-amber-50/80 px-3 py-2 text-[10px] text-amber-900">
+                          <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                          <span>{analystBrief.workflow}</span>
+                        </div>
+                      </>
+                    )}
+                    {(selectedThreatContext?.exposureSurface || selectedThreatContext?.networkBoundary) && (
+                      <div className="mt-3 rounded-xl border border-sky-200/80 bg-sky-50/70 px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-wide text-sky-700">Inferred context cues</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {selectedThreatContext.exposureSurface && (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-sky-300 bg-white px-2 py-0.5 text-[10px] font-medium text-sky-700">
+                              <Globe className="h-3 w-3" />
+                              {selectedThreatContext.exposureSurface.label}
+                            </span>
+                          )}
+                          {selectedThreatContext.networkBoundary && (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-teal-300 bg-white px-2 py-0.5 text-[10px] font-medium text-teal-700">
+                              <Shield className="h-3 w-3" />
+                              {selectedThreatContext.networkBoundary.label}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-[10px]">
+                      <div className="rounded-xl border border-border/70 bg-muted/30 px-2.5 py-2">
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <UserRound className="h-3 w-3" />Owner
+                        </div>
+                        <p className="mt-1 text-xs font-medium text-foreground">{selectedFinding.assignee?.user_name ?? 'Unassigned'}</p>
+                      </div>
+                      <div className="rounded-xl border border-border/70 bg-muted/30 px-2.5 py-2">
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <CalendarClock className="h-3 w-3" />Due
+                        </div>
+                        <p className="mt-1 text-xs font-medium text-foreground">{formatDateLabel(selectedFinding.due_date)}</p>
+                      </div>
+                      <div className="rounded-xl border border-border/70 bg-muted/30 px-2.5 py-2">
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Route className="h-3 w-3" />Impacted
+                        </div>
+                        <p className="mt-1 text-xs font-medium text-foreground">{selectedFinding.impacted_resources?.length ?? 0} linked resources</p>
+                      </div>
+                      <div className="rounded-xl border border-border/70 bg-muted/30 px-2.5 py-2">
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Shield className="h-3 w-3" />Compliance
+                        </div>
+                        <p className="mt-1 text-xs font-medium text-foreground">{selectedFinding.compliance_mappings?.length ?? 0} mapped controls</p>
+                      </div>
                     </div>
-                    <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-200/80 bg-amber-50/80 px-3 py-2 text-[10px] text-amber-900">
-                      <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      <span>{analystBrief.workflow}</span>
-                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="mt-3 gap-1.5 text-[11px]"
+                      onClick={openGraphQueryTimeline}
+                    >
+                      <TimerReset className="h-3.5 w-3.5" />
+                      Trace graph query
+                    </Button>
                   </>
                 )}
-                <div className="mt-3 grid grid-cols-2 gap-2 text-[10px]">
-                  <div className="rounded-xl border border-border/70 bg-muted/30 px-2.5 py-2">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <UserRound className="h-3 w-3" />Owner
-                    </div>
-                    <p className="mt-1 text-xs font-medium text-foreground">{selectedFinding.assignee?.user_name ?? 'Unassigned'}</p>
-                  </div>
-                  <div className="rounded-xl border border-border/70 bg-muted/30 px-2.5 py-2">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <CalendarClock className="h-3 w-3" />Due
-                    </div>
-                    <p className="mt-1 text-xs font-medium text-foreground">{formatDateLabel(selectedFinding.due_date)}</p>
-                  </div>
-                  <div className="rounded-xl border border-border/70 bg-muted/30 px-2.5 py-2">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Route className="h-3 w-3" />Impacted
-                    </div>
-                    <p className="mt-1 text-xs font-medium text-foreground">{selectedFinding.impacted_resources?.length ?? 0} linked resources</p>
-                  </div>
-                  <div className="rounded-xl border border-border/70 bg-muted/30 px-2.5 py-2">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Shield className="h-3 w-3" />Compliance
-                    </div>
-                    <p className="mt-1 text-xs font-medium text-foreground">{selectedFinding.compliance_mappings?.length ?? 0} mapped controls</p>
-                  </div>
-                </div>
               </div>
             )}
-            <div className="pointer-events-none absolute right-4 top-4 z-10 w-72 rounded-[24px] border border-border/80 bg-background/95 p-4 shadow-[0_18px_48px_rgba(15,23,42,0.12)] backdrop-blur-sm">
-              <div className="flex items-center gap-2 text-xs font-semibold">
-                <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
-                How to read this graph
+            <div className={`pointer-events-auto absolute right-4 top-4 z-10 rounded-[24px] border border-border/80 bg-background/95 shadow-[0_18px_48px_rgba(15,23,42,0.12)] backdrop-blur-sm ${guideCollapsed ? 'w-auto max-w-[13rem] p-3' : 'w-64 p-4 xl:w-72'}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-xs font-semibold">
+                    <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    How to read this graph
+                  </div>
+                  {guideCollapsed && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">Open the graph legend and reading order.</p>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-expanded={!guideCollapsed}
+                  aria-label={guideCollapsed ? 'Expand graph guide' : 'Collapse graph guide'}
+                  onClick={() => setGuidePanelPreference(current => {
+                    if (current === 'auto') return isCompactBoard ? 'expanded' : 'collapsed'
+                    return guideCollapsed ? 'expanded' : 'collapsed'
+                  })}
+                  className="h-7 shrink-0 rounded-full px-2 text-[11px]"
+                >
+                  {guideCollapsed ? 'Show' : 'Hide'}
+                  <ChevronDown className={`ml-1 h-3.5 w-3.5 transition-transform ${guideCollapsed ? '-rotate-90' : ''}`} />
+                </Button>
               </div>
-              <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-                The graph is laid out as finding {'->'} owner {'->'} primary asset {'->'} controls {'->'} downstream impact. Use it to prove whether a finding is isolated, owned, and audit-relevant.
-              </p>
-              <div className="mt-3 grid grid-cols-1 gap-2">
-                {GRAPH_GUIDE.map((type) => {
-                  const meta = ENTITY_META[type]
-                  const Icon = meta.icon
-                  const colors = ENTITY_COLORS[type]
-                  return (
-                    <div key={type} className="flex items-start gap-2 rounded-xl border border-border/70 bg-muted/20 px-2.5 py-2">
-                      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: colors.bg, border: `1px solid ${colors.border}`, color: colors.text }}>
-                        <Icon className="h-3.5 w-3.5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-semibold text-foreground">{meta.label}</p>
-                        <p className="text-[10px] leading-relaxed text-muted-foreground">{meta.summary}</p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+              {!guideCollapsed && (
+                <>
+                  <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                    The graph starts at the finding, then steps through inferred exposure or boundary cues when present. Ownership and the primary asset stay central, while the asset branches into technical context, controls, and downstream impact so you can judge reachability, audit exposure, and blast radius in one pass.
+                  </p>
+                  <div className="mt-3 grid grid-cols-1 gap-2">
+                    {GRAPH_GUIDE.map((type) => {
+                      const meta = ENTITY_META[type]
+                      const Icon = meta.icon
+                      const colors = ENTITY_COLORS[type]
+                      return (
+                        <div key={type} className="flex items-start gap-2 rounded-xl border border-border/70 bg-muted/20 px-2.5 py-2">
+                          <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: colors.bg, border: `1px solid ${colors.border}`, color: colors.text }}>
+                            <Icon className="h-3.5 w-3.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-semibold text-foreground">{meta.label}</p>
+                            <p className="text-[10px] leading-relaxed text-muted-foreground">{meta.summary}</p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
             </div>
             <BaseGraphView nodes={graphNodes} edges={graphEdges} onNodeClick={handleNodeClick} height="h-full" tone="light" />
           </>

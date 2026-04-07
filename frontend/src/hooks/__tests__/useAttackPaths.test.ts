@@ -6,14 +6,28 @@ import React from 'react'
 import { useAttackPaths, useAttackPath, useAttackPathStats } from '@/hooks/useAttackPaths'
 import { apiClient } from '@/lib/api'
 
-vi.mock('@/lib/api', () => ({
-  apiClient: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-  },
-}))
+vi.mock('@/lib/api', () => {
+  class MockApiError extends Error {
+    status: number
+    constructor(status: number, message: string) {
+      super(message)
+      this.status = status
+      this.name = 'ApiError'
+    }
+  }
+
+  return {
+    ApiError: MockApiError,
+    shouldPreferLocalMockAssets: () =>
+      import.meta.env.VITE_DEMO_MODE === 'true' || (import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_FALLBACK === 'true'),
+    apiClient: {
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    },
+  }
+})
 
 function makeWrapper() {
   const client = new QueryClient({
@@ -181,6 +195,24 @@ describe('useAttackPaths', () => {
       total: 1,
     })
     expect(vi.mocked(apiClient.get)).not.toHaveBeenCalled()
+  })
+
+  it('prefers bundled local mock assets before R2 when mock fallback is enabled in dev', async () => {
+    vi.stubEnv('VITE_ENABLE_MOCK_FALLBACK', 'true')
+    vi.mocked(apiClient.get).mockRejectedValue(new Error('api down'))
+    global.fetch = vi.fn((input: string | URL | Request) => {
+      const url = String(input)
+      if (url === '/mock/attack-paths.json') {
+        return Promise.resolve(new Response(JSON.stringify({ paths: [mockDemoPath], stats: mockStats }), { status: 200 }))
+      }
+      return Promise.reject(new Error(`unexpected fetch: ${url}`))
+    }) as typeof fetch
+
+    const { result } = renderHook(() => useAttackPaths(), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(global.fetch).toHaveBeenCalledWith('/mock/attack-paths.json')
+    expect(global.fetch).not.toHaveBeenCalledWith(expect.stringContaining('r2.dev/mock/attack-paths.json'))
   })
 })
 

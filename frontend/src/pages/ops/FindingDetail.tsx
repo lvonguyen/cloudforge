@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft, ExternalLink, CheckCircle2, AlertTriangle, Brain, Crosshair, Building2, Zap, Globe, Flame, Server, ChevronRight, Clock, MessageSquare, Search, Wrench, XCircle, Ticket as TicketIcon } from 'lucide-react'
+import { ArrowLeft, ExternalLink, CheckCircle2, AlertTriangle, Brain, Crosshair, Building2, Zap, Globe, Flame, Server, ChevronRight, Clock, MessageSquare, Search, Wrench, XCircle, Ticket as TicketIcon, GitBranch, History } from 'lucide-react'
 import { SeverityBadge } from '@/components/findings/SeverityBadge'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { useTracePanel } from '@/lib/trace-panel-context'
@@ -26,6 +26,8 @@ import { FindingOverviewCards } from '@/components/ops/finding-detail/FindingOve
 import { FindingComplianceList } from '@/components/ops/finding-detail/FindingComplianceList'
 import { FindingRemediationPlan } from '@/components/ops/finding-detail/FindingRemediationPlan'
 import { FindingAttackPathWorkspace } from '@/components/ops/finding-detail/FindingAttackPathWorkspace'
+import { FindingCodeToCloudWorkspace } from '@/components/ops/finding-detail/FindingCodeToCloudWorkspace'
+import { FindingHistoryWorkspace } from '@/components/ops/finding-detail/FindingHistoryWorkspace'
 import { FindingSecurityGraphWorkspace } from '@/components/ops/finding-detail/FindingSecurityGraphWorkspace'
 import { formatDate, formatWorkflowStatus } from '@/components/ops/finding-detail/helpers'
 import { buildTraceTimeline } from '@/lib/trace-helpers'
@@ -401,9 +403,11 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0">
           <TabsTrigger value="overview" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><Search className="h-3 w-3" />Overview</TabsTrigger>
-          <TabsTrigger value="remediation" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><CheckCircle2 className="h-3 w-3" />Remediation</TabsTrigger>
           <TabsTrigger value="investigation" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><Clock className="h-3 w-3" />Investigation</TabsTrigger>
+          <TabsTrigger value="code-to-cloud" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><GitBranch className="h-3 w-3" />Code to Cloud</TabsTrigger>
+          <TabsTrigger value="remediation" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><CheckCircle2 className="h-3 w-3" />Remediation</TabsTrigger>
           <TabsTrigger value="comments" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><MessageSquare className="h-3 w-3" />Comments</TabsTrigger>
+          <TabsTrigger value="history" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><History className="h-3 w-3" />History</TabsTrigger>
         </TabsList>
 
         {/* ── Overview Tab ── */}
@@ -875,6 +879,15 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
           </Tabs>
         </TabsContent>
 
+        <TabsContent value="code-to-cloud" className="space-y-6 mt-4">
+          <FindingCodeToCloudWorkspace
+            finding={finding}
+            codeToCloud={enrichment?.code_to_cloud}
+            relatedPaths={relatedPaths}
+            onOpenInvestigation={() => openInvestigationView('attack-path')}
+          />
+        </TabsContent>
+
         {/* ── Comments Tab ── */}
         <TabsContent value="comments" className="mt-4 space-y-4">
           {/* Comment input */}
@@ -929,6 +942,17 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
               ))}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-4 space-y-6">
+          <FindingHistoryWorkspace
+            finding={finding}
+            relatedPaths={relatedPaths}
+            enrichedAt={investigationEnrichment?.enriched_at}
+            ticketLinked={Boolean(ticket)}
+            commentsCount={comments.length}
+            onOpenTimeline={openInvestigationTimeline}
+          />
         </TabsContent>
       </Tabs>
 

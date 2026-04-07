@@ -18,22 +18,21 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { Search, LogOut, User, Menu, TerminalSquare } from 'lucide-react'
 
-const isDemo = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true'
 const ROLE_STYLES: Record<string, string> = {
   admin: 'bg-emerald-600 text-white',
   operator: 'bg-orange-500 text-white',
   requester: 'bg-teal-500 text-white',
 }
-function avatarStyle(role: string): string {
-  return isDemo ? (ROLE_STYLES[role] ?? 'bg-muted text-muted-foreground') : 'bg-foreground text-background'
+function avatarStyle(role: string, canSwitchRoles: boolean): string {
+  return canSwitchRoles ? (ROLE_STYLES[role] ?? 'bg-muted text-muted-foreground') : 'bg-foreground text-background'
 }
-function avatarLabel(user: { name: string; role: string }): string {
-  if (isDemo) return user.role === 'admin' ? 'A' : user.role === 'operator' ? 'O' : user.role === 'requester' ? 'R' : 'V'
+function avatarLabel(user: { name: string; role: string }, canSwitchRoles: boolean): string {
+  if (canSwitchRoles) return user.role === 'admin' ? 'A' : user.role === 'operator' ? 'O' : user.role === 'requester' ? 'R' : 'V'
   return user.name ? user.name.split(' ').map(n => n[0]).join('') : '?'
 }
 
 export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
-  const { user, logout } = useAuth()
+  const { user, logout, canSwitchRoles } = useAuth()
   const terminalPanel = useTerminalPanel()
   const navigate = useNavigate()
   const [cmdOpen, setCmdOpen] = useState(false)
@@ -109,11 +108,11 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
             <TerminalSquare className="h-4 w-4" />
           </Button>
         )}
-        {(import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true') && <RoleSwitcher />}
+        {canSwitchRoles && <RoleSwitcher />}
 
         <DropdownMenu>
-          <DropdownMenuTrigger aria-label="User menu" className={`flex items-center gap-2 rounded-full h-8 w-8 text-xs font-semibold hover:opacity-90 ${avatarStyle(user.role)}`}>
-            <span className="w-full text-center">{avatarLabel(user)}</span>
+          <DropdownMenuTrigger aria-label="User menu" className={`flex items-center gap-2 rounded-full h-8 w-8 text-xs font-semibold hover:opacity-90 ${avatarStyle(user.role, canSwitchRoles)}`}>
+            <span className="w-full text-center">{avatarLabel(user, canSwitchRoles)}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuLabel className="font-normal">

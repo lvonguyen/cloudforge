@@ -4,6 +4,9 @@ export interface AttackPathNode {
   resource_id: string
   resource_name: string
   resource_type: string
+  internet_facing?: boolean
+  subnet?: string
+  network_boundary?: string
   provider: string
   account_id: string
   region: string
@@ -24,6 +27,7 @@ export interface AttackPath {
   id: string
   title: string
   description: string
+  entry_point_type?: string
   severity: string
   score: number
   hop_count: number

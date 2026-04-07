@@ -29,6 +29,7 @@ import {
   SunMedium,
   ListChecks,
   Route,
+  Globe,
   Radar,
   ExternalLink,
 } from 'lucide-react'
@@ -37,6 +38,7 @@ import type { Finding } from '@/types/compliance'
 import { ProviderIcon } from '@/components/ui/ProviderIcon'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS, SEVERITY_HEX, SEVERITY_NEUTRAL_HEX } from '@/lib/severity'
+import { inferAttackPathThreatContextSignals, type ThreatContextSignals } from '@/lib/threat-context'
 import {
   buildAttackPathFindingLookup,
   findAttackPathNodeFinding,
@@ -220,7 +222,9 @@ function formatStageSummary(path: AttackPath): string {
 function formatFindingContextSource(finding: Finding) {
   if (finding.cves && finding.cves.length > 0) return `${finding.cves.length} linked CVE${finding.cves.length === 1 ? '' : 's'}`
   if (finding.toxic_combo_details) return `Toxic combo: ${finding.toxic_combo_details.combo_type}`
-  return finding.category.replaceAll('_', ' ')
+  if (finding.category) return finding.category.replaceAll('_', ' ')
+  if (finding.type) return finding.type.replaceAll('_', ' ')
+  return 'finding context'
 }
 
 function CanvasToneToggle({
@@ -276,8 +280,10 @@ function pathToFlow(
   resolvedTone: ResolvedCanvasTone,
   chokePointIds?: Set<string>,
   findingLookup?: ReturnType<typeof buildAttackPathFindingLookup>,
+  contextSignals?: ThreatContextSignals,
 ): { nodes: Node[]; edges: Edge[] } {
   const canvasTheme = CANVAS_THEME[resolvedTone]
+  const flowNodeIds = path.nodes.map((n, i) => `${n.id}-${i}`)
   const nodes: Node[] = path.nodes.map((n, i) => {
     const nodeFinding = findAttackPathNodeFinding(n, findingLookup)
     const remediationState = getAttackPathRemediationState(nodeFinding)
@@ -285,7 +291,7 @@ function pathToFlow(
     const cveLabel = formatAttackPathCveLabel(primaryCve)
 
     return {
-      id: n.id,
+      id: flowNodeIds[i],
       position: { x: i * 360, y: 0 },
       data: {
         label: (
@@ -317,6 +323,18 @@ function pathToFlow(
                       <span className="inline-flex items-center gap-1 rounded-full border border-violet-300 bg-violet-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-200">
                         <Crown className="h-2.5 w-2.5" />
                         Crown jewel
+                      </span>
+                    )}
+                    {i === 0 && contextSignals?.exposureSurface && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200">
+                        <Globe className="h-2.5 w-2.5" />
+                        {contextSignals.exposureSurface.label}
+                      </span>
+                    )}
+                    {i === 0 && contextSignals?.networkBoundary && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-teal-300 bg-teal-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-teal-700 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-200">
+                        <Shield className="h-2.5 w-2.5" />
+                        {contextSignals.networkBoundary.label}
                       </span>
                     )}
                   </div>
@@ -383,9 +401,9 @@ function pathToFlow(
   const edges: Edge[] = path.edges.map((e, edgeIndex) => {
     const semantic = getAttackPathEdgeSemantic(e)
     return {
-      id: e.id,
-      source: e.source,
-      target: e.target,
+      id: `${e.id}-${edgeIndex}`,
+      source: flowNodeIds[edgeIndex] ?? `${e.source}-${edgeIndex}`,
+      target: flowNodeIds[edgeIndex + 1] ?? `${e.target}-${edgeIndex + 1}`,
       label: `Hop ${edgeIndex + 1}: ${semantic.badge}`,
       type: 'smoothstep',
       markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
@@ -401,6 +419,8 @@ function pathToFlow(
 
 function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) {
   const Icon = CATEGORY_ICONS[path.entry_point?.category] ?? AlertTriangle
+  const contextSignals = useMemo(() => inferAttackPathThreatContextSignals(path), [path])
+  const findingIds = useMemo(() => [...new Set(path.finding_ids)], [path.finding_ids])
   const actionItems = extractActionItems(path)
   const crownJewelCount = path.nodes.filter(isCrownJewelNode).length
   const privilegeEscalationCount = path.edges.filter(isPrivilegeEscalationEdge).length
@@ -446,6 +466,18 @@ function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) 
                     PrivEsc x{privilegeEscalationCount}
                   </Badge>
                 )}
+                {contextSignals.exposureSurface && (
+                  <Badge variant="outline" className="text-[10px] gap-1 rounded-full border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-300">
+                    <Globe className="h-2.5 w-2.5" />
+                    {contextSignals.exposureSurface.label}
+                  </Badge>
+                )}
+                {contextSignals.networkBoundary && (
+                  <Badge variant="outline" className="text-[10px] gap-1 rounded-full border-teal-300 bg-teal-50 text-teal-700 dark:border-teal-900/40 dark:bg-teal-950/20 dark:text-teal-300">
+                    <Shield className="h-2.5 w-2.5" />
+                    {contextSignals.networkBoundary.label}
+                  </Badge>
+                )}
                 {crownJewelCount > 0 && (
                   <Badge variant="outline" className="text-[10px] gap-1 rounded-full border-violet-300 bg-violet-50 text-violet-700 dark:border-violet-900/40 dark:bg-violet-950/20 dark:text-violet-300">
                     <Crown className="h-2.5 w-2.5" />
@@ -478,15 +510,15 @@ function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) 
                   <ListChecks className="h-3 w-3" />Immediate Actions
                 </div>
                 <ul className="mt-1.5 space-y-1">
-                  {actionItems.slice(0, 2).map(item => (
-                    <li key={item} className="text-[11px] text-muted-foreground">
+                  {actionItems.slice(0, 2).map((item, index) => (
+                    <li key={`${item}-${index}`} className="text-[11px] text-muted-foreground">
                       {item}
                     </li>
                   ))}
                 </ul>
               </div>
               <div className="flex items-center gap-1 mt-3">
-                {path.finding_ids.map(fid => (
+                {findingIds.map(fid => (
                   <span key={fid} className="text-[9px] font-mono bg-muted px-1.5 py-0.5 rounded-full">{fid}</span>
                 ))}
               </div>
@@ -510,7 +542,7 @@ function HopSequence({ path }: { path: AttackPath }) {
         const edge = i < path.edges.length ? path.edges[i] : null
         const isPrivEsc = edge ? isPrivilegeEscalationEdge(edge) : false
         return (
-          <Fragment key={node.id}>
+          <Fragment key={`${node.id}-${i}`}>
             <div className="flex items-center gap-1.5 shrink-0">
               <span
                 className="flex h-6 w-6 items-center justify-center rounded-full border-2 text-[10px] font-bold"
@@ -581,10 +613,16 @@ function PathGraphView({
   const pathStory = useMemo(() => buildPathStory(path), [path])
   const crownJewelCount = useMemo(() => path.nodes.filter(isCrownJewelNode).length, [path])
   const privilegeEscalationCount = useMemo(() => path.edges.filter(isPrivilegeEscalationEdge).length, [path])
-  const findingLookup = useMemo(() => buildAttackPathFindingLookup(relatedFindings), [relatedFindings])
+  const uniqueRelatedFindings = useMemo(
+    () => [...new Map(relatedFindings.map(finding => [finding.id, finding])).values()],
+    [relatedFindings],
+  )
+  const findingLookup = useMemo(() => buildAttackPathFindingLookup(uniqueRelatedFindings), [uniqueRelatedFindings])
+  const uniqueFindingIds = useMemo(() => [...new Set(path.finding_ids)], [path.finding_ids])
+  const contextSignals = useMemo(() => inferAttackPathThreatContextSignals(path, uniqueRelatedFindings), [path, uniqueRelatedFindings])
   const { nodes, edges } = useMemo(
-    () => pathToFlow(path, resolvedCanvasTone, chokePointIds, findingLookup),
-    [path, resolvedCanvasTone, chokePointIds, findingLookup],
+    () => pathToFlow(path, resolvedCanvasTone, chokePointIds, findingLookup, contextSignals),
+    [path, resolvedCanvasTone, chokePointIds, findingLookup, contextSignals],
   )
 
   const uniqueProviders = useMemo(() => [...new Set(path.nodes.map(n => n.provider))], [path])
@@ -635,6 +673,32 @@ function PathGraphView({
           </div>
         </div>
 
+        {(contextSignals.exposureSurface || contextSignals.networkBoundary) && (
+          <div className="rounded-2xl border border-sky-200/80 bg-sky-50/70 px-3 py-2.5 space-y-2 dark:border-sky-900/40 dark:bg-sky-950/10">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">
+              Exposure & boundary
+            </div>
+            {contextSignals.exposureSurface && (
+              <div className="rounded-xl border border-sky-200/80 bg-white/90 px-2.5 py-2 dark:border-sky-900/40 dark:bg-slate-950/40">
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
+                  <Globe className="h-3.5 w-3.5 text-sky-600 dark:text-sky-300" />
+                  {contextSignals.exposureSurface.label}
+                </div>
+                <p className="mt-1 text-[10px] text-muted-foreground">{contextSignals.exposureSurface.detail}</p>
+              </div>
+            )}
+            {contextSignals.networkBoundary && (
+              <div className="rounded-xl border border-teal-200/80 bg-white/90 px-2.5 py-2 dark:border-teal-900/40 dark:bg-slate-950/40">
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
+                  <Shield className="h-3.5 w-3.5 text-teal-600 dark:text-teal-300" />
+                  {contextSignals.networkBoundary.label}
+                </div>
+                <p className="mt-1 text-[10px] text-muted-foreground">{contextSignals.networkBoundary.detail}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Path shape */}
         <div className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-2.5">
           <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
@@ -682,8 +746,8 @@ function PathGraphView({
             <ListChecks className="h-3 w-3" />Immediate Actions
           </div>
           <ul className="space-y-1 text-[11px] text-muted-foreground">
-            {actionItems.map(item => (
-              <li key={item}>{item}</li>
+            {actionItems.map((item, index) => (
+              <li key={`${item}-${index}`}>{item}</li>
             ))}
           </ul>
         </div>
@@ -711,11 +775,11 @@ function PathGraphView({
         )}
 
         {/* Finding references */}
-        {path.finding_ids.length > 0 && (
+        {uniqueFindingIds.length > 0 && (
           <div className="space-y-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Finding References</span>
             <div className="flex flex-wrap gap-1.5">
-              {path.finding_ids.map(fid => (
+              {uniqueFindingIds.map(fid => (
                 <Link
                   key={fid}
                   to={`/ops/findings/${fid}`}
@@ -806,14 +870,14 @@ function PathGraphView({
           </CardHeader>
           <CardContent className="px-4 pb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {path.nodes.map(n => {
+              {path.nodes.map((n, index) => {
                 const ResourceIcon = getAttackPathResourceIcon(n)
                 const nodeFinding = findAttackPathNodeFinding(n, findingLookup)
                 const remediationState = getAttackPathRemediationState(nodeFinding)
                 const primaryCve = getPrimaryAttackPathCve(nodeFinding)
                 const cveLabel = formatAttackPathCveLabel(primaryCve)
                 return (
-                  <div key={n.id} className="border border-border/80 p-3 space-y-1 rounded-2xl bg-background/70">
+                  <div key={`${n.id}-${index}`} className="border border-border/80 p-3 space-y-1 rounded-2xl bg-background/70">
                     <div className="flex items-center gap-2">
                       <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-border/80 bg-muted/30">
                         <ResourceIcon className="h-4 w-4" />
@@ -861,13 +925,13 @@ function PathGraphView({
         </Card>
 
         {/* Finding context */}
-        {relatedFindings.length > 0 && (
+        {uniqueRelatedFindings.length > 0 && (
           <Card className="rounded-2xl border border-border/80">
             <CardHeader className="pb-2 pt-3 px-4">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Finding Context</span>
             </CardHeader>
             <CardContent className="space-y-3 px-4 pb-4">
-              {relatedFindings.slice(0, 4).map(finding => (
+              {uniqueRelatedFindings.slice(0, 4).map(finding => (
                 <div key={finding.id} className="rounded-2xl border border-border/80 bg-muted/15 p-3">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -985,6 +1049,18 @@ function PathGraphView({
                 <span className="text-muted-foreground">Accounts: </span>
                 <span className="font-mono text-[10px]">{uniqueAccounts.join(', ')}</span>
               </div>
+              {contextSignals.exposureSurface && (
+                <div>
+                  <span className="text-muted-foreground">Exposure: </span>
+                  <span className="font-medium">{contextSignals.exposureSurface.label}</span>
+                </div>
+              )}
+              {contextSignals.networkBoundary && (
+                <div>
+                  <span className="text-muted-foreground">Boundary: </span>
+                  <span className="font-medium">{contextSignals.networkBoundary.label}</span>
+                </div>
+              )}
               <div>
                 <span className="text-muted-foreground">Score: </span>
                 <span className={`font-semibold ${
@@ -1009,10 +1085,11 @@ export default function AttackPaths() {
   const { data: response, isLoading, isError } = useAttackPaths(page, 20)
   const { data: stats } = useAttackPathStats()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [ignoredAutoFocusKey, setIgnoredAutoFocusKey] = useState<string | null>(null)
   const [canvasTone, setCanvasTone] = useState<CanvasTone>(getInitialCanvasTone)
   const focusFindingId = searchParams.get('findingId')
 
-  const paths = response?.data ?? []
+  const paths = useMemo(() => response?.data ?? [], [response?.data])
   const totalPages = response?.total_pages ?? 1
   const total = response?.total ?? 0
   const resolvedCanvasTone = useResolvedCanvasTone(canvasTone)
@@ -1021,20 +1098,25 @@ export default function AttackPaths() {
     getCanvasToneStorage()?.setItem(CANVAS_TONE_STORAGE_KEY, canvasTone)
   }, [canvasTone])
 
-  useEffect(() => {
-    if (!focusFindingId || selectedId || paths.length === 0) return
-    const matchingPath = paths.find(path => path.finding_ids.includes(focusFindingId))
-    if (matchingPath) setSelectedId(matchingPath.id)
-  }, [focusFindingId, paths, selectedId])
+  const autoSelectedId = useMemo(() => {
+    if (!focusFindingId || selectedId || focusFindingId === ignoredAutoFocusKey || paths.length === 0) return null
+    return paths.find(path => path.finding_ids.includes(focusFindingId))?.id ?? null
+  }, [focusFindingId, ignoredAutoFocusKey, paths, selectedId])
+
+  const activeSelectedId = selectedId ?? autoSelectedId
 
   const selectedPath = useMemo(
-    () => paths.find(p => p.id === selectedId) ?? null,
-    [paths, selectedId]
+    () => paths.find(p => p.id === activeSelectedId) ?? null,
+    [activeSelectedId, paths]
   )
-  const { data: selectedPathFindings = [] } = useFindingsByIds(selectedPath?.finding_ids ?? [], Boolean(selectedPath))
+  const selectedPathFindingIds = useMemo(
+    () => [...new Set(selectedPath?.finding_ids ?? [])],
+    [selectedPath],
+  )
+  const { data: selectedPathFindings = [] } = useFindingsByIds(selectedPathFindingIds, Boolean(selectedPath))
   const selectedIndex = useMemo(
-    () => paths.findIndex(path => path.id === selectedId),
-    [paths, selectedId],
+    () => paths.findIndex(path => path.id === activeSelectedId),
+    [activeSelectedId, paths],
   )
 
   // Full dataset for choke point analysis
@@ -1078,7 +1160,10 @@ export default function AttackPaths() {
   const highestRiskPath = paths[0] ?? null
   const mostSharedResource = chokePoints[0] ?? null
 
-  const handleBack = useCallback(() => setSelectedId(null), [])
+  const handleBack = useCallback(() => {
+    setSelectedId(null)
+    if (focusFindingId) setIgnoredAutoFocusKey(focusFindingId)
+  }, [focusFindingId])
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -1101,9 +1186,9 @@ export default function AttackPaths() {
       }
 
       if (event.key === 'Escape') {
-        if (selectedId) {
+        if (activeSelectedId) {
           event.preventDefault()
-          setSelectedId(null)
+          handleBack()
         }
         return
       }
@@ -1124,7 +1209,7 @@ export default function AttackPaths() {
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [page, paths, selectedId, selectedIndex, totalPages])
+  }, [activeSelectedId, handleBack, page, paths, selectedIndex, totalPages])
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground p-6">Computing attack paths...</div>

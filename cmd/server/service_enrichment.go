@@ -28,8 +28,22 @@ type FindingEnrichment struct {
 	Remediation     string                             `json:"remediation"`
 	RelatedControls []string                           `json:"related_controls"`
 	ThreatIntel     *threatintel.ThreatIntelEnrichment `json:"threat_intel,omitempty"`
+	CodeToCloud     *FindingCodeToCloud                `json:"code_to_cloud,omitempty"`
 	EnrichedAt      string                             `json:"enriched_at"`
 	CreatedAt       time.Time                          `json:"-"` // cache eviction timestamp
+}
+
+type FindingCodeToCloud struct {
+	RepositoryURL      string `json:"repository_url,omitempty"`
+	RepositoryName     string `json:"repository_name,omitempty"`
+	RepositoryProvider string `json:"repository_provider,omitempty"`
+	Branch             string `json:"branch,omitempty"`
+	CommitSHA          string `json:"commit_sha,omitempty"`
+	BuildSystem        string `json:"build_system,omitempty"`
+	PipelineName       string `json:"pipeline_name,omitempty"`
+	PipelineRunID      string `json:"pipeline_run_id,omitempty"`
+	PipelineRunURL     string `json:"pipeline_run_url,omitempty"`
+	Artifact           string `json:"artifact,omitempty"`
 }
 
 const findingEnrichSystemPrompt = `You are a cloud security analyst. Given a security finding, provide:
@@ -40,6 +54,143 @@ const findingEnrichSystemPrompt = `You are a cloud security analyst. Given a sec
 
 Respond ONLY with valid JSON matching this schema:
 {"root_cause":"...","impact":"...","remediation":"...","related_controls":["CIS x.y","NIST SC-z"]}`
+
+func readFindingTag(tags map[string]string, keys ...string) string {
+	if len(tags) == 0 {
+		return ""
+	}
+
+	normalizedKeys := make(map[string]struct{}, len(keys))
+	for _, key := range keys {
+		normalizedKeys[strings.ToLower(strings.TrimSpace(key))] = struct{}{}
+	}
+
+	for key, value := range tags {
+		if _, ok := normalizedKeys[strings.ToLower(strings.TrimSpace(key))]; !ok {
+			continue
+		}
+		value = strings.TrimSpace(value)
+		if value != "" {
+			return value
+		}
+	}
+
+	return ""
+}
+
+func inferRepositoryName(repoURL string) string {
+	if repoURL == "" {
+		return ""
+	}
+
+	trimmed := strings.TrimSpace(repoURL)
+	trimmed = strings.TrimSuffix(trimmed, ".git")
+	trimmed = strings.TrimRight(trimmed, "/")
+	if strings.HasPrefix(trimmed, "git@") {
+		trimmed = strings.TrimPrefix(trimmed, "git@")
+		if idx := strings.Index(trimmed, ":"); idx != -1 {
+			trimmed = trimmed[idx+1:]
+		}
+	}
+	if idx := strings.Index(trimmed, "://"); idx != -1 {
+		trimmed = trimmed[idx+3:]
+	}
+	if idx := strings.Index(trimmed, "/"); idx != -1 {
+		trimmed = trimmed[idx+1:]
+	}
+
+	return strings.Trim(trimmed, "/")
+}
+
+func inferRepositoryProvider(repoURL string) string {
+	switch {
+	case strings.Contains(strings.ToLower(repoURL), "github"):
+		return "github"
+	case strings.Contains(strings.ToLower(repoURL), "gitlab"):
+		return "gitlab"
+	case strings.Contains(strings.ToLower(repoURL), "bitbucket"):
+		return "bitbucket"
+	default:
+		return ""
+	}
+}
+
+func hasCodeToCloudContext(ctx *FindingCodeToCloud) bool {
+	if ctx == nil {
+		return false
+	}
+	return ctx.RepositoryURL != "" ||
+		ctx.RepositoryName != "" ||
+		ctx.RepositoryProvider != "" ||
+		ctx.Branch != "" ||
+		ctx.CommitSHA != "" ||
+		ctx.BuildSystem != "" ||
+		ctx.PipelineName != "" ||
+		ctx.PipelineRunID != "" ||
+		ctx.PipelineRunURL != "" ||
+		ctx.Artifact != ""
+}
+
+func extractFindingCodeToCloud(finding *Finding) *FindingCodeToCloud {
+	if finding == nil {
+		return nil
+	}
+
+	ctx := &FindingCodeToCloud{
+		RepositoryURL: readFindingTag(
+			finding.Tags,
+			"repository_url", "repo_url", "repository", "repo", "scm_url", "git_repository",
+			"git_url", "github_repository", "gitlab_repository",
+		),
+		RepositoryName: readFindingTag(
+			finding.Tags,
+			"repository_name", "repo_name", "service_repo", "service_repository",
+		),
+		RepositoryProvider: readFindingTag(
+			finding.Tags,
+			"repository_provider", "repo_provider", "scm_provider", "git_provider",
+		),
+		Branch: readFindingTag(
+			finding.Tags,
+			"branch", "git_branch", "repository_branch", "repo_branch", "workflow_branch",
+		),
+		CommitSHA: readFindingTag(
+			finding.Tags,
+			"commit_sha", "git_commit", "commit", "sha", "revision", "git_revision",
+		),
+		BuildSystem: readFindingTag(
+			finding.Tags,
+			"build_system", "ci_system", "cicd", "pipeline_system", "workflow_system",
+		),
+		PipelineName: readFindingTag(
+			finding.Tags,
+			"pipeline_name", "pipeline", "workflow", "workflow_name", "build_pipeline",
+		),
+		PipelineRunID: readFindingTag(
+			finding.Tags,
+			"pipeline_run_id", "run_id", "workflow_run_id", "build_id", "pipeline_execution_id",
+		),
+		PipelineRunURL: readFindingTag(
+			finding.Tags,
+			"pipeline_run_url", "pipeline_url", "run_url", "workflow_url", "build_url",
+		),
+		Artifact: readFindingTag(
+			finding.Tags,
+			"artifact", "artifact_name", "image", "image_uri", "container_image", "build_artifact",
+		),
+	}
+
+	if ctx.RepositoryName == "" {
+		ctx.RepositoryName = inferRepositoryName(ctx.RepositoryURL)
+	}
+	if ctx.RepositoryProvider == "" {
+		ctx.RepositoryProvider = inferRepositoryProvider(ctx.RepositoryURL)
+	}
+	if !hasCodeToCloudContext(ctx) {
+		return nil
+	}
+	return ctx
+}
 
 func parseFindingEnrichment(findingID, response string) (*FindingEnrichment, error) {
 	type aiResponse struct {
@@ -156,9 +307,10 @@ func (svc *EnrichmentService) Enrich(ctx context.Context, finding *Finding) (*Fi
 
 		now := time.Now().UTC()
 		enrichment := &FindingEnrichment{
-			FindingID:  finding.ID,
-			EnrichedAt: now.Format(time.RFC3339),
-			CreatedAt:  now,
+			FindingID:   finding.ID,
+			CodeToCloud: extractFindingCodeToCloud(finding),
+			EnrichedAt:  now.Format(time.RFC3339),
+			CreatedAt:   now,
 		}
 
 		// AI enrichment (optional — skipped when AI provider is nil)

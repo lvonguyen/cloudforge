@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { apiClient, ApiError } from '@/lib/api'
+import { apiClient, ApiError, shouldPreferLocalMockAssets } from '@/lib/api'
 import type { AttackPath, AttackPathStats, PaginatedResponse } from '@/types/attack-path'
 
 const R2_BASE = 'https://pub-878a225fb2464e2ab2e3b08d0603e04b.r2.dev/mock'
@@ -16,52 +16,57 @@ function isDemoMode(): boolean {
 
 // Singleflight cache: coalesces concurrent calls and allows invalidation
 let mockCachePromise: Promise<{ paths: AttackPath[]; stats: AttackPathStats }> | null = null
+let mockCacheKey: string | null = null
 
 async function getMockAttackPaths(): Promise<{ paths: AttackPath[]; stats: AttackPathStats }> {
-  if (mockCachePromise) return mockCachePromise
+  const cacheKey = import.meta.env.VITE_DEMO_MODE === 'true'
+    ? 'demo'
+    : shouldPreferLocalMockAssets() ? 'local-first' : 'remote-first'
+
+  if (mockCachePromise && mockCacheKey === cacheKey) return mockCachePromise
+  mockCacheKey = cacheKey
   mockCachePromise = loadMockAttackPaths().catch(err => { mockCachePromise = null; throw err })
   return mockCachePromise
 }
 
 async function loadMockAttackPaths(): Promise<{ paths: AttackPath[]; stats: AttackPathStats }> {
+  const preferLocal = shouldPreferLocalMockAssets()
+  const precomputedSources = preferLocal
+    ? ['/mock/attack-paths.json', `${R2_BASE}/attack-paths.json`]
+    : [`${R2_BASE}/attack-paths.json`, '/mock/attack-paths.json']
 
-  // Try pre-computed attack-paths.json from R2 first (fast, no client-side computation)
-  try {
-    const res = await fetch(`${R2_BASE}/attack-paths.json`)
-    if (res.ok) {
-      const data = await res.json()
-      if (data.paths?.length > 0) {
-        console.warn('[useAttackPaths] Using pre-computed paths from R2:', data.paths.length, 'paths')
-        return { paths: data.paths, stats: data.stats }
+  for (const source of precomputedSources) {
+    try {
+      const res = await fetch(source)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.paths?.length > 0) {
+          const origin = source.startsWith('/mock') ? 'local mock' : 'R2'
+          console.warn('[useAttackPaths] Using pre-computed paths from', origin + ':', data.paths.length, 'paths')
+          return { paths: data.paths, stats: data.stats }
+        }
       }
-    }
-  } catch { /* fall through */ }
-
-  // Try local pre-computed file
-  try {
-    const res = await fetch('/mock/attack-paths.json')
-    if (res.ok) {
-      const data = await res.json()
-      if (data.paths?.length > 0) {
-        console.warn('[useAttackPaths] Using pre-computed paths from local mock:', data.paths.length, 'paths')
-        return { paths: data.paths, stats: data.stats }
-      }
-    }
-  } catch { /* fall through */ }
+    } catch { /* fall through */ }
+  }
 
   // Final fallback: compute client-side from findings (slow for large datasets)
   try {
     const { computeMockAttackPaths } = await import('@/lib/mock-attack-paths')
     let findings
-    try {
-      const res = await fetch(`${R2_BASE}/findings.json`)
-      if (!res.ok) throw new Error(`R2: ${res.status}`)
-      findings = await res.json()
-    } catch {
-      const res = await fetch('/mock/findings.json')
-      if (!res.ok) return { paths: [], stats: EMPTY_STATS }
-      findings = await res.json()
+    const findingSources = preferLocal
+      ? ['/mock/findings.json', `${R2_BASE}/findings.json`]
+      : [`${R2_BASE}/findings.json`, '/mock/findings.json']
+    for (const source of findingSources) {
+      try {
+        const res = await fetch(source)
+        if (!res.ok) throw new Error(`mock source: ${res.status}`)
+        findings = await res.json()
+        break
+      } catch {
+        continue
+      }
     }
+    if (!findings) return { paths: [], stats: EMPTY_STATS }
     console.warn('[useAttackPaths] Computing mock paths client-side from', findings.length, 'findings')
     return computeMockAttackPaths(findings)
   } catch {

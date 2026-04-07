@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import { renderWithProviders } from "@/test/utils";
 import { FindingAttackPathWorkspace } from "@/components/ops/finding-detail/FindingAttackPathWorkspace";
+import { FindingCodeToCloudWorkspace } from "@/components/ops/finding-detail/FindingCodeToCloudWorkspace";
+import { FindingHistoryWorkspace } from "@/components/ops/finding-detail/FindingHistoryWorkspace";
 import { FindingSecurityGraphWorkspace } from "@/components/ops/finding-detail/FindingSecurityGraphWorkspace";
 import type { AttackPath } from "@/types/attack-path";
 import type { Finding } from "@/types/compliance";
@@ -176,5 +178,70 @@ describe("Finding investigation workspaces", () => {
     expect(
       screen.getByText("internet_exposed && data_access"),
     ).toBeInTheDocument();
+  });
+
+  it("renders code-to-cloud context with explicit inferred delivery stages", () => {
+    renderWithProviders(
+      <FindingCodeToCloudWorkspace
+        finding={SAMPLE_FINDING}
+        relatedPaths={[SAMPLE_PATH]}
+        onOpenInvestigation={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Code to Cloud Context")).toBeInTheDocument();
+    expect(screen.getByText("Likely delivery path")).toBeInTheDocument();
+    expect(screen.getByText("github.com/contoso/orders-api")).toBeInTheDocument();
+    expect(screen.getAllByText("Inferred").length).toBeGreaterThan(0);
+    expect(screen.getByText("Attack Path Handoff")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /open attack-path investigation/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("prefers backend provenance metadata for repository and pipeline stages", () => {
+    renderWithProviders(
+      <FindingCodeToCloudWorkspace
+        finding={SAMPLE_FINDING}
+        codeToCloud={{
+          repository_name: "cloudforge/orders-api",
+          repository_provider: "github",
+          branch: "main",
+          commit_sha: "0123456789abcdef",
+          build_system: "github-actions",
+          pipeline_name: "deploy-orders-api",
+          pipeline_run_id: "4711",
+          artifact: "ghcr.io/cloudforge/orders-api:2026.04.07",
+        }}
+        relatedPaths={[SAMPLE_PATH]}
+        onOpenInvestigation={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("cloudforge/orders-api")).toBeInTheDocument();
+    expect(screen.getByText(/branch main/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/deploy-orders-api/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/github-actions/i)).toBeInTheDocument();
+    expect(screen.getByText(/provenance source/i)).toBeInTheDocument();
+  });
+
+  it("renders history context with timeline, comments, and ticket state", () => {
+    renderWithProviders(
+      <FindingHistoryWorkspace
+        finding={SAMPLE_FINDING}
+        relatedPaths={[SAMPLE_PATH]}
+        enrichedAt="2026-03-30T11:00:00Z"
+        ticketLinked
+        commentsCount={2}
+        onOpenTimeline={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Finding History")).toBeInTheDocument();
+    expect(screen.getByText("Timeline")).toBeInTheDocument();
+    expect(screen.getByText("Risk enriched")).toBeInTheDocument();
+    expect(screen.getByText("Attack path linked")).toBeInTheDocument();
+    expect(screen.getByText("Ticket status")).toBeInTheDocument();
+    expect(screen.getByText("2 total")).toBeInTheDocument();
   });
 });

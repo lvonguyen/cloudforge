@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueries, useQueryClient } from '@tanstack/react-query'
-import { apiClient, ApiError, isMockFallbackEnabled } from '@/lib/api'
+import { apiClient, ApiError, isMockFallbackEnabled, shouldPreferLocalMockAssets } from '@/lib/api'
 import type { Finding } from '@/types/compliance'
 
 const R2_FINDINGS_URL =
@@ -89,21 +89,35 @@ const MAX_LOCAL_FINDINGS_PAGE_SIZE = 1000
 
 async function fetchMockFindings(): Promise<Finding[]> {
   const preferred = sessionStorage.getItem(SESSION_SOURCE_KEY)
+  const preferLocal = shouldPreferLocalMockAssets()
 
   // Re-use the source that worked earlier in this session
-  if (preferred === 'r2') return fetchR2Findings()
+  if (preferred === 'r2' && !preferLocal) return fetchR2Findings()
   if (preferred === 'local') return fetchLocalMockFindings()
 
-  try {
-    const data = await fetchR2Findings()
-    sessionStorage.setItem(SESSION_SOURCE_KEY, 'r2')
-    return data
-  } catch {
-    console.warn('[useFindings] R2 unavailable, falling back to local mock')
-    const data = await fetchLocalMockFindings()
-    sessionStorage.setItem(SESSION_SOURCE_KEY, 'local')
-    return data
+  const sources: Array<{ key: 'local' | 'r2'; fetcher: () => Promise<Finding[]> }> = preferLocal
+    ? [
+        { key: 'local', fetcher: fetchLocalMockFindings },
+        { key: 'r2', fetcher: fetchR2Findings },
+      ]
+    : [
+        { key: 'r2', fetcher: fetchR2Findings },
+        { key: 'local', fetcher: fetchLocalMockFindings },
+      ]
+
+  let lastError: unknown = null
+  for (const source of sources) {
+    try {
+      const data = await source.fetcher()
+      sessionStorage.setItem(SESSION_SOURCE_KEY, source.key)
+      return data
+    } catch (error) {
+      lastError = error
+      continue
+    }
   }
+
+  throw lastError instanceof Error ? lastError : new Error('Mock findings unavailable for frontend fallback')
 }
 
 interface FetchFindingsResult {
@@ -316,6 +330,19 @@ export interface ThreatIntelEnrichment {
   enriched_at: string
 }
 
+interface FindingCodeToCloudProvenance {
+  repository_url?: string
+  repository_name?: string
+  repository_provider?: string
+  branch?: string
+  commit_sha?: string
+  build_system?: string
+  pipeline_name?: string
+  pipeline_run_id?: string
+  pipeline_run_url?: string
+  artifact?: string
+}
+
 interface FindingEnrichmentResponse {
   finding_id: string
   root_cause: string
@@ -323,6 +350,7 @@ interface FindingEnrichmentResponse {
   remediation: string
   related_controls: string[]
   threat_intel?: ThreatIntelEnrichment
+  code_to_cloud?: FindingCodeToCloudProvenance
   enriched_at: string
 }
 

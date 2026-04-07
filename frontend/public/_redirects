@@ -1,1 +1,4 @@
+/assets/* /assets/:splat 200
+/mock/* /mock/:splat 200
+/config.json /config.json 200
 /* /index.html 200

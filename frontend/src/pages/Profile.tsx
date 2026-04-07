@@ -27,8 +27,13 @@ const DEMO_ACTIVITY = [
 ]
 
 export default function Profile() {
-  const { user, logout } = useAuth()
-  const isDemo = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true'
+  const { user, logout, isDemoSession, canSwitchRoles } = useAuth()
+  const showDemoControls = isDemoSession || canSwitchRoles
+  const authMethod = isDemoSession
+    ? 'Demo Session (OIDC / Okta)'
+    : canSwitchRoles
+      ? 'Demo Mode'
+      : 'OIDC / Okta SSO'
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -68,7 +73,7 @@ export default function Profile() {
                 </div>
               </div>
             )}
-            {isDemo && (
+            {showDemoControls && (
               <p className="text-[10px] text-muted-foreground pt-1 border-t">
                 Demo session — role switching enabled for portfolio walkthrough
               </p>
@@ -134,7 +139,7 @@ export default function Profile() {
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Auth Method</span>
-            <span className="font-medium">{isDemo ? 'Static JWT (Demo)' : 'OIDC / Okta SSO'}</span>
+            <span className="font-medium">{authMethod}</span>
           </div>
           <div className="pt-3 border-t">
             <Button variant="destructive" size="sm" onClick={logout} className="gap-1.5">

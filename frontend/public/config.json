@@ -6,7 +6,7 @@
   "emailDomain": "contoso.dev",
   "repoPrefix": "github.com/contoso",
   "enabledModules": ["cloudforge", "posture-management", "threat-intel", "remediation-engine", "ops-center"],
-  "storagePrefix": "aegis",
+  "storagePrefix": "cloudforge",
   "theme": {
     "primaryColor": "",
     "secondaryColor": "",

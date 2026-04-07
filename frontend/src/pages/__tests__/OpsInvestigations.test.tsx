@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { renderWithProviders } from '@/test/utils'
 import Investigations from '@/pages/ops/Investigations'
 import { useFindings } from '@/hooks/useFindings'
@@ -116,4 +116,37 @@ describe('OpsInvestigations', () => {
     expect(screen.getByText('Analyst briefing')).toBeInTheDocument()
     expect(screen.getAllByText(/Taylor Chen/).length).toBeGreaterThan(0)
   }, 10_000)
+
+  it('collapses investigation context panels on compact boards and lets analysts reopen them', async () => {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(max-width: 1400px)',
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }))
+
+    mockUseFindings.mockReturnValue({
+      data: [SAMPLE_FINDING],
+      isLoading: false,
+    } as ReturnType<typeof useFindings>)
+
+    renderWithProviders(<Investigations />, { route: '/ops/investigations?findingId=f-invest-001' })
+
+    expect(await screen.findByRole('button', { name: /expand case summary/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /expand graph guide/i })).toBeInTheDocument()
+    expect(screen.queryByText('Analyst briefing')).not.toBeInTheDocument()
+    expect(screen.queryByText(/The graph starts at the finding/i)).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /expand case summary/i }))
+    expect(await screen.findByText('Analyst briefing')).toBeInTheDocument()
+    expect(screen.getByText(/public internet/i)).toBeInTheDocument()
+    expect(screen.getByText(/security group \/ subnet/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /expand graph guide/i }))
+    expect(screen.getByText(/The graph starts at the finding, then steps through inferred exposure or boundary cues/i)).toBeInTheDocument()
+  })
 })
