@@ -24,6 +24,8 @@ vi.mock('@/lib/api', () => {
   return {
     ApiError: MockApiError,
     apiClient: client,
+    isMockFallbackEnabled: vi.fn(() => false),
+    shouldPreferLocalMockAssets: vi.fn(() => false),
     fetchWithMockFallback: vi.fn(async (path, mockImport, _label) => {
       try { return await client.get(path) }
       catch (err) {

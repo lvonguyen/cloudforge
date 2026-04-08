@@ -41,7 +41,7 @@ describe('Landing', () => {
 
   it('displays project description text', () => {
     renderWithProviders(<Landing />)
-    expect(screen.getByText(/policy-as-code/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/policy-as-code/i).length).toBeGreaterThan(0)
   })
 
   it('does not render Demo Access section when demoAccess is disabled', () => {
