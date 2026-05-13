@@ -220,6 +220,41 @@ func TestExtractFindingCodeToCloud_Empty(t *testing.T) {
 	}
 }
 
+func TestExtractFindingCodeToCloud_FromSeededFixtureTags(t *testing.T) {
+	findings, err := loadTestFindingsFromFile("testdata/findings_test.json")
+	if err != nil {
+		t.Fatalf("loadTestFindingsFromFile() error = %v", err)
+	}
+
+	var tagged *Finding
+	for i := range findings {
+		if len(findings[i].Tags) > 0 {
+			tagged = &findings[i]
+			break
+		}
+	}
+	if tagged == nil {
+		t.Fatal("expected at least one seeded fixture finding with code-to-cloud tags")
+	}
+
+	got := extractFindingCodeToCloud(tagged)
+	if got == nil {
+		t.Fatal("extractFindingCodeToCloud() = nil, want context from seeded fixture tags")
+	}
+	if got.RepositoryName == "" {
+		t.Fatal("repository_name must not be empty for seeded fixture tags")
+	}
+	if got.RepositoryProvider == "" {
+		t.Fatal("repository_provider must not be empty for seeded fixture tags")
+	}
+	if got.PipelineName == "" {
+		t.Fatal("pipeline_name must not be empty for seeded fixture tags")
+	}
+	if got.CommitSHA == "" {
+		t.Fatal("commit_sha must not be empty for seeded fixture tags")
+	}
+}
+
 // --- EnrichmentService tests ---
 
 func TestEnrichmentService_Enabled(t *testing.T) {

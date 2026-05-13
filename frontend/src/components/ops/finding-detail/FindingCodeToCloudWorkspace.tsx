@@ -81,6 +81,15 @@ function deriveLikelyRepo(finding: Finding): string {
   return `${branding.repoPrefix}/${repoName}`
 }
 
+function readFindingTag(tags: Record<string, string> | undefined, keys: string[]): string | undefined {
+  if (!tags) return undefined
+  const lookup = new Set(keys.map((key) => key.toLowerCase()))
+  for (const [key, value] of Object.entries(tags)) {
+    if (lookup.has(key.toLowerCase()) && value) return value
+  }
+  return undefined
+}
+
 function hasDirectRepositoryContext(codeToCloud: FindingCodeToCloudContext | undefined): boolean {
   return Boolean(
     codeToCloud?.repository_url ||
@@ -109,6 +118,45 @@ function joinDetail(parts: Array<string | undefined>): string {
   return parts.filter(Boolean).join(' · ')
 }
 
+function deriveCodeToCloudFromTags(finding: Finding): FindingCodeToCloudContext | undefined {
+  const fromTags: FindingCodeToCloudContext = {
+    repository_url: readFindingTag(finding.tags, [
+      'repository_url', 'repo_url', 'repository', 'repo', 'scm_url', 'git_repository',
+      'git_url', 'github_repository', 'gitlab_repository',
+    ]),
+    repository_name: readFindingTag(finding.tags, [
+      'repository_name', 'repo_name', 'service_repo', 'service_repository',
+    ]),
+    repository_provider: readFindingTag(finding.tags, [
+      'repository_provider', 'repo_provider', 'scm_provider', 'git_provider',
+    ]),
+    branch: readFindingTag(finding.tags, [
+      'branch', 'git_branch', 'repository_branch', 'repo_branch', 'workflow_branch',
+    ]),
+    commit_sha: readFindingTag(finding.tags, [
+      'commit_sha', 'git_commit', 'commit', 'sha', 'revision', 'git_revision',
+    ]),
+    build_system: readFindingTag(finding.tags, [
+      'build_system', 'ci_system', 'cicd', 'pipeline_system', 'workflow_system',
+    ]),
+    pipeline_name: readFindingTag(finding.tags, [
+      'pipeline_name', 'pipeline', 'workflow', 'workflow_name', 'build_pipeline',
+    ]),
+    pipeline_run_id: readFindingTag(finding.tags, [
+      'pipeline_run_id', 'run_id', 'workflow_run_id', 'build_id', 'pipeline_execution_id',
+    ]),
+    pipeline_run_url: readFindingTag(finding.tags, [
+      'pipeline_run_url', 'pipeline_url', 'run_url', 'workflow_url', 'build_url',
+    ]),
+    artifact: readFindingTag(finding.tags, [
+      'artifact', 'artifact_name', 'image', 'image_uri', 'container_image', 'build_artifact',
+    ]),
+  }
+
+  if (!hasDirectRepositoryContext(fromTags) && !hasDirectBuildContext(fromTags)) return undefined
+  return fromTags
+}
+
 function deriveOperatorNextMove(finding: Finding, relatedPaths: AttackPath[]): string {
   if (relatedPaths[0]) {
     return `Confirm the last delivery for ${finding.service_name}, then validate whether the linked path from ${relatedPaths[0].entry_point.resource_name} to ${relatedPaths[0].target.resource_name} is still live before remediation starts.`
@@ -122,9 +170,13 @@ export function FindingCodeToCloudWorkspace({
   relatedPaths,
   onOpenInvestigation,
 }: FindingCodeToCloudWorkspaceProps) {
-  const directRepository = hasDirectRepositoryContext(codeToCloud)
-  const directBuild = hasDirectBuildContext(codeToCloud)
-  const likelyRepo = codeToCloud?.repository_name || codeToCloud?.repository_url || deriveLikelyRepo(finding)
+  const resolvedCodeToCloud = {
+    ...(deriveCodeToCloudFromTags(finding) ?? {}),
+    ...(codeToCloud ?? {}),
+  }
+  const directRepository = hasDirectRepositoryContext(resolvedCodeToCloud)
+  const directBuild = hasDirectBuildContext(resolvedCodeToCloud)
+  const likelyRepo = resolvedCodeToCloud.repository_name || resolvedCodeToCloud.repository_url || deriveLikelyRepo(finding)
   const linkedPath = relatedPaths[0]
   const linkedTargets = Array.from(new Set(relatedPaths.map((path) => path.target.resource_name))).slice(0, 3)
   const stages: DeliveryStage[] = [
@@ -134,9 +186,9 @@ export function FindingCodeToCloudWorkspace({
       title: likelyRepo,
       detail: directRepository
         ? joinDetail([
-            codeToCloud?.repository_provider,
-            codeToCloud?.branch ? `branch ${codeToCloud.branch}` : undefined,
-            codeToCloud?.commit_sha ? `commit ${formatCommit(codeToCloud.commit_sha)}` : undefined,
+            resolvedCodeToCloud.repository_provider,
+            resolvedCodeToCloud.branch ? `branch ${resolvedCodeToCloud.branch}` : undefined,
+            resolvedCodeToCloud.commit_sha ? `commit ${formatCommit(resolvedCodeToCloud.commit_sha)}` : undefined,
           ]) || `Attached CI/CD repository context for ${finding.service_name}`
         : `Likely service repository for ${finding.service_name}`,
       inferred: !directRepository,
@@ -145,12 +197,12 @@ export function FindingCodeToCloudWorkspace({
     {
       id: 'build',
       label: 'Build lane',
-      title: codeToCloud?.pipeline_name || codeToCloud?.artifact || deriveArtifactLabel(finding),
+      title: resolvedCodeToCloud.pipeline_name || resolvedCodeToCloud.artifact || deriveArtifactLabel(finding),
       detail: directBuild
         ? joinDetail([
-            codeToCloud?.build_system,
-            codeToCloud?.pipeline_run_id ? `run ${codeToCloud.pipeline_run_id}` : undefined,
-            codeToCloud?.artifact,
+            resolvedCodeToCloud.build_system,
+            resolvedCodeToCloud.pipeline_run_id ? `run ${resolvedCodeToCloud.pipeline_run_id}` : undefined,
+            resolvedCodeToCloud.artifact,
           ]) || 'Attached CI/CD pipeline context'
         : deriveBuildFocus(finding),
       inferred: !directBuild,
@@ -200,7 +252,7 @@ export function FindingCodeToCloudWorkspace({
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               {directRepository || directBuild
-                ? 'Repository and build stages come from backend provenance metadata when present. Runtime asset and cloud scope remain direct from the finding itself.'
+                ? 'Repository and build stages come from attached provenance metadata when present. Runtime asset and cloud scope remain direct from the finding itself.'
                 : 'Runtime asset and cloud scope are direct from the finding. Source repo and build lane stay explicitly marked as inferred until the backend attaches CI/CD provenance.'}
             </p>
           </div>
@@ -257,9 +309,9 @@ export function FindingCodeToCloudWorkspace({
                   <p className="mt-1 text-xs text-muted-foreground">
                     {directBuild
                       ? joinDetail([
-                          codeToCloud?.pipeline_name,
-                          codeToCloud?.pipeline_run_id ? `Run ${codeToCloud.pipeline_run_id}` : undefined,
-                          codeToCloud?.pipeline_run_url,
+                          resolvedCodeToCloud.pipeline_name,
+                          resolvedCodeToCloud.pipeline_run_id ? `Run ${resolvedCodeToCloud.pipeline_run_id}` : undefined,
+                          resolvedCodeToCloud.pipeline_run_url,
                         ]) || deriveBuildFocus(finding)
                       : deriveBuildFocus(finding)}
                   </p>
@@ -270,7 +322,7 @@ export function FindingCodeToCloudWorkspace({
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {directRepository || directBuild
-                      ? 'This finding carries explicit repository or pipeline metadata from the backend enrich response, so the handoff does not need to guess source control or build lineage.'
+                      ? 'This finding carries explicit repository or pipeline metadata, so the handoff does not need to guess source control or build lineage.'
                       : 'The finding exposes service, app, account, region, and runtime asset metadata, but it does not yet carry explicit repo, branch, commit, or pipeline run identifiers.'}
                   </p>
                 </div>

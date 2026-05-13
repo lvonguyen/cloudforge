@@ -401,13 +401,13 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0">
-          <TabsTrigger value="overview" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><Search className="h-3 w-3" />Overview</TabsTrigger>
-          <TabsTrigger value="investigation" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><Clock className="h-3 w-3" />Investigation</TabsTrigger>
-          <TabsTrigger value="code-to-cloud" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><GitBranch className="h-3 w-3" />Code to Cloud</TabsTrigger>
-          <TabsTrigger value="remediation" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><CheckCircle2 className="h-3 w-3" />Remediation</TabsTrigger>
-          <TabsTrigger value="comments" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><MessageSquare className="h-3 w-3" />Comments</TabsTrigger>
-          <TabsTrigger value="history" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><History className="h-3 w-3" />History</TabsTrigger>
+        <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden border-b border-border bg-transparent rounded-none p-0">
+          <TabsTrigger value="overview" className="flex-none gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><Search className="h-3 w-3" />Overview</TabsTrigger>
+          <TabsTrigger value="investigation" className="flex-none gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><Clock className="h-3 w-3" />Investigation</TabsTrigger>
+          <TabsTrigger value="code-to-cloud" className="flex-none gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><GitBranch className="h-3 w-3" />Code to Cloud</TabsTrigger>
+          <TabsTrigger value="remediation" className="flex-none gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><CheckCircle2 className="h-3 w-3" />Remediation</TabsTrigger>
+          <TabsTrigger value="comments" className="flex-none gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><MessageSquare className="h-3 w-3" />Comments</TabsTrigger>
+          <TabsTrigger value="history" className="flex-none gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs"><History className="h-3 w-3" />History</TabsTrigger>
         </TabsList>
 
         {/* ── Overview Tab ── */}
@@ -844,11 +844,11 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
         {/* ── Investigation Tab ── */}
         <TabsContent value="investigation" className="space-y-6 mt-4">
           <Tabs value={investigationView} onValueChange={(value) => setInvestigationView(value as 'attack-path' | 'security-graph')}>
-            <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0">
-              <TabsTrigger value="attack-path" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs">
+            <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden border-b border-border bg-transparent rounded-none p-0">
+              <TabsTrigger value="attack-path" className="flex-none gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs">
                 <Crosshair className="h-3 w-3" />Attack Path
               </TabsTrigger>
-              <TabsTrigger value="security-graph" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs">
+              <TabsTrigger value="security-graph" className="flex-none gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs">
                 <Clock className="h-3 w-3" />Security Graph
               </TabsTrigger>
             </TabsList>

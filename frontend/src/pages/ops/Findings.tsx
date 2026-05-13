@@ -139,7 +139,9 @@ export default function Findings() {
 
   // Preview panel
   const [previewId, setPreviewId] = useState<string | null>(null)
+  const isSmUp = useMediaQuery('(min-width: 640px)')
   const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const isMobile = !isSmUp
 
   // Group by
   const [groupBy, setGroupBy] = useState<'none' | 'rule' | 'resource' | 'provider' | 'category'>('none')
@@ -214,6 +216,22 @@ export default function Findings() {
   // Compact columns for list-detail split (hide verbose columns when detail panel is open)
   const COMPACT_KEYS: Set<SortColumn> = useMemo(() => new Set(['severity', 'title', 'provider', 'status'] as SortColumn[]), [])
   const compactColumns = useMemo(() => ALL_COLUMNS.filter(c => COMPACT_KEYS.has(c.key)), [COMPACT_KEYS])
+  const MOBILE_KEYS: Set<SortColumn> = useMemo(() => new Set(['severity', 'title', 'status'] as SortColumn[]), [])
+  const mobileColumns = useMemo(() => ALL_COLUMNS.filter(c => MOBILE_KEYS.has(c.key)), [MOBILE_KEYS])
+  const mobileColumnWidths = useMemo<Record<SortColumn, number>>(() => ({
+    severity: 72,
+    title: 204,
+    status: 104,
+    category: DEFAULT_WIDTHS.category,
+    provider: DEFAULT_WIDTHS.provider,
+    resource_type: DEFAULT_WIDTHS.resource_type,
+    resource: DEFAULT_WIDTHS.resource,
+    resource_id: DEFAULT_WIDTHS.resource_id,
+    region: DEFAULT_WIDTHS.region,
+    ai_risk: DEFAULT_WIDTHS.ai_risk,
+    sla: DEFAULT_WIDTHS.sla,
+    first_found: DEFAULT_WIDTHS.first_found,
+  }), [])
 
   const hasFilters = selectedCategories.size > 0 || selectedProviders.size > 0 || selectedStatuses.size > 0 || search.length > 0 || filterSLABreached || filterAutoRem
 
@@ -754,15 +772,15 @@ export default function Findings() {
         )}
 
         {/* Top bar */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <h1 className="text-xl font-semibold font-mono">Findings</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               {displayCount.toLocaleString()} total findings{hasFilters ? ` (${filtered.length.toLocaleString()} visible in current page window)` : ''}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex gap-1.5">
+          <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
+            <div className="flex flex-wrap gap-1.5">
               {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map(sev => (
                 <Badge key={sev} variant="outline" className={`text-[10px] px-1.5 py-0 rounded-none ${SEVERITY_COLORS[sev]}`}>
                   {sev} {(severitySummaryCounts[sev] ?? 0).toLocaleString()}
@@ -775,7 +793,7 @@ export default function Findings() {
               aria-label="Search findings"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="h-8 w-48 px-2 text-xs border border-border bg-background rounded-none focus:outline-none focus:ring-1 focus:ring-ring"
+              className="h-8 min-w-0 flex-1 px-2 text-xs border border-border bg-background rounded-none focus:outline-none focus:ring-1 focus:ring-ring sm:flex-none sm:w-48"
             />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -861,12 +879,12 @@ export default function Findings() {
         </div>
 
         {/* Severity tabs */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 overflow-x-auto pb-1">
           {SEVERITY_TABS.map(tab => (
             <button
               key={tab}
               onClick={() => setSeverityTab(tab)}
-              className={`px-3 py-1 text-xs rounded-none font-medium transition-colors ${
+              className={`shrink-0 px-3 py-1 text-xs rounded-none font-medium transition-colors ${
                 severityTab === tab
                   ? 'bg-foreground text-background'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -881,13 +899,13 @@ export default function Findings() {
         </div>
 
         {/* Group By tabs */}
-        <div className="flex items-center gap-1">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wide mr-1">Group:</span>
+        <div className="flex items-center gap-1 overflow-x-auto pb-1">
+          <span className="mr-1 shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide">Group:</span>
           {([['none', 'All'], ['rule', 'Rule'], ['resource', 'Resource'], ['provider', 'Provider'], ['category', 'Category']] as const).map(([key, label]) => (
             <button
               key={key}
               onClick={() => { setGroupBy(key); setCollapsedGroups(new Set()) }}
-              className={`px-2 py-0.5 text-[10px] rounded-none font-medium transition-colors ${
+              className={`shrink-0 px-2 py-0.5 text-[10px] rounded-none font-medium transition-colors ${
                 groupBy === key
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -964,21 +982,26 @@ export default function Findings() {
 
         {/* Flat table view */}
         {!isLoading && sorted.length > 0 && groupBy === 'none' && (() => {
-          const isCompact = !!(previewId && isDesktop)
-          const cols = isCompact ? compactColumns : activeColumns
+          const isCompact = isMobile || !!(previewId && isDesktop)
+          const cols = isMobile ? mobileColumns : (isCompact ? compactColumns : activeColumns)
+          const getColumnWidth = (col: SortColumn) => isMobile ? mobileColumnWidths[col] : columnWidths[col]
           return (
           <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
             {/* West: Table */}
-            <div className={isCompact ? 'w-[380px] shrink-0 overflow-y-auto border-r border-border transition-all' : 'flex-1 min-w-0 transition-all'}>
+            <div className={isMobile
+              ? 'flex-1 min-w-0 overflow-y-auto'
+              : isCompact
+                ? 'w-[380px] shrink-0 overflow-y-auto border-r border-border transition-all'
+                : 'flex-1 min-w-0 transition-all'}>
               <div ref={parentRef} className="overflow-auto [&_[data-slot=table-container]]:overflow-visible" style={{ height: 'calc(100vh - 280px)' }}>
-                <Table style={{ tableLayout: 'fixed', width: cols.reduce((sum, c) => sum + columnWidths[c.key], 0) }}>
+                <Table style={{ tableLayout: 'fixed', width: cols.reduce((sum, c) => sum + getColumnWidth(c.key), 0) }}>
                   <TableHeader className="sticky top-0 z-10 bg-background">
                     <TableRow className="bg-muted/30">
                       {cols.map(col => (
                         <TableHead
                           key={col.key}
                           className="relative select-none overflow-hidden"
-                          style={{ width: columnWidths[col.key] }}
+                          style={{ width: getColumnWidth(col.key) }}
                         >
                           <div className="flex items-center">
                             <span
@@ -1029,7 +1052,7 @@ export default function Findings() {
                           }}
                         >
                           {cols.map(col => (
-                            <TableCell key={col.key} className="overflow-hidden" style={{ width: columnWidths[col.key] }}>
+                            <TableCell key={col.key} className="overflow-hidden" style={{ width: getColumnWidth(col.key) }}>
                               {renderCell(f, col.key)}
                             </TableCell>
                           ))}
@@ -1042,7 +1065,7 @@ export default function Findings() {
               </div>
 
               {/* Pagination footer */}
-              <div className="flex items-center justify-between pt-2 border-t border-border">
+              <div className="flex flex-col gap-2 border-t border-border pt-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">Rows per page</span>
                   <select
@@ -1060,7 +1083,7 @@ export default function Findings() {
                     : `Page ${currentPage} · ${sorted.length.toLocaleString()} visible`}
                   {' '}of {displayCount.toLocaleString()}
                 </span>
-                <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-0.5 self-end sm:self-auto">
                   <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage <= 1} onClick={() => setPage(1)} aria-label="First page">
                     <ChevronsLeft className="h-3.5 w-3.5" />
                   </Button>

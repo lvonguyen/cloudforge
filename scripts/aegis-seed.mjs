@@ -54,6 +54,88 @@ function pickN(arr, n) { const s = [...arr]; for (let i = s.length - 1; i > 0; i
 function randRange(min, max) { return +(min + rand() * (max - min)).toFixed(2); }
 function pad(n, w = 6) { return String(n).padStart(w, '0'); }
 function hash(s) { return createHash('md5').update(s + 'aegis-seed-salt').digest('hex'); }
+function sha1(s) { return createHash('sha1').update(s + 'aegis-code-to-cloud-salt').digest('hex'); }
+function slugify(value) { return String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'service'; }
+
+const REPO_OWNER = 'contoso';
+const BRANCH_BY_ENVIRONMENT = {
+  production: 'main',
+  staging: 'release/staging',
+  development: 'develop',
+  sandbox: 'sandbox/hardening',
+};
+
+function selectRepositoryHost(provider) {
+  if (provider === 'gcp') {
+    return {
+      repositoryProvider: 'gitlab',
+      repositoryURL: (repoPath) => `https://gitlab.com/${repoPath}`,
+      buildSystem: 'gitlab-ci',
+      pipelineRunURL: (repoPath, runId) => `https://gitlab.com/${repoPath}/-/pipelines/${runId}`,
+    };
+  }
+  if (provider === 'azure') {
+    return {
+      repositoryProvider: 'azure-repos',
+      repositoryURL: (repoSlug) => `https://dev.azure.com/${REPO_OWNER}/Platform/_git/${repoSlug}`,
+      buildSystem: 'azure-devops',
+      pipelineRunURL: (_repoPath, runId) => `https://dev.azure.com/${REPO_OWNER}/Platform/_build/results?buildId=${runId}`,
+    };
+  }
+  return {
+    repositoryProvider: 'github',
+    repositoryURL: (repoPath) => `https://github.com/${repoPath}`,
+    buildSystem: 'github-actions',
+    pipelineRunURL: (repoPath, runId) => `https://github.com/${repoPath}/actions/runs/${runId}`,
+  };
+}
+
+function buildArtifactReference(provider, resourceType, repoSlug, commitSHA) {
+  const shortSHA = commitSHA.slice(0, 12);
+  switch (resourceType) {
+    case 'container':
+      if (provider === 'azure') return `${REPO_OWNER}shared.azurecr.io/${repoSlug}:${shortSHA}`;
+      if (provider === 'gcp') return `us-docker.pkg.dev/${REPO_OWNER}/${repoSlug}/${repoSlug}:${shortSHA}`;
+      return `ghcr.io/${REPO_OWNER}/${repoSlug}:${shortSHA}`;
+    case 'serverless':
+      if (provider === 'azure') return `https://${REPO_OWNER}artifacts.blob.core.windows.net/releases/${repoSlug}/${shortSHA}.zip`;
+      if (provider === 'gcp') return `gs://${REPO_OWNER}-artifacts/${repoSlug}/${shortSHA}.zip`;
+      return `s3://${REPO_OWNER}-artifacts/${repoSlug}/${shortSHA}.zip`;
+    case 'database':
+      return `${repoSlug}-schema-${shortSHA}.sql`;
+    case 'identity':
+      return `${repoSlug}-policy-pack-${shortSHA}.tgz`;
+    default:
+      return `${repoSlug}-${shortSHA}.tgz`;
+  }
+}
+
+function buildCodeToCloudTags({ service, provider, environmentType, resourceType, findingID, findingHash }) {
+  const repoSlug = slugify(service.name || service.id);
+  const repoPath = `${REPO_OWNER}/${repoSlug}`;
+  const commitSHA = sha1(`${service.id}:${findingID}:${findingHash}`).slice(0, 40);
+  const branch = BRANCH_BY_ENVIRONMENT[environmentType] ?? 'main';
+  const runId = String(100000 + (parseInt(findingHash.slice(0, 8), 16) % 900000));
+  const pipelineAction =
+    environmentType === 'production' ? 'deploy' :
+    environmentType === 'staging' ? 'promote' :
+    'build';
+  const pipelineName = `${pipelineAction}-${repoSlug}`;
+  const host = selectRepositoryHost(provider);
+
+  return {
+    repository_url: host.repositoryURL(host.repositoryProvider === 'azure-repos' ? repoSlug : repoPath),
+    repository_name: repoPath,
+    repository_provider: host.repositoryProvider,
+    branch,
+    commit_sha: commitSHA,
+    build_system: host.buildSystem,
+    pipeline_name: pipelineName,
+    pipeline_run_id: runId,
+    pipeline_run_url: host.pipelineRunURL(repoPath, runId),
+    artifact: buildArtifactReference(provider, resourceType, repoSlug, commitSHA),
+  };
+}
 
 // ── 56-Service Taxonomy ──────────────────────────────────────────────────────
 
@@ -918,6 +1000,14 @@ function enrichFindings(findings) {
       due_date: dueDate,
       deduplication_key: h.slice(0, 24),
       canonical_rule_id: f._type === 'vulnerability' && cves.length > 0 ? cves[0].id : f._controlId || `${f._category}-${pad(idx + 1)}`,
+      tags: buildCodeToCloudTags({
+        service: svc,
+        provider: f._provider,
+        environmentType: env,
+        resourceType: f._resourceType,
+        findingID: id,
+        findingHash: h,
+      }),
     };
 
     if (slaBreached) finding.sla_breach_date = dueDate;

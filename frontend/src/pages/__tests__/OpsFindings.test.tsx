@@ -99,4 +99,13 @@ describe('OpsFindings', () => {
     expect(criticalCard).toBeDefined()
     expect(criticalCard).toHaveTextContent('4,321')
   })
+
+  it('uses the reduced mobile column set by default', () => {
+    renderWithProviders(<Findings />)
+
+    expect(screen.getByRole('columnheader', { name: /^Severity/i })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: /^Title$/i })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: /^Status/i })).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: /^Provider/i })).not.toBeInTheDocument()
+  })
 })

@@ -79,6 +79,21 @@ const SAMPLE_FINDING: Finding = {
   suppressed: false,
 };
 
+const SAMPLE_FINDING_WITH_TAGS: Finding = {
+  ...SAMPLE_FINDING,
+  tags: {
+    repository_name: "contoso/orders-api",
+    repository_provider: "github",
+    branch: "main",
+    commit_sha: "0123456789abcdef0123456789abcdef01234567",
+    build_system: "github-actions",
+    pipeline_name: "deploy-orders-api",
+    pipeline_run_id: "4711",
+    pipeline_run_url: "https://github.com/contoso/orders-api/actions/runs/4711",
+    artifact: "ghcr.io/contoso/orders-api:2026.04.07",
+  },
+};
+
 const SAMPLE_PATH: AttackPath = {
   id: "path-1",
   title: "Public compute to production database",
@@ -219,6 +234,22 @@ describe("Finding investigation workspaces", () => {
     );
 
     expect(screen.getByText("cloudforge/orders-api")).toBeInTheDocument();
+    expect(screen.getByText(/branch main/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/deploy-orders-api/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/github-actions/i)).toBeInTheDocument();
+    expect(screen.getByText(/provenance source/i)).toBeInTheDocument();
+  });
+
+  it("falls back to finding tags when enrichment metadata is unavailable", () => {
+    renderWithProviders(
+      <FindingCodeToCloudWorkspace
+        finding={SAMPLE_FINDING_WITH_TAGS}
+        relatedPaths={[SAMPLE_PATH]}
+        onOpenInvestigation={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("contoso/orders-api")).toBeInTheDocument();
     expect(screen.getByText(/branch main/i)).toBeInTheDocument();
     expect(screen.getAllByText(/deploy-orders-api/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/github-actions/i)).toBeInTheDocument();

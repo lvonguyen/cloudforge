@@ -58,6 +58,12 @@ export function shouldPreferLocalMockAssets(): boolean {
   )
 }
 
+export function logMockFallbackWarning(message: string): void {
+  if (import.meta.env.DEV) {
+    console.warn(message)
+  }
+}
+
 function authHeaders(): Record<string, string> {
   const isDev = import.meta.env.DEV
   const staticToken = import.meta.env.VITE_STATIC_TOKEN as string | undefined
@@ -126,7 +132,7 @@ export async function fetchWithMockFallback<T>(
 ): Promise<T> {
   // In demo mode, skip API entirely — no backend to call
   if (import.meta.env.VITE_DEMO_MODE === 'true') {
-    console.warn(`[${label}] Demo mode, using mock data`)
+    logMockFallbackWarning(`[${label}] Demo mode, using mock data`)
     const mod = await mockImport()
     return mod.default
   }
@@ -142,7 +148,7 @@ export async function fetchWithMockFallback<T>(
   } catch (err) {
     if (err instanceof ApiError && err.status < 500) throw err
     if (!isMockFallbackEnabled()) throw err
-    console.warn(`[${label}] API unavailable, using mock data`)
+    logMockFallbackWarning(`[${label}] API unavailable, using mock data`)
     try {
       const mod = await mockImport()
       return mod.default

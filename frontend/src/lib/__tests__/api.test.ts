@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { ApiError, queryClient, apiClient } from '@/lib/api'
+import { ApiError, queryClient, apiClient, fetchWithMockFallback } from '@/lib/api'
 import { setPreviewRoleOverride } from '@/lib/auth'
 
 describe('ApiError', () => {
@@ -234,5 +234,33 @@ describe('apiClient.delete', () => {
     const callArgs = vi.mocked(global.fetch).mock.calls[0]
     const options = callArgs[1] as RequestInit
     expect(options.method).toBe('DELETE')
+  })
+})
+
+describe('fetchWithMockFallback logging', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+  })
+
+  it('stays quiet in production demo mode', async () => {
+    vi.stubEnv('DEV', false)
+    vi.stubEnv('VITE_DEMO_MODE', 'true')
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const result = await fetchWithMockFallback('/demo', async () => ({ default: ['mock'] }), 'useCompliance')
+
+    expect(result).toEqual(['mock'])
+    expect(warnSpy).not.toHaveBeenCalled()
+  })
+
+  it('logs mock usage in local development', async () => {
+    vi.stubEnv('DEV', true)
+    vi.stubEnv('VITE_DEMO_MODE', 'true')
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    await fetchWithMockFallback('/demo', async () => ({ default: ['mock'] }), 'useCompliance')
+
+    expect(warnSpy).toHaveBeenCalledWith('[useCompliance] Demo mode, using mock data')
   })
 })

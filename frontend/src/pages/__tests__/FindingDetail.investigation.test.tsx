@@ -319,4 +319,16 @@ describe('FindingDetail graph tabs', () => {
     expect(screen.getByRole('tab', { name: /history/i })).toBeInTheDocument()
 
   }, 10_000)
+
+  it('keeps the primary tab strip horizontally scrollable for narrow viewports', async () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/ops/findings/:id" element={<FindingDetail />} />
+      </Routes>,
+      { route: '/ops/findings/f-001' },
+    )
+
+    const overviewTab = await screen.findByRole('tab', { name: /overview/i })
+    expect(overviewTab.parentElement).toHaveClass('overflow-x-auto')
+  })
 })
