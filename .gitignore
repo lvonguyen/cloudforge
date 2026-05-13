@@ -113,6 +113,7 @@ frontend/test-results/
 .claude/agents
 .claude/graph
 .claude/projects/
+.serena/
 
 # Rust build artifacts
 rust/libaegispath/target/
@@ -138,3 +139,11 @@ data/
 tasks/next-sprint.md
 .claude/scheduled_tasks.lock
 .claude/QA_REPORT_*.md
+
+# Local browser/debug captures from manual QA sessions
+attackpaths-console-errors.txt
+prod-*-requests.txt
+prod-*-network.txt
+
+# Dated session recaps are superseded by tasks/handoff.md
+tasks/recap-*.md

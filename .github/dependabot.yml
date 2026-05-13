@@ -29,6 +29,11 @@ updates:
       - "ci"
     commit-message:
       prefix: "ci"
+    ignore:
+      # Temporary: Dependabot's github-actions updater is currently erroring on
+      # this action even when the rest of the batch succeeds, which turns the
+      # weekly update run red and adds noise to CI triage.
+      - dependency-name: "goreleaser/goreleaser-action"
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
@@ -83,3 +88,11 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # Hold ESLint major bumps until eslint-plugin-react-hooks supports them.
+      - dependency-name: "eslint"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "@eslint/js"
+        update-types:
+          - "version-update:semver-major"

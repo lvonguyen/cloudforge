@@ -72,6 +72,7 @@ cloudforge/
   policies/           # OPA .rego policy files
   docs/               # ADRs, architecture, threat models, QA codex, sprint docs
     api/              # OpenAPI 3.1 specification
+  docs-site/          # Docusaurus docs site for published architecture/API/runbook content
   deploy/             # Dockerfile, k8s manifests, Terraform, deploy scripts
   configs/            # Config YAML files (config.example.yaml, cspm-aggregator.yaml)
   scripts/            # Seed pipeline + build scripts (see below)
