@@ -1,1 +1,0 @@
-/Users/lvonguyen/repos/gh/lvn-library/shared/standards/.claude/skills/postgres-patterns/SKILL.md

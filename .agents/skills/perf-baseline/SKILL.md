@@ -1,1 +1,0 @@
-/Users/lvonguyen/repos/gh/lvn-library/shared/standards/.claude/skills/perf-baseline/SKILL.md
