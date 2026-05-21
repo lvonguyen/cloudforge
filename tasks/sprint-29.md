@@ -126,8 +126,8 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 - **Deliverable:** Fixed seed script, regenerated data
 
 ### WS-9: NLQ Enhancements
-- [ ] **UNCLAIMED**
-- Wire RQL `!=` exclusion operator (EC-04)
+- [PARTIAL: codex-20260521] EC-04 fixed: RQL `!=` now becomes visible exclusion filters and is applied in Findings + Command Center queues.
+- [x] Wire RQL `!=` exclusion operator (EC-04)
 - Consider NLQ AI fallback for Viewer role (EC-03) — or document as intentional RBAC gate
 - Add agentic retrieval pattern (query rewriting on low-relevance results)
 - **Deliverable:** Code fixes + tests
@@ -154,4 +154,5 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 | 30 | C2 + S2 + S3 (security hardening) | DONE: NLQ prompt injection fix (input sanitize + output whitelist), CORS PATCH, Gremlin blocklist extension (4 steps + Groovy template). 12 new test cases, all green with -race. | pending |
 | codex-20260521 | C4 Postgres findings list scaling | DONE: Postgres-backed `/findings` count/list path, allowlisted SQL filters/sorts, ABAC scope predicates, list indexes, preflight migration list update. Verification: focused `cmd/server` tests PASS, full `go test ./... -count=1` PASS. | `20a01376` |
 | codex-20260521 | WS-1 visual QA sweep | DONE: Prod Playwright 19 passed/1 skipped; 25 desktop route screenshots, 10 mobile overflow checks, 3 GIF captures. EC-01 seed mismatch and EC-04 RQL exclusion confirmed; API DNS warnings recorded. | `4b8629e3` |
-| codex-20260521 | WS-3 live 300K performance baseline | DONE: Live Fly/Neon baseline captured against 300K findings. Median list/filter under 250ms; severity sort p95 2.73s and keyword search p95 1.63s are the main bottlenecks. Local Docker path blocked. | pending |
+| codex-20260521 | WS-3 live 300K performance baseline | DONE: Live Fly/Neon baseline captured against 300K findings. Median list/filter under 250ms; severity sort p95 2.73s and keyword search p95 1.63s are the main bottlenecks. Local Docker path blocked. | `70c44cc0` |
+| codex-20260521 | WS-9 RQL exclusion support | PARTIAL: EC-04 fixed with shared NLQ filter types, RQL exclusion adapter support, visible exclusion badges, Findings/Command Center filter application, and parser/component tests. EC-03 and query rewriting remain open. | pending |

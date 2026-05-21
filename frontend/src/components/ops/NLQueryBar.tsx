@@ -3,15 +3,7 @@ import { Search, X, Sparkles, Code2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { apiClient } from '@/lib/api'
 import { parseRQL, rqlToFilters, isValidRQL, RQL_SYNTAX_HINT } from '@/lib/rql-parser'
-
-interface NLQFilters {
-  severity?: string[]
-  provider?: string[]
-  category?: string[]
-  status?: string[]
-  environment?: string[]
-  text?: string
-}
+import type { NLQFilters } from '@/types/nlq'
 
 interface NLQueryBarProps {
   onApplyFilters: (filters: NLQFilters) => void
@@ -87,13 +79,7 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
         return
       }
       const parsed = parseRQL(q)
-      const raw = rqlToFilters(parsed)
-      const filters: NLQFilters = {}
-      if (raw.severity) filters.severity = raw.severity
-      if (raw.provider) filters.provider = raw.provider
-      if (raw.category) filters.category = raw.category
-      if (raw.status) filters.status = raw.status
-      if (raw.environment) filters.environment = raw.environment
+      const filters = rqlToFilters(parsed)
       setAppliedFilters(filters)
       onApplyFilters(filters)
       setOpen(false)
@@ -191,6 +177,13 @@ export function NLQueryBar({ onApplyFilters }: NLQueryBarProps) {
           {appliedFilters.environment?.map(e => (
             <Badge key={e} variant="outline" className="text-[10px] px-1.5 py-0 rounded-none">{e}</Badge>
           ))}
+          {Object.entries(appliedFilters.exclude ?? {}).flatMap(([field, values]) =>
+            (values ?? []).map(value => (
+              <Badge key={`exclude-${field}-${value}`} variant="outline" className="text-[10px] px-1.5 py-0 rounded-none">
+                not {field}: {value}
+              </Badge>
+            )),
+          )}
           {appliedFilters.text && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 rounded-none">"{appliedFilters.text}"</Badge>
           )}

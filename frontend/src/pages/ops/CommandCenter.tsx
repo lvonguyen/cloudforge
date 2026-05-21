@@ -29,6 +29,7 @@ import { SEVERITY_COLORS_BORDERED as SEVERITY_COLORS, SEVERITY_HEX, SEVERITY_NEU
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { playStreamingTrace } from '@/lib/trace-helpers'
+import { findingMatchesNLQExclusion, hasNLQExclusions } from '@/lib/nlq-filters'
 import {
   ArrowLeft,
   ChevronRight,
@@ -39,15 +40,7 @@ import {
 } from 'lucide-react'
 import type { AttackPath } from '@/types/attack-path'
 import type { Finding } from '@/types/compliance'
-
-interface NLQFilters {
-  severity?: string[]
-  provider?: string[]
-  category?: string[]
-  status?: string[]
-  environment?: string[]
-  text?: string
-}
+import type { NLQFilters } from '@/types/nlq'
 
 function getFindingQueueScore(finding: Finding): number {
   const severityScore: Record<string, number> = {
@@ -430,7 +423,7 @@ function CenterPane({
 function CommandCenterShell() {
   const { state, dispatch, showDetailPanel } = useCommandCenter()
   const { openStreaming, appendEvent, setRunning } = useTracePanel()
-  const [queryFilters, setQueryFilters] = useState<Pick<NLQFilters, 'category' | 'status' | 'text'>>({})
+  const [queryFilters, setQueryFilters] = useState<Pick<NLQFilters, 'category' | 'status' | 'text' | 'exclude'>>({})
 
   const enabledByGroup = useMemo(() => {
     const map: Record<string, Set<string>> = {}
@@ -477,6 +470,7 @@ function CommandCenterShell() {
       if (sevs && sevs.size > 0 && !sevs.has(f.severity)) return false
       if (provs && provs.size > 0 && !provs.has(f.cloud_provider)) return false
       if (envs && envs.size > 0 && !envs.has(f.environment_type)) return false
+      if (findingMatchesNLQExclusion(f, queryFilters.exclude)) return false
       if (queryFilters.category?.length && !queryFilters.category.includes(f.category)) return false
       if (queryFilters.status?.length && !queryFilters.status.includes(f.status) && !queryFilters.status.includes(f.workflow_status)) return false
       if (queryFilters.text) {
@@ -497,7 +491,7 @@ function CommandCenterShell() {
       if (end && f.first_found_at > end + 'T23:59:59Z') return false
       return true
     })
-  }, [allFindings, enabledByGroup, queryFilters.category, queryFilters.status, queryFilters.text, state.dateRange])
+  }, [allFindings, enabledByGroup, queryFilters.category, queryFilters.exclude, queryFilters.status, queryFilters.text, state.dateRange])
 
   // Filter attack paths by active layers (provider/severity match on nodes)
   const filteredAttackPaths = useMemo(() => {
@@ -565,7 +559,8 @@ function CommandCenterShell() {
       filters.provider?.length ||
       filters.category?.length ||
       filters.status?.length ||
-      filters.environment?.length,
+      filters.environment?.length ||
+      hasNLQExclusions(filters.exclude),
     )
 
     if (filters.severity) {
@@ -587,6 +582,7 @@ function CommandCenterShell() {
       category: filters.category && filters.category.length > 0 ? filters.category : undefined,
       status: filters.status && filters.status.length > 0 ? filters.status : undefined,
       text: filters.text?.trim() || undefined,
+      exclude: hasNLQExclusions(filters.exclude) ? filters.exclude : undefined,
     })
     if (hasFocusedQuery) {
       dispatch({ type: 'SET_CENTER_VIEW', payload: 'queue' })

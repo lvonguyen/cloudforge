@@ -245,6 +245,24 @@ describe('NLQueryBar', () => {
     })
   })
 
+  it('preserves RQL exclusion filters', () => {
+    const onApplyFilters = vi.fn()
+    renderBar(onApplyFilters)
+
+    fireEvent.click(screen.getByText('Ask a question about findings...'))
+    fireEvent.click(screen.getByText('RQL'))
+
+    const input = screen.getByPlaceholderText('severity=CRITICAL AND provider=aws')
+    fireEvent.change(input, { target: { value: 'provider=aws AND status!=resolved' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    expect(onApplyFilters).toHaveBeenCalledWith({
+      provider: ['aws'],
+      exclude: { status: ['resolved'] },
+    })
+    expect(screen.getByText('not status: resolved')).toBeInTheDocument()
+  })
+
   it('falls back to text search for invalid RQL', () => {
     const onApplyFilters = vi.fn()
     renderBar(onApplyFilters)

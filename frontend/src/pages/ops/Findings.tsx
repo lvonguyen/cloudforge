@@ -22,6 +22,8 @@ import type { Finding } from '@/types/compliance'
 import { SEVERITY_COLORS } from '@/lib/severity'
 import { exportCSV } from '@/lib/export-csv'
 import { NLQueryBar } from '@/components/ops/NLQueryBar'
+import { findingMatchesNLQExclusion, hasNLQExclusions } from '@/lib/nlq-filters'
+import type { NLQExclusions, NLQFilters } from '@/types/nlq'
 
 const SEVERITY_ORDER: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
 
@@ -114,6 +116,7 @@ export default function Findings() {
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
   const [selectedProviders, setSelectedProviders] = useState<Set<string>>(new Set())
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set())
+  const [excludedFilters, setExcludedFilters] = useState<NLQExclusions>({})
 
   // Metric card filters
   const [filterSLABreached, setFilterSLABreached] = useState(false)
@@ -233,12 +236,14 @@ export default function Findings() {
     first_found: DEFAULT_WIDTHS.first_found,
   }), [])
 
-  const hasFilters = selectedCategories.size > 0 || selectedProviders.size > 0 || selectedStatuses.size > 0 || search.length > 0 || filterSLABreached || filterAutoRem
+  const hasExcludedFilters = useMemo(() => hasNLQExclusions(excludedFilters), [excludedFilters])
+  const hasFilters = selectedCategories.size > 0 || selectedProviders.size > 0 || selectedStatuses.size > 0 || search.length > 0 || filterSLABreached || filterAutoRem || hasExcludedFilters
 
   const clearFilters = useCallback(() => {
     setSelectedCategories(new Set())
     setSelectedProviders(new Set())
     setSelectedStatuses(new Set())
+    setExcludedFilters({})
     setSearch('')
     setFilterSLABreached(false)
     setFilterAutoRem(false)
@@ -283,6 +288,10 @@ export default function Findings() {
     if (selectedStatuses.size > 0) {
       result = result.filter(f => selectedStatuses.has(f.status))
     }
+    // RQL exclusion filters: field!=value.
+    if (hasExcludedFilters) {
+      result = result.filter(f => !findingMatchesNLQExclusion(f, excludedFilters))
+    }
     // Text search
     if (deferredSearch) {
       const q = deferredSearch.toLowerCase()
@@ -304,7 +313,7 @@ export default function Findings() {
     }
 
     return result
-  }, [allFindings, selectedCategories, selectedProviders, selectedStatuses, deferredSearch, severityTab])
+  }, [allFindings, selectedCategories, selectedProviders, selectedStatuses, hasExcludedFilters, excludedFilters, deferredSearch, severityTab])
 
   // KPI summaries (from baseFiltered — respects sidebar/search/severity but not metric toggles)
   const severityCounts = useMemo(() => {
@@ -637,7 +646,8 @@ export default function Findings() {
       {/* Main content */}
       <div className="flex-1 min-w-0 space-y-4">
         {/* NLQ bar */}
-        <NLQueryBar onApplyFilters={(filters) => {
+        <NLQueryBar onApplyFilters={(filters: NLQFilters) => {
+          setExcludedFilters(filters.exclude ?? {})
           if (filters.severity?.length) setSeverityTab(filters.severity[0] as SeverityTab)
           if (filters.category?.length) setSelectedCategories(new Set(filters.category))
           if (filters.provider?.length) setSelectedProviders(new Set(filters.provider))

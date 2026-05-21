@@ -10,6 +10,8 @@
  *   value     = quoted_string | bare_word
  */
 
+import type { NLQFilterField, NLQFilters } from '@/types/nlq'
+
 export interface RQLToken {
   type: 'field' | 'op' | 'value' | 'logic'
   value: string
@@ -36,9 +38,15 @@ const FIELD_ALIASES: Record<string, string> = {
   stat: 'status',
 }
 
+const NLQ_FILTER_FIELDS = new Set<NLQFilterField>(['severity', 'provider', 'category', 'status', 'environment'])
+
 function normalizeField(field: string): string {
   const lower = field.toLowerCase()
   return FIELD_ALIASES[lower] ?? lower
+}
+
+function isNLQFilterField(field: string): field is NLQFilterField {
+  return NLQ_FILTER_FIELDS.has(field as NLQFilterField)
 }
 
 function tokenize(input: string): RQLToken[] {
@@ -135,16 +143,20 @@ export function parseRQL(input: string): RQLQuery {
 }
 
 /** Convert parsed RQL into NLQFilters for consumption by filter dispatch. */
-export function rqlToFilters(query: RQLQuery): Record<string, string[]> {
-  const filters: Record<string, string[]> = {}
+export function rqlToFilters(query: RQLQuery): NLQFilters {
+  const filters: NLQFilters = {}
 
   for (const cond of query.conditions) {
-    if (cond.op === '!=') continue // exclusion not yet supported in NLQFilters
+    if (!isNLQFilterField(cond.field)) continue
 
-    if (!filters[cond.field]) {
-      filters[cond.field] = []
+    if (cond.op === '!=') {
+      const exclude = filters.exclude ?? {}
+      exclude[cond.field] = [...(exclude[cond.field] ?? []), cond.value]
+      filters.exclude = exclude
+      continue
     }
-    filters[cond.field].push(cond.value)
+
+    filters[cond.field] = [...(filters[cond.field] ?? []), cond.value]
   }
 
   return filters
@@ -159,4 +171,4 @@ export function isValidRQL(input: string): boolean {
 
 /** RQL syntax hint shown in the query bar overlay. */
 export const RQL_SYNTAX_HINT =
-  'severity=CRITICAL AND provider=aws · status=open · category=misconfiguration OR category=vulnerability'
+  'severity=CRITICAL AND provider=aws · status!=resolved · category=misconfiguration OR category=vulnerability'
