@@ -58,6 +58,7 @@ AWS_RESOURCE_TYPE_MAP = {
 AZURE_RESOURCE_TYPE_MAP = {
     "microsoft.compute/virtualmachines": "compute",
     "microsoft.storage/storageaccounts": "storage",
+    "microsoft.documentdb/databaseaccounts": "database",
     "acr.containerimage": "container",
     "microsoft.containerregistry/registries": "container",
     "microsoft.cognitiveservices/accounts": "compute",

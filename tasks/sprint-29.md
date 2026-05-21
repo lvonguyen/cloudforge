@@ -120,9 +120,10 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 ## P2 — Nice to Have
 
 ### WS-8: Seed Data Quality
-- [ ] **UNCLAIMED**
-- Fix Azure Cosmos DB provider mismatch (EC-01)
-- Audit 300K seed for other provider/category inconsistencies
+- [PARTIAL: codex-20260521] Source generator fixed and validated on a 10K synthetic-padded regeneration; full ignored 300K regeneration/live reload remains pending.
+- [x] Fix Azure Cosmos DB provider mismatch (EC-01)
+- [x] Audit regenerated 10K sample for provider/text/ARN inconsistencies
+- [ ] Audit/regenerate full ignored 300K seed and reload live data if needed
 - **Deliverable:** Fixed seed script, regenerated data
 
 ### WS-9: NLQ Enhancements
@@ -156,3 +157,4 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 | codex-20260521 | WS-1 visual QA sweep | DONE: Prod Playwright 19 passed/1 skipped; 25 desktop route screenshots, 10 mobile overflow checks, 3 GIF captures. EC-01 seed mismatch and EC-04 RQL exclusion confirmed; API DNS warnings recorded. | `4b8629e3` |
 | codex-20260521 | WS-3 live 300K performance baseline | DONE: Live Fly/Neon baseline captured against 300K findings. Median list/filter under 250ms; severity sort p95 2.73s and keyword search p95 1.63s are the main bottlenecks. Local Docker path blocked. | `70c44cc0` |
 | codex-20260521 | WS-9 RQL exclusion support | PARTIAL: EC-04 fixed with shared NLQ filter types, RQL exclusion adapter support, visible exclusion badges, Findings/Command Center filter application, and parser/component tests. EC-03 and query rewriting remain open. | pending |
+| codex-20260521 | WS-8 seed provider consistency | PARTIAL: Fixed provider/template coupling in synthetic seed padding, provider-native synthetic IDs/ARNs, and Cosmos/DocumentDB database mapping. 10K regeneration proof has 0 Cosmos provider/type mismatches and 0 AWS-style ARNs on Azure/GCP. Full ignored 300K regeneration/live reload remains open. | pending |

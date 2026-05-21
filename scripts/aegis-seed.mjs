@@ -607,7 +607,7 @@ function mapAzureResourceType(resourceId) {
   const id = (resourceId ?? '').toLowerCase();
   if (id.includes('microsoft.compute')) return 'compute';
   if (id.includes('microsoft.storage')) return 'storage';
-  if (id.includes('microsoft.sql') || id.includes('microsoft.dbforpostgresql')) return 'database';
+  if (id.includes('microsoft.sql') || id.includes('microsoft.dbforpostgresql') || id.includes('microsoft.documentdb') || id.includes('cosmos')) return 'database';
   if (id.includes('microsoft.containerservice') || id.includes('microsoft.containerregistry')) return 'container';
   if (id.includes('microsoft.keyvault')) return 'encryption';
   if (id.includes('microsoft.network')) return 'network';
@@ -622,7 +622,7 @@ function extractAzureRegion(resourceId) {
 }
 
 function extractAzureProvider(resourceId) {
-  const match = (resourceId ?? '').match(/providers\/(Microsoft\.[^/]+\/[^/]+)/);
+  const match = (resourceId ?? '').match(/providers\/(microsoft\.[^/]+\/[^/]+)/i);
   return match ? match[1] : 'Microsoft.Compute/virtualMachines';
 }
 
@@ -816,25 +816,14 @@ function assignTaxonomy(findings) {
     const resPrefix = resourcePrefix(f._resourceType);
     const resName = `${resPrefix}-${svc.id}-${account.env}-${resSeq}`;
 
-    // Build sanitized resource ID / ARN
-    let resId, resArn;
-    if (f._provider === 'aws') {
-      const arnRes = arnResource(f._resourceType);
-      resId = f._resourceType === 'network' ? `sg-${h.slice(0, 8)}` :
-              f._resourceType === 'compute' ? `i-${h.slice(0, 12)}` :
-              `${resPrefix}-${h.slice(0, 8)}`;
-      resArn = arnRes
-        ? `arn:aws:${arnService(f._resourceType)}:${account.region}:${account.id}:${arnRes}/${resId}`
-        : `arn:aws:${arnService(f._resourceType)}:::${resId}`;
-    } else if (f._provider === 'azure') {
-      const rg = `rg-${svc.id}-${account.env}`;
-      const azProvider = f._resourceNativeType || 'Microsoft.Compute/virtualMachines';
-      resId = `/subscriptions/${account.id}/resourceGroups/${rg}/providers/${azProvider}/${resName}`;
-      resArn = resId;
-    } else {
-      resId = `projects/${account.id}/locations/${account.region}/${f._resourceType}/${resName}`;
-      resArn = resId;
-    }
+    const { resId, resArn } = buildProviderResourceIdentifiers({
+      provider: f._provider,
+      resourceType: f._resourceType,
+      account,
+      resName,
+      hashValue: h,
+      nativeType: f._resourceNativeType,
+    });
 
     // Scrub IP addresses → RFC 5737
     const ipOctet3 = (hInt >> 8) & 0xFF;
@@ -872,6 +861,48 @@ function arnResource(type) {
     identity: 'role', network: 'security-group', serverless: 'function', encryption: 'key',
     monitoring: 'alarm' };
   return MAP[type] ?? 'resource';
+}
+
+function defaultAzureNativeType(resourceType) {
+  const MAP = {
+    compute: 'Microsoft.Compute/virtualMachines',
+    storage: 'Microsoft.Storage/storageAccounts',
+    database: 'Microsoft.DocumentDB/databaseAccounts',
+    container: 'Microsoft.ContainerService/managedClusters',
+    identity: 'Microsoft.Authorization/roleAssignments',
+    network: 'Microsoft.Network/networkSecurityGroups',
+    serverless: 'Microsoft.Web/sites',
+    encryption: 'Microsoft.KeyVault/vaults',
+    monitoring: 'Microsoft.Insights/components',
+  };
+  return MAP[resourceType] ?? 'Microsoft.Resources/resources';
+}
+
+function buildProviderResourceIdentifiers({ provider, resourceType, account, resName, hashValue, nativeType }) {
+  const resPrefix = resourcePrefix(resourceType);
+
+  if (provider === 'aws') {
+    const resId = resourceType === 'network' ? `sg-${hashValue.slice(0, 8)}` :
+                  resourceType === 'compute' ? `i-${hashValue.slice(0, 12)}` :
+                  `${resPrefix}-${hashValue.slice(0, 8)}`;
+    const arnRes = arnResource(resourceType);
+    return {
+      resId,
+      resArn: arnRes
+        ? `arn:aws:${arnService(resourceType)}:${account.region}:${account.id}:${arnRes}/${resId}`
+        : `arn:aws:${arnService(resourceType)}:::${resId}`,
+    };
+  }
+
+  if (provider === 'azure') {
+    const rg = `rg-${account.service.id}-${account.env}`;
+    const azProvider = nativeType || defaultAzureNativeType(resourceType);
+    const resId = `/subscriptions/${account.id}/resourceGroups/${rg}/providers/${azProvider}/${resName}`;
+    return { resId, resArn: resId };
+  }
+
+  const resId = `projects/${account.id}/locations/${account.region}/${resourceType}/${resName}`;
+  return { resId, resArn: resId };
 }
 
 // ── Phase 4: Enrich ──────────────────────────────────────────────────────────
@@ -1116,6 +1147,13 @@ function generateSynthetic(realFindings, targetCount) {
   const padCount = targetCount - realFindings.length;
   log(`Generating ${padCount} synthetic findings to reach ${targetCount}`);
 
+  const templatesByProvider = new Map();
+  for (const finding of realFindings) {
+    const providerTemplates = templatesByProvider.get(finding._provider) ?? [];
+    providerTemplates.push(finding);
+    templatesByProvider.set(finding._provider, providerTemplates);
+  }
+
   // Build severity distribution with jitter
   const sevDist = buildDistribution(SEVERITIES, SEV_WEIGHTS, padCount);
   const typeDist = buildDistribution(TYPES, TYPE_WEIGHTS, padCount);
@@ -1128,16 +1166,26 @@ function generateSynthetic(realFindings, targetCount) {
     const h = hash(`synthetic-${i}-${SEED}`);
     const hInt = parseInt(h.slice(0, 8), 16);
 
-    // Pick a template finding to derive title/description from
-    const template = realFindings[i % realFindings.length];
-
-    // Pick account
+    // Pick provider first, then use a same-provider template so titles,
+    // descriptions, native resource types, and generated IDs stay coherent.
     const providerWeighted = weightedPick(PROVIDERS, PROVIDER_DIST, hInt);
+    const providerTemplates = templatesByProvider.get(providerWeighted) ?? realFindings;
+    const template = providerTemplates[i % providerTemplates.length];
+
     let pool = ACCOUNTS_BY_PROVIDER[providerWeighted] ?? ALL_ACCOUNTS;
     const resourceType = template._resourceType;
     const typePool = pool.filter(a => a.service.resourceTypes.includes(resourceType));
     pool = typePool.length > 0 ? typePool : pool;
     const account = pool[hInt % pool.length];
+    const resName = `${resourcePrefix(resourceType)}-${account.service.id}-${account.env}-${pad(realFindings.length + i + 1)}`;
+    const { resId, resArn } = buildProviderResourceIdentifiers({
+      provider: providerWeighted,
+      resourceType,
+      account,
+      resName,
+      hashValue: h,
+      nativeType: template._resourceNativeType,
+    });
 
     synthetic.push({
       _provider: providerWeighted,
@@ -1148,7 +1196,7 @@ function generateSynthetic(realFindings, targetCount) {
       _description: template._description || `Security finding in ${account.service.name} ${account.envLong} environment.`,
       _severity: severity,
       _resourceType: resourceType,
-      _resourceId: `${resourcePrefix(resourceType)}-${h.slice(0, 8)}`,
+      _resourceId: resId,
       _resourceNativeType: template._resourceNativeType,
       _controlId: template._controlId || `${category}-SYNTH-${i}`,
       _source: providerWeighted === 'aws' ? pick(AWS_SOURCES) :
@@ -1161,9 +1209,9 @@ function generateSynthetic(realFindings, targetCount) {
       _category: category,
       _account: account,
       _service: account.service,
-      _resName: `${resourcePrefix(resourceType)}-${account.service.id}-${account.env}-${pad(realFindings.length + i + 1)}`,
-      _resId: `${resourcePrefix(resourceType)}-${h.slice(0, 8)}`,
-      _resArn: `arn:aws:ec2:${account.region}:${account.id}:resource/${resourcePrefix(resourceType)}-${h.slice(0, 8)}`,
+      _resName: resName,
+      _resId: resId,
+      _resArn: resArn,
       _fakeIp: `198.51.100.${(hInt % 254) + 1}`,
     });
   }

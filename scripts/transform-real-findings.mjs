@@ -133,7 +133,7 @@ function inferResourceType(finding, provider) {
   if (provider === 'aws') return RESOURCE_TYPE_MAP[finding.Resources?.[0]?.Type] ?? 'compute';
   if (provider === 'azure') {
     const rp = (finding.resourceId ?? '').toLowerCase();
-    if (rp.includes('sql') || rp.includes('database')) return 'database';
+    if (rp.includes('sql') || rp.includes('database') || rp.includes('documentdb') || rp.includes('cosmos')) return 'database';
     if (rp.includes('storage')) return 'storage';
     if (rp.includes('keyvault')) return 'encryption';
     if (rp.includes('network') || rp.includes('nsg')) return 'network';
