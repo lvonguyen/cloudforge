@@ -69,7 +69,7 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 - **Deliverable:** 17/18 green (1 conditional skip), ready to commit
 
 ### WS-3: Performance Baseline Under 300K Findings
-- [ ] **UNCLAIMED**
+- [DONE: codex-20260521] Report: `tasks/perf-baseline-300k-20260521.md`; live Fly/Neon 300K baseline complete. Local Docker/Postgres path blocked because Docker daemon is not running.
 - **Pre-req:** 300K findings loaded (WS-A completed in parallel session)
 - Run `/perf-baseline` or `/benchmarks` against localhost with Go backend + 300K RDS
 - Measure: findings list pagination (150/page), command center load, investigation board, NLQ search, attack paths
@@ -153,4 +153,5 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 | 29-parallel | WS-3 (300K verify), WS-C (GIFs), WS-D (teardown) | DONE: 300K pipeline complete (streaming fix), local postgres setup, 2 GIFs captured, remediation E2E added | `1897d17`, `ef1f837` |
 | 30 | C2 + S2 + S3 (security hardening) | DONE: NLQ prompt injection fix (input sanitize + output whitelist), CORS PATCH, Gremlin blocklist extension (4 steps + Groovy template). 12 new test cases, all green with -race. | pending |
 | codex-20260521 | C4 Postgres findings list scaling | DONE: Postgres-backed `/findings` count/list path, allowlisted SQL filters/sorts, ABAC scope predicates, list indexes, preflight migration list update. Verification: focused `cmd/server` tests PASS, full `go test ./... -count=1` PASS. | `20a01376` |
-| codex-20260521 | WS-1 visual QA sweep | DONE: Prod Playwright 19 passed/1 skipped; 25 desktop route screenshots, 10 mobile overflow checks, 3 GIF captures. EC-01 seed mismatch and EC-04 RQL exclusion confirmed; API DNS warnings recorded. | pending |
+| codex-20260521 | WS-1 visual QA sweep | DONE: Prod Playwright 19 passed/1 skipped; 25 desktop route screenshots, 10 mobile overflow checks, 3 GIF captures. EC-01 seed mismatch and EC-04 RQL exclusion confirmed; API DNS warnings recorded. | `4b8629e3` |
+| codex-20260521 | WS-3 live 300K performance baseline | DONE: Live Fly/Neon baseline captured against 300K findings. Median list/filter under 250ms; severity sort p95 2.73s and keyword search p95 1.63s are the main bottlenecks. Local Docker path blocked. | pending |
