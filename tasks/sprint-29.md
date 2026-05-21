@@ -47,7 +47,7 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 ## P0 — Must Do
 
 ### WS-1: Chrome QA Visual Sweep (remaining pages)
-- [ ] **UNCLAIMED**
+- [DONE: codex-20260521] Report: `tasks/qa-visual-cloudguard-20260521.md`; screenshots and GIF captures in `tasks/qa-visual-cloudguard-20260521/`.
 - Run `/qa-visual -e` on `cloudguard.lvonguyen.com`
 - Pages to cover: Compliance, Containers, Attack Paths, Attack Surface, Spend, Threat Intel, Data Sources, Data Classification, App Catalog, Terminal
 - Admin pages: Dashboard, Policies, AI Agents, Users, Audit Log, System, Exceptions, Reports, Webhooks, Secrets Scan
@@ -152,4 +152,5 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 | 29 | WS-2: Fix E2E tests | DONE: 17/18 pass (0 fail, 1 skip). Root cause: Go backend returns empty 200 OK, mock fallback never triggered. | pending |
 | 29-parallel | WS-3 (300K verify), WS-C (GIFs), WS-D (teardown) | DONE: 300K pipeline complete (streaming fix), local postgres setup, 2 GIFs captured, remediation E2E added | `1897d17`, `ef1f837` |
 | 30 | C2 + S2 + S3 (security hardening) | DONE: NLQ prompt injection fix (input sanitize + output whitelist), CORS PATCH, Gremlin blocklist extension (4 steps + Groovy template). 12 new test cases, all green with -race. | pending |
-| codex-20260521 | C4 Postgres findings list scaling | DONE: Postgres-backed `/findings` count/list path, allowlisted SQL filters/sorts, ABAC scope predicates, list indexes, preflight migration list update. Verification: focused `cmd/server` tests PASS, full `go test ./... -count=1` PASS. | pending |
+| codex-20260521 | C4 Postgres findings list scaling | DONE: Postgres-backed `/findings` count/list path, allowlisted SQL filters/sorts, ABAC scope predicates, list indexes, preflight migration list update. Verification: focused `cmd/server` tests PASS, full `go test ./... -count=1` PASS. | `20a01376` |
+| codex-20260521 | WS-1 visual QA sweep | DONE: Prod Playwright 19 passed/1 skipped; 25 desktop route screenshots, 10 mobile overflow checks, 3 GIF captures. EC-01 seed mismatch and EC-04 RQL exclusion confirmed; API DNS warnings recorded. | pending |
