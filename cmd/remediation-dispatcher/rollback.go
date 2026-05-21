@@ -115,8 +115,8 @@ func rollbackRotateIAMKeys(ctx context.Context, state *remediation.RollbackState
 	}
 
 	// Extract deactivated key IDs from the captured state.
-	keyIDsRaw, ok := state.PreState["deactivated_key_ids"].([]interface{})
-	if !ok || len(keyIDsRaw) == 0 {
+	keyIDs, ok := deactivatedKeyIDsFromState(state.PreState)
+	if !ok || len(keyIDs) == 0 {
 		return nil, fmt.Errorf("no deactivated_key_ids in rollback state for finding %s", state.FindingID)
 	}
 
@@ -130,9 +130,8 @@ func rollbackRotateIAMKeys(ctx context.Context, state *remediation.RollbackState
 	client := iam.NewFromConfig(cfg)
 	var actions []string
 
-	for _, raw := range keyIDsRaw {
-		keyID, ok := raw.(string)
-		if !ok || keyID == "" {
+	for _, keyID := range keyIDs {
+		if keyID == "" {
 			continue
 		}
 
@@ -151,6 +150,28 @@ func rollbackRotateIAMKeys(ctx context.Context, state *remediation.RollbackState
 	result.Message = fmt.Sprintf("Re-activated %d access key(s) for user %s", len(actions), userName)
 	result.Actions = actions
 	return result, nil
+}
+
+func deactivatedKeyIDsFromState(preState map[string]interface{}) ([]string, bool) {
+	raw, ok := preState["deactivated_key_ids"]
+	if !ok {
+		return nil, false
+	}
+	switch values := raw.(type) {
+	case []string:
+		return values, true
+	case []interface{}:
+		keys := make([]string, 0, len(values))
+		for _, value := range values {
+			key, ok := value.(string)
+			if ok && key != "" {
+				keys = append(keys, key)
+			}
+		}
+		return keys, len(keys) > 0
+	default:
+		return nil, false
+	}
 }
 
 // rollbackEnforceIMDS reverts IMDSv2 enforcement back to optional (IMDSv1 allowed).

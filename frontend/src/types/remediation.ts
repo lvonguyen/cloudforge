@@ -10,6 +10,9 @@ export interface RemediationResult {
   completed_at: string
   duration: string
   error?: string
+  rollback_available?: boolean
+  rollback_window_expires_at?: string
+  rollback_actions?: string[]
 }
 
 export interface ValidationResult {
@@ -28,6 +31,9 @@ export interface DryRunResult {
   prerequisites_met: boolean
   warnings?: string[]
   estimated_impact: string
+  rollback_plan?: string[]
+  validation_checks?: string[]
+  estimated_rollback_window?: string
 }
 
 export interface RollbackState {
@@ -46,6 +52,16 @@ export interface RollbackResult {
   actions: string[]
   rolled_back_at: string
   error?: string
+}
+
+export interface RollbackPlan {
+  mode: 'sdk' | 'script' | 'manual'
+  status: 'available' | 'manual' | 'expired' | 'not_available'
+  state_id?: string
+  window_expires_at?: string
+  approval_required?: boolean
+  command?: string
+  actions: string[]
 }
 
 export interface TicketComment {
@@ -71,6 +87,7 @@ export interface RemediationRecord {
   status: RemediationStatus
   result?: RemediationResult
   validation?: ValidationResult
+  rollback?: RollbackPlan
   asana_task_url?: string
   created_at: string
   updated_at: string

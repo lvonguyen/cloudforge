@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { RemediationTierBadge } from '@/components/remediation/RemediationTierBadge'
-import { ArrowLeft, CheckCircle2, ExternalLink, AlertTriangle, Clock } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, ExternalLink, AlertTriangle, Clock, RotateCcw, ShieldCheck } from 'lucide-react'
 import { REMEDIATION_STATUS_COLORS as STATUS_COLORS } from '@/lib/severity'
 
 const TIER_DESCRIPTIONS: Record<number, string> = {
@@ -200,6 +200,57 @@ export default function RemediationDetail() {
               <p className="text-xs text-muted-foreground">
                 Recheck after: <strong>{formatTimestamp(rem.validation.recheck_after)}</strong>
               </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Rollback Readiness */}
+      {(rem.rollback || rem.result?.rollback_available || rem.tier <= 2) && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="flex items-center gap-1.5"><RotateCcw className="h-3.5 w-3.5" />Rollback Readiness</div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="outline" className="text-[10px]">
+                {rem.rollback?.status ?? (rem.result?.rollback_available ? 'available' : 'manual')}
+              </Badge>
+              <Badge variant="outline" className="text-[10px]">
+                {rem.rollback?.mode ?? (rem.result?.rollback_available ? 'sdk' : 'manual')}
+              </Badge>
+              {(rem.rollback?.approval_required ?? true) && (
+                <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/40">
+                  approval required
+                </Badge>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">State ID</p>
+                <code className="mt-0.5 block truncate font-mono">{rem.rollback?.state_id ?? rem.id}</code>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Window Expires</p>
+                <p className="mt-0.5 font-medium">{formatTimestamp(rem.rollback?.window_expires_at ?? rem.result?.rollback_window_expires_at)}</p>
+              </div>
+            </div>
+            {(rem.rollback?.command || rem.result?.rollback_actions?.length) && (
+              <div className="rounded-xl border border-border/70 bg-muted/20 px-3 py-2">
+                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <ShieldCheck className="h-3 w-3" />Rollback Plan
+                </div>
+                {rem.rollback?.command && (
+                  <code className="mt-1 block whitespace-pre-wrap break-words text-[11px] font-mono">{rem.rollback.command}</code>
+                )}
+                <ul className="mt-2 space-y-1">
+                  {(rem.rollback?.actions ?? rem.result?.rollback_actions ?? []).map(action => (
+                    <li key={action} className="text-[11px] text-muted-foreground">{action}</li>
+                  ))}
+                </ul>
+              </div>
             )}
           </CardContent>
         </Card>

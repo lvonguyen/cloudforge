@@ -40,6 +40,12 @@ Current risk scoring pipeline: threat intel enrichment, contextual scoring, guar
 
 ![Risk Intelligence Pipeline](risk-intelligence-pipeline.png)
 
+## Defense Readiness Pipeline
+
+Synthetic defense-adjacent evidence flow for gov-cloud readiness, CMMC/NIST/FedRAMP-style control mapping, and remediation prioritization. This is a demo reference, not a certification claim.
+
+[Mermaid source](defense-readiness-pipeline.mmd)
+
 ## Mermaid Source Diagrams
 
 The following diagrams are rendered from Mermaid source files. Click to view full-size.
@@ -47,6 +53,7 @@ The following diagrams are rendered from Mermaid source files. Click to view ful
 | Diagram | Description |
 |---------|-------------|
 | [Compliance Deployment Models](../architecture/HLD.md) | Enterprise compliance reference model |
+| [Defense Readiness Pipeline](../architecture/defense-readiness.md) | Synthetic gov-cloud readiness and evidence mapping flow |
 | [Cross-Cloud Failover](../architecture/DR-BC.md) | 4-phase failover sequence (detection → DB promotion → compute → DNS) |
 | [Deduplication Algorithm](../architecture/HLD.md) | SHA-256 keyed dedup with TTL eviction and rule equivalence mapping |
 | [Failover Sequence](../architecture/DR-BC.md) | Self-managed DR failover reference sequence |

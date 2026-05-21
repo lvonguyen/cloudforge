@@ -740,5 +740,218 @@
         "score": 80.0
       }
     ]
+  },
+  {
+    "id": "cmmc-l2",
+    "name": "CMMC Level 2",
+    "description": "Defense Industrial Base readiness mapping for CUI protection practices. Demo mappings are educational and not a certification claim.",
+    "version": "2.0",
+    "category": "government",
+    "total_controls": 110,
+    "controls_passing": 83,
+    "controls_failing": 27,
+    "score": 75.5,
+    "relevant_for": [
+      "aws",
+      "azure",
+      "gcp"
+    ],
+    "scope": {
+      "environments": 19,
+      "prod_environments": 7,
+      "lines_of_business": 3,
+      "csp_sources": ["aws", "azure", "gcp"]
+    },
+    "categories": [
+      {
+        "id": "ACCESS-CONTROL",
+        "name": "Access Control",
+        "passing": 16,
+        "failing": 6,
+        "score": 72.7
+      },
+      {
+        "id": "AUDIT",
+        "name": "Audit and Accountability",
+        "passing": 12,
+        "failing": 3,
+        "score": 80.0
+      },
+      {
+        "id": "CONFIG",
+        "name": "Configuration Management",
+        "passing": 11,
+        "failing": 5,
+        "score": 68.8
+      },
+      {
+        "id": "INCIDENT",
+        "name": "Incident Response",
+        "passing": 9,
+        "failing": 2,
+        "score": 81.8
+      },
+      {
+        "id": "SYSTEM-COMMS",
+        "name": "System and Communications Protection",
+        "passing": 14,
+        "failing": 4,
+        "score": 77.8
+      }
+    ]
+  },
+  {
+    "id": "nist-800-171",
+    "name": "NIST SP 800-171 Rev. 3",
+    "description": "Security requirements for protecting CUI in nonfederal systems and organizations.",
+    "version": "Rev. 3",
+    "category": "government",
+    "total_controls": 97,
+    "controls_passing": 72,
+    "controls_failing": 25,
+    "score": 74.2,
+    "relevant_for": [
+      "aws",
+      "azure",
+      "gcp"
+    ],
+    "scope": {
+      "environments": 21,
+      "prod_environments": 8,
+      "lines_of_business": 3,
+      "csp_sources": ["aws", "azure", "gcp"]
+    },
+    "categories": [
+      {
+        "id": "3.1",
+        "name": "Access Control",
+        "passing": 13,
+        "failing": 5,
+        "score": 72.2
+      },
+      {
+        "id": "3.3",
+        "name": "Audit and Accountability",
+        "passing": 9,
+        "failing": 3,
+        "score": 75.0
+      },
+      {
+        "id": "3.5",
+        "name": "Identification and Authentication",
+        "passing": 8,
+        "failing": 3,
+        "score": 72.7
+      },
+      {
+        "id": "3.13",
+        "name": "System and Communications Protection",
+        "passing": 11,
+        "failing": 4,
+        "score": 73.3
+      }
+    ]
+  },
+  {
+    "id": "fedramp-high",
+    "name": "FedRAMP High Rev. 5",
+    "description": "High-impact cloud authorization and continuous-monitoring baseline for federal cloud services.",
+    "version": "Rev. 5",
+    "category": "government",
+    "total_controls": 421,
+    "controls_passing": 337,
+    "controls_failing": 84,
+    "score": 80.0,
+    "relevant_for": [
+      "aws",
+      "azure"
+    ],
+    "scope": {
+      "environments": 14,
+      "prod_environments": 5,
+      "lines_of_business": 2,
+      "csp_sources": ["aws", "azure"]
+    },
+    "categories": [
+      {
+        "id": "AU",
+        "name": "Audit and Accountability",
+        "passing": 31,
+        "failing": 7,
+        "score": 81.6
+      },
+      {
+        "id": "CM",
+        "name": "Configuration Management",
+        "passing": 29,
+        "failing": 9,
+        "score": 76.3
+      },
+      {
+        "id": "IR",
+        "name": "Incident Response",
+        "passing": 23,
+        "failing": 4,
+        "score": 85.2
+      },
+      {
+        "id": "SC",
+        "name": "System and Communications Protection",
+        "passing": 42,
+        "failing": 11,
+        "score": 79.2
+      }
+    ]
+  },
+  {
+    "id": "itar-ear",
+    "name": "ITAR/EAR Boundary Checks",
+    "description": "Synthetic export-control-aware labels, collaboration boundaries, and artifact workflow checks for demo data only.",
+    "version": "Demo",
+    "category": "government",
+    "total_controls": 32,
+    "controls_passing": 21,
+    "controls_failing": 11,
+    "score": 65.6,
+    "relevant_for": [
+      "aws",
+      "azure"
+    ],
+    "scope": {
+      "environments": 9,
+      "prod_environments": 4,
+      "lines_of_business": 2,
+      "csp_sources": ["aws", "azure"]
+    },
+    "categories": [
+      {
+        "id": "LABELS",
+        "name": "Restricted Data Labels",
+        "passing": 5,
+        "failing": 4,
+        "score": 55.6
+      },
+      {
+        "id": "ARTIFACTS",
+        "name": "Build Artifact Controls",
+        "passing": 6,
+        "failing": 3,
+        "score": 66.7
+      },
+      {
+        "id": "COLLAB",
+        "name": "Collaboration Boundaries",
+        "passing": 5,
+        "failing": 2,
+        "score": 71.4
+      },
+      {
+        "id": "ACCESS",
+        "name": "US-Person Access Gate",
+        "passing": 5,
+        "failing": 2,
+        "score": 71.4
+      }
+    ]
   }
 ]

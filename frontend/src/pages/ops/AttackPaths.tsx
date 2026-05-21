@@ -194,6 +194,10 @@ function nodeRoleLabel(index: number, total: number) {
 }
 
 function extractActionItems(path: AttackPath): string[] {
+  if (path.recommended_breaks && path.recommended_breaks.length > 0) {
+    return path.recommended_breaks.slice(0, 3)
+  }
+
   const source = path.ai_remediation || path.ai_risk_narrative || path.description
   const actions = source
     .split(/\r?\n|[.;]/)
@@ -487,6 +491,16 @@ function PathCard({ path, onClick }: { path: AttackPath; onClick: () => void }) 
               </div>
               <p className="text-sm font-medium leading-snug">{path.title}</p>
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{path.ai_description ?? path.description}</p>
+              {(path.mission_context || path.evidence_mode) && (
+                <div className="mt-3 rounded-2xl border border-cyan-200/80 bg-cyan-50/60 px-3 py-2 dark:border-cyan-900/40 dark:bg-cyan-950/10">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-300">
+                    {path.evidence_mode ?? 'evidence mode'}
+                  </div>
+                  {path.mission_context && (
+                    <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2">{path.mission_context}</p>
+                  )}
+                </div>
+              )}
               <div className="mt-3 rounded-2xl border border-border/70 bg-muted/20 px-3 py-2">
                 <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                   <Route className="h-3 w-3" />Path Story
@@ -695,6 +709,32 @@ function PathGraphView({
                 </div>
                 <p className="mt-1 text-[10px] text-muted-foreground">{contextSignals.networkBoundary.detail}</p>
               </div>
+            )}
+          </div>
+        )}
+
+        {(path.mission_context || path.evidence_mode || path.control_gaps?.length || path.rollback_summary) && (
+          <div className="rounded-2xl border border-cyan-200/80 bg-cyan-50/60 px-3 py-2.5 space-y-2 dark:border-cyan-900/40 dark:bg-cyan-950/10">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-300">
+              Mission Context
+            </div>
+            {path.mission_context && (
+              <p className="text-[11px] text-muted-foreground">{path.mission_context}</p>
+            )}
+            <div className="flex flex-wrap gap-1.5">
+              {path.evidence_mode && (
+                <Badge variant="outline" className="text-[9px] rounded-full border-cyan-300 bg-white/70 text-cyan-700 dark:border-cyan-900/50 dark:bg-slate-950/30 dark:text-cyan-300">
+                  {path.evidence_mode}
+                </Badge>
+              )}
+              {(path.control_gaps ?? []).slice(0, 3).map(gap => (
+                <Badge key={gap} variant="outline" className="text-[9px] rounded-full border-slate-200 bg-white/70 text-slate-600 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300">
+                  {gap}
+                </Badge>
+              ))}
+            </div>
+            {path.rollback_summary && (
+              <p className="text-[10px] text-muted-foreground">{path.rollback_summary}</p>
             )}
           </div>
         )}
@@ -1264,6 +1304,9 @@ export default function AttackPaths() {
                 <div>
                   <p className="text-lg font-semibold leading-tight">{highestRiskPath.title}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{highestRiskPath.ai_description ?? highestRiskPath.description}</p>
+                  {highestRiskPath.mission_context && (
+                    <p className="mt-2 text-xs text-muted-foreground">{highestRiskPath.mission_context}</p>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   <div className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-2">

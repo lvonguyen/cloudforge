@@ -313,13 +313,65 @@ func rollbackRemediation(ctx context.Context, logger *zap.Logger, rollbackID str
 		zap.String("handler", state.Handler),
 		zap.Time("timestamp", state.Timestamp),
 		zap.String("rollback_commands", state.RollbackScript))
-	logger.Info("execute these commands manually to rollback")
-	logger.Info("automated rollback execution coming soon")
 
-	// TODO: Actually execute rollback commands via cloud SDKs
-	// For now, just print the commands for manual execution
+	rollbackFunc, ok := rollbackRegistry[state.Handler]
+	if !ok {
+		logger.Info("no automated rollback registered; execute the rollback script manually",
+			zap.String("finding_id", state.FindingID),
+			zap.String("handler", state.Handler))
+		return nil
+	}
+
+	result, err := rollbackFunc(ctx, rollbackStateFromSnapshot(state))
+	if err != nil {
+		return fmt.Errorf("automated rollback failed: %w", err)
+	}
+	if result == nil {
+		return fmt.Errorf("automated rollback returned no result")
+	}
+	resultFile := filepath.Join(*stateDir, rollbackID+"-rollback-result.json")
+	data, err = json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal rollback result: %w", err)
+	}
+	if err := os.WriteFile(resultFile, data, 0600); err != nil {
+		return fmt.Errorf("failed to write rollback result: %w", err)
+	}
+	logger.Info("automated rollback completed",
+		zap.String("finding_id", result.FindingID),
+		zap.Bool("success", result.Success),
+		zap.Strings("actions", result.Actions),
+		zap.String("result_file", resultFile))
 
 	return nil
+}
+
+func rollbackStateFromSnapshot(state RemediationState) *remediation.RollbackState {
+	return &remediation.RollbackState{
+		FindingID:  state.FindingID,
+		ResourceID: stringFromState(state.PreState, "resource_id", resultResourceID(state.Result)),
+		Region:     stringFromState(state.PreState, "region", ""),
+		AccountID:  stringFromState(state.PreState, "account_id", ""),
+		PreState:   state.PreState,
+		CapturedAt: state.Timestamp,
+	}
+}
+
+func resultResourceID(result *remediation.RemediationResult) string {
+	if result == nil {
+		return ""
+	}
+	return result.ResourceID
+}
+
+func stringFromState(preState map[string]interface{}, key, fallback string) string {
+	if preState == nil {
+		return fallback
+	}
+	if value, ok := preState[key].(string); ok && value != "" {
+		return value
+	}
+	return fallback
 }
 
 // rollbackLastRun rolls back all remediations from the most recent run.

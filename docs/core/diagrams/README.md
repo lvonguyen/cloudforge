@@ -8,6 +8,7 @@
 | [dedup-algorithm.svg](dedup-algorithm.svg) | Finding deduplication, TTL cache, and canonical rule mapping flow | Current portfolio implementation | [.mmd](dedup-algorithm.mmd) |
 | [dual-opa-architecture.svg](dual-opa-architecture.svg) | Dual OPA engine layout | Current portfolio implementation | [.mmd](dual-opa-architecture.mmd) / Figma |
 | [compliance-deployment-models.svg](compliance-deployment-models.svg) | Multi-cloud compliance topology | Enterprise target / reference model | [.mmd](compliance-deployment-models.mmd) / [.drawio](compliance-deployment-models.drawio) |
+| [defense-readiness-pipeline.mmd](defense-readiness-pipeline.mmd) | Defense-adjacent cloud readiness evidence flow | Synthetic portfolio demo / interview reference | [.mmd](defense-readiness-pipeline.mmd) |
 | [failover-sequence.svg](failover-sequence.svg) | DR failover sequence | Enterprise target / self-managed DR reference | [.mmd](failover-sequence.mmd) / [.drawio](failover-sequence.drawio) |
 | [global-deployment-architecture.svg](global-deployment-architecture.svg) | Multi-region deployment layout | Enterprise target / self-managed deployment reference | [.mmd](global-deployment-architecture.mmd) / Figma |
 | [iac-deploy-pipeline.svg](iac-deploy-pipeline.svg) | Terraform/conftest CI/CD flow | Current implementation | [.mmd](iac-deploy-pipeline.mmd) |

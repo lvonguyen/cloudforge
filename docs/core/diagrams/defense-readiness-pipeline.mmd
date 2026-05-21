@@ -1,0 +1,18 @@
+flowchart LR
+    Sources["Cloud and SaaS Sources<br/>AWS Commercial - GovCloud target<br/>Azure - GCC High target<br/>GCP - CI/CD - Tickets"] --> Normalize["Normalize Findings<br/>provider schema<br/>asset owner<br/>data label<br/>environment boundary"]
+    Normalize --> Evidence["Evidence Mapper<br/>CMMC L2<br/>NIST 800-171<br/>FedRAMP High<br/>DoD SRG<br/>ITAR/EAR boundary"]
+    Normalize --> Intel["Threat Intel<br/>EPSS<br/>CISA KEV<br/>Vulnrichment<br/>SSVC<br/>STIX/TAXII"]
+    Evidence --> Risk["Contextual Risk Scoring<br/>mission scope<br/>CUI-adjacent label<br/>internet exposure<br/>exploitability"]
+    Intel --> Risk
+    Risk --> Queue["Remediation Queue<br/>identity cleanup<br/>log retention<br/>artifact gates<br/>tagging and ownership"]
+    Queue --> Review["Evidence Review<br/>ticket linkage<br/>cloud state<br/>scan recency<br/>control rationale"]
+    Review --> Dash["Defense Readiness Dashboard<br/>synthetic demo<br/>not certified<br/>no controlled data"]
+
+    style Sources fill:#dbeafe,stroke:#2563eb,color:#172554
+    style Normalize fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    style Evidence fill:#fef3c7,stroke:#d97706,color:#78350f
+    style Intel fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    style Risk fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+    style Queue fill:#dcfce7,stroke:#16a34a,color:#14532d
+    style Review fill:#f1f5f9,stroke:#64748b,color:#0f172a
+    style Dash fill:#eff6ff,stroke:#1d4ed8,color:#172554

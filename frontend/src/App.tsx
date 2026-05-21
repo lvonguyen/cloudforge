@@ -51,6 +51,7 @@ const AttackPaths = lazy(() => import('@/pages/ops/AttackPaths'))
 const AttackSurface = lazy(() => import('@/pages/ops/AttackSurface'))
 const DataSources = lazy(() => import('@/pages/ops/DataSources'))
 const ThreatIntel = lazy(() => import('@/pages/ops/ThreatIntel'))
+const DefenseReadiness = lazy(() => import('@/pages/ops/DefenseReadiness'))
 
 // Admin pages (lazy — added Sprint G)
 const Exceptions = lazy(() => import('@/pages/admin/Exceptions'))
@@ -150,6 +151,7 @@ function AppContent() {
                     <Route path="/ops/attack-surface" element={<AttackSurface />} />
                     <Route path="/ops/data-sources" element={<DataSources />} />
                     <Route path="/ops/threat-intel" element={<ThreatIntel />} />
+                    <Route path="/ops/defense-readiness" element={<DefenseReadiness />} />
                   </Route>
                 </Route>
 

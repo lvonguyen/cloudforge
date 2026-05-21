@@ -16,6 +16,10 @@ const FRAMEWORK_METADATA: Record<string, { doc_link: string; last_assessed: stri
   'iso-27001': { doc_link: 'https://www.iso.org/standard/27001', last_assessed: '2026-02-20' },
   'iso-42001': { doc_link: 'https://www.iso.org/standard/81230.html', last_assessed: '2026-03-05' },
   'tisax':     { doc_link: 'https://www.enx.com/en-us/tisax/', last_assessed: '2026-01-30' },
+  'cmmc-l2': { doc_link: 'https://dodcio.defense.gov/CMMC/', last_assessed: '2026-05-20' },
+  'nist-800-171': { doc_link: 'https://csrc.nist.gov/pubs/sp/800/171/r3/final', last_assessed: '2026-05-20' },
+  'fedramp-high': { doc_link: 'https://www.fedramp.gov/docs/authority/', last_assessed: '2026-05-20' },
+  'itar-ear': { doc_link: 'https://www.pmddtc.state.gov/ddtc_public', last_assessed: '2026-05-20' },
 }
 
 function scoreClass(score: number): string {

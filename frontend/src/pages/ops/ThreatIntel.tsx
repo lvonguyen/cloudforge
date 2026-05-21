@@ -3,12 +3,13 @@ import { useFindings, useFindingsStats } from '@/hooks/useFindings'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import type { Finding } from '@/types/compliance'
 import {
   Shield, AlertTriangle, Wifi, Mail, Globe,
-  Activity, TrendingUp, ExternalLink, type LucideIcon,
+  Activity, TrendingUp, ExternalLink, FileSearch, GitBranch, Radio, type LucideIcon,
 } from 'lucide-react'
 
-type FeedId = 'overview' | 'epss' | 'kev' | 'greynoise' | 'hibp' | 'otx'
+type FeedId = 'overview' | 'epss' | 'kev' | 'vulnrichment' | 'ssvc' | 'taxii' | 'greynoise' | 'hibp' | 'otx'
 
 interface FeedTab {
   id: FeedId
@@ -21,6 +22,9 @@ const TABS: FeedTab[] = [
   { id: 'overview', name: 'Overview', icon: Activity, color: 'text-blue-500' },
   { id: 'epss', name: 'EPSS', icon: Shield, color: 'text-violet-500' },
   { id: 'kev', name: 'CISA KEV', icon: AlertTriangle, color: 'text-red-500' },
+  { id: 'vulnrichment', name: 'Vulnrichment', icon: FileSearch, color: 'text-orange-500' },
+  { id: 'ssvc', name: 'SSVC', icon: GitBranch, color: 'text-cyan-500' },
+  { id: 'taxii', name: 'STIX/TAXII', icon: Radio, color: 'text-indigo-500' },
   { id: 'greynoise', name: 'GreyNoise', icon: Wifi, color: 'text-slate-500' },
   { id: 'hibp', name: 'HIBP', icon: Mail, color: 'text-sky-500' },
   { id: 'otx', name: 'OTX', icon: Globe, color: 'text-emerald-500' },
@@ -107,6 +111,9 @@ export default function ThreatIntel() {
       {activeTab === 'overview' && <OverviewTab stats={stats} onNavigate={setActiveTab} />}
       {activeTab === 'epss' && <EPSSTab stats={stats} />}
       {activeTab === 'kev' && <KEVTab stats={stats} />}
+      {activeTab === 'vulnrichment' && <VulnrichmentTab />}
+      {activeTab === 'ssvc' && <SSVCTab />}
+      {activeTab === 'taxii' && <TaxiTab />}
       {activeTab === 'greynoise' && <GreyNoiseTab />}
       {activeTab === 'hibp' && <HIBPTab />}
       {activeTab === 'otx' && <OTXTab />}
@@ -126,8 +133,8 @@ interface TIStats {
   highEpss: number
   kevCritical: number
   epssBuckets: { low: number; medium: number; high: number; critical: number }
-  epssFindings: any[]
-  kevFindings: any[]
+  epssFindings: Finding[]
+  kevFindings: Finding[]
 }
 
 function OverviewTab({ stats, onNavigate }: { stats: TIStats; onNavigate: (id: FeedId) => void }) {
@@ -142,6 +149,9 @@ function OverviewTab({ stats, onNavigate }: { stats: TIStats; onNavigate: (id: F
   const feeds = [
     { id: 'epss' as FeedId, name: 'EPSS', desc: 'Exploit Prediction Scoring System', status: 'active', coverage: stats.withEpss, icon: Shield, color: 'text-violet-500' },
     { id: 'kev' as FeedId, name: 'CISA KEV', desc: 'Known Exploited Vulnerabilities', status: 'active', coverage: stats.withKev, icon: AlertTriangle, color: 'text-red-500' },
+    { id: 'vulnrichment' as FeedId, name: 'CISA Vulnrichment', desc: 'CVSS, CWE, CPE, and SSVC context for CVE triage', status: 'planned', coverage: null, icon: FileSearch, color: 'text-orange-500' },
+    { id: 'ssvc' as FeedId, name: 'CISA SSVC', desc: 'Decision support for exploitation, safety impact, and mission prevalence', status: 'planned', coverage: null, icon: GitBranch, color: 'text-cyan-500' },
+    { id: 'taxii' as FeedId, name: 'STIX/TAXII', desc: 'Structured intel exchange for ATT&CK and sector indicators', status: 'planned', coverage: null, icon: Radio, color: 'text-indigo-500' },
     { id: 'greynoise' as FeedId, name: 'GreyNoise', desc: 'Internet-wide scan classification', status: 'configured', coverage: null, icon: Wifi, color: 'text-slate-500' },
     { id: 'hibp' as FeedId, name: 'HIBP', desc: 'Breach exposure monitoring', status: 'configured', coverage: null, icon: Mail, color: 'text-sky-500' },
     { id: 'otx' as FeedId, name: 'OTX', desc: 'AlienVault pulse intelligence', status: 'configured', coverage: null, icon: Globe, color: 'text-emerald-500' },
@@ -186,9 +196,13 @@ function OverviewTab({ stats, onNavigate }: { stats: TIStats; onNavigate: (id: F
               <div className="text-right">
                 <Badge variant="outline" className={cn(
                   'text-[10px]',
-                  feed.status === 'active' ? 'border-green-500/30 text-green-600 dark:text-green-400' : 'border-blue-500/30 text-blue-600 dark:text-blue-400'
+                  feed.status === 'active'
+                    ? 'border-green-500/30 text-green-600 dark:text-green-400'
+                    : feed.status === 'planned'
+                      ? 'border-amber-500/30 text-amber-600 dark:text-amber-400'
+                      : 'border-blue-500/30 text-blue-600 dark:text-blue-400'
                 )}>
-                  {feed.status === 'active' ? 'Active' : 'Per-Finding'}
+                  {feed.status === 'active' ? 'Active' : feed.status === 'planned' ? 'Planned' : 'Per-Finding'}
                 </Badge>
                 {feed.coverage !== null && (
                   <p className="text-xs text-muted-foreground mt-1">{feed.coverage.toLocaleString()} findings</p>
@@ -205,7 +219,7 @@ function OverviewTab({ stats, onNavigate }: { stats: TIStats; onNavigate: (id: F
 
 /* ---------- EPSS ---------- */
 
-function EPSSTab({ stats }: { stats: any }) {
+function EPSSTab({ stats }: { stats: TIStats }) {
   const { epssBuckets, epssFindings } = stats
   const bucketData = [
     { label: 'Critical (>=0.7)', count: epssBuckets.critical, color: 'bg-red-500', textColor: 'text-red-600' },
@@ -259,7 +273,7 @@ function EPSSTab({ stats }: { stats: any }) {
 
 /* ---------- KEV ---------- */
 
-function KEVTab({ stats }: { stats: any }) {
+function KEVTab({ stats }: { stats: TIStats }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
@@ -295,6 +309,147 @@ function KEVTab({ stats }: { stats: any }) {
 }
 
 /* ---------- GreyNoise / HIBP / OTX (per-finding enrichment) ---------- */
+
+function VulnrichmentTab() {
+  return (
+    <StrategicFeedCard
+      name="CISA Vulnrichment"
+      icon={FileSearch}
+      color="text-orange-500"
+      status="Design-ready"
+      cadence="Daily CVE delta import"
+      description="Adds authoritative vulnerability context around CVSS, CWE, CPE, and CISA-provided SSVC decision points before the finding enters the risk queue."
+      useCases={[
+        'Separate patch-now CVEs from noisy scanner output',
+        'Annotate cloud findings with product prevalence and exploit context',
+        'Generate evidence that vulnerability triage considered more than CVSS',
+      ]}
+      demoSignals={[
+        'CVE has automatable exploitation decision point',
+        'Affected product maps to externally reachable bastion tier',
+        'Vendor advisory available; no compensating control recorded',
+      ]}
+    />
+  )
+}
+
+function SSVCTab() {
+  return (
+    <StrategicFeedCard
+      name="CISA SSVC"
+      icon={GitBranch}
+      color="text-cyan-500"
+      status="Modeled"
+      cadence="Per CVE during enrichment"
+      description="Decision-tree prioritization that weighs exploitation status, mission/safety impact, and system prevalence for defense-adjacent environments."
+      useCases={[
+        'Explain why one high CVSS item outranks another',
+        'Tie vulnerability decisions to mission or safety impact',
+        'Give operators a defensible defer, monitor, or act-now recommendation',
+      ]}
+      demoSignals={[
+        'Exploitation: active or proof-of-concept',
+        'Technical impact: total compromise or lateral movement',
+        'Mission prevalence: CUI-adjacent system or production build path',
+      ]}
+    />
+  )
+}
+
+function TaxiTab() {
+  return (
+    <StrategicFeedCard
+      name="STIX/TAXII Exchange"
+      icon={Radio}
+      color="text-indigo-500"
+      status="Reference architecture"
+      cadence="Streaming or scheduled collection"
+      description="Structured intel channel for ATT&CK techniques, sector indicators, and partner feed packages that can be normalized into finding context."
+      useCases={[
+        'Map indicators to MITRE techniques on attack paths',
+        'Ingest defense-sector feed packages without hand parsing',
+        'Preserve source, confidence, and timestamp metadata for evidence review',
+      ]}
+      demoSignals={[
+        'ATT&CK technique aligns to current attack path hop',
+        'Indicator confidence exceeds response threshold',
+        'Feed source is allowed for synthetic/demo enrichment only',
+      ]}
+    />
+  )
+}
+
+function StrategicFeedCard({ name, icon: Icon, color, status, cadence, description, useCases, demoSignals }: {
+  name: string
+  icon: LucideIcon
+  color: string
+  status: string
+  cadence: string
+  description: string
+  useCases: string[]
+  demoSignals: string[]
+}) {
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="pt-6 pb-4 px-6">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-muted/50">
+              <Icon className={cn('h-6 w-6', color)} />
+            </div>
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-medium">{name}</h3>
+                <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-700 dark:text-amber-300">
+                  {status}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">{description}</p>
+              <div className="grid gap-3 mt-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">Cadence</p>
+                  <p className="text-sm font-medium">{cadence}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Demo posture</p>
+                  <p className="text-sm font-medium">Synthetic indicators only</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Operational Use</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {useCases.map((item) => (
+              <div key={item} className="flex gap-2 text-sm text-muted-foreground">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Sample Signals</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {demoSignals.map((item) => (
+              <div key={item} className="flex gap-2 text-sm text-muted-foreground">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
 
 function GreyNoiseTab() {
   return <PerFindingFeedCard name="GreyNoise" icon={Wifi} color="text-slate-500" description="GreyNoise classifies IPs observed scanning the internet. Enrichment runs per-finding when an IP is associated with a finding. Classifications: malicious, benign, or unknown." stat="300K+ IPs tracked" envVar="GREYNOISE_API_KEY" />
@@ -353,7 +508,7 @@ function PerFindingFeedCard({ name, icon: Icon, color, description, stat, envVar
 
 /* ---------- Shared finding table ---------- */
 
-function FindingTable({ findings, scoreField }: { findings: any[]; scoreField: 'epss' | 'exploit' }) {
+function FindingTable({ findings, scoreField }: { findings: Finding[]; scoreField: 'epss' | 'exploit' }) {
   if (!findings.length) {
     return <p className="text-sm text-muted-foreground py-4 text-center">No findings with this enrichment data.</p>
   }
@@ -378,39 +533,43 @@ function FindingTable({ findings, scoreField }: { findings: any[]; scoreField: '
           </tr>
         </thead>
         <tbody>
-          {findings.map((f: any) => (
-            <tr key={f.id} className="border-b border-border/50 hover:bg-muted/30">
-              <td className="py-2 pr-3">
-                <a href={`/ops/findings/${f.id}`} className="text-primary hover:underline font-mono text-xs">
-                  {f.id}
-                </a>
-                <p className="text-xs text-muted-foreground truncate max-w-[300px]">{f.title}</p>
-              </td>
-              <td className="py-2 pr-3">
-                <Badge className={cn('text-[10px]', sevColor[f.severity])}>{f.severity}</Badge>
-              </td>
-              <td className="py-2 pr-3 text-xs text-muted-foreground truncate max-w-[200px]">
-                {f.resource_id || f.resource_type || '—'}
-              </td>
-              {scoreField === 'epss' && (
-                <td className="py-2 text-right font-mono text-xs">
-                  <span className={cn(
-                    'font-medium',
-                    f.epss >= 0.7 ? 'text-red-600' : f.epss >= 0.4 ? 'text-amber-600' : 'text-muted-foreground'
-                  )}>
-                    {(f.epss * 100).toFixed(1)}%
-                  </span>
+          {findings.map((f) => {
+            const epssScore = f.epss ?? 0
+
+            return (
+              <tr key={f.id} className="border-b border-border/50 hover:bg-muted/30">
+                <td className="py-2 pr-3">
+                  <a href={`/ops/findings/${f.id}`} className="text-primary hover:underline font-mono text-xs">
+                    {f.id}
+                  </a>
+                  <p className="text-xs text-muted-foreground truncate max-w-[300px]">{f.title}</p>
                 </td>
-              )}
-              {scoreField === 'exploit' && (
-                <td className="py-2 text-right">
-                  <Badge className="text-[10px] bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
-                    Exploited
-                  </Badge>
+                <td className="py-2 pr-3">
+                  <Badge className={cn('text-[10px]', sevColor[f.severity])}>{f.severity}</Badge>
                 </td>
-              )}
-            </tr>
-          ))}
+                <td className="py-2 pr-3 text-xs text-muted-foreground truncate max-w-[200px]">
+                  {f.resource_id || f.resource_type || '—'}
+                </td>
+                {scoreField === 'epss' && (
+                  <td className="py-2 text-right font-mono text-xs">
+                    <span className={cn(
+                      'font-medium',
+                      epssScore >= 0.7 ? 'text-red-600' : epssScore >= 0.4 ? 'text-amber-600' : 'text-muted-foreground'
+                    )}>
+                      {(epssScore * 100).toFixed(1)}%
+                    </span>
+                  </td>
+                )}
+                {scoreField === 'exploit' && (
+                  <td className="py-2 text-right">
+                    <Badge className="text-[10px] bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                      Exploited
+                    </Badge>
+                  </td>
+                )}
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 
 	"aegis/internal/api"
@@ -211,6 +212,8 @@ type attackPathAnalysis struct {
 	Analysis         string            `json:"analysis"`
 	RemediationSteps []string          `json:"remediation_steps"`
 	RiskFactors      []string          `json:"risk_factors"`
+	EvidenceMode     string            `json:"evidence_mode,omitempty"`
+	ControlGaps      []string          `json:"control_gaps,omitempty"`
 	BlastRadius      blastRadiusDetail `json:"blast_radius"`
 }
 
@@ -316,20 +319,44 @@ func (s *Server) buildAttackPathAnalysis(ctx context.Context, path *AttackPath) 
 		analysisText += "The target is a " + target.ResourceType +
 			" resource that could be compromised through privilege escalation or lateral movement."
 	}
+	if path.MissionContext != "" {
+		analysisText += " Mission context: " + path.MissionContext
+	}
+	if path.EvidenceMode != "" {
+		analysisText += " Evidence mode: " + path.EvidenceMode + "."
+	}
 
-	return attackPathAnalysis{
-		Analysis: analysisText,
-		RemediationSteps: []string{
+	remediationSteps := path.RecommendedBreaks
+	if len(remediationSteps) == 0 {
+		remediationSteps = []string{
 			"Restrict network segmentation between entry-point and target resources",
 			"Apply least-privilege IAM policies to reduce lateral movement surface",
 			"Enable GuardDuty or equivalent runtime threat detection on affected accounts",
 			"Rotate credentials for identities with cross-account access in this path",
-		},
-		RiskFactors: []string{
+		}
+	}
+	if len(path.ControlGaps) > 0 {
+		remediationSteps = append(remediationSteps, "Capture evidence for control gaps: "+strings.Join(path.ControlGaps, ", "))
+	}
+	if path.RollbackSummary != "" {
+		remediationSteps = append(remediationSteps, path.RollbackSummary)
+	}
+
+	riskFactors := path.RiskFactors
+	if len(riskFactors) == 0 {
+		riskFactors = []string{
 			"Path traverses " + strconv.Itoa(len(path.Nodes)) + " resources with escalation potential",
 			"Entry point has public-facing exposure",
 			path.Severity + " severity indicates high exploitability",
-		},
+		}
+	}
+
+	return attackPathAnalysis{
+		Analysis:         analysisText,
+		RemediationSteps: remediationSteps,
+		RiskFactors:      riskFactors,
+		EvidenceMode:     path.EvidenceMode,
+		ControlGaps:      path.ControlGaps,
 		BlastRadius: blastRadiusDetail{
 			Direct:   direct,
 			Indirect: indirect,

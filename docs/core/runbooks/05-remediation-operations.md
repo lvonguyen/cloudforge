@@ -270,6 +270,13 @@ aws ssm get-command-invocation \
 
 The dispatcher snapshots resource state before every change. Rollbacks are available for 48h.
 
+Current CLI behavior:
+
+- `remediation-dispatcher --rollback <snapshot-id>` requires `AEGIS_ROLLBACK_TOKEN` and loads the captured state from `--state-dir`.
+- If the handler has a registered SDK rollback path, the dispatcher executes it and writes `<snapshot-id>-rollback-result.json`.
+- If no registered rollback exists, the dispatcher logs the generated rollback script and exits without attempting an unsafe generic undo.
+- Registered SDK rollback coverage currently includes GuardDuty enablement, S3 public-access blocking, stale IAM access-key deactivation, and EC2 IMDSv2 enforcement.
+
 ```bash
 # List available snapshots for a batch
 curl -sf https://api.cloudforge.lvonguyen.com/api/v1/remediations/batch-20260226-001/snapshots | \

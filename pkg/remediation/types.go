@@ -28,15 +28,18 @@ type Remediator interface {
 
 // RemediationResult contains the outcome of a remediation action.
 type RemediationResult struct {
-	FindingID   string    `json:"finding_id"`
-	Success     bool      `json:"success"`
-	Message     string    `json:"message"`
-	ResourceID  string    `json:"resource_id"`
-	Actions     []string  `json:"actions"` // List of actions taken
-	StartedAt   time.Time `json:"started_at"`
-	CompletedAt time.Time `json:"completed_at"`
-	Duration    string    `json:"duration"`
-	Error       string    `json:"error,omitempty"`
+	FindingID               string    `json:"finding_id"`
+	Success                 bool      `json:"success"`
+	Message                 string    `json:"message"`
+	ResourceID              string    `json:"resource_id"`
+	Actions                 []string  `json:"actions"` // List of actions taken
+	StartedAt               time.Time `json:"started_at"`
+	CompletedAt             time.Time `json:"completed_at"`
+	Duration                string    `json:"duration"`
+	Error                   string    `json:"error,omitempty"`
+	RollbackAvailable       bool      `json:"rollback_available,omitempty"`
+	RollbackWindowExpiresAt time.Time `json:"rollback_window_expires_at,omitempty"`
+	RollbackActions         []string  `json:"rollback_actions,omitempty"`
 }
 
 // ValidationResult contains the outcome of validating a remediation.
@@ -51,12 +54,15 @@ type ValidationResult struct {
 
 // DryRunResult contains the outcome of a dry-run simulation.
 type DryRunResult struct {
-	FindingID        string   `json:"finding_id"`
-	WouldSucceed     bool     `json:"would_succeed"`
-	PlannedActions   []string `json:"planned_actions"`
-	PrerequisitesMet bool     `json:"prerequisites_met"`
-	Warnings         []string `json:"warnings,omitempty"`
-	EstimatedImpact  string   `json:"estimated_impact"`
+	FindingID               string   `json:"finding_id"`
+	WouldSucceed            bool     `json:"would_succeed"`
+	PlannedActions          []string `json:"planned_actions"`
+	PrerequisitesMet        bool     `json:"prerequisites_met"`
+	Warnings                []string `json:"warnings,omitempty"`
+	EstimatedImpact         string   `json:"estimated_impact"`
+	RollbackPlan            []string `json:"rollback_plan,omitempty"`
+	ValidationChecks        []string `json:"validation_checks,omitempty"`
+	EstimatedRollbackWindow string   `json:"estimated_rollback_window,omitempty"`
 }
 
 // RemediationStatus represents the state of a remediation operation.

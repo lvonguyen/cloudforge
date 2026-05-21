@@ -37,6 +37,15 @@ export interface AttackPath {
   edges: AttackPathEdge[]
   mitre_tactics: string[]
   finding_ids: string[]
+  mission_context?: string
+  mission_impact?: string
+  risk_factors?: string[]
+  control_gaps?: string[]
+  recommended_breaks?: string[]
+  evidence_mode?: string
+  rollback_summary?: string
+  choke_points?: string[]
+  control_mappings?: string[]
 
   // AI-enriched fields (present when Bedrock AI is enabled)
   ai_description?: string

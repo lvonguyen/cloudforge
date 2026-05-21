@@ -13,6 +13,7 @@ import {
   Wrench,
   DollarSign,
   Box,
+  ShieldCheck,
 } from 'lucide-react'
 
 interface CommandItem {
@@ -28,6 +29,8 @@ interface CommandPaletteProps {
   onOpenChange: (open: boolean) => void
 }
 
+const COMMAND_SECTIONS = ['Navigate', 'Actions'] as const
+
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
@@ -40,6 +43,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     { id: 'nav-findings', label: 'Findings', section: 'Navigate', icon: AlertTriangle, action: () => navigate('/ops/findings') },
     { id: 'nav-remediation', label: 'Remediation', section: 'Navigate', icon: Wrench, action: () => navigate('/ops/remediation') },
     { id: 'nav-compliance', label: 'Compliance', section: 'Navigate', icon: Shield, action: () => navigate('/ops/compliance') },
+    { id: 'nav-defense', label: 'Defense Readiness', section: 'Navigate', icon: ShieldCheck, action: () => navigate('/ops/defense-readiness') },
     { id: 'nav-containers', label: 'Containers', section: 'Navigate', icon: Box, action: () => navigate('/ops/containers') },
     { id: 'nav-spend', label: 'Spend', section: 'Navigate', icon: DollarSign, action: () => navigate('/ops/costs') },
     { id: 'nav-policies', label: 'Policies', section: 'Navigate', icon: FileText, action: () => navigate('/admin/policies') },
@@ -80,12 +84,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     }
   }
 
-  const sections = ['Navigate', 'Actions'] as const
-
   const groupedItems = useMemo(() => {
     const groups: { section: string; items: { item: CommandItem; globalIndex: number }[] }[] = []
     let idx = 0
-    for (const section of sections) {
+    for (const section of COMMAND_SECTIONS) {
       const sItems = filtered.filter(i => i.section === section)
       if (sItems.length > 0) {
         groups.push({ section, items: sItems.map(item => ({ item, globalIndex: idx++ })) })

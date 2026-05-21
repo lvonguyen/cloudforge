@@ -30,6 +30,18 @@
       ],
       "validated_at": "2026-02-27T10:10:00Z"
     },
+    "rollback": {
+      "mode": "script",
+      "status": "manual",
+      "state_id": "20260227-100532-f-aws-0035",
+      "window_expires_at": "2026-02-29T10:05:32Z",
+      "approval_required": true,
+      "command": "remediation-dispatcher --rollback 20260227-100532-f-aws-0035",
+      "actions": [
+        "Validate workload health before reverting patch sequence",
+        "Restore captured instance state from snapshot if application compatibility fails"
+      ]
+    },
     "created_at": "2026-02-27T09:55:00Z",
     "updated_at": "2026-02-27T10:10:00Z"
   },
@@ -62,6 +74,18 @@
         "block_public_access_all_true"
       ],
       "validated_at": "2026-02-26T14:02:00Z"
+    },
+    "rollback": {
+      "mode": "sdk",
+      "status": "available",
+      "state_id": "20260226-140048-f-aws-0038",
+      "window_expires_at": "2026-02-28T14:00:48Z",
+      "approval_required": true,
+      "command": "remediation-dispatcher --rollback 20260226-140048-f-aws-0038",
+      "actions": [
+        "Restore captured S3 public-access-block state if downstream publishing breaks",
+        "Re-run bucket policy validation after rollback"
+      ]
     },
     "created_at": "2026-02-26T13:58:00Z",
     "updated_at": "2026-02-26T14:02:00Z"
@@ -97,6 +121,18 @@
         "access_advisor_unused_removed"
       ],
       "validated_at": "2026-02-25T11:12:00Z"
+    },
+    "rollback": {
+      "mode": "script",
+      "status": "manual",
+      "state_id": "20260225-110814-f-aws-0067",
+      "window_expires_at": "2026-02-27T11:08:14Z",
+      "approval_required": true,
+      "command": "remediation-dispatcher --rollback 20260225-110814-f-aws-0067",
+      "actions": [
+        "Restore previous IAM policy document from captured state",
+        "Run policy simulator for the original deployment workflow before closure"
+      ]
     },
     "created_at": "2026-02-25T10:55:00Z",
     "updated_at": "2026-02-25T11:12:00Z"

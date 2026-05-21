@@ -137,6 +137,11 @@ const SAMPLE_PATH: AttackPath = {
   ai_confidence: 0.92,
   ai_validated: true,
   ai_risk_narrative: 'An external actor can move from public ingress into the database control plane.',
+  mission_context: 'Orders workload migration path with production data exposure risk.',
+  evidence_mode: 'graph_adjacency',
+  control_gaps: ['CMMC AC.L2-3.1.5', 'FedRAMP AC-6'],
+  recommended_breaks: ['Remove public ingress', 'Scope the role trust policy', 'Validate rollback before database changes'],
+  rollback_summary: 'Rollback-first plan uses captured IAM and network state.',
   ai_enriched: true,
 }
 
@@ -330,6 +335,10 @@ describe('AttackPaths readability controls', () => {
     expect(screen.getAllByText(/remove internet ingress and tighten the role trust policy/i).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/public internet/i).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/security group \/ subnet/i).length).toBeGreaterThan(0)
+    expect(screen.getByText(/mission context/i)).toBeInTheDocument()
+    expect(screen.getByText(/orders workload migration path/i)).toBeInTheDocument()
+    expect(screen.getByText(/graph_adjacency/i)).toBeInTheDocument()
+    expect(screen.getByText(/rollback-first plan/i)).toBeInTheDocument()
     expect(screen.getByText(/1 privesc hop/i)).toBeInTheDocument()
     expect(screen.getAllByText(/crown jewel/i).length).toBeGreaterThan(0)
     expect(within(screen.getByTestId('mock-edge-edge-1-0')).getByText(/hop 1: privilege escalation/i)).toBeInTheDocument()

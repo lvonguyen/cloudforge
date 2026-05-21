@@ -1,6 +1,719 @@
 {
   "paths": [
     {
+      "id": "ap-defense-azure-001",
+      "title": "Azure migration API to synthetic CUI artifact container",
+      "description": "2-hop synthetic defense-readiness path: agw-migration-api -> mission-release-prod -> prototype-artifacts",
+      "severity": "CRITICAL",
+      "score": 98,
+      "hop_count": 2,
+      "entry_point": {
+        "id": "ap-defense-azure-001-node-0",
+        "finding_id": "df-az-001",
+        "resource_id": "/subscriptions/sub-gov-mission-001/resourceGroups/rg-mission-prod/providers/Microsoft.Network/applicationGateways/agw-migration-api",
+        "resource_name": "agw-migration-api",
+        "resource_type": "network",
+        "provider": "azure",
+        "account_id": "sub-gov-mission-001",
+        "region": "usgovvirginia",
+        "severity": "HIGH",
+        "category": "NETWORK",
+        "label": "agw-migration-api"
+      },
+      "target": {
+        "id": "ap-defense-azure-001-node-2",
+        "finding_id": "df-az-002",
+        "resource_id": "/subscriptions/sub-gov-mission-001/resourceGroups/rg-mission-prod/providers/Microsoft.Storage/storageAccounts/stmissionartifacts/blobServices/default/containers/prototype-artifacts",
+        "resource_name": "prototype-artifacts",
+        "resource_type": "storage",
+        "provider": "azure",
+        "account_id": "sub-gov-mission-001",
+        "region": "usgovvirginia",
+        "severity": "CRITICAL",
+        "category": "DATA_PROTECTION",
+        "label": "prototype-artifacts"
+      },
+      "nodes": [
+        {
+          "id": "ap-defense-azure-001-node-0",
+          "finding_id": "df-az-001",
+          "resource_id": "/subscriptions/sub-gov-mission-001/resourceGroups/rg-mission-prod/providers/Microsoft.Network/applicationGateways/agw-migration-api",
+          "resource_name": "agw-migration-api",
+          "resource_type": "network",
+          "provider": "azure",
+          "account_id": "sub-gov-mission-001",
+          "region": "usgovvirginia",
+          "severity": "HIGH",
+          "category": "NETWORK",
+          "label": "agw-migration-api"
+        },
+        {
+          "id": "ap-defense-azure-001-node-1",
+          "finding_id": "df-az-003",
+          "resource_id": "azdo://service-connections/mission-release-prod",
+          "resource_name": "mission-release-prod",
+          "resource_type": "identity",
+          "provider": "azure",
+          "account_id": "sub-gov-mission-001",
+          "region": "usgovvirginia",
+          "severity": "HIGH",
+          "category": "IDENTITY",
+          "label": "mission-release-prod"
+        },
+        {
+          "id": "ap-defense-azure-001-node-2",
+          "finding_id": "df-az-002",
+          "resource_id": "/subscriptions/sub-gov-mission-001/resourceGroups/rg-mission-prod/providers/Microsoft.Storage/storageAccounts/stmissionartifacts/blobServices/default/containers/prototype-artifacts",
+          "resource_name": "prototype-artifacts",
+          "resource_type": "storage",
+          "provider": "azure",
+          "account_id": "sub-gov-mission-001",
+          "region": "usgovvirginia",
+          "severity": "CRITICAL",
+          "category": "DATA_PROTECTION",
+          "label": "prototype-artifacts"
+        }
+      ],
+      "edges": [
+        {
+          "id": "ap-defense-azure-001-edge-0",
+          "source": "ap-defense-azure-001-node-0",
+          "target": "ap-defense-azure-001-node-1",
+          "label": "Network reachable",
+          "edge_type": "network_reachable"
+        },
+        {
+          "id": "ap-defense-azure-001-edge-1",
+          "source": "ap-defense-azure-001-node-1",
+          "target": "ap-defense-azure-001-node-2",
+          "label": "CI/CD trust",
+          "edge_type": "iam_trust"
+        }
+      ],
+      "mitre_tactics": [
+        "TA0001",
+        "TA0040",
+        "TA0003",
+        "TA0004",
+        "TA0009",
+        "TA0010"
+      ],
+      "finding_ids": [
+        "df-az-001",
+        "df-az-003",
+        "df-az-002"
+      ],
+      "ai_description": "Synthetic path showing how migration pressure can connect exposure, identity drift, and restricted-data evidence gaps.",
+      "ai_remediation": "Break path: Attach WAF and source restrictions to agw-migration-api\nBreak path: Scope mission-release-prod away from secret and storage administration\nBreak path: Remove broad readers on prototype-artifacts",
+      "ai_likelihood": "high",
+      "ai_confidence": 0.86,
+      "ai_validated": true,
+      "ai_risk_narrative": "A public migration API and broad pipeline identity could expose synthetic artifact data before the GCC High cutover is evidence-ready.",
+      "ai_enriched": true,
+      "evidence_mode": "synthetic-defense-demo",
+      "mission_context": "A public migration API and broad pipeline identity could expose synthetic artifact data before the GCC High cutover is evidence-ready.",
+      "mission_impact": "A public migration API and broad pipeline identity could expose synthetic artifact data before the GCC High cutover is evidence-ready.",
+      "risk_factors": [
+        "Attach WAF and source restrictions to agw-migration-api",
+        "Scope mission-release-prod away from secret and storage administration",
+        "Remove broad readers on prototype-artifacts"
+      ],
+      "control_gaps": [
+        "CMMC Level 2 SC.L2-3.13.1",
+        "FedRAMP High Rev.5 SC-7",
+        "CMMC Level 2 AC.L2-3.1.5",
+        "FedRAMP High Rev.5 IA-5",
+        "NIST SP 800-171 Rev.3 AC.3.1.1",
+        "ITAR/EAR Boundary Checks ITAR-BOUNDARY-01"
+      ],
+      "recommended_breaks": [
+        "Attach WAF and source restrictions to agw-migration-api",
+        "Scope mission-release-prod away from secret and storage administration",
+        "Remove broad readers on prototype-artifacts"
+      ],
+      "rollback_summary": "Rollback-first remediation plan: stage IaC or policy change, capture pre-state evidence, and keep a reversible path for IAM, network, and data-access changes.",
+      "choke_points": [
+        "mission-release-prod",
+        "prototype-artifacts"
+      ],
+      "control_mappings": [
+        "CMMC Level 2 SC.L2-3.13.1",
+        "FedRAMP High Rev.5 SC-7",
+        "CMMC Level 2 AC.L2-3.1.5",
+        "FedRAMP High Rev.5 IA-5",
+        "NIST SP 800-171 Rev.3 AC.3.1.1",
+        "ITAR/EAR Boundary Checks ITAR-BOUNDARY-01"
+      ]
+    },
+    {
+      "id": "ap-defense-gcp-001",
+      "title": "GCP trial bastion to analytics data plane",
+      "description": "2-hop synthetic defense-readiness path: bastion-migration-trial -> cloudbuild-defense-owner -> mission_analytics",
+      "severity": "CRITICAL",
+      "score": 97,
+      "hop_count": 2,
+      "entry_point": {
+        "id": "ap-defense-gcp-001-node-0",
+        "finding_id": "df-gcp-001",
+        "resource_id": "projects/proj-defense-analytics-001/zones/us-central1-a/instances/bastion-migration-trial",
+        "resource_name": "bastion-migration-trial",
+        "resource_type": "compute",
+        "provider": "gcp",
+        "account_id": "proj-defense-analytics-001",
+        "region": "us-central1",
+        "severity": "HIGH",
+        "category": "NETWORK",
+        "label": "bastion-migration-trial"
+      },
+      "target": {
+        "id": "ap-defense-gcp-001-node-2",
+        "finding_id": "df-gcp-004",
+        "resource_id": "projects/proj-defense-analytics-001/datasets/mission_analytics",
+        "resource_name": "mission_analytics",
+        "resource_type": "database",
+        "provider": "gcp",
+        "account_id": "proj-defense-analytics-001",
+        "region": "us-central1",
+        "severity": "HIGH",
+        "category": "COMPLIANCE",
+        "label": "mission_analytics"
+      },
+      "nodes": [
+        {
+          "id": "ap-defense-gcp-001-node-0",
+          "finding_id": "df-gcp-001",
+          "resource_id": "projects/proj-defense-analytics-001/zones/us-central1-a/instances/bastion-migration-trial",
+          "resource_name": "bastion-migration-trial",
+          "resource_type": "compute",
+          "provider": "gcp",
+          "account_id": "proj-defense-analytics-001",
+          "region": "us-central1",
+          "severity": "HIGH",
+          "category": "NETWORK",
+          "label": "bastion-migration-trial"
+        },
+        {
+          "id": "ap-defense-gcp-001-node-1",
+          "finding_id": "df-gcp-002",
+          "resource_id": "serviceAccount:cloudbuild-proj-defense-analytics-001@cloudbuild.gserviceaccount.com",
+          "resource_name": "cloudbuild-defense-owner",
+          "resource_type": "identity",
+          "provider": "gcp",
+          "account_id": "proj-defense-analytics-001",
+          "region": "us-central1",
+          "severity": "CRITICAL",
+          "category": "IDENTITY",
+          "label": "cloudbuild-defense-owner"
+        },
+        {
+          "id": "ap-defense-gcp-001-node-2",
+          "finding_id": "df-gcp-004",
+          "resource_id": "projects/proj-defense-analytics-001/datasets/mission_analytics",
+          "resource_name": "mission_analytics",
+          "resource_type": "database",
+          "provider": "gcp",
+          "account_id": "proj-defense-analytics-001",
+          "region": "us-central1",
+          "severity": "HIGH",
+          "category": "COMPLIANCE",
+          "label": "mission_analytics"
+        }
+      ],
+      "edges": [
+        {
+          "id": "ap-defense-gcp-001-edge-0",
+          "source": "ap-defense-gcp-001-node-0",
+          "target": "ap-defense-gcp-001-node-1",
+          "label": "Network reachable",
+          "edge_type": "network_reachable"
+        },
+        {
+          "id": "ap-defense-gcp-001-edge-1",
+          "source": "ap-defense-gcp-001-node-1",
+          "target": "ap-defense-gcp-001-node-2",
+          "label": "CI/CD trust",
+          "edge_type": "iam_trust"
+        }
+      ],
+      "mitre_tactics": [
+        "TA0001",
+        "TA0003",
+        "TA0004"
+      ],
+      "finding_ids": [
+        "df-gcp-001",
+        "df-gcp-002",
+        "df-gcp-004"
+      ],
+      "ai_description": "Synthetic path showing how migration pressure can connect exposure, identity drift, and restricted-data evidence gaps.",
+      "ai_remediation": "Break path: Remove bastion external IP and require IAP\nBreak path: Replace Owner role on cloudbuild-defense-owner\nBreak path: Enable BigQuery data access logs",
+      "ai_likelihood": "high",
+      "ai_confidence": 0.86,
+      "ai_validated": true,
+      "ai_risk_narrative": "External bastion access plus an over-privileged build identity could mutate analytics controls and reduce auditability.",
+      "ai_enriched": true,
+      "evidence_mode": "synthetic-defense-demo",
+      "mission_context": "External bastion access plus an over-privileged build identity could mutate analytics controls and reduce auditability.",
+      "mission_impact": "External bastion access plus an over-privileged build identity could mutate analytics controls and reduce auditability.",
+      "risk_factors": [
+        "Remove bastion external IP and require IAP",
+        "Replace Owner role on cloudbuild-defense-owner",
+        "Enable BigQuery data access logs"
+      ],
+      "control_gaps": [
+        "NIST SP 800-171 Rev.3 AC.3.1.12",
+        "CMMC Level 2 AC.L2-3.1.12",
+        "CMMC Level 2 AC.L2-3.1.5",
+        "FedRAMP High Rev.5 AC-6",
+        "FedRAMP High Rev.5 AU-2",
+        "CMMC Level 2 AU.L2-3.3.1"
+      ],
+      "recommended_breaks": [
+        "Remove bastion external IP and require IAP",
+        "Replace Owner role on cloudbuild-defense-owner",
+        "Enable BigQuery data access logs"
+      ],
+      "rollback_summary": "Rollback-first remediation plan: stage IaC or policy change, capture pre-state evidence, and keep a reversible path for IAM, network, and data-access changes.",
+      "choke_points": [
+        "cloudbuild-defense-owner",
+        "mission_analytics"
+      ],
+      "control_mappings": [
+        "NIST SP 800-171 Rev.3 AC.3.1.12",
+        "CMMC Level 2 AC.L2-3.1.12",
+        "CMMC Level 2 AC.L2-3.1.5",
+        "FedRAMP High Rev.5 AC-6",
+        "FedRAMP High Rev.5 AU-2",
+        "CMMC Level 2 AU.L2-3.3.1"
+      ]
+    },
+    {
+      "id": "ap-defense-gcp-002",
+      "title": "Unsigned container promotion to telemetry bucket exposure",
+      "description": "2-hop synthetic defense-readiness path: mission-containers -> cloudbuild-defense-owner -> mission-telemetry-trial",
+      "severity": "HIGH",
+      "score": 90,
+      "hop_count": 2,
+      "entry_point": {
+        "id": "ap-defense-gcp-002-node-0",
+        "finding_id": "df-gcp-005",
+        "resource_id": "projects/proj-defense-analytics-001/locations/us-central1/repositories/mission-containers",
+        "resource_name": "mission-containers",
+        "resource_type": "container",
+        "provider": "gcp",
+        "account_id": "proj-defense-analytics-001",
+        "region": "us-central1",
+        "severity": "HIGH",
+        "category": "CONTAINER",
+        "label": "mission-containers"
+      },
+      "target": {
+        "id": "ap-defense-gcp-002-node-2",
+        "finding_id": "df-gcp-003",
+        "resource_id": "projects/_/buckets/mission-telemetry-trial",
+        "resource_name": "mission-telemetry-trial",
+        "resource_type": "storage",
+        "provider": "gcp",
+        "account_id": "proj-defense-analytics-001",
+        "region": "us-central1",
+        "severity": "HIGH",
+        "category": "DATA_PROTECTION",
+        "label": "mission-telemetry-trial"
+      },
+      "nodes": [
+        {
+          "id": "ap-defense-gcp-002-node-0",
+          "finding_id": "df-gcp-005",
+          "resource_id": "projects/proj-defense-analytics-001/locations/us-central1/repositories/mission-containers",
+          "resource_name": "mission-containers",
+          "resource_type": "container",
+          "provider": "gcp",
+          "account_id": "proj-defense-analytics-001",
+          "region": "us-central1",
+          "severity": "HIGH",
+          "category": "CONTAINER",
+          "label": "mission-containers"
+        },
+        {
+          "id": "ap-defense-gcp-002-node-1",
+          "finding_id": "df-gcp-002",
+          "resource_id": "serviceAccount:cloudbuild-proj-defense-analytics-001@cloudbuild.gserviceaccount.com",
+          "resource_name": "cloudbuild-defense-owner",
+          "resource_type": "identity",
+          "provider": "gcp",
+          "account_id": "proj-defense-analytics-001",
+          "region": "us-central1",
+          "severity": "CRITICAL",
+          "category": "IDENTITY",
+          "label": "cloudbuild-defense-owner"
+        },
+        {
+          "id": "ap-defense-gcp-002-node-2",
+          "finding_id": "df-gcp-003",
+          "resource_id": "projects/_/buckets/mission-telemetry-trial",
+          "resource_name": "mission-telemetry-trial",
+          "resource_type": "storage",
+          "provider": "gcp",
+          "account_id": "proj-defense-analytics-001",
+          "region": "us-central1",
+          "severity": "HIGH",
+          "category": "DATA_PROTECTION",
+          "label": "mission-telemetry-trial"
+        }
+      ],
+      "edges": [
+        {
+          "id": "ap-defense-gcp-002-edge-0",
+          "source": "ap-defense-gcp-002-node-0",
+          "target": "ap-defense-gcp-002-node-1",
+          "label": "Network reachable",
+          "edge_type": "network_reachable"
+        },
+        {
+          "id": "ap-defense-gcp-002-edge-1",
+          "source": "ap-defense-gcp-002-node-1",
+          "target": "ap-defense-gcp-002-node-2",
+          "label": "CI/CD trust",
+          "edge_type": "iam_trust"
+        }
+      ],
+      "mitre_tactics": [
+        "TA0005",
+        "TA0003",
+        "TA0004"
+      ],
+      "finding_ids": [
+        "df-gcp-005",
+        "df-gcp-002",
+        "df-gcp-003"
+      ],
+      "ai_description": "Synthetic path showing how migration pressure can connect exposure, identity drift, and restricted-data evidence gaps.",
+      "ai_remediation": "Break path: Require signed provenance for mission-containers\nBreak path: Scope Cloud Build permissions\nBreak path: Enable uniform bucket-level access",
+      "ai_likelihood": "medium",
+      "ai_confidence": 0.86,
+      "ai_validated": true,
+      "ai_risk_narrative": "A supply-chain bypass can promote untrusted workload changes while broad build permissions expose telemetry data.",
+      "ai_enriched": true,
+      "evidence_mode": "synthetic-defense-demo",
+      "mission_context": "A supply-chain bypass can promote untrusted workload changes while broad build permissions expose telemetry data.",
+      "mission_impact": "A supply-chain bypass can promote untrusted workload changes while broad build permissions expose telemetry data.",
+      "risk_factors": [
+        "Require signed provenance for mission-containers",
+        "Scope Cloud Build permissions",
+        "Enable uniform bucket-level access"
+      ],
+      "control_gaps": [
+        "CMMC Level 2 SI.L2-3.14.2",
+        "FedRAMP High Rev.5 SI-7",
+        "CMMC Level 2 AC.L2-3.1.5",
+        "FedRAMP High Rev.5 AC-6",
+        "NIST SP 800-171 Rev.3 AC.3.1.3",
+        "FedRAMP High Rev.5 AC-3"
+      ],
+      "recommended_breaks": [
+        "Require signed provenance for mission-containers",
+        "Scope Cloud Build permissions",
+        "Enable uniform bucket-level access"
+      ],
+      "rollback_summary": "Rollback-first remediation plan: stage IaC or policy change, capture pre-state evidence, and keep a reversible path for IAM, network, and data-access changes.",
+      "choke_points": [
+        "cloudbuild-defense-owner"
+      ],
+      "control_mappings": [
+        "CMMC Level 2 SI.L2-3.14.2",
+        "FedRAMP High Rev.5 SI-7",
+        "CMMC Level 2 AC.L2-3.1.5",
+        "FedRAMP High Rev.5 AC-6",
+        "NIST SP 800-171 Rev.3 AC.3.1.3",
+        "FedRAMP High Rev.5 AC-3"
+      ]
+    },
+    {
+      "id": "ap-defense-aws-001",
+      "title": "GovCloud deploy role to cross-boundary artifact access",
+      "description": "2-hop synthetic defense-readiness path: gha-govcloud-deployer -> gha-govcloud-deployer -> mission-artifacts-gov-trial",
+      "severity": "CRITICAL",
+      "score": 99,
+      "hop_count": 2,
+      "entry_point": {
+        "id": "ap-defense-aws-001-node-0",
+        "finding_id": "df-aws-002",
+        "resource_id": "arn:aws-us-gov:iam::999988887777:role/gha-govcloud-deployer",
+        "resource_name": "gha-govcloud-deployer",
+        "resource_type": "identity",
+        "provider": "aws",
+        "account_id": "999988887777",
+        "region": "us-gov-west-1",
+        "severity": "HIGH",
+        "category": "IDENTITY",
+        "label": "gha-govcloud-deployer"
+      },
+      "target": {
+        "id": "ap-defense-aws-001-node-2",
+        "finding_id": "df-aws-001",
+        "resource_id": "arn:aws-us-gov:s3:::mission-artifacts-gov-trial",
+        "resource_name": "mission-artifacts-gov-trial",
+        "resource_type": "storage",
+        "provider": "aws",
+        "account_id": "999988887777",
+        "region": "us-gov-west-1",
+        "severity": "CRITICAL",
+        "category": "DATA_PROTECTION",
+        "label": "mission-artifacts-gov-trial"
+      },
+      "nodes": [
+        {
+          "id": "ap-defense-aws-001-node-0",
+          "finding_id": "df-aws-002",
+          "resource_id": "arn:aws-us-gov:iam::999988887777:role/gha-govcloud-deployer",
+          "resource_name": "gha-govcloud-deployer",
+          "resource_type": "identity",
+          "provider": "aws",
+          "account_id": "999988887777",
+          "region": "us-gov-west-1",
+          "severity": "HIGH",
+          "category": "IDENTITY",
+          "label": "gha-govcloud-deployer"
+        },
+        {
+          "id": "ap-defense-aws-001-node-1",
+          "finding_id": "df-aws-005",
+          "resource_id": "arn:aws-us-gov:iam::999988887777:role/gha-govcloud-deployer",
+          "resource_name": "gha-govcloud-deployer",
+          "resource_type": "identity",
+          "provider": "aws",
+          "account_id": "999988887777",
+          "region": "us-gov-west-1",
+          "severity": "HIGH",
+          "category": "THREAT",
+          "label": "gha-govcloud-deployer"
+        },
+        {
+          "id": "ap-defense-aws-001-node-2",
+          "finding_id": "df-aws-001",
+          "resource_id": "arn:aws-us-gov:s3:::mission-artifacts-gov-trial",
+          "resource_name": "mission-artifacts-gov-trial",
+          "resource_type": "storage",
+          "provider": "aws",
+          "account_id": "999988887777",
+          "region": "us-gov-west-1",
+          "severity": "CRITICAL",
+          "category": "DATA_PROTECTION",
+          "label": "mission-artifacts-gov-trial"
+        }
+      ],
+      "edges": [
+        {
+          "id": "ap-defense-aws-001-edge-0",
+          "source": "ap-defense-aws-001-node-0",
+          "target": "ap-defense-aws-001-node-1",
+          "label": "Network reachable",
+          "edge_type": "network_reachable"
+        },
+        {
+          "id": "ap-defense-aws-001-edge-1",
+          "source": "ap-defense-aws-001-node-1",
+          "target": "ap-defense-aws-001-node-2",
+          "label": "CI/CD trust",
+          "edge_type": "iam_trust"
+        }
+      ],
+      "mitre_tactics": [
+        "TA0003",
+        "TA0004",
+        "TA0006",
+        "TA0010",
+        "TA0009"
+      ],
+      "finding_ids": [
+        "df-aws-002",
+        "df-aws-005",
+        "df-aws-001"
+      ],
+      "ai_description": "Synthetic path showing how migration pressure can connect exposure, identity drift, and restricted-data evidence gaps.",
+      "ai_remediation": "Break path: Restrict OIDC subject claims\nBreak path: Quarantine anomalous deploy sessions\nBreak path: Remove commercial role trust from mission-artifacts-gov-trial",
+      "ai_likelihood": "high",
+      "ai_confidence": 0.86,
+      "ai_validated": true,
+      "ai_risk_narrative": "Wildcard OIDC trust and unusual deploy-role behavior create a cross-boundary artifact access scenario in synthetic GovCloud migration data.",
+      "ai_enriched": true,
+      "evidence_mode": "synthetic-defense-demo",
+      "mission_context": "Wildcard OIDC trust and unusual deploy-role behavior create a cross-boundary artifact access scenario in synthetic GovCloud migration data.",
+      "mission_impact": "Wildcard OIDC trust and unusual deploy-role behavior create a cross-boundary artifact access scenario in synthetic GovCloud migration data.",
+      "risk_factors": [
+        "Restrict OIDC subject claims",
+        "Quarantine anomalous deploy sessions",
+        "Remove commercial role trust from mission-artifacts-gov-trial"
+      ],
+      "control_gaps": [
+        "CMMC Level 2 AC.L2-3.1.5",
+        "FedRAMP High Rev.5 IA-2",
+        "FedRAMP High Rev.5 IR-4",
+        "CMMC Level 2 IR.L2-3.6.1",
+        "ITAR/EAR Boundary Checks EAR-BOUNDARY-02",
+        "NIST SP 800-171 Rev.3 AC.3.1.20"
+      ],
+      "recommended_breaks": [
+        "Restrict OIDC subject claims",
+        "Quarantine anomalous deploy sessions",
+        "Remove commercial role trust from mission-artifacts-gov-trial"
+      ],
+      "rollback_summary": "Rollback-first remediation plan: stage IaC or policy change, capture pre-state evidence, and keep a reversible path for IAM, network, and data-access changes.",
+      "choke_points": [
+        "gha-govcloud-deployer",
+        "mission-artifacts-gov-trial"
+      ],
+      "control_mappings": [
+        "CMMC Level 2 AC.L2-3.1.5",
+        "FedRAMP High Rev.5 IA-2",
+        "FedRAMP High Rev.5 IR-4",
+        "CMMC Level 2 IR.L2-3.6.1",
+        "ITAR/EAR Boundary Checks EAR-BOUNDARY-02",
+        "NIST SP 800-171 Rev.3 AC.3.1.20"
+      ]
+    },
+    {
+      "id": "ap-defense-aws-002",
+      "title": "GovCloud bastion to audit integrity gap",
+      "description": "2-hop synthetic defense-readiness path: mission-bastion-gov -> org-mission-trail -> mission-artifacts-gov-trial",
+      "severity": "HIGH",
+      "score": 88,
+      "hop_count": 2,
+      "entry_point": {
+        "id": "ap-defense-aws-002-node-0",
+        "finding_id": "df-aws-004",
+        "resource_id": "arn:aws-us-gov:ec2:us-gov-west-1:999988887777:instance/i-0defensebastion",
+        "resource_name": "mission-bastion-gov",
+        "resource_type": "compute",
+        "provider": "aws",
+        "account_id": "999988887777",
+        "region": "us-gov-west-1",
+        "severity": "HIGH",
+        "category": "COMPUTE",
+        "label": "mission-bastion-gov"
+      },
+      "target": {
+        "id": "ap-defense-aws-002-node-2",
+        "finding_id": "df-aws-001",
+        "resource_id": "arn:aws-us-gov:s3:::mission-artifacts-gov-trial",
+        "resource_name": "mission-artifacts-gov-trial",
+        "resource_type": "storage",
+        "provider": "aws",
+        "account_id": "999988887777",
+        "region": "us-gov-west-1",
+        "severity": "CRITICAL",
+        "category": "DATA_PROTECTION",
+        "label": "mission-artifacts-gov-trial"
+      },
+      "nodes": [
+        {
+          "id": "ap-defense-aws-002-node-0",
+          "finding_id": "df-aws-004",
+          "resource_id": "arn:aws-us-gov:ec2:us-gov-west-1:999988887777:instance/i-0defensebastion",
+          "resource_name": "mission-bastion-gov",
+          "resource_type": "compute",
+          "provider": "aws",
+          "account_id": "999988887777",
+          "region": "us-gov-west-1",
+          "severity": "HIGH",
+          "category": "COMPUTE",
+          "label": "mission-bastion-gov"
+        },
+        {
+          "id": "ap-defense-aws-002-node-1",
+          "finding_id": "df-aws-003",
+          "resource_id": "arn:aws-us-gov:cloudtrail:us-gov-west-1:999988887777:trail/org-mission-trail",
+          "resource_name": "org-mission-trail",
+          "resource_type": "monitoring",
+          "provider": "aws",
+          "account_id": "999988887777",
+          "region": "us-gov-west-1",
+          "severity": "HIGH",
+          "category": "COMPLIANCE",
+          "label": "org-mission-trail"
+        },
+        {
+          "id": "ap-defense-aws-002-node-2",
+          "finding_id": "df-aws-001",
+          "resource_id": "arn:aws-us-gov:s3:::mission-artifacts-gov-trial",
+          "resource_name": "mission-artifacts-gov-trial",
+          "resource_type": "storage",
+          "provider": "aws",
+          "account_id": "999988887777",
+          "region": "us-gov-west-1",
+          "severity": "CRITICAL",
+          "category": "DATA_PROTECTION",
+          "label": "mission-artifacts-gov-trial"
+        }
+      ],
+      "edges": [
+        {
+          "id": "ap-defense-aws-002-edge-0",
+          "source": "ap-defense-aws-002-node-0",
+          "target": "ap-defense-aws-002-node-1",
+          "label": "Network reachable",
+          "edge_type": "network_reachable"
+        },
+        {
+          "id": "ap-defense-aws-002-edge-1",
+          "source": "ap-defense-aws-002-node-1",
+          "target": "ap-defense-aws-002-node-2",
+          "label": "CI/CD trust",
+          "edge_type": "iam_trust"
+        }
+      ],
+      "mitre_tactics": [
+        "TA0006",
+        "TA0009",
+        "TA0010"
+      ],
+      "finding_ids": [
+        "df-aws-004",
+        "df-aws-003",
+        "df-aws-001"
+      ],
+      "ai_description": "Synthetic path showing how migration pressure can connect exposure, identity drift, and restricted-data evidence gaps.",
+      "ai_remediation": "Break path: Enforce IMDSv2 and SSM access\nBreak path: Enable CloudTrail log validation\nBreak path: Lock artifact bucket access evidence",
+      "ai_likelihood": "medium",
+      "ai_confidence": 0.86,
+      "ai_validated": true,
+      "ai_risk_narrative": "A migration bastion credential-theft path becomes harder to investigate because org trail validation and immutable evidence are incomplete.",
+      "ai_enriched": true,
+      "evidence_mode": "synthetic-defense-demo",
+      "mission_context": "A migration bastion credential-theft path becomes harder to investigate because org trail validation and immutable evidence are incomplete.",
+      "mission_impact": "A migration bastion credential-theft path becomes harder to investigate because org trail validation and immutable evidence are incomplete.",
+      "risk_factors": [
+        "Enforce IMDSv2 and SSM access",
+        "Enable CloudTrail log validation",
+        "Lock artifact bucket access evidence"
+      ],
+      "control_gaps": [
+        "FedRAMP High Rev.5 SI-2",
+        "CMMC Level 2 SI.L2-3.14.2",
+        "FedRAMP High Rev.5 AU-9",
+        "CMMC Level 2 AU.L2-3.3.8",
+        "ITAR/EAR Boundary Checks EAR-BOUNDARY-02",
+        "NIST SP 800-171 Rev.3 AC.3.1.20"
+      ],
+      "recommended_breaks": [
+        "Enforce IMDSv2 and SSM access",
+        "Enable CloudTrail log validation",
+        "Lock artifact bucket access evidence"
+      ],
+      "rollback_summary": "Rollback-first remediation plan: stage IaC or policy change, capture pre-state evidence, and keep a reversible path for IAM, network, and data-access changes.",
+      "choke_points": [
+        "org-mission-trail"
+      ],
+      "control_mappings": [
+        "FedRAMP High Rev.5 SI-2",
+        "CMMC Level 2 SI.L2-3.14.2",
+        "FedRAMP High Rev.5 AU-9",
+        "CMMC Level 2 AU.L2-3.3.8",
+        "ITAR/EAR Boundary Checks EAR-BOUNDARY-02",
+        "NIST SP 800-171 Rev.3 AC.3.1.20"
+      ]
+    },
+    {
       "id": "ap-00001",
       "title": "s3-identity-prod-06085 → elb-identity-prod-01516 → s3-identity-prod-06085",
       "description": "Multi-hop attack from s3-identity-prod-06085 through elb-identity-prod-01516 to s3-identity-prod-06085",
@@ -45591,18 +46304,18 @@
     }
   ],
   "stats": {
-    "total_findings": 20000,
-    "findings_in_paths": 205,
-    "isolated_findings": 19795,
-    "coverage_percent": 1,
-    "total_paths": 504,
-    "critical_paths": 504,
-    "high_paths": 0,
+    "total_findings": 500,
+    "findings_in_paths": 218,
+    "isolated_findings": 282,
+    "coverage_percent": 44,
+    "total_paths": 509,
+    "critical_paths": 507,
+    "high_paths": 2,
     "medium_paths": 0,
     "by_provider": {
-      "aws": 502,
-      "azure": 1,
-      "gcp": 1
+      "azure": 2,
+      "gcp": 3,
+      "aws": 504
     }
   }
 }

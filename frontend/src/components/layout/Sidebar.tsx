@@ -9,7 +9,7 @@ import {
   Activity, AlertTriangle, Wrench, DollarSign, Shield,
   Home, PlusCircle, List, Package, Box, Database, Search,
   ChevronLeft, ChevronRight, X, BarChart3, ListChecks, Link2,
-  KeyRound, Globe, Layers, Crosshair, type LucideIcon,
+  KeyRound, Globe, Layers, Crosshair, ShieldCheck, type LucideIcon,
 } from 'lucide-react'
 
 interface NavItem {
@@ -63,6 +63,7 @@ const NAV_BY_ROLE: Record<Role, { section: string; items: NavItem[] }[]> = {
         { to: '/ops/attack-paths', label: 'Attack Paths', icon: Crosshair },
         { to: '/ops/attack-surface', label: 'Attack Surface', icon: Globe },
         { to: '/ops/threat-intel', label: 'Threat Intel', icon: Shield },
+        { to: '/ops/defense-readiness', label: 'Defense Readiness', icon: ShieldCheck },
         { to: '/ops/data-sources', label: 'Data Sources', icon: Layers },
       ],
     },

@@ -10,6 +10,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'core/architecture/HLD',
         'core/architecture/DDD',
+        'core/architecture/defense-readiness',
         'core/architecture/DR-BC',
       ],
     },

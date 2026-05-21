@@ -170,8 +170,18 @@ func TestListFrameworks(t *testing.T) {
 	var results []ComplianceFramework
 	assertPaginatedJSON(t, rr, &results)
 
-	if len(results) != 6 {
-		t.Errorf("frameworks count = %d, want 6", len(results))
+	if len(results) < 6 {
+		t.Errorf("frameworks count = %d, want at least 6", len(results))
+	}
+
+	frameworkIDs := make(map[string]bool, len(results))
+	for _, result := range results {
+		frameworkIDs[result.ID] = true
+	}
+	for _, id := range []string{"nist-csf", "cmmc-l2", "nist-800-171", "fedramp-high"} {
+		if !frameworkIDs[id] {
+			t.Errorf("framework %q not returned", id)
+		}
 	}
 }
 

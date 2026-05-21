@@ -15,18 +15,24 @@ import (
 
 // AttackPath represents a computed chain of findings forming an exploitable path.
 type AttackPath struct {
-	ID           string           `json:"id"`
-	Title        string           `json:"title"`
-	Description  string           `json:"description"`
-	Severity     string           `json:"severity"`
-	Score        float64          `json:"score"`
-	HopCount     int              `json:"hop_count"`
-	EntryPoint   AttackPathNode   `json:"entry_point"`
-	Target       AttackPathNode   `json:"target"`
-	Nodes        []AttackPathNode `json:"nodes"`
-	Edges        []AttackPathEdge `json:"edges"`
-	MITRETactics []string         `json:"mitre_tactics"`
-	FindingIDs   []string         `json:"finding_ids"`
+	ID                string           `json:"id"`
+	Title             string           `json:"title"`
+	Description       string           `json:"description"`
+	Severity          string           `json:"severity"`
+	Score             float64          `json:"score"`
+	HopCount          int              `json:"hop_count"`
+	EntryPoint        AttackPathNode   `json:"entry_point"`
+	Target            AttackPathNode   `json:"target"`
+	Nodes             []AttackPathNode `json:"nodes"`
+	Edges             []AttackPathEdge `json:"edges"`
+	MITRETactics      []string         `json:"mitre_tactics"`
+	FindingIDs        []string         `json:"finding_ids"`
+	MissionContext    string           `json:"mission_context,omitempty"`
+	RiskFactors       []string         `json:"risk_factors,omitempty"`
+	ControlGaps       []string         `json:"control_gaps,omitempty"`
+	RecommendedBreaks []string         `json:"recommended_breaks,omitempty"`
+	EvidenceMode      string           `json:"evidence_mode,omitempty"`
+	RollbackSummary   string           `json:"rollback_summary,omitempty"`
 
 	// AI-enriched fields (populated when AI provider is available).
 	AIDescription   string  `json:"ai_description,omitempty"`
@@ -679,21 +685,131 @@ func buildAttackPath(id, accountID string, chain []Finding, adj *secgraph.Adjace
 		chain[0].ResourceName, chain[0].Category,
 		chain[len(chain)-1].ResourceName, chain[len(chain)-1].Category,
 	)
+	evidenceMode := "heuristic_colocation"
+	if adj != nil {
+		evidenceMode = "graph_adjacency"
+	}
 
 	return AttackPath{
-		ID:           id,
-		Title:        title,
-		Description:  desc,
-		Severity:     maxSeverity,
-		Score:        score,
-		HopCount:     len(chain) - 1,
-		EntryPoint:   nodes[0],
-		Target:       nodes[len(nodes)-1],
-		Nodes:        nodes,
-		Edges:        edges,
-		MITRETactics: tactics,
-		FindingIDs:   findingIDs,
+		ID:                id,
+		Title:             title,
+		Description:       desc,
+		Severity:          maxSeverity,
+		Score:             score,
+		HopCount:          len(chain) - 1,
+		EntryPoint:        nodes[0],
+		Target:            nodes[len(nodes)-1],
+		Nodes:             nodes,
+		Edges:             edges,
+		MITRETactics:      tactics,
+		FindingIDs:        findingIDs,
+		MissionContext:    inferAttackPathMissionContext(chain),
+		RiskFactors:       inferAttackPathRiskFactors(chain, edges),
+		ControlGaps:       inferAttackPathControlGaps(chain),
+		RecommendedBreaks: inferAttackPathBreaks(chain, edges),
+		EvidenceMode:      evidenceMode,
+		RollbackSummary:   "Break the path with reversible network, IAM, and data-access changes backed by captured pre-state where available.",
 	}
+}
+
+func inferAttackPathMissionContext(chain []Finding) string {
+	if len(chain) == 0 {
+		return ""
+	}
+	entry := chain[0]
+	target := chain[len(chain)-1]
+	provider := strings.ToUpper(entry.CloudProvider)
+	if provider == "" {
+		provider = "CLOUD"
+	}
+	return fmt.Sprintf(
+		"%s path from %s to %s across %s/%s; prioritize as a workload-migration or restricted-data guardrail when compliance mappings are present.",
+		provider,
+		entry.ResourceName,
+		target.ResourceName,
+		entry.AccountID,
+		entry.Region,
+	)
+}
+
+func inferAttackPathRiskFactors(chain []Finding, edges []AttackPathEdge) []string {
+	factors := make([]string, 0, 6)
+	if len(chain) > 0 && isEntryPoint(chain[0]) {
+		factors = append(factors, "Entry point resembles an externally reachable foothold")
+	}
+	if len(chain) > 1 && isTarget(chain[len(chain)-1]) {
+		factors = append(factors, "Terminal resource resembles data, secrets, or privileged control plane access")
+	}
+	for _, edge := range edges {
+		switch edge.EdgeType {
+		case "iam_trust":
+			factors = append(factors, "Path crosses an identity or CI/CD trust boundary")
+		case "data_access":
+			factors = append(factors, "Path reaches a storage, database, or secret-bearing resource")
+		case "network_reachable":
+			factors = append(factors, "Path begins with network reachability that can be reduced at an ingress boundary")
+		}
+	}
+	return uniqueStrings(factors)
+}
+
+func inferAttackPathControlGaps(chain []Finding) []string {
+	gaps := make([]string, 0, 6)
+	for _, f := range chain {
+		switch strings.ToUpper(f.Category) {
+		case "NETWORK":
+			gaps = append(gaps, "boundary protection")
+		case "IDENTITY":
+			gaps = append(gaps, "least privilege")
+		case "DATA_EXPOSURE", "DATA_PROTECTION":
+			gaps = append(gaps, "restricted data access")
+		case "COMPLIANCE":
+			gaps = append(gaps, "audit evidence")
+		case "CONTAINER":
+			gaps = append(gaps, "supply-chain promotion guardrails")
+		}
+		for _, mapping := range f.ComplianceMappings {
+			if mapping.FrameworkName != "" && mapping.ControlID != "" {
+				gaps = append(gaps, mapping.FrameworkName+" "+mapping.ControlID)
+			}
+		}
+	}
+	return uniqueStrings(gaps)
+}
+
+func inferAttackPathBreaks(chain []Finding, edges []AttackPathEdge) []string {
+	breaks := make([]string, 0, 4)
+	if len(chain) > 0 {
+		breaks = append(breaks, "Reduce exposure on "+chain[0].ResourceName)
+	}
+	for _, edge := range edges {
+		switch edge.EdgeType {
+		case "iam_trust":
+			breaks = append(breaks, "Constrain IAM or pipeline trust before allowing production promotion")
+		case "data_access":
+			breaks = append(breaks, "Remove broad data access and capture policy evidence")
+		case "network_reachable":
+			breaks = append(breaks, "Move ingress behind approved ZTNA, IAP, or private endpoints")
+		}
+	}
+	if len(chain) > 1 {
+		breaks = append(breaks, "Validate rollback plan for "+chain[len(chain)-1].ResourceName)
+	}
+	return uniqueStrings(breaks)
+}
+
+func uniqueStrings(values []string) []string {
+	seen := make(map[string]bool, len(values))
+	unique := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		unique = append(unique, value)
+	}
+	return unique
 }
 
 // inferEdgeType determines the relationship type between two adjacent findings.

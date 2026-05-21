@@ -6,6 +6,7 @@
 |----------|-------------|
 | [HLD.md](core/architecture/HLD.md) | High-Level Design v4.0 |
 | [DDD.md](core/architecture/DDD.md) | Detailed Design -- API specs, data models |
+| [defense-readiness.md](core/architecture/defense-readiness.md) | Synthetic defense-adjacent readiness demo and safe interview framing |
 | [DR-BC.md](core/architecture/DR-BC.md) | Disaster Recovery / Business Continuity v2.1 |
 | [component-rationale.md](core/architecture/adr/component-rationale.md) | Technology selection and cost analysis |
 | [performance-baseline.md](core/performance-baseline.md) | Go vs Rust benchmark comparison |
@@ -44,7 +45,7 @@ See [runbooks/README.md](core/runbooks/README.md) -- 11 core runbooks covering d
 
 ## Diagrams
 
-See [diagrams/README.md](core/diagrams/README.md) -- 13 diagrams spanning current-state architecture, enterprise reference models, and operational runbooks.
+See [diagrams/README.md](core/diagrams/README.md) -- diagrams spanning current-state architecture, enterprise reference models, operational runbooks, and the synthetic defense readiness pipeline.
 
 ## Research
 
