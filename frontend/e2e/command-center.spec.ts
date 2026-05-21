@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test'
+import { seedDemoRole } from './support/demo-session'
 
 test.describe('Command Center page', () => {
   test.beforeEach(async ({ page }) => {
+    await seedDemoRole(page, 'operator')
     await page.goto('/ops')
     // Wait for the page to finish loading
     await page.waitForLoadState('networkidle')

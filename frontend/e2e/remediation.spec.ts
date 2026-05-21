@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test'
+import { seedDemoRole } from './support/demo-session'
 
 test.describe('Remediation Queue page', () => {
   test.beforeEach(async ({ page }) => {
+    await seedDemoRole(page, 'operator')
     await page.goto('/ops/remediation')
     await page.waitForLoadState('networkidle')
   })
@@ -16,9 +18,9 @@ test.describe('Remediation Queue page', () => {
 
   test('tier groupings are present', async ({ page }) => {
     // Remediation tiers: Tier 1 (auto), Tier 2 (guided), Tier 3 (manual)
-    const hasTier1 = await page.getByText('Tier 1').first().isVisible().catch(() => false)
-    const hasTier2 = await page.getByText('Tier 2').first().isVisible().catch(() => false)
-    const hasTier3 = await page.getByText('Tier 3').first().isVisible().catch(() => false)
+    const hasTier1 = await page.getByText(/tier 1/i).first().isVisible().catch(() => false)
+    const hasTier2 = await page.getByText(/tier 2/i).first().isVisible().catch(() => false)
+    const hasTier3 = await page.getByText(/tier 3/i).first().isVisible().catch(() => false)
 
     expect(hasTier1 || hasTier2 || hasTier3).toBeTruthy()
   })

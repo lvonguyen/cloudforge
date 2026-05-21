@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test'
+import { seedDemoRole } from './support/demo-session'
 
 test.describe('Investigations page', () => {
   test.beforeEach(async ({ page }) => {
+    await seedDemoRole(page, 'operator')
     await page.goto('/ops/investigations')
     await page.getByText('Investigation Queue').waitFor({ timeout: 15_000 })
   })
