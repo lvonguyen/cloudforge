@@ -73,6 +73,31 @@ func (s *Server) listFindings(w http.ResponseWriter, r *http.Request) {
 
 	claims, _ := api.GetClaimsFromContext(r.Context())
 	scope := api.ScopeFromContext(claims)
+	page, perPage := parsePagination(r, 50, 200)
+
+	if s.findingStore != nil {
+		resp, err := s.findingStore.List(ctx, postgresFindingListFilter{
+			Severity:  severity,
+			Provider:  provider,
+			Status:    status,
+			SortField: r.URL.Query().Get("sort"),
+			SortOrder: r.URL.Query().Get("order"),
+			Scope:     scope,
+		}, page, perPage)
+		if err != nil {
+			s.writeInternalError(w, err, "list findings from postgres")
+			return
+		}
+
+		span.SetAttributes(
+			attribute.Int("findings.total", resp.Total),
+			attribute.String("findings.source", "postgres"),
+		)
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(resp)
+		return
+	}
 
 	results := make([]Finding, 0, len(s.data.Findings))
 	for i := range s.data.Findings {
@@ -100,10 +125,12 @@ func (s *Server) listFindings(w http.ResponseWriter, r *http.Request) {
 		sortFindings(results, sortField, desc)
 	}
 
-	page, perPage := parsePagination(r, 50, 200)
 	resp := paginateResult(results, page, perPage)
 
-	span.SetAttributes(attribute.Int("findings.total", resp.Total))
+	span.SetAttributes(
+		attribute.Int("findings.total", resp.Total),
+		attribute.String("findings.source", "memory"),
+	)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(resp)

@@ -17,7 +17,7 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 | C2 | NLQ prompt injection + AI output validation — unsanitized query → LLM, unvalidated JSON, XSS chain | HIGH | `handlers_nlq.go:113`, `attackpath_enrich.go:37` | [FIXED: session-30] Input sanitized (HTML strip + control chars), output whitelisted (5 field sets), Text field sanitized. 6 tests added. |
 | S2 | CORS missing PATCH — breaks remediation status updates cross-origin | HIGH | `internal/api/cors.go:27` | [FIXED: session-30] Added PATCH to Allow-Methods. |
 | S3 | Gremlin closure bypass — `coalesce`, `aggregate`, `store`, RTL Unicode, `${}` not blocked | HIGH | `handlers_graph.go:35` | [FIXED: session-30] Added aggregate/store/cap/coalesce to blocklist (parenthesis-guarded). Groovy `${}` template injection check added. 6 test cases added. |
-| C4 | In-memory linear scan O(n) per list/filter/pagination request | HIGH | multiple | [ ] UNCLAIMED |
+| C4 | In-memory linear scan O(n) per list/filter/pagination request | HIGH | multiple | [FIXED: codex-20260521] `/api/v1/findings` now uses PostgreSQL count/list queries with allowlisted filters, scope predicates, sort, and LIMIT/OFFSET when `FINDINGS_SOURCE=postgres`; mock/dev path remains in-memory. Added migration `011_findings_query_indexes.sql`. |
 
 ### Post-Demo (MED)
 
@@ -40,7 +40,7 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 
 ---
 
-**Latest commit:** `1897d17` on main.
+**Latest verified base before codex C4 patch:** `1c0a40c1` on main.
 
 ---
 
@@ -152,3 +152,4 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 | 29 | WS-2: Fix E2E tests | DONE: 17/18 pass (0 fail, 1 skip). Root cause: Go backend returns empty 200 OK, mock fallback never triggered. | pending |
 | 29-parallel | WS-3 (300K verify), WS-C (GIFs), WS-D (teardown) | DONE: 300K pipeline complete (streaming fix), local postgres setup, 2 GIFs captured, remediation E2E added | `1897d17`, `ef1f837` |
 | 30 | C2 + S2 + S3 (security hardening) | DONE: NLQ prompt injection fix (input sanitize + output whitelist), CORS PATCH, Gremlin blocklist extension (4 steps + Groovy template). 12 new test cases, all green with -race. | pending |
+| codex-20260521 | C4 Postgres findings list scaling | DONE: Postgres-backed `/findings` count/list path, allowlisted SQL filters/sorts, ABAC scope predicates, list indexes, preflight migration list update. Verification: focused `cmd/server` tests PASS, full `go test ./... -count=1` PASS. | pending |

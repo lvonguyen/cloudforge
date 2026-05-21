@@ -5,7 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
+
+	"aegis/internal/api"
 
 	"github.com/lib/pq"
 )
@@ -61,9 +64,7 @@ type postgresFindingRow struct {
 	CanonicalRuleID     sql.NullString
 }
 
-func loadFindingsFromPostgres(ctx context.Context, db *sql.DB) ([]Finding, error) {
-	const query = `
-		SELECT
+const postgresFindingSelectColumns = `
 			id,
 			source,
 			source_finding_id,
@@ -112,6 +113,37 @@ func loadFindingsFromPostgres(ctx context.Context, db *sql.DB) ([]Finding, error
 			due_date,
 			deduplication_key,
 			canonical_rule_id
+`
+
+type postgresFindingStore struct {
+	db *sql.DB
+}
+
+type postgresFindingListFilter struct {
+	Severity  string
+	Provider  string
+	Status    string
+	SortField string
+	SortOrder string
+	Scope     *api.ResourceScope
+}
+
+func newPostgresFindingStore(db *sql.DB) *postgresFindingStore {
+	if db == nil {
+		return nil
+	}
+	return &postgresFindingStore{db: db}
+}
+
+func newPostgresFindingStoreForSource(findingsSource string, db *sql.DB) *postgresFindingStore {
+	if !strings.EqualFold(strings.TrimSpace(findingsSource), "postgres") {
+		return nil
+	}
+	return newPostgresFindingStore(db)
+}
+
+func loadFindingsFromPostgres(ctx context.Context, db *sql.DB) ([]Finding, error) {
+	query := `SELECT` + postgresFindingSelectColumns + `
 		FROM findings
 		ORDER BY first_found_at DESC, id ASC
 	`
@@ -124,63 +156,9 @@ func loadFindingsFromPostgres(ctx context.Context, db *sql.DB) ([]Finding, error
 
 	findings := make([]Finding, 0, 1024)
 	for rows.Next() {
-		var row postgresFindingRow
-		if err := rows.Scan(
-			&row.ID,
-			&row.Source,
-			&row.SourceFindingID,
-			&row.Type,
-			&row.Title,
-			&row.Description,
-			&row.ResourceType,
-			&row.ResourceID,
-			&row.ResourceName,
-			&row.ResourceARN,
-			&row.Platform,
-			&row.CloudProvider,
-			&row.Region,
-			&row.AccountID,
-			&row.AccountName,
-			&row.EnvironmentType,
-			&row.StaticSeverity,
-			&row.Severity,
-			&row.AIRiskScore,
-			&row.AIRiskLevel,
-			&row.AIRiskRationale,
-			pq.Array(&row.AIContextualFactors),
-			&row.CVSS,
-			&row.CVSSVector,
-			&row.EPSS,
-			&row.ExploitAvailable,
-			&row.CVEsRaw,
-			pq.Array(&row.MITRETactics),
-			pq.Array(&row.MITRETechniques),
-			&row.ComplianceRaw,
-			&row.Remediation,
-			&row.AutoRemediatable,
-			&row.Category,
-			&row.Status,
-			&row.WorkflowStatus,
-			&row.AssigneeRaw,
-			&row.Suppressed,
-			&row.TechnicalContactRaw,
-			&row.BusinessOwnerRaw,
-			&row.ServiceName,
-			&row.LineOfBusiness,
-			&row.Team,
-			&row.FirstFoundAt,
-			&row.LastSeenAt,
-			&row.SLABreachDate,
-			&row.DueDate,
-			&row.DeduplicationKey,
-			&row.CanonicalRuleID,
-		); err != nil {
-			return nil, fmt.Errorf("scan finding row: %w", err)
-		}
-
-		finding, err := row.toFinding()
+		finding, err := scanPostgresFinding(rows)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan finding row: %w", err)
 		}
 		findings = append(findings, finding)
 	}
@@ -190,6 +168,229 @@ func loadFindingsFromPostgres(ctx context.Context, db *sql.DB) ([]Finding, error
 	}
 
 	return findings, nil
+}
+
+func (store *postgresFindingStore) List(ctx context.Context, filter postgresFindingListFilter, page, perPage int) (paginatedResponse, error) {
+	if store == nil || store.db == nil {
+		return paginatedResponse{Data: []Finding{}, Page: 1, PerPage: perPage, TotalPages: 1}, nil
+	}
+	if page <= 0 {
+		page = 1
+	}
+	if perPage <= 0 {
+		perPage = 50
+	}
+	if perPage > 200 {
+		perPage = 200
+	}
+
+	whereSQL, args := buildPostgresFindingWhereClause(filter)
+	//nolint:gosec // G202: WHERE fragments are allowlisted and values are bound args.
+	countQuery := `SELECT COUNT(*) FROM findings` + whereSQL
+
+	var total int
+	if err := store.db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
+		return paginatedResponse{}, fmt.Errorf("count findings: %w", err)
+	}
+
+	totalPages := (total + perPage - 1) / perPage
+	if totalPages == 0 {
+		totalPages = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+
+	offset := (page - 1) * perPage
+	args = append(args, perPage, offset)
+	limitArg := len(args) - 1
+	offsetArg := len(args)
+
+	//nolint:gosec // G202: WHERE/ORDER fragments are allowlisted and values are bound args.
+	listQuery := `SELECT` + postgresFindingSelectColumns + `
+		FROM findings` + whereSQL + buildPostgresFindingSortClause(filter) + fmt.Sprintf(`
+		LIMIT $%d OFFSET $%d
+	`, limitArg, offsetArg)
+
+	rows, err := store.db.QueryContext(ctx, listQuery, args...)
+	if err != nil {
+		return paginatedResponse{}, fmt.Errorf("list findings: %w", err)
+	}
+	defer rows.Close()
+
+	capacity := total
+	if capacity > perPage {
+		capacity = perPage
+	}
+	findings := make([]Finding, 0, capacity)
+	for rows.Next() {
+		finding, err := scanPostgresFinding(rows)
+		if err != nil {
+			return paginatedResponse{}, fmt.Errorf("scan finding row: %w", err)
+		}
+		findings = append(findings, finding)
+	}
+	if err := rows.Err(); err != nil {
+		return paginatedResponse{}, fmt.Errorf("iterate finding rows: %w", err)
+	}
+	if findings == nil {
+		findings = []Finding{}
+	}
+
+	return paginatedResponse{
+		Data:       findings,
+		Page:       page,
+		PerPage:    perPage,
+		Total:      total,
+		TotalPages: totalPages,
+	}, nil
+}
+
+func buildPostgresFindingWhereClause(filter postgresFindingListFilter) (string, []any) {
+	clauses := make([]string, 0, 8)
+	args := make([]any, 0, 8)
+	add := func(clause string, value any) {
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf(clause, len(args)))
+	}
+
+	if severity := strings.ToUpper(strings.TrimSpace(filter.Severity)); severity != "" {
+		add("severity = $%d", severity)
+	}
+	if provider := strings.ToLower(strings.TrimSpace(filter.Provider)); provider != "" {
+		add("cloud_provider = $%d", provider)
+	}
+	if status := strings.ToLower(strings.TrimSpace(filter.Status)); status != "" {
+		add("status = $%d", status)
+	}
+	if filter.Scope != nil {
+		if len(filter.Scope.AccountIDs) > 0 {
+			add("account_id = ANY($%d)", pq.Array(filter.Scope.AccountIDs))
+		}
+		if len(filter.Scope.Regions) > 0 {
+			add("LOWER(COALESCE(region, '')) = ANY($%d)", pq.Array(normalizePostgresFindingScopeValues(filter.Scope.Regions)))
+		}
+		if len(filter.Scope.Environments) > 0 {
+			add("LOWER(COALESCE(environment_type, '')) = ANY($%d)", pq.Array(normalizePostgresFindingScopeValues(filter.Scope.Environments)))
+		}
+		if len(filter.Scope.BusinessUnits) > 0 {
+			add("LOWER(COALESCE(line_of_business, '')) = ANY($%d)", pq.Array(normalizePostgresFindingScopeValues(filter.Scope.BusinessUnits)))
+		}
+	}
+
+	if len(clauses) == 0 {
+		return "", args
+	}
+	return " WHERE " + strings.Join(clauses, " AND "), args
+}
+
+func buildPostgresFindingSortClause(filter postgresFindingListFilter) string {
+	order := "ASC"
+	if strings.EqualFold(strings.TrimSpace(filter.SortOrder), "desc") {
+		order = "DESC"
+	}
+
+	switch strings.ToLower(strings.TrimSpace(filter.SortField)) {
+	case "":
+		return " ORDER BY first_found_at DESC, id ASC"
+	case "severity":
+		return fmt.Sprintf(` ORDER BY CASE UPPER(severity)
+			WHEN 'CRITICAL' THEN 4
+			WHEN 'HIGH' THEN 3
+			WHEN 'MEDIUM' THEN 2
+			WHEN 'LOW' THEN 1
+			WHEN 'INFO' THEN 0
+			ELSE 0
+		END %s, first_found_at DESC, id ASC`, order)
+	case "ai_risk", "ai_risk_score":
+		return fmt.Sprintf(" ORDER BY COALESCE(ai_risk_score, 0) %s, first_found_at DESC, id ASC", order)
+	case "first_found_at":
+		return fmt.Sprintf(" ORDER BY first_found_at %s, id ASC", order)
+	case "title":
+		return fmt.Sprintf(" ORDER BY LOWER(title) %s, first_found_at DESC, id ASC", order)
+	case "status":
+		return fmt.Sprintf(" ORDER BY status %s, first_found_at DESC, id ASC", order)
+	default:
+		return " ORDER BY first_found_at DESC, id ASC"
+	}
+}
+
+func normalizePostgresFindingScopeValues(values []string) []string {
+	normalized := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.ToLower(strings.TrimSpace(value))
+		if value == "" {
+			continue
+		}
+		normalized = append(normalized, value)
+	}
+	return normalized
+}
+
+type postgresFindingScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanPostgresFinding(scanner postgresFindingScanner) (Finding, error) {
+	var row postgresFindingRow
+	if err := scanner.Scan(
+		&row.ID,
+		&row.Source,
+		&row.SourceFindingID,
+		&row.Type,
+		&row.Title,
+		&row.Description,
+		&row.ResourceType,
+		&row.ResourceID,
+		&row.ResourceName,
+		&row.ResourceARN,
+		&row.Platform,
+		&row.CloudProvider,
+		&row.Region,
+		&row.AccountID,
+		&row.AccountName,
+		&row.EnvironmentType,
+		&row.StaticSeverity,
+		&row.Severity,
+		&row.AIRiskScore,
+		&row.AIRiskLevel,
+		&row.AIRiskRationale,
+		pq.Array(&row.AIContextualFactors),
+		&row.CVSS,
+		&row.CVSSVector,
+		&row.EPSS,
+		&row.ExploitAvailable,
+		&row.CVEsRaw,
+		pq.Array(&row.MITRETactics),
+		pq.Array(&row.MITRETechniques),
+		&row.ComplianceRaw,
+		&row.Remediation,
+		&row.AutoRemediatable,
+		&row.Category,
+		&row.Status,
+		&row.WorkflowStatus,
+		&row.AssigneeRaw,
+		&row.Suppressed,
+		&row.TechnicalContactRaw,
+		&row.BusinessOwnerRaw,
+		&row.ServiceName,
+		&row.LineOfBusiness,
+		&row.Team,
+		&row.FirstFoundAt,
+		&row.LastSeenAt,
+		&row.SLABreachDate,
+		&row.DueDate,
+		&row.DeduplicationKey,
+		&row.CanonicalRuleID,
+	); err != nil {
+		return Finding{}, err
+	}
+
+	finding, err := row.toFinding()
+	if err != nil {
+		return Finding{}, err
+	}
+	return finding, nil
 }
 
 func (r postgresFindingRow) toFinding() (Finding, error) {

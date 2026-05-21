@@ -80,11 +80,12 @@ type Server struct {
 	auditLogger    audit.AuditLogger
 
 	// Domain services (extracted from God Object)
-	data          *DataStore         // findings, agents, traces, remediations, etc.
-	attackPathSvc *AttackPathService // attack path queries + mutex
-	enrichmentSvc *EnrichmentService // AI enrichment + cache
-	opaEngine     *opa.Engine        // AI governance policy engine (nil = disabled)
-	comments      *CommentsStore     // finding comments (in-memory)
+	data          *DataStore            // findings, agents, traces, remediations, etc.
+	findingStore  *postgresFindingStore // Postgres-backed finding list queries (nil = memory)
+	attackPathSvc *AttackPathService    // attack path queries + mutex
+	enrichmentSvc *EnrichmentService    // AI enrichment + cache
+	opaEngine     *opa.Engine           // AI governance policy engine (nil = disabled)
+	comments      *CommentsStore        // finding comments (in-memory)
 
 	// Multi-tenancy (Phase 3)
 	tenantStore tenant.Store
@@ -356,6 +357,7 @@ func main() {
 		roles:          &api.RoleEnforcer{DevMode: os.Getenv("APP_ENV") == "development"},
 		auditLogger:    newAuditLogger("server"),
 		data:           dataStore,
+		findingStore:   newPostgresFindingStoreForSource(findingsSource, auditDB),
 		enrichmentSvc: &EnrichmentService{
 			AI:          aiProvider,
 			ThreatIntel: tiEnricher,

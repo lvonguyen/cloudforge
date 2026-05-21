@@ -27,6 +27,7 @@ const requiredMigrations = [
   '008_findings_assignment_context.sql',
   '009_finding_tickets.sql',
   '010_integration_runtime_state.sql',
+  '011_findings_query_indexes.sql',
 ]
 
 function read(relPath) {
@@ -128,7 +129,7 @@ const recommendedCommands = [
   `export AEGIS_DATABASE_URL="$DATABASE_URL"`,
   `export AEGIS_DATABASE_URL_REF='op://Development/4uvialfye3icuwak32yblswaam/credential'`,
   `psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS pgcrypto;'`,
-  `for f in migrations/001_exception_management.sql migrations/002_findings_and_compliance.sql migrations/003_operations_and_agents.sql migrations/005_tenant_isolation.sql migrations/006_graph_support.sql migrations/007_security_graph.sql migrations/008_findings_assignment_context.sql migrations/009_finding_tickets.sql migrations/010_integration_runtime_state.sql; do psql "$DATABASE_URL" -f "$f"; done`,
+  `for f in migrations/001_exception_management.sql migrations/002_findings_and_compliance.sql migrations/003_operations_and_agents.sql migrations/005_tenant_isolation.sql migrations/006_graph_support.sql migrations/007_security_graph.sql migrations/008_findings_assignment_context.sql migrations/009_finding_tickets.sql migrations/010_integration_runtime_state.sql migrations/011_findings_query_indexes.sql; do psql "$DATABASE_URL" -f "$f"; done`,
   `node --max-old-space-size=6144 scripts/aegis-seed.mjs --count 300000 --out testdata/seed --full --seed 42`,
   `node scripts/seed-postgres.mjs --in testdata/seed --out /tmp/seed-findings.sql`,
   `psql "$DATABASE_URL" -f /tmp/seed-findings.sql`,

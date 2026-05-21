@@ -4,8 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"os"
+	"strings"
 	"testing"
 	"time"
+
+	"aegis/internal/api"
 
 	"github.com/lib/pq"
 )
@@ -170,6 +173,82 @@ func TestPostgresFindingRow_ArrayScannerUsesPlainStringSlices(t *testing.T) {
 	}
 	if row.AIContextualFactors[0] != "production_environment" || row.MITRETactics[1] != "TA0004" || row.MITRETechniques[1] != "T1566" {
 		t.Fatalf("unexpected scanned arrays: %+v", row)
+	}
+}
+
+func TestPostgresFindingWhereClause_NormalizesFiltersAndScope(t *testing.T) {
+	whereSQL, args := buildPostgresFindingWhereClause(postgresFindingListFilter{
+		Severity: "critical",
+		Provider: "AWS",
+		Status:   "Open",
+		Scope: &api.ResourceScope{
+			AccountIDs:    []string{"sub-workload-001"},
+			Regions:       []string{"US-EAST-1"},
+			Environments:  []string{"Production"},
+			BusinessUnits: []string{"Payments"},
+		},
+	})
+
+	for _, want := range []string{
+		"severity = $1",
+		"cloud_provider = $2",
+		"status = $3",
+		"account_id = ANY($4)",
+		"LOWER(COALESCE(region, '')) = ANY($5)",
+		"LOWER(COALESCE(environment_type, '')) = ANY($6)",
+		"LOWER(COALESCE(line_of_business, '')) = ANY($7)",
+	} {
+		if !strings.Contains(whereSQL, want) {
+			t.Fatalf("where clause missing %q: %s", want, whereSQL)
+		}
+	}
+	if len(args) != 7 {
+		t.Fatalf("args len = %d, want 7", len(args))
+	}
+	if args[0] != "CRITICAL" || args[1] != "aws" || args[2] != "open" {
+		t.Fatalf("unexpected normalized filter args: %#v", args[:3])
+	}
+}
+
+func TestPostgresFindingWhereClause_EmptyFilterHasNoWhere(t *testing.T) {
+	whereSQL, args := buildPostgresFindingWhereClause(postgresFindingListFilter{})
+	if whereSQL != "" {
+		t.Fatalf("whereSQL = %q, want empty", whereSQL)
+	}
+	if len(args) != 0 {
+		t.Fatalf("args len = %d, want 0", len(args))
+	}
+}
+
+func TestPostgresFindingSortClause_AllowlistsFields(t *testing.T) {
+	if got := buildPostgresFindingSortClause(postgresFindingListFilter{}); got != " ORDER BY first_found_at DESC, id ASC" {
+		t.Fatalf("default sort = %q", got)
+	}
+
+	got := buildPostgresFindingSortClause(postgresFindingListFilter{SortField: "severity", SortOrder: "desc"})
+	if !strings.Contains(got, "CASE UPPER(severity)") || !strings.Contains(got, "DESC") {
+		t.Fatalf("severity sort clause not applied: %s", got)
+	}
+
+	injected := buildPostgresFindingSortClause(postgresFindingListFilter{SortField: "title; DROP TABLE findings", SortOrder: "desc"})
+	if strings.Contains(strings.ToLower(injected), "drop") {
+		t.Fatalf("sort clause included untrusted input: %s", injected)
+	}
+	if injected != " ORDER BY first_found_at DESC, id ASC" {
+		t.Fatalf("unknown sort should fall back to default, got %q", injected)
+	}
+}
+
+func TestNormalizePostgresFindingScopeValues(t *testing.T) {
+	got := normalizePostgresFindingScopeValues([]string{" US-EAST-1 ", "", "Prod"})
+	want := []string{"us-east-1", "prod"}
+	if len(got) != len(want) {
+		t.Fatalf("len = %d, want %d (%#v)", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("value %d = %q, want %q", i, got[i], want[i])
+		}
 	}
 }
 
