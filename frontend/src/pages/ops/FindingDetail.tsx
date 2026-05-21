@@ -19,6 +19,8 @@ import { useCreateException } from '@/hooks/useExceptions'
 import { useComments, useAddComment } from '@/hooks/useComments'
 import { useFindingTicket, useRemediateFinding } from '@/hooks/useIntegrations'
 import { RemediationSheet } from '@/components/remediation/RemediationSheet'
+import { RemediationActionDrawer, type DrawerContext } from '@/components/remediation/RemediationActionDrawer'
+import { buildCandidateForFinding } from '@/lib/remediation-catalog'
 import { IntegrationViewport } from '@/components/remediation/IntegrationViewport'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
@@ -59,6 +61,7 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
   const { data: ticket } = useFindingTicket(id ?? '')
   const createTicket = useRemediateFinding()
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [actionDrawerOpen, setActionDrawerOpen] = useState(false)
 
   // Defer attack path fetch until Investigation tab is active (perf: avoids
   // 50-item fetch on every FindingDetail mount when user only views Overview)
@@ -368,6 +371,12 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
           onClick={() => setActiveTab('remediation')}
         >
           <Wrench className="h-3.5 w-3.5" />Remediate
+        </Button>
+        <Button size="sm" variant="outline" className="text-xs gap-1.5"
+          onClick={() => setActionDrawerOpen(true)}
+          data-testid="finding-take-action"
+        >
+          <Zap className="h-3.5 w-3.5" />Take action
         </Button>
         <Button size="sm" variant="outline" className="text-xs gap-1.5"
           disabled={!suppressCooldown.canFire || createException.isPending || suppressed}
@@ -970,6 +979,16 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
           onOpenChange={setSheetOpen}
         />
       )}
+
+      <RemediationActionDrawer
+        open={actionDrawerOpen}
+        onOpenChange={setActionDrawerOpen}
+        context={{
+          mode: 'preview',
+          finding,
+          candidate: buildCandidateForFinding(finding),
+        } satisfies DrawerContext}
+      />
     </Wrapper>
   )
 }

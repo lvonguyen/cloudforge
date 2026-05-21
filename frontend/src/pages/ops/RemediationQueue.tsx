@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { RemediationTierBadge } from '@/components/remediation/RemediationTierBadge'
 import { ProviderBadge } from '@/components/ui/ProviderBadge'
-import { CheckCircle2, Play, Eye, RotateCcw, List, LayoutGrid, Ticket } from 'lucide-react'
+import { CheckCircle2, Play, Eye, RotateCcw, List, LayoutGrid, Ticket, ClipboardCheck } from 'lucide-react'
 import { useRemediations, useExecuteRemediation, usePatchRemediation } from '@/hooks/useRemediations'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { useActionCooldown } from '@/hooks/useActionCooldown'
@@ -14,6 +14,8 @@ import { REMEDIATION_STATUS_COLORS as STATUS_COLORS } from '@/lib/severity'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ui/ToastStack'
+import { RemediationActionDrawer, type DrawerContext } from '@/components/remediation/RemediationActionDrawer'
+import { buildCandidateForRemediation } from '@/lib/remediation-catalog'
 
 interface QueueItem {
   id: string
@@ -47,7 +49,7 @@ function toQueueItem(r: RemediationRecord): QueueItem {
 }
 
 
-function QueueItemCard({ item }: { item: QueueItem }) {
+function QueueItemCard({ item, onReview }: { item: QueueItem; onReview?: (id: string) => void }) {
   const navigate = useNavigate()
   const { openStreaming, openDryRun } = useTracePanel()
   const executeMutation = useExecuteRemediation()
@@ -114,6 +116,17 @@ function QueueItemCard({ item }: { item: QueueItem }) {
             </div>
           </div>
           <div className="flex gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+            {item.status === 'pending' && onReview && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs h-7 gap-1"
+                onClick={() => onReview(item.id)}
+                data-testid={`queue-review-${item.id}`}
+              >
+                <ClipboardCheck className="h-3 w-3" />Review
+              </Button>
+            )}
             {item.status === 'pending' && item.dry_run_ok !== false && (
               <Button
                 size="sm"
@@ -154,7 +167,7 @@ function QueueItemCard({ item }: { item: QueueItem }) {
   )
 }
 
-function TierSection({ tier, items }: { tier: 1 | 2 | 3; items: QueueItem[] }) {
+function TierSection({ tier, items, onReview }: { tier: 1 | 2 | 3; items: QueueItem[]; onReview?: (id: string) => void }) {
   const descriptions: Record<number, string> = {
     1: 'Fully automated — no approval required',
     2: 'Semi-automated — dry-run first, then execute',
@@ -171,7 +184,7 @@ function TierSection({ tier, items }: { tier: 1 | 2 | 3; items: QueueItem[] }) {
         <span className="ml-auto text-xs text-muted-foreground">{items.length} item{items.length !== 1 ? 's' : ''}</span>
       </div>
       {items.map(item => (
-        <QueueItemCard key={item.id} item={item} />
+        <QueueItemCard key={item.id} item={item} onReview={onReview} />
       ))}
     </div>
   )
@@ -270,6 +283,18 @@ export default function RemediationQueue() {
   const inProgress = items.filter(q => q.status === 'in_progress').length
 
   const patchRemediation = usePatchRemediation()
+  const [drawerContext, setDrawerContext] = useState<DrawerContext | null>(null)
+  const recordById = new Map(records.map(r => [r.id, r]))
+
+  function openReviewDrawer(id: string) {
+    const rec = recordById.get(id)
+    if (!rec) return
+    setDrawerContext({
+      mode: 'approve',
+      remediation: rec,
+      candidate: buildCandidateForRemediation(rec),
+    })
+  }
 
   function handleKanbanDragEnd(result: DropResult) {
     if (!result.destination) return
@@ -310,15 +335,21 @@ export default function RemediationQueue() {
 
       {viewMode === 'list' ? (
         <>
-          <TierSection tier={1} items={tier1} />
+          <TierSection tier={1} items={tier1} onReview={openReviewDrawer} />
           {tier2.length > 0 && <Separator />}
-          <TierSection tier={2} items={tier2} />
+          <TierSection tier={2} items={tier2} onReview={openReviewDrawer} />
           {tier3.length > 0 && <Separator />}
-          <TierSection tier={3} items={tier3} />
+          <TierSection tier={3} items={tier3} onReview={openReviewDrawer} />
         </>
       ) : (
         <KanbanView items={items} onDragEnd={handleKanbanDragEnd} />
       )}
+
+      <RemediationActionDrawer
+        open={drawerContext !== null}
+        onOpenChange={(open) => { if (!open) setDrawerContext(null) }}
+        context={drawerContext}
+      />
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>

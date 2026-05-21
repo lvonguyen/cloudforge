@@ -1,4 +1,6 @@
 import { Fragment, useState, useMemo, useCallback, useEffect } from 'react'
+import { RemediationActionDrawer, type DrawerContext } from '@/components/remediation/RemediationActionDrawer'
+import { buildCandidatesForNode } from '@/lib/remediation-catalog'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   ReactFlow,
@@ -639,6 +641,19 @@ function PathGraphView({
     [path, resolvedCanvasTone, chokePointIds, findingLookup, contextSignals],
   )
 
+  const [hopDrawer, setHopDrawer] = useState<DrawerContext | null>(null)
+  const onNodeClick = useCallback(
+    (_: React.MouseEvent, flowNode: Node) => {
+      const idx = nodes.findIndex((n) => n.id === flowNode.id)
+      if (idx < 0 || idx >= path.nodes.length) return
+      const pathNode = path.nodes[idx]
+      const candidates = buildCandidatesForNode(pathNode, path)
+      if (candidates.length === 0) return
+      setHopDrawer({ mode: 'hop', node: pathNode, path, candidates })
+    },
+    [nodes, path],
+  )
+
   const uniqueProviders = useMemo(() => [...new Set(path.nodes.map(n => n.provider))], [path])
   const uniqueRegions = useMemo(() => [...new Set(path.nodes.map(n => n.region))], [path])
   const uniqueAccounts = useMemo(() => [...new Set(path.nodes.map(n => n.account_id))], [path])
@@ -869,6 +884,7 @@ function PathGraphView({
             nodesDraggable={false}
             nodesConnectable={false}
             elementsSelectable={false}
+            onNodeClick={onNodeClick}
             minZoom={0.5}
             maxZoom={1.75}
             style={{ background: canvasTheme.graphBackground }}
@@ -1115,6 +1131,11 @@ function PathGraphView({
           </CardContent>
         </Card>
       </div>
+      <RemediationActionDrawer
+        open={hopDrawer !== null}
+        onOpenChange={(open) => { if (!open) setHopDrawer(null) }}
+        context={hopDrawer}
+      />
     </div>
   )
 }
