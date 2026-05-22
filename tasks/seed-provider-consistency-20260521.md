@@ -13,11 +13,14 @@ The confirmed issue was generated seed data that could pair provider-specific fi
   - Synthetic templates are constrained to the same provider as the generated finding.
   - Synthetic resource IDs/ARNs are provider-native instead of always AWS-style.
   - Azure `microsoft.documentdb` / Cosmos resource IDs now map to `database`.
+  - AWS `AwsRdsDbCluster` / DocumentDB resources now map to `database`.
   - Azure provider extraction is now case-insensitive, preserving lowercase `microsoft.documentdb/databaseaccounts` inputs.
 - `scripts/transform-real-findings.mjs`
   - Azure `documentdb` / Cosmos resources now map to `database`.
+  - AWS `AwsRdsDbCluster` / DocumentDB resources now map to `database`.
 - `testdata/transform_findings.py`
   - Scrubbed Azure `microsoft.documentdb/databaseaccounts` resources now map to `database`.
+  - Scrubbed AWS DocumentDB/DocDB resources now map to `database`.
 
 ## Verification
 
@@ -51,6 +54,42 @@ node --check scripts/transform-real-findings.mjs
 python3 -m py_compile testdata/transform_findings.py
 ```
 
+Full 300K regeneration for the GCP trial storage landing zone:
+
+```bash
+node --max-old-space-size=6144 scripts/aegis-seed.mjs \
+  --count 300000 \
+  --out /tmp/cloudforge-gcp-seed-20260521 \
+  --full \
+  --seed 42
+node scripts/seed-postgres.mjs \
+  --in /tmp/cloudforge-gcp-seed-20260521 \
+  --out /tmp/cloudforge-gcp-seed-20260521/seed-findings.sql
+node scripts/seed-resources.mjs \
+  --in /tmp/cloudforge-gcp-seed-20260521 \
+  --out /tmp/cloudforge-gcp-seed-20260521/seed-resources.sql
+```
+
+Provider-aware full-corpus audit:
+
+```json
+{
+  "total": 300000,
+  "azureDoc": 2127,
+  "badAzureDoc": 0,
+  "awsDoc": 22,
+  "badAwsDoc": 0,
+  "badAzureArn": 0,
+  "badGcpArn": 0
+}
+```
+
+Artifacts uploaded:
+
+```text
+gs://cloudforge-seed-418834332294-us-central1/datasets/20260521-full-300k/
+```
+
 ## Remaining
 
-The committed repo does not track `testdata/seed/*.json` or `*.sql`; full 300K regeneration and any live Neon reload remain pending operational work.
+The committed repo does not track `testdata/seed/*.json` or `*.sql`; the GCP trial storage artifacts are staged, but live database reload remains pending operational work.

@@ -43,7 +43,8 @@ SEED = 42
 AWS_RESOURCE_TYPE_MAP = {
     "EC2": "compute", "ECS": "container", "EKS": "container",
     "Lambda": "serverless", "S3": "storage", "RDS": "database",
-    "DynamoDB": "database", "Redshift": "database", "Neptune": "database",
+    "DynamoDB": "database", "DocumentDB": "database", "DocDB": "database",
+    "Redshift": "database", "Neptune": "database",
     "ElastiCache": "database", "IAM": "identity", "KMS": "encryption",
     "SecretsManager": "secret", "SSM": "compute", "VPC": "network",
     "SecurityGroup": "network", "CloudFront": "network", "ELB": "network",

@@ -594,12 +594,15 @@ function mapAwsResourceType(awsType) {
   const MAP = {
     AwsEc2SecurityGroup: 'network', AwsIamUser: 'identity', AwsIamRole: 'identity',
     AwsIamPolicy: 'identity', AwsAccount: 'identity', AwsCloudTrailTrail: 'monitoring',
-    AwsRdsDbSnapshot: 'database', AwsRdsDbInstance: 'database', AwsS3Bucket: 'storage',
+    AwsRdsDbSnapshot: 'database', AwsRdsDbInstance: 'database', AwsRdsDbCluster: 'database',
+    AwsDocDbDbCluster: 'database', AwsDocumentDbCluster: 'database', AwsS3Bucket: 'storage',
     AwsEcsTaskDefinition: 'container', AwsEcrRepository: 'container', AwsEksCluster: 'container',
     AwsSnsTopic: 'serverless', AwsLambdaFunction: 'serverless', AwsSqsQueue: 'serverless',
     AwsKmsKey: 'encryption', AwsEc2Instance: 'compute', AwsElbv2LoadBalancer: 'network',
     AwsEc2Vpc: 'network', AwsEc2Subnet: 'network',
   };
+  const normalized = String(awsType ?? '').toLowerCase();
+  if (normalized.includes('documentdb') || normalized.includes('docdb')) return 'database';
   return MAP[awsType] ?? 'compute';
 }
 

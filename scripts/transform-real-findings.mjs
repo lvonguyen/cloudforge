@@ -96,7 +96,8 @@ function scrambleGcpName(name, fakeProjectId) {
 
 const RESOURCE_TYPE_MAP = {
   AwsEc2SecurityGroup: 'network', AwsIamUser: 'identity', AwsAccount: 'identity',
-  AwsCloudTrailTrail: 'logging', AwsRdsDbSnapshot: 'database', AwsS3Bucket: 'storage',
+  AwsCloudTrailTrail: 'logging', AwsRdsDbSnapshot: 'database', AwsRdsDbCluster: 'database',
+  AwsDocDbDbCluster: 'database', AwsDocumentDbCluster: 'database', AwsS3Bucket: 'storage',
   AwsEcsTaskDefinition: 'container', AwsSnsTopic: 'serverless', AwsLambdaFunction: 'serverless',
   AwsRdsDbInstance: 'database', AwsKmsKey: 'encryption', AwsEcrRepository: 'container',
   AwsEc2Instance: 'compute', AwsSqsQueue: 'serverless', AwsIamPolicy: 'identity',

@@ -120,10 +120,11 @@ Agents: Quality (3.8) | Bugs (3.9) | Security (4.3) | Architecture (3.6)
 ## P2 — Nice to Have
 
 ### WS-8: Seed Data Quality
-- [PARTIAL: codex-20260521] Source generator fixed and validated on a 10K synthetic-padded regeneration; full ignored 300K regeneration/live reload remains pending.
+- [PARTIAL: codex-20260521] Source generator fixed, validated on a 10K synthetic-padded regeneration, and regenerated as a full 300K GCP trial artifact set in `gs://cloudforge-seed-418834332294-us-central1/datasets/20260521-full-300k/`; live database reload remains pending.
 - [x] Fix Azure Cosmos DB provider mismatch (EC-01)
 - [x] Audit regenerated 10K sample for provider/text/ARN inconsistencies
-- [ ] Audit/regenerate full ignored 300K seed and reload live data if needed
+- [x] Audit/regenerate full ignored 300K seed artifact set
+- [ ] Reload live data if needed
 - **Deliverable:** Fixed seed script, regenerated data
 
 ### WS-9: NLQ Enhancements
