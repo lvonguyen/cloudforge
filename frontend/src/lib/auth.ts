@@ -212,10 +212,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = getPreferredAuthToken(staticToken)
     if (token) {
       const nextUser = userFromToken(token)
-      if (hasDemoSession()) return { ...nextUser, role: 'viewer' }
       return previewRole
         ? { ...nextUser, role: previewRole, name: ROLE_DISPLAY_NAMES[previewRole] }
-        : nextUser
+        : hasDemoSession() ? { ...nextUser, role: 'viewer' } : nextUser
     }
     return ANONYMOUS_USER
   })

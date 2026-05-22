@@ -247,4 +247,23 @@ describe('AuthProvider token precedence', () => {
 
     expect(screen.getByText('viewer|demo|switch')).toBeInTheDocument()
   })
+
+  it('honors an explicit preview role inside a real demo session', () => {
+    const storedAdminToken = makeJWT({
+      email: 'admin@test.com',
+      name: 'Admin',
+      groups: ['aegis-admin'],
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    })
+
+    vi.stubEnv('DEV', false)
+    vi.stubEnv('VITE_DEMO_MODE', 'false')
+    sessionStorage.setItem(TOKEN_KEY, storedAdminToken)
+    sessionStorage.setItem(DEMO_SESSION_KEY, 'true')
+    sessionStorage.setItem(PREVIEW_ROLE_KEY, 'operator')
+
+    renderWithAuth(createElement(DemoSessionProbe))
+
+    expect(screen.getByText('operator|demo|switch')).toBeInTheDocument()
+  })
 })
