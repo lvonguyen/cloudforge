@@ -175,6 +175,9 @@ func (s *Server) setupRoutes() {
 	apiRouter.Handle("/remediations/{id}/execute", // operator, admin
 		s.roles.Require(api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.executeRemediation))),
 	).Methods("POST")
+	apiRouter.Handle("/remediations/{id}/dry-run", // viewer+ — non-mutating prediction
+		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.dryRunRemediation))),
+	).Methods("POST")
 	apiRouter.Handle("/remediations/{id}",
 		s.roles.Require(api.RoleViewer, api.RoleOperator, api.RoleAdmin)(scopeGuarded(http.HandlerFunc(s.getRemediation))),
 	).Methods("GET")

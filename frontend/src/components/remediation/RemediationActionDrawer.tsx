@@ -11,13 +11,13 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { RemediationTierBadge } from '@/components/remediation/RemediationTierBadge'
-import { useExecuteRemediation, usePatchRemediation } from '@/hooks/useRemediations'
+import { useDryRunRemediation, useExecuteRemediation, usePatchRemediation } from '@/hooks/useRemediations'
 import { useTracePanel } from '@/lib/trace-panel-context'
 import { useToast } from '@/hooks/useToast'
 import { impactBadgeClass, type RemediationCandidate } from '@/lib/remediation-catalog'
 import type { Finding } from '@/types/compliance'
 import type { AttackPath, AttackPathNode } from '@/types/attack-path'
-import type { RemediationRecord } from '@/types/remediation'
+import type { DryRunResult, RemediationRecord } from '@/types/remediation'
 
 export type DrawerContext =
   | { mode: 'preview'; finding: Finding; candidate: RemediationCandidate }
@@ -45,6 +45,7 @@ const MODE_SUBTITLES: Record<DrawerContext['mode'], string> = {
 export function RemediationActionDrawer({ open, onOpenChange, context }: RemediationActionDrawerProps) {
   const executeMutation = useExecuteRemediation()
   const patchMutation = usePatchRemediation()
+  const dryRunMutation = useDryRunRemediation()
   const { openDryRun } = useTracePanel()
   const { toast } = useToast()
   const [selectedHopIdx, setSelectedHopIdx] = useState<number>(0)
@@ -71,18 +72,43 @@ export function RemediationActionDrawer({ open, onOpenChange, context }: Remedia
       : context.mode === 'approve' ? context.remediation.finding_id
         : context.node.finding_id
 
-  function handleDryRun() {
-    if (!activeCandidate) return
-    openDryRun(`Dry run: ${activeCandidate.handler}`, {
+  function buildSyntheticDryRun(candidate: RemediationCandidate): DryRunResult {
+    return {
       finding_id: findingIdForTrace,
       would_succeed: true,
-      planned_actions: activeCandidate.plannedActions,
-      prerequisites_met: !(activeCandidate.prerequisites?.length),
-      warnings: activeCandidate.warnings,
-      estimated_impact: `${activeCandidate.estimatedImpact} — scoped to ${activeCandidate.target}`,
-      rollback_plan: activeCandidate.rollbackPlan,
-      estimated_rollback_window: activeCandidate.estimatedRollbackWindow,
-    })
+      planned_actions: candidate.plannedActions,
+      prerequisites_met: !(candidate.prerequisites?.length),
+      warnings: candidate.warnings,
+      estimated_impact: `${candidate.estimatedImpact} — scoped to ${candidate.target}`,
+      rollback_plan: candidate.rollbackPlan,
+      estimated_rollback_window: candidate.estimatedRollbackWindow,
+    }
+  }
+
+  function handleDryRun() {
+    if (!context || !activeCandidate) return
+
+    if (context.mode === 'approve') {
+      dryRunMutation.mutate(context.remediation.id, {
+        onSuccess: (serverResult) => {
+          openDryRun(`Dry run: ${activeCandidate.handler}`, {
+            ...serverResult,
+            planned_actions: serverResult.planned_actions?.length
+              ? serverResult.planned_actions
+              : activeCandidate.plannedActions,
+            rollback_plan: serverResult.rollback_plan?.length
+              ? serverResult.rollback_plan
+              : activeCandidate.rollbackPlan,
+            estimated_rollback_window:
+              serverResult.estimated_rollback_window || activeCandidate.estimatedRollbackWindow,
+          })
+          toast('Dry-run returned from server', 'info')
+        },
+      })
+      return
+    }
+
+    openDryRun(`Dry run: ${activeCandidate.handler}`, buildSyntheticDryRun(activeCandidate))
     toast('Dry-run dispatched to trace panel', 'info')
   }
 
@@ -180,6 +206,15 @@ export function RemediationActionDrawer({ open, onOpenChange, context }: Remedia
             <>
               <Button variant="outline" size="sm" onClick={handleReject} disabled={patchMutation.isPending}>
                 Reject
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDryRun}
+                disabled={dryRunMutation.isPending}
+                data-testid="approve-dry-run"
+              >
+                {dryRunMutation.isPending ? 'Simulating…' : 'Dry-run'}
               </Button>
               {isManualTier3 && asanaUrl ? (
                 <Button size="sm" asChild>

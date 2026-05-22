@@ -144,6 +144,17 @@ describe('RemediationActionDrawer', () => {
       expect(screen.getByRole('button', { name: /Approve & execute/ })).toBeInTheDocument()
     })
 
+    it('exposes a Dry-run button (calls backend POST /remediations/{id}/dry-run on click)', () => {
+      const rec = makeRemediation()
+      const context: DrawerContext = {
+        mode: 'approve',
+        remediation: rec,
+        candidate: buildCandidateForRemediation(rec),
+      }
+      renderWithProviders(<RemediationActionDrawer open onOpenChange={noop} context={context} />)
+      expect(screen.getByTestId('approve-dry-run')).toBeInTheDocument()
+    })
+
     it('shows Open ticket link when tier-3 manual-escalation has an Asana URL', () => {
       const rec = makeRemediation({
         tier: 3,

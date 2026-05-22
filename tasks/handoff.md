@@ -1,16 +1,17 @@
 # CloudForge — Handoff
 
-**Updated:** 2026-05-20 (UTC: 2026-05-21T06:15Z)
-**Branch:** main (clean working tree)
-**Last committed:** `bbbc53d0` feat: add remediation action drawer
+**Updated:** 2026-05-21 (UTC: 2026-05-21T23:55Z)
+**Branch:** main (working tree clean after commit)
+**Last committed:** _this commit_ — feat: backend dry-run endpoint + drawer approve-mode swap
 
 ---
 
 ## TL;DR
 
 - May 13 + May 20 sprint completed the Apr 7 "Next High-Value Work" punch list **except** Deferred Diagrams and CF.4 redesign candidate.
-- Today (2026-05-20) added the **Remediation Action Drawer** — a shared three-mode component reachable from FindingDetail, RemediationQueue, and AttackPaths. Committed in `bbbc53d0`.
-- Verification GREEN: targeted ESLint, targeted drawer vitest, production frontend build, production e2e, and live visual drawer smoke.
+- 2026-05-20 added the **Remediation Action Drawer** — shared three-mode component (preview/approve/hop). Committed in `bbbc53d0`+`1c0a40c1`.
+- 2026-05-21 closed **Open Item #8** by adding `POST /api/v1/remediations/{id}/dry-run` (Viewer+, audit-logged) backed by a deterministic `dryRunPolicy` and swapping the drawer's approve mode to call it.
+- Verification GREEN: go build, go test -race, tsc, vitest 518/518, eslint, vite build 4.2s.
 
 ## Sprint Arc (May 13 → May 20)
 
@@ -25,6 +26,9 @@
 | 2026-05-13 | `deb1a116` | chore: consolidate agent skill symlinks |
 | 2026-05-20 | `afd5a298` | feat: refresh defense readiness demo (31 files, +2744 LOC) |
 | 2026-05-20 | `197411cf` | test: seed demo role for prod e2e routes |
+| 2026-05-20 | `bbbc53d0` | feat: add remediation action drawer (impl) |
+| 2026-05-20 | `1c0a40c1` | test: cover remediation action drawer (10 cases) |
+| 2026-05-21 | _this commit_ | feat: backend dry-run endpoint + drawer approve-mode swap |
 
 ## Today's Working Set (committed in `bbbc53d0`)
 
@@ -92,7 +96,9 @@ Follow-up `197411cf` seeded `aegis_demo_session` role into e2e specs so prod-sty
 5. [P2] HLD missing: Document Control, Migration, Decommission, Review Log (carried)
 6. [LOW] icon-library MCP interactive 1P bootstrap (carried)
 7. [LOW] Drawer hook pattern: a linter auto-fix replaced `useEffect`-reset-on-open with a `useMemo`-clamp on `selectedHopIdx`. Effect: re-opening with the same context preserves the last selected hop candidate instead of resetting to 0. Acceptable but worth a once-over.
-8. [P2] No backend `/dry-run` endpoint yet; drawer currently emits a synthetic `DryRunResult` via `useTracePanel.openDryRun`. When a real endpoint lands, swap the drawer's `handleDryRun` to call it.
+8. ✅ **CLOSED 2026-05-21** — `POST /api/v1/remediations/{id}/dry-run` endpoint shipped at Viewer+, backed by `dryRunPolicy(record) → *remediation.DryRunResult` (deterministic state machine over Status / Tier / Handler). Drawer approve mode now calls the backend; preview/hop stay synthetic (no record exists in those pre-staging contexts).
+9. [LOW] Server-side `executeRemediation` is also mock-grade (line 399 — just records intent + audit-logs). If you want real `Remediator.DryRun()` / `Remediate()` invocation, wire `internal/remediation/*` into `cmd/server` or call `cmd/remediation-dispatcher` via RPC. Out of scope for the May 21 commit; tracked here so the asymmetry is visible.
+10. [P2] Live visual smoke for the new approve-mode Dry-run button — not yet performed. `cd frontend && npm run dev`, then `/ops/remediation` → "Review" on a pending row → click the **Dry-run** button next to Reject. Trace panel should open with the merged server+catalog result.
 
 ## Freshness & Recheck Gates
 
@@ -103,6 +109,6 @@ Follow-up `197411cf` seeded `aegis_demo_session` role into e2e specs so prod-sty
 ## Continuation Prompts for Next Session
 
 - "Continue Defense Readiness arc — pick up Deferred Diagrams (AI tiered routing target-state)"
-- "Walk me through the drawer in the dev server — boot it and click the three triggers"
-- "Wire a real backend `/dry-run` endpoint and connect the drawer's Dry-run button"
-- "Commit the drawer slice and open a PR"
+- "Walk me through the drawer in the dev server — boot it and click the four triggers (preview / approve / hop / approve-dry-run)"
+- "Wire real `Remediator.DryRun()` invocation into the server, replacing both the mock executeRemediation and the policy-only dry-run handler (Open Item #9)"
+- "Smoke-test the new approve-mode Dry-run button end-to-end and capture a screenshot"

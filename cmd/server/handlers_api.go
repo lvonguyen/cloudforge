@@ -421,6 +421,35 @@ func (s *Server) executeRemediation(w http.ResponseWriter, r *http.Request) {
 	writeErrorResponse(w, "remediation not found", http.StatusNotFound)
 }
 
+func (s *Server) dryRunRemediation(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.dryRunRemediation")
+	defer span.End()
+	r = r.WithContext(ctx)
+
+	id := mux.Vars(r)["id"]
+	span.SetAttributes(attribute.String("remediation.id", id))
+
+	s.data.mu.RLock()
+	rem, ok := s.data.RemediationsByID[id]
+	var remCopy RemediationRecord
+	if ok {
+		remCopy = *rem
+	}
+	s.data.mu.RUnlock()
+
+	if !ok {
+		writeErrorResponse(w, "remediation not found", http.StatusNotFound)
+		return
+	}
+
+	result := dryRunPolicy(&remCopy)
+
+	s.logAuditEvent(r, "remediation.dry_run", "remediation", id, "success")
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(result)
+}
+
 func (s *Server) patchRemediation(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("aegis.api").Start(r.Context(), "handler.patchRemediation")
 	defer span.End()

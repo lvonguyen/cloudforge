@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient, ApiError, fetchWithMockFallback, isMockFallbackEnabled } from '@/lib/api'
-import type { RemediationRecord } from '@/types/remediation'
+import type { DryRunResult, RemediationRecord } from '@/types/remediation'
 import { useToast } from '@/hooks/useToast'
 import remediationsData from '@/lib/mock/remediations.json'
 
@@ -48,6 +48,24 @@ export function usePatchRemediation() {
         toast('Status update requires operator or admin role', 'error')
       } else {
         toast('Failed to update remediation status', 'error')
+      }
+    },
+  })
+}
+
+export function useDryRunRemediation() {
+  const { toast } = useToast()
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient.post<DryRunResult>(`/remediations/${id}/dry-run`, {}),
+    onError: (err: Error) => {
+      if (err instanceof ApiError && err.status === 404) {
+        toast('Remediation record not found for dry-run', 'error')
+      } else if (err instanceof ApiError && err.status >= 500) {
+        toast('Dry-run failed due to a server error', 'error')
+      } else {
+        console.error('[useDryRunRemediation]', err)
+        toast('Dry-run request failed', 'error')
       }
     },
   })
