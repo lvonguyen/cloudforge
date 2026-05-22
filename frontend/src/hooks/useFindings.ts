@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueries, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, useMutation, useQueries, useQueryClient } from '@tanstack/react-query'
 import { apiClient, ApiError, isMockFallbackEnabled, shouldPreferLocalMockAssets } from '@/lib/api'
 import type { Finding } from '@/types/compliance'
 
@@ -290,6 +290,8 @@ export function useFindings(filters?: FindingsQueryParams) {
   const query = useQuery({
     queryKey: ['findings', filters],
     queryFn: () => fetchFindings(filters),
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
   })
   return {
     ...query,

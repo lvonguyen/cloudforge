@@ -40,7 +40,7 @@ beforeEach(() => {
     total: 1,
     totalPages: 1,
     page: 1,
-    perPage: 100,
+    perPage: 50,
     isUsingMockData: false,
   } as ReturnType<typeof useFindings>)
 
@@ -98,6 +98,17 @@ describe('OpsFindings', () => {
 
     expect(criticalCard).toBeDefined()
     expect(criticalCard).toHaveTextContent('4,321')
+  })
+
+  it('requests the backend default page size', () => {
+    renderWithProviders(<Findings />)
+
+    expect(mockUseFindings).toHaveBeenCalledWith(expect.objectContaining({
+      page: 1,
+      perPage: 50,
+      sort: 'severity',
+      order: 'asc',
+    }))
   })
 
   it('uses the reduced mobile column set by default', () => {

@@ -442,7 +442,7 @@ function CommandCenterShell() {
 
     return {
       page: 1,
-      perPage: 1000,
+      perPage: 100,
       sort: 'ai_risk',
       order: 'desc' as const,
       severity: severityValues.length === 1 ? severityValues[0] : undefined,

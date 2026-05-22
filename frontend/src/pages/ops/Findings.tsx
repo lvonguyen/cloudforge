@@ -30,6 +30,7 @@ const SEVERITY_ORDER: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2
 const SEVERITY_TABS = ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const
 type SeverityTab = (typeof SEVERITY_TABS)[number]
 
+const DEFAULT_PAGE_SIZE = 50
 
 const CATEGORY_COLORS: Record<string, string> = {
   VULNERABILITY: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
@@ -152,7 +153,7 @@ export default function Findings() {
 
   // Pagination
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(100)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
   // Column visibility & resizable widths
   const [visibleColumns, setVisibleColumns] = useState<Set<SortColumn>>(() => {

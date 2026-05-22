@@ -44,3 +44,35 @@ test.describe('Findings page', () => {
     }
   })
 })
+
+test.describe('Prod findings corpus', () => {
+  test('uses live API pagination instead of mock findings', async ({ page }, testInfo) => {
+    const baseURL = process.env.PLAYWRIGHT_BASE_URL || String(testInfo.project.use.baseURL ?? '')
+    test.skip(!baseURL.includes('cloudforge.lvonguyen.com'), 'prod-only corpus guard')
+
+    const mockFetches: string[] = []
+    page.on('response', (response) => {
+      const url = response.url()
+      if (response.request().resourceType() === 'fetch' && (/\/mock\/findings\.json/.test(url) || /r2\.dev\/mock\/findings\.json/.test(url))) {
+        mockFetches.push(url)
+      }
+    })
+
+    const findingsResponsePromise = page.waitForResponse((response) =>
+      response.url().includes('/api/v1/findings?') &&
+      response.request().resourceType() === 'fetch' &&
+      response.status() === 200,
+    )
+
+    await page.goto('/ops/findings?qa=large-corpus')
+    await expect(page.getByText('300,000 total findings')).toBeVisible({ timeout: 20_000 })
+
+    const findingsResponse = await findingsResponsePromise
+    const responseUrl = new URL(findingsResponse.url())
+    const responseBytes = (await findingsResponse.body()).length
+
+    expect(responseUrl.searchParams.get('per_page')).toBe('50')
+    expect(responseBytes).toBeLessThan(140_000)
+    expect(mockFetches).toHaveLength(0)
+  })
+})

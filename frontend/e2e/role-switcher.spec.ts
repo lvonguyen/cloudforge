@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test'
+import { seedDemoRole } from './support/demo-session'
 
 test.describe('Role switcher', () => {
+  test.beforeEach(async ({ page }) => {
+    await seedDemoRole(page, 'viewer')
+  })
+
   /** Open the role dropdown in the top nav and select a role by label. */
   async function switchToRole(page: import('@playwright/test').Page, dropdownLabel: string) {
     // The RoleSwitcher trigger shows current role text + chevron

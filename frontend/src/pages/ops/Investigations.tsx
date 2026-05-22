@@ -67,6 +67,7 @@ const ENTITY_META: Record<InvestigationEntityType, { label: string; icon: typeof
 }
 
 const GRAPH_GUIDE: InvestigationEntityType[] = ['finding', 'exposure_surface', 'assignee', 'resource', 'network_boundary', 'compliance_mapping', 'impacted_resource']
+const INVESTIGATION_SAMPLE_SIZE = 100
 
 function formatDateLabel(value?: string) {
   if (!value) return 'Not set'
@@ -143,7 +144,7 @@ function describeNodeImportance(type: InvestigationEntityType, data: Record<stri
 }
 
 export default function Investigations() {
-  const { data: findings = [], isLoading } = useFindings({ page: 1, perPage: 1000, sort: 'ai_risk', order: 'desc' })
+  const { data: findings = [], isLoading } = useFindings({ page: 1, perPage: INVESTIGATION_SAMPLE_SIZE, sort: 'ai_risk', order: 'desc' })
   const [searchParams] = useSearchParams()
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(() => searchParams.get('findingId'))
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)

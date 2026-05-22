@@ -30,9 +30,11 @@ const TABS: FeedTab[] = [
   { id: 'otx', name: 'OTX', icon: Globe, color: 'text-emerald-500' },
 ]
 
+const TOP_RISK_SAMPLE_SIZE = 100
+
 export default function ThreatIntel() {
   const [activeTab, setActiveTab] = useState<FeedId>('overview')
-  const { data: findings = [], total } = useFindings({ page: 1, perPage: 1000, sort: 'ai_risk', order: 'desc' })
+  const { data: findings = [], total } = useFindings({ page: 1, perPage: TOP_RISK_SAMPLE_SIZE, sort: 'ai_risk', order: 'desc' })
   const { data: findingStats } = useFindingsStats()
 
   const stats = useMemo(() => {
