@@ -156,6 +156,60 @@ const SEVERITY_COLORS: Record<string, string> = {
   LOW: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
 }
 
+const SCANNER_COVERAGE = ['Trivy', 'ECR Inspector', 'ACR Defender', 'GCP Artifact Analysis', 'Syft SBOM', 'Cosign']
+
+function normalizeImageKey(container: Container): string {
+  return `${container.registry}:${container.image.split('@')[0]}`
+}
+
+function buildArtifactInsights(clusters: Cluster[]) {
+  const images = new Map<string, {
+    image: string
+    registry: string
+    containers: number
+    vulnCount: number
+    critical: number
+    high: number
+  }>()
+
+  for (const cluster of clusters) {
+    for (const namespace of cluster.namespaces) {
+      for (const pod of namespace.pods) {
+        for (const container of pod.containers) {
+          const key = normalizeImageKey(container)
+          const current = images.get(key) ?? {
+            image: container.image,
+            registry: container.registry,
+            containers: 0,
+            vulnCount: 0,
+            critical: 0,
+            high: 0,
+          }
+          current.containers += 1
+          current.vulnCount += container.vuln_count
+          current.critical += (container.vulns ?? []).filter(vuln => vuln.severity === 'CRITICAL').length
+          current.high += (container.vulns ?? []).filter(vuln => vuln.severity === 'HIGH').length
+          images.set(key, current)
+        }
+      }
+    }
+  }
+
+  const imageList = [...images.values()]
+  return {
+    images: imageList.length,
+    vulnerable: imageList.filter(image => image.vulnCount > 0).length,
+    clean: imageList.filter(image => image.vulnCount === 0).length,
+    critical: imageList.reduce((sum, image) => sum + image.critical, 0),
+    high: imageList.reduce((sum, image) => sum + image.high, 0),
+    registries: new Set(imageList.map(image => image.registry)).size,
+    topRisks: imageList
+      .filter(image => image.vulnCount > 0)
+      .sort((a, b) => (b.critical - a.critical) || (b.high - a.high) || (b.vulnCount - a.vulnCount))
+      .slice(0, 3),
+  }
+}
+
 function VulnCountBadge({ count }: { count: number }) {
   if (count === 0) return <Badge variant="outline" className="text-[10px] px-1.5 py-0 rounded-none bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">Clean</Badge>
   const color = count >= 5 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
@@ -172,7 +226,7 @@ export default function Containers() {
   const [expandedPods, setExpandedPods] = useState<Set<string>>(new Set())
   const [expandedContainers, setExpandedContainers] = useState<Set<string>>(new Set())
 
-  const clusters = data?.clusters ?? []
+  const clusters = useMemo(() => data?.clusters ?? [], [data?.clusters])
 
   const stats = useMemo(() => {
     let totalPods = 0, totalContainers = 0, totalVulns = 0, criticalVulns = 0
@@ -190,6 +244,7 @@ export default function Containers() {
     }
     return { clusters: clusters.length, pods: totalPods, containers: totalContainers, vulns: totalVulns, critical: criticalVulns }
   }, [clusters])
+  const artifactInsights = useMemo(() => buildArtifactInsights(clusters), [clusters])
 
   function toggleSet(set: Set<string>, key: string): Set<string> {
     const next = new Set(set)
@@ -262,6 +317,69 @@ export default function Containers() {
           </div>
         ))}
       </div>
+
+      <Card className="rounded-none border-border/80">
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <Box className="h-4 w-4 text-muted-foreground" />
+                <h2 className="text-sm font-semibold">Artifact Intelligence</h2>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Digest-normalized image risk across ECR, ACR, GAR, and OSS scanners.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-right sm:grid-cols-4">
+              {[
+                { label: 'Images', value: artifactInsights.images },
+                { label: 'Vulnerable', value: artifactInsights.vulnerable },
+                { label: 'Critical CVEs', value: artifactInsights.critical },
+                { label: 'Clean', value: artifactInsights.clean },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+                  <p className={`text-lg font-semibold ${label === 'Critical CVEs' && value > 0 ? 'text-red-600 dark:text-red-400' : ''}`}>{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {SCANNER_COVERAGE.map(scanner => (
+              <Badge key={scanner} variant="outline" className="rounded-none px-1.5 py-0 text-[10px]">
+                {scanner}
+              </Badge>
+            ))}
+            <Badge variant="secondary" className="rounded-none px-1.5 py-0 text-[10px]">
+              {artifactInsights.registries} registries
+            </Badge>
+          </div>
+
+          {artifactInsights.topRisks.length > 0 && (
+            <div className="mt-4 grid gap-2 md:grid-cols-3">
+              {artifactInsights.topRisks.map(image => (
+                <button
+                  key={`${image.registry}:${image.image}`}
+                  type="button"
+                  className="min-w-0 border border-border/80 bg-muted/20 p-3 text-left hover:bg-muted/40"
+                  onClick={() => navigate(`/ops/findings?search=${encodeURIComponent(image.image)}`)}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-xs font-semibold">{image.image}</span>
+                    <Badge variant="outline" className="ml-auto rounded-none px-1 py-0 text-[9px] uppercase">
+                      {image.registry}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    {image.vulnCount} CVEs · {image.critical} critical · {image.high} high
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Cluster tree */}
       <div className="space-y-2">

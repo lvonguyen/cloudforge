@@ -659,9 +659,9 @@ function PathGraphView({
   const uniqueAccounts = useMemo(() => [...new Set(path.nodes.map(n => n.account_id))], [path])
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-5rem)] gap-0">
+    <div className="flex h-[calc(100vh-5rem)] min-w-0 flex-col gap-0 lg:flex-row">
       {/* ── WEST: Analyst context panel ── */}
-      <div className="w-full lg:w-80 shrink-0 border-b lg:border-b-0 lg:border-r overflow-y-auto p-4 space-y-4">
+      <div className="w-full shrink-0 border-b p-4 lg:w-80 lg:border-b-0 lg:border-r overflow-y-auto space-y-4">
         <div className="space-y-3">
           <Button variant="ghost" size="sm" className="gap-1.5 -ml-2" onClick={onBack}>
             <ArrowLeft className="h-4 w-4" />All Paths
@@ -864,7 +864,7 @@ function PathGraphView({
       </div>
 
       {/* ── EAST: Graph + detail ── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto p-4 space-y-4">
+      <div data-testid="attack-path-graph-pane" className="flex min-w-0 flex-1 flex-col overflow-y-auto p-4 space-y-4">
         <div className="flex items-center justify-end">
           <CanvasToneToggle value={canvasTone} resolvedTone={resolvedCanvasTone} onChange={onCanvasToneChange} />
         </div>
@@ -873,7 +873,7 @@ function PathGraphView({
         <div
           data-testid="attack-path-canvas"
           data-canvas-tone={resolvedCanvasTone}
-          className={`h-[440px] overflow-hidden rounded-[30px] border ${canvasTheme.frameClass}`}
+          className={`h-[440px] w-full min-w-0 overflow-hidden rounded-[30px] border ${canvasTheme.frameClass}`}
         >
           <ReactFlow
             nodes={nodes}
@@ -1281,7 +1281,7 @@ export default function AttackPaths() {
 
   if (selectedPath) {
     return (
-      <div className="max-w-5xl p-6">
+      <div data-testid="attack-path-detail-shell" className="w-full min-w-0 p-6">
         <PathGraphView
           path={selectedPath}
           relatedFindings={selectedPathFindings}

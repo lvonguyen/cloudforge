@@ -307,6 +307,24 @@ describe('AttackPaths readability controls', () => {
     expect(window.localStorage.getItem('attack-path-canvas-tone')).toBe('dark')
   })
 
+  it('keeps the selected path detail shell and canvas unconstrained to avoid horizontal truncation', async () => {
+    renderWithProviders(<AttackPaths />)
+
+    fireEvent.keyDown(document, { key: 'j' })
+
+    const shell = await screen.findByTestId('attack-path-detail-shell')
+    expect(shell).toHaveClass('w-full')
+    expect(shell).toHaveClass('min-w-0')
+    expect(shell).not.toHaveClass('max-w-5xl')
+
+    const pane = screen.getByTestId('attack-path-graph-pane')
+    expect(pane).toHaveClass('min-w-0')
+
+    const canvas = screen.getByTestId('attack-path-canvas')
+    expect(canvas).toHaveClass('w-full')
+    expect(canvas).toHaveClass('min-w-0')
+  })
+
   it('supports keyboard navigation through paths and escape back to the overview', async () => {
     renderWithProviders(<AttackPaths />)
 

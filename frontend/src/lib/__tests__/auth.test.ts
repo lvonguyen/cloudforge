@@ -2,7 +2,7 @@ import { createElement } from 'react'
 import { screen } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { renderWithAuth } from '@/test/utils'
-import { parseJWTPayload, isTokenExpired, userFromToken, deriveRoleFromGroups, useAuth, TOKEN_KEY, DEMO_SESSION_KEY } from '../auth'
+import { parseJWTPayload, isTokenExpired, userFromToken, deriveRoleFromGroups, useAuth, TOKEN_KEY, DEMO_SESSION_KEY, PREVIEW_ROLE_KEY } from '../auth'
 
 // Build a minimal JWT string with a given payload (unsigned — fine for unit tests)
 function makeJWT(payload: Record<string, unknown>): string {
@@ -185,6 +185,49 @@ describe('AuthProvider token precedence', () => {
     renderWithAuth(createElement(AuthProbe))
 
     expect(screen.getByText('viewer|viewer@test.com|auth')).toBeInTheDocument()
+  })
+
+  it('allows role switching for a baked static portfolio token without enabling mock demo mode', () => {
+    const staticAdminToken = makeJWT({
+      email: 'demo@aegis.io',
+      name: 'Demo Admin',
+      groups: ['aegis-admin'],
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    })
+
+    vi.stubEnv('DEV', false)
+    vi.stubEnv('VITE_DEMO_MODE', 'false')
+    vi.stubEnv('VITE_STATIC_TOKEN', staticAdminToken)
+    sessionStorage.setItem(PREVIEW_ROLE_KEY, 'operator')
+
+    renderWithAuth(createElement(DemoSessionProbe))
+
+    expect(screen.getByText('operator|normal|switch')).toBeInTheDocument()
+  })
+
+  it('keeps stored real sessions fixed even when a static token is configured', () => {
+    const staticAdminToken = makeJWT({
+      email: 'demo@aegis.io',
+      name: 'Demo Admin',
+      groups: ['aegis-admin'],
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    })
+    const storedAdminToken = makeJWT({
+      email: 'admin@test.com',
+      name: 'Admin',
+      groups: ['aegis-admin'],
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    })
+
+    vi.stubEnv('DEV', false)
+    vi.stubEnv('VITE_DEMO_MODE', 'false')
+    vi.stubEnv('VITE_STATIC_TOKEN', staticAdminToken)
+    sessionStorage.setItem(TOKEN_KEY, storedAdminToken)
+    sessionStorage.setItem(PREVIEW_ROLE_KEY, 'operator')
+
+    renderWithAuth(createElement(DemoSessionProbe))
+
+    expect(screen.getByText('admin|normal|fixed')).toBeInTheDocument()
   })
 
   it('treats a real demo session as switchable even outside dev and build-demo mode', () => {

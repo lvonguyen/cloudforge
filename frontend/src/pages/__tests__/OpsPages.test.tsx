@@ -88,6 +88,18 @@ describe('Containers', () => {
     renderWithProviders(<Containers />)
     await waitFor(() => expect(screen.getByText('Container Security')).toBeInTheDocument(), { timeout: 10_000 })
   })
+
+  it('renders artifact image scanning aggregation across registries and scanners', async () => {
+    const { default: Containers } = await import('@/pages/ops/Containers')
+    renderWithProviders(<Containers />)
+
+    await waitFor(() => expect(screen.getByText('Artifact Intelligence')).toBeInTheDocument(), { timeout: 10_000 })
+    expect(screen.getByText(/digest-normalized image risk/i)).toBeInTheDocument()
+    expect(screen.getByText('ECR Inspector')).toBeInTheDocument()
+    expect(screen.getByText('ACR Defender')).toBeInTheDocument()
+    expect(screen.getByText('GCP Artifact Analysis')).toBeInTheDocument()
+    expect(screen.getByText('Syft SBOM')).toBeInTheDocument()
+  })
 })
 
 // ---------------------------------------------------------------------------

@@ -33,6 +33,7 @@ import { FindingHistoryWorkspace } from '@/components/ops/finding-detail/Finding
 import { FindingSecurityGraphWorkspace } from '@/components/ops/finding-detail/FindingSecurityGraphWorkspace'
 import { formatDate, formatWorkflowStatus } from '@/components/ops/finding-detail/helpers'
 import { buildTraceTimeline } from '@/lib/trace-helpers'
+import { deriveFindingGraphEvidence } from '@/lib/finding-graph-evidence'
 
 interface FindingDetailProps {
   mode?: 'page' | 'inline'
@@ -75,6 +76,10 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
       p.nodes.some(n => n.resource_id === finding.resource_id),
     )
   }, [attackPathsData, finding])
+  const graphEvidence = useMemo(
+    () => deriveFindingGraphEvidence(finding, attackPathsData?.data ?? []),
+    [attackPathsData, finding],
+  )
   const investigationEnrichment = useMemo(() => {
     if (!enrichment) return undefined
     return {
@@ -304,6 +309,7 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
         relatedPaths={relatedPaths}
         remediation={undefined}
         hasTicket={Boolean(ticket)}
+        graphEvidence={graphEvidence}
       />
 
       {/* Risk Factors (toxic combo visualization) */}
@@ -867,6 +873,7 @@ export default function FindingDetail({ mode = 'page', findingId: propId, onClos
                 finding={finding}
                 relatedPaths={relatedPaths}
                 attackPathsEnabled={attackPathsEnabled}
+                graphEvidence={graphEvidence}
                 onLoadAttackPaths={() => setAttackPathsRequested(true)}
                 onOpenSecurityGraph={() => setInvestigationView('security-graph')}
               />

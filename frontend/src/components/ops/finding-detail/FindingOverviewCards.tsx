@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import type { Finding } from '@/types/compliance'
 import type { AttackPath } from '@/types/attack-path'
 import type { RemediationRecord } from '@/types/remediation'
+import type { FindingGraphEvidence } from '@/lib/finding-graph-evidence'
 import { formatDate, formatWorkflowStatus, getFindingSlaState } from './helpers'
 
 function MetricCard({
@@ -46,13 +47,16 @@ export function FindingOverviewCards({
   relatedPaths,
   remediation,
   hasTicket,
+  graphEvidence,
 }: {
   finding: Finding
   relatedPaths: AttackPath[]
   remediation?: RemediationRecord
   hasTicket: boolean
+  graphEvidence?: FindingGraphEvidence
 }) {
   const sla = getFindingSlaState(finding)
+  const hasNearbyGraphEvidence = relatedPaths.length === 0 && (graphEvidence?.nearbyNodeCount ?? 0) > 0
   const remediationSummary = finding.remediation_steps?.length
     ? `${finding.remediation_steps.length} ordered step${finding.remediation_steps.length === 1 ? '' : 's'}`
     : finding.auto_remediatable
@@ -64,9 +68,13 @@ export function FindingOverviewCards({
       <MetricCard
         icon={Crosshair}
         label="Attack Paths"
-        value={relatedPaths.length > 0 ? `${relatedPaths.length} linked path${relatedPaths.length === 1 ? '' : 's'}` : 'No linked paths'}
-        detail={relatedPaths.length > 0 ? 'This finding participates in the current blast-radius view.' : 'No attack-path evidence currently maps to this resource.'}
-        accentClass={relatedPaths.length > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}
+        value={relatedPaths.length > 0
+          ? `${relatedPaths.length} linked path${relatedPaths.length === 1 ? '' : 's'}`
+          : hasNearbyGraphEvidence ? graphEvidence!.label : 'No linked paths'}
+        detail={relatedPaths.length > 0
+          ? 'This finding participates in the current blast-radius view.'
+          : hasNearbyGraphEvidence ? graphEvidence!.detail : 'No attack-path evidence currently maps to this resource.'}
+        accentClass={relatedPaths.length > 0 || hasNearbyGraphEvidence ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}
       />
       <MetricCard
         icon={ShieldAlert}

@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { AttackPath } from '@/types/attack-path'
 import type { Finding } from '@/types/compliance'
+import type { FindingGraphEvidence } from '@/lib/finding-graph-evidence'
 
 interface FindingAttackPathWorkspaceProps {
   finding: Finding
   relatedPaths: AttackPath[]
   attackPathsEnabled: boolean
+  graphEvidence?: FindingGraphEvidence
   onLoadAttackPaths: () => void
   onOpenSecurityGraph: () => void
 }
@@ -18,6 +20,7 @@ export function FindingAttackPathWorkspace({
   finding,
   relatedPaths,
   attackPathsEnabled,
+  graphEvidence,
   onLoadAttackPaths,
   onOpenSecurityGraph,
 }: FindingAttackPathWorkspaceProps) {
@@ -67,6 +70,7 @@ export function FindingAttackPathWorkspace({
   }
 
   if (relatedPaths.length === 0) {
+    const hasNearbyGraphEvidence = (graphEvidence?.nearbyNodeCount ?? 0) > 0
     return (
       <Card>
         <CardHeader className="pb-2">
@@ -79,9 +83,13 @@ export function FindingAttackPathWorkspace({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-2xl border border-border/80 bg-muted/20 p-4">
-            <p className="text-sm font-semibold">No graph-confirmed attack path is linked yet</p>
+            <p className="text-sm font-semibold">
+              {hasNearbyGraphEvidence ? graphEvidence!.label : 'No graph-confirmed attack path is linked yet'}
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              This finding is still visible in the security graph and lifecycle timeline, but there is no path chain rooted on {finding.resource_name}.
+              {hasNearbyGraphEvidence
+                ? `${graphEvidence!.detail} No confirmed path chain is rooted on ${finding.resource_name} yet.`
+                : `This finding is still visible in the security graph and lifecycle timeline, but there is no path chain rooted on ${finding.resource_name}.`}
             </p>
           </div>
           <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={onOpenSecurityGraph}>

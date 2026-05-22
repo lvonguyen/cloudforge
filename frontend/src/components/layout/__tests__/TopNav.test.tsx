@@ -52,4 +52,19 @@ describe('TopNav terminal access', () => {
 
     expect(screen.getByText('Viewer')).toBeInTheDocument()
   })
+
+  it('renders the role switcher for a static portfolio token on the production host runtime', () => {
+    vi.stubEnv('DEV', false)
+    vi.stubEnv('VITE_DEMO_MODE', 'false')
+    vi.stubEnv('VITE_STATIC_TOKEN', makeJWT({
+      email: 'demo@aegis.io',
+      name: 'Demo Admin',
+      groups: ['aegis-admin'],
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    }))
+
+    renderWithAuth(<TopNav onMenuClick={() => {}} />)
+
+    expect(screen.getByRole('button', { name: /admin/i })).toBeInTheDocument()
+  })
 })

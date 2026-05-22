@@ -103,6 +103,12 @@ function getPreferredAuthToken(staticToken?: string): string | null {
   return null
 }
 
+function usesStaticPortfolioToken(staticToken?: string): boolean {
+  const storedToken = getStoredToken()
+  if (storedToken && !isTokenExpired(storedToken)) return false
+  return Boolean(staticToken && !isTokenExpired(staticToken))
+}
+
 export function parseJWTPayload(token: string): Record<string, unknown> | null {
   try {
     const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
@@ -182,11 +188,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isDemoBuild = isDemoMode()
 
   const staticToken = import.meta.env.VITE_STATIC_TOKEN as string | undefined
+  const isStaticPortfolioSession = usesStaticPortfolioToken(staticToken)
   const [isDemoSession, setIsDemoSession] = useState(() => hasDemoSession())
-  const canSwitchRoles = isDev || isDemoBuild || isDemoSession
+  const canSwitchRoles = isDev || isDemoBuild || isDemoSession || isStaticPortfolioSession
 
   const [user, setUser] = useState<User>(() => {
-    const previewRole = getPreviewRoleOverride() ?? ((isDev || isDemoBuild || hasDemoSession()) ? getStoredPreviewRole() : null)
+    const canUsePreviewRole = isDev || isDemoBuild || hasDemoSession() || isStaticPortfolioSession
+    const previewRole = canUsePreviewRole ? (getPreviewRoleOverride() ?? getStoredPreviewRole()) : null
     if (previewRole) {
       setPreviewRoleOverride(previewRole)
     }
@@ -204,8 +212,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = getPreferredAuthToken(staticToken)
     if (token) {
       const nextUser = userFromToken(token)
-      return hasDemoSession()
-        ? { ...nextUser, role: 'viewer' }
+      if (hasDemoSession()) return { ...nextUser, role: 'viewer' }
+      return previewRole
+        ? { ...nextUser, role: previewRole, name: ROLE_DISPLAY_NAMES[previewRole] }
         : nextUser
     }
     return ANONYMOUS_USER
@@ -220,11 +229,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Clear any legacy persisted role override so old preview data cannot
     // leak across reloads or into authenticated flows.
     sessionStorage.removeItem(ROLE_KEY)
-    if (!isDev && !isDemoBuild && !isDemoSession) {
+    if (!isDev && !isDemoBuild && !isDemoSession && !isStaticPortfolioSession) {
       sessionStorage.removeItem(PREVIEW_ROLE_KEY)
       setPreviewRoleOverride(null)
     }
-  }, [isDemoBuild, isDemoSession, isDev])
+  }, [isDemoBuild, isDemoSession, isDev, isStaticPortfolioSession])
 
   const login = useCallback(async () => {
     if (!OKTA_ISSUER || !OKTA_CLIENT_ID) {

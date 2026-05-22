@@ -75,4 +75,36 @@ test.describe('Prod findings corpus', () => {
     expect(responseBytes).toBeLessThan(140_000)
     expect(mockFetches).toHaveLength(0)
   })
+
+  test('keeps top-risk investigation and attack-path payloads within client budgets', async ({ page }, testInfo) => {
+    const baseURL = process.env.PLAYWRIGHT_BASE_URL || String(testInfo.project.use.baseURL ?? '')
+    test.skip(!baseURL.includes('cloudforge.lvonguyen.com'), 'prod-only payload guard')
+
+    const investigationResponsePromise = page.waitForResponse((response) =>
+      response.url().includes('/api/v1/findings?') &&
+      response.url().includes('sort=ai_risk') &&
+      response.url().includes('per_page=100') &&
+      response.request().resourceType() === 'fetch' &&
+      response.status() === 200,
+    )
+
+    await page.goto('/ops/investigations?qa=payload-budget')
+    await expect(page.getByText(/Investigations/i).first()).toBeVisible({ timeout: 20_000 })
+
+    const investigationResponse = await investigationResponsePromise
+    expect((await investigationResponse.body()).length).toBeLessThan(250_000)
+
+    const attackPathResponsePromise = page.waitForResponse((response) =>
+      response.url().includes('/api/v1/attack-paths?') &&
+      response.url().includes('per_page=100') &&
+      response.request().resourceType() === 'fetch' &&
+      response.status() === 200,
+    )
+
+    await page.goto('/ops/attack-paths?qa=payload-budget')
+    await expect(page.getByText('Attack Paths')).toBeVisible({ timeout: 20_000 })
+
+    const attackPathResponse = await attackPathResponsePromise
+    expect((await attackPathResponse.body()).length).toBeLessThan(350_000)
+  })
 })
