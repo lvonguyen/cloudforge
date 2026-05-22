@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient, ApiError, shouldPreferLocalMockAssets } from '@/lib/api'
+import { isDemoMode } from '@/lib/runtime'
 import type { AttackPath, AttackPathStats, PaginatedResponse } from '@/types/attack-path'
 
 const R2_BASE = 'https://pub-878a225fb2464e2ab2e3b08d0603e04b.r2.dev/mock'
@@ -10,16 +11,12 @@ const EMPTY_STATS: AttackPathStats = {
   high_paths: 0, medium_paths: 0, by_provider: {},
 }
 
-function isDemoMode(): boolean {
-  return import.meta.env.VITE_DEMO_MODE === 'true'
-}
-
 // Singleflight cache: coalesces concurrent calls and allows invalidation
 let mockCachePromise: Promise<{ paths: AttackPath[]; stats: AttackPathStats }> | null = null
 let mockCacheKey: string | null = null
 
 async function getMockAttackPaths(): Promise<{ paths: AttackPath[]; stats: AttackPathStats }> {
-  const cacheKey = import.meta.env.VITE_DEMO_MODE === 'true'
+  const cacheKey = isDemoMode()
     ? 'demo'
     : shouldPreferLocalMockAssets() ? 'local-first' : 'remote-first'
 

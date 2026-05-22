@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient, ApiError } from '@/lib/api'
+import { isDemoMode } from '@/lib/runtime'
 
 export interface BlastRadius {
   direct: number
@@ -47,7 +48,7 @@ export function useAttackPathAnalysis(pathId: string) {
         return await apiClient.get<AttackPathAnalysis>(`/attack-paths/${pathId}/analysis`)
       } catch (err) {
         if (err instanceof ApiError && err.status < 500) throw err
-        if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== 'true') throw err
+        if (import.meta.env.PROD && !isDemoMode()) throw err
         console.warn('[useAttackPathAnalysis] API unavailable, using mock data')
         return MOCK_ANALYSIS
       }

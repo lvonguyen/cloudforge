@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery, useMutation, useQueries, useQueryClient } from '@tanstack/react-query'
 import { apiClient, ApiError, isMockFallbackEnabled, shouldPreferLocalMockAssets } from '@/lib/api'
+import { isDemoMode } from '@/lib/runtime'
 import type { Finding } from '@/types/compliance'
 
 const R2_FINDINGS_URL =
@@ -155,10 +156,6 @@ export interface FindingsStats {
   by_category?: Record<string, number>
   sla_breached: number
   auto_remedial: number
-}
-
-function isDemoMode(): boolean {
-  return import.meta.env.VITE_DEMO_MODE === 'true'
 }
 
 function compareFindings(a: Finding, b: Finding, field: string, order: 'asc' | 'desc' = 'asc'): number {

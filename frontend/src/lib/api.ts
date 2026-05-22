@@ -1,7 +1,13 @@
 import { QueryClient } from '@tanstack/react-query'
 import { TOKEN_KEY, getPreviewRoleOverride } from './auth'
+import {
+  getApiBaseUrl,
+  isDemoMode,
+  isMockFallbackEnabled,
+  shouldPreferLocalMockAssets,
+} from './runtime'
 
-const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api/v1'
+export { isDemoMode, isMockFallbackEnabled, shouldPreferLocalMockAssets }
 
 // Generate a W3C traceparent header for distributed tracing.
 // Format: 00-<trace-id>-<span-id>-01
@@ -26,7 +32,7 @@ export const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
       retry: (failureCount, error) => {
-        if (import.meta.env.VITE_DEMO_MODE === 'true') return false
+        if (isDemoMode()) return false
         if (failureCount >= 3) return false
         if (error instanceof ApiError) {
           return [408, 429, 500, 502, 503, 504].includes(error.status)
@@ -45,17 +51,6 @@ export class ApiError extends Error {
     this.status = status
     this.name = 'ApiError'
   }
-}
-
-export function isMockFallbackEnabled(): boolean {
-  return import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.VITE_ENABLE_MOCK_FALLBACK === 'true'
-}
-
-export function shouldPreferLocalMockAssets(): boolean {
-  return (
-    import.meta.env.VITE_DEMO_MODE === 'true' ||
-    (import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_FALLBACK === 'true')
-  )
 }
 
 export function logMockFallbackWarning(message: string): void {
@@ -92,7 +87,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   lastTraceId = traceparent.split('-')[1]
 
   try {
-    const res = await fetch(`${BASE_URL}${path}`, {
+    const res = await fetch(`${getApiBaseUrl()}${path}`, {
       headers: { 'Content-Type': 'application/json', traceparent, ...authHeaders(), ...options?.headers },
       ...options,
       signal: controller.signal,
@@ -131,7 +126,7 @@ export async function fetchWithMockFallback<T>(
   label: string,
 ): Promise<T> {
   // In demo mode, skip API entirely — no backend to call
-  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+  if (isDemoMode()) {
     logMockFallbackWarning(`[${label}] Demo mode, using mock data`)
     const mod = await mockImport()
     return mod.default

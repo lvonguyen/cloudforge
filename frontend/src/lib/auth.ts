@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect, type ReactNode, createElement } from 'react'
 import { branding } from '@/lib/branding'
+import { isDemoMode } from '@/lib/runtime'
 
 export type Role = 'admin' | 'operator' | 'requester' | 'viewer'
 
@@ -178,7 +179,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const isDev = import.meta.env.DEV
-  const isDemoBuild = import.meta.env.VITE_DEMO_MODE === 'true'
+  const isDemoBuild = isDemoMode()
 
   const staticToken = import.meta.env.VITE_STATIC_TOKEN as string | undefined
   const [isDemoSession, setIsDemoSession] = useState(() => hasDemoSession())
