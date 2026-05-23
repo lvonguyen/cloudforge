@@ -6,7 +6,10 @@ set -euo pipefail
 DRY_RUN=false
 [[ "${1:-}" == "--dry-run" ]] && DRY_RUN=true
 
-DEST="/Users/lvonguyen/repos/gh/cloudforge/frontend/public/icons/services"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+DEST="$REPO_ROOT/frontend/public/icons/services"
 LIB="/Users/lvonguyen/repos/gh/lvn-library/icons"
 AWS_SRC="$LIB/aws_icons_all/aws_icon_package_01302026/Architecture-Service-Icons_01302026"
 AWS_RES="$LIB/aws_icons_all/aws_icon_package_01302026/Resource-Icons_01302026"
