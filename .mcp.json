@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "serena": {
+      "_comment": "Semantic code navigation/refactor MCP. Uses the current repo, keeps the dashboard available, and never opens it automatically.",
+      "command": "uvx",
+      "args": [
+        "-p",
+        "3.13",
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "ide",
+        "--project-from-cwd",
+        "--enable-web-dashboard",
+        "true",
+        "--open-web-dashboard",
+        "false"
+      ]
+    }
+  }
+}
