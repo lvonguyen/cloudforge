@@ -1,0 +1,1421 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cloudforge.lvonguyen.com/schemas/application-intake.schema.json",
+  "title": "Application Intake and Review Record",
+  "description": "Neutral CMDB-ready schema for registering software, infrastructure, lab, hardware-control, simulation, and hybrid workload records before deployment approval.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "identity",
+    "ownership",
+    "deployment_scope",
+    "data_profile",
+    "assets",
+    "engineering_assets",
+    "risk_and_controls",
+    "operational_readiness",
+    "approval_workflow",
+    "retention",
+    "audit"
+  ],
+  "properties": {
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_id",
+        "system_name",
+        "system_type",
+        "lifecycle_status",
+        "owning_department",
+        "owning_team"
+      ],
+      "properties": {
+        "record_id": {
+          "type": "string",
+          "pattern": "^app-[a-z0-9][a-z0-9-]{2,63}$",
+          "description": "Stable CMDB application or workload identifier.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years",
+          "x-jira-field": "Application ID",
+          "x-confluence-section": "Overview"
+        },
+        "system_name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160,
+          "description": "Human-readable system, service, test rig, or workload name.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "short_name": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Short display name used in tags, dashboards, and tickets.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "system_type": {
+          "type": "string",
+          "enum": [
+            "software_application",
+            "embedded_system",
+            "hardware_control_system",
+            "test_lab_system",
+            "simulation_environment",
+            "data_pipeline",
+            "infrastructure_platform",
+            "vendor_tool",
+            "other"
+          ],
+          "description": "Primary record type. Use hardware_control_system or test_lab_system when hosts or devices participate in command, measurement, or lab workflows.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 4000,
+          "description": "Business and technical summary.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "business_purpose": {
+          "type": "string",
+          "maxLength": 4000,
+          "description": "Why the system exists and what operational outcome it supports.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "mission_or_program_area": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Portfolio, program, product line, lab, or functional area.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "owning_department": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Department accountable for the system record.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years",
+          "x-jira-field": "Owning Department",
+          "x-confluence-section": "Ownership"
+        },
+        "owning_team": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Team responsible for day-to-day delivery and support.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years",
+          "x-jira-field": "Owning Team",
+          "x-confluence-section": "Ownership"
+        },
+        "lifecycle_status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "intake_submitted",
+            "in_review",
+            "needs_changes",
+            "approved",
+            "registered",
+            "retired"
+          ],
+          "description": "Current intake or CMDB lifecycle status.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years",
+          "x-jira-field": "Review Status"
+        },
+        "tags": {
+          "$ref": "#/$defs/tag_map"
+        }
+      }
+    },
+    "ownership": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "business_owner",
+        "technical_lead",
+        "support_group"
+      ],
+      "properties": {
+        "business_owner": {
+          "$ref": "#/$defs/person",
+          "description": "Business accountable owner."
+        },
+        "technical_lead": {
+          "$ref": "#/$defs/person",
+          "description": "Primary technical lead accountable for design and operation."
+        },
+        "system_custodian": {
+          "$ref": "#/$defs/person",
+          "description": "Operational custodian for the system record and lifecycle hygiene."
+        },
+        "security_reviewer": {
+          "$ref": "#/$defs/person",
+          "description": "Assigned security or controls reviewer."
+        },
+        "data_steward": {
+          "$ref": "#/$defs/person",
+          "description": "Owner for data classification and handling decisions."
+        },
+        "support_group": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Queue, team, or distribution group for operational support.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "approval_group": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Group authorized to approve the registration or deployment request.",
+          "x-sensitivity": "internal",
+          "x-retention": "approval_record_7_years"
+        }
+      }
+    },
+    "deployment_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deployment_type",
+        "hosting_location",
+        "environments",
+        "network_zone",
+        "internet_exposed"
+      ],
+      "properties": {
+        "deployment_type": {
+          "type": "string",
+          "enum": [
+            "cloud_service",
+            "on_prem_server",
+            "lab_workstation",
+            "embedded_device",
+            "flight_or_robotics_stack",
+            "hardware_in_loop",
+            "simulation_only",
+            "factory_or_test_equipment",
+            "hybrid"
+          ],
+          "description": "How this system is deployed or exercised. Hardware-in-loop and lab modes are first-class deployment types.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years",
+          "x-jira-field": "Deployment Type"
+        },
+        "hosting_location": {
+          "type": "string",
+          "enum": [
+            "cloud",
+            "on_prem",
+            "lab",
+            "edge_device",
+            "local_workstation",
+            "hybrid"
+          ],
+          "description": "Where the workload primarily runs.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "environments": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "dev",
+              "test",
+              "staging",
+              "lab",
+              "production",
+              "fielded",
+              "archived"
+            ]
+          },
+          "description": "Environments where the system exists or is planned.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years",
+          "x-jira-field": "Environments"
+        },
+        "cloud_provider": {
+          "type": "string",
+          "enum": [
+            "aws",
+            "azure",
+            "gcp",
+            "cloudflare",
+            "multi_cloud",
+            "not_applicable",
+            "other"
+          ],
+          "description": "Cloud provider, if applicable.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "cloud_account_or_project": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Cloud account, subscription, project, or namespace identifier.",
+          "x-sensitivity": "restricted",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "physical_site": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Site, building, facility, or broad physical placement label. Avoid room-level detail unless required by local policy.",
+          "x-sensitivity": "restricted",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "lab_or_facility": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Lab, test area, shop, or facility owner label.",
+          "x-sensitivity": "restricted",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "network_zone": {
+          "type": "string",
+          "enum": [
+            "public",
+            "internal",
+            "restricted",
+            "isolated",
+            "air_gapped",
+            "unknown"
+          ],
+          "description": "Primary network placement or boundary.",
+          "x-sensitivity": "restricted",
+          "x-retention": "system_lifecycle_plus_7_years",
+          "x-jira-field": "Network Zone"
+        },
+        "internet_exposed": {
+          "type": "boolean",
+          "description": "True when any component is externally reachable from the internet.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "external_connections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/external_connection"
+          },
+          "description": "External network, partner, vendor, SaaS, or device connectivity."
+        },
+        "remote_access_required": {
+          "type": "boolean",
+          "description": "True when operators or engineers require remote access.",
+          "x-sensitivity": "restricted",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "privileged_access_required": {
+          "type": "boolean",
+          "description": "True when administrative, root, console, or privileged device access is needed.",
+          "x-sensitivity": "restricted",
+          "x-retention": "system_lifecycle_plus_7_years"
+        }
+      }
+    },
+    "data_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "highest_data_classification",
+        "contains_sensitive_design_data",
+        "contains_personal_data",
+        "contains_operational_telemetry",
+        "retention_requirement"
+      ],
+      "properties": {
+        "highest_data_classification": {
+          "type": "string",
+          "enum": [
+            "public",
+            "internal",
+            "confidential",
+            "restricted",
+            "controlled"
+          ],
+          "description": "Highest classification or handling tier expected for the system.",
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years",
+          "x-jira-field": "Data Classification",
+          "x-confluence-section": "Data Profile"
+        },
+        "contains_sensitive_design_data": {
+          "type": "boolean",
+          "description": "True when the system stores, generates, or transmits sensitive design or engineering artifacts.",
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        },
+        "contains_personal_data": {
+          "type": "boolean",
+          "description": "True when personal data is stored, processed, or visible.",
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        },
+        "contains_customer_data": {
+          "type": "boolean",
+          "description": "True when customer-provided or customer-identifiable data is present.",
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        },
+        "contains_vendor_data": {
+          "type": "boolean",
+          "description": "True when vendor-provided data, firmware, drawings, or documentation is present.",
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        },
+        "contains_operational_telemetry": {
+          "type": "boolean",
+          "description": "True when logs, sensor data, test data, control telemetry, or runtime measurements are collected.",
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        },
+        "data_residency_boundary": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Residency, storage, or transfer boundary for data.",
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        },
+        "retention_requirement": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Business, contractual, or operational data retention requirement.",
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years"
+        },
+        "sharing_restrictions": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Approved and prohibited sharing paths, including external transfer constraints.",
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        },
+        "approved_storage_locations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "description": "Approved storage systems, buckets, vaults, shares, databases, or artifact stores.",
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        },
+        "approved_transfer_methods": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "description": "Approved movement methods such as managed file transfer, internal package registry, VPN, or controlled removable media process.",
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "description": "CMDB child assets attached to the application or workload. Use this for hosts, switches, controllers, lab machines, cloud resources, repos, data stores, and test fixtures.",
+      "items": {
+        "$ref": "#/$defs/asset"
+      },
+      "x-sensitivity": "restricted",
+      "x-retention": "asset_inventory_lifecycle_plus_7_years"
+    },
+    "engineering_assets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repositories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/repository"
+          },
+          "description": "Source repositories or vendor-controlled code locations."
+        },
+        "primary_repo": {
+          "type": "string",
+          "format": "uri",
+          "description": "Primary source or configuration repository.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "artifact_locations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "description": "Package registries, object stores, release shares, firmware archives, or test artifact locations.",
+          "x-sensitivity": "restricted",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "build_system": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Build, CI, release, or lab automation system.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "pipeline_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Primary build, deploy, test, or release pipeline URL.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "iac_path": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Infrastructure, configuration, or lab setup path.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "release_process": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "How changes are built, reviewed, deployed, tested, or promoted.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "dependency_sources": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "description": "External package, library, firmware, vendor, or data dependencies.",
+          "x-sensitivity": "restricted",
+          "x-retention": "artifact_reference_lifecycle"
+        }
+      }
+    },
+    "risk_and_controls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "criticality",
+        "threat_model_required",
+        "security_review_required"
+      ],
+      "properties": {
+        "criticality": {
+          "type": "string",
+          "enum": [
+            "p1",
+            "p2",
+            "p3",
+            "p4"
+          ],
+          "description": "Business and operational criticality.",
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years",
+          "x-jira-field": "Criticality"
+        },
+        "service_tier": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Service, lab, or operational support tier.",
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years"
+        },
+        "required_control_baseline": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Internal control baseline or policy pack name.",
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years"
+        },
+        "threat_model_required": {
+          "type": "boolean",
+          "description": "True when threat modeling is required before registration or deployment.",
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years"
+        },
+        "threat_model_status": {
+          "type": "string",
+          "enum": [
+            "not_started",
+            "in_progress",
+            "complete",
+            "waived"
+          ],
+          "description": "Threat model review status.",
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years"
+        },
+        "architecture_review_required": {
+          "type": "boolean",
+          "description": "True when architecture review is required.",
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years"
+        },
+        "data_review_required": {
+          "type": "boolean",
+          "description": "True when data handling review is required.",
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years"
+        },
+        "security_review_required": {
+          "type": "boolean",
+          "description": "True when security review is required.",
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years"
+        },
+        "hardware_safety_review_required": {
+          "type": "boolean",
+          "description": "True when hardware, test equipment, controls, or safety-relevant workflows require review.",
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years"
+        },
+        "open_risks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/risk"
+          }
+        },
+        "compensating_controls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "description": "Compensating controls needed while a risk remains open.",
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        }
+      }
+    },
+    "operational_readiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "monitoring_required": {
+          "type": "boolean",
+          "description": "True when monitoring must be in place before approval.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "logging_required": {
+          "type": "boolean",
+          "description": "True when runtime or operational logging is required.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "audit_logging_required": {
+          "type": "boolean",
+          "description": "True when audit logging is required.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "backup_required": {
+          "type": "boolean",
+          "description": "True when backup or restore process is required.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "rto_hours": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Recovery time objective in hours.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "rpo_hours": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Recovery point objective in hours.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "support_hours": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Expected support window.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "incident_contact": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Incident escalation contact or group.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "runbook_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Operational runbook URL.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "recovery_procedure_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Recovery or restore procedure URL.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        }
+      }
+    },
+    "approval_workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "current_stage",
+        "approvals"
+      ],
+      "properties": {
+        "current_stage": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Current review stage.",
+          "x-sensitivity": "internal",
+          "x-retention": "approval_record_7_years"
+        },
+        "approvals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/approval"
+          },
+          "description": "Review layers and decisions.",
+          "x-sensitivity": "internal",
+          "x-retention": "approval_record_7_years"
+        }
+      }
+    },
+    "atlassian_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "jira_project_key": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Future Jira project key.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "jira_issue_key": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Future Jira issue key for the intake.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "jira_component": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Future Jira component or service area.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "jira_issue_type": {
+          "type": "string",
+          "const": "Application Intake",
+          "description": "Recommended Jira issue type.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "confluence_space_key": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Future Confluence space key.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "confluence_page_id": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Future Confluence system-record page ID.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "confluence_page_template": {
+          "type": "string",
+          "const": "System Record / Evidence Package",
+          "description": "Recommended Confluence page template.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "linked_epics": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "description": "Linked delivery epics.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "linked_change_requests": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "description": "Linked change or deployment request identifiers.",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        }
+      }
+    },
+    "retention": {
+      "$ref": "#/$defs/retention_policy",
+      "description": "Record-level retention policy. Field-level annotations may be stricter."
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created_by",
+        "created_at",
+        "registration_version"
+      ],
+      "properties": {
+        "created_by": {
+          "type": "string",
+          "format": "email",
+          "description": "Creator of the intake record.",
+          "x-sensitivity": "internal",
+          "x-retention": "operational_log_2_years"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Record creation time.",
+          "x-sensitivity": "internal",
+          "x-retention": "operational_log_2_years"
+        },
+        "updated_by": {
+          "type": "string",
+          "format": "email",
+          "description": "Last updater.",
+          "x-sensitivity": "internal",
+          "x-retention": "operational_log_2_years"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update time.",
+          "x-sensitivity": "internal",
+          "x-retention": "operational_log_2_years"
+        },
+        "submitted_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Intake submission time.",
+          "x-sensitivity": "internal",
+          "x-retention": "approval_record_7_years"
+        },
+        "approved_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Final approval time.",
+          "x-sensitivity": "internal",
+          "x-retention": "approval_record_7_years"
+        },
+        "retired_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Retirement time, if applicable.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "registration_version": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Monotonic version of the system record.",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "person": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "email"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 160,
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "department": {
+          "type": "string",
+          "maxLength": 160,
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        },
+        "team": {
+          "type": "string",
+          "maxLength": 160,
+          "x-sensitivity": "internal",
+          "x-retention": "system_lifecycle_plus_7_years"
+        }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "asset_type",
+        "hosting_role",
+        "lifecycle_status",
+        "environment"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "pattern": "^asset-[a-z0-9][a-z0-9-]{2,80}$",
+          "description": "Stable child asset ID in the CMDB record.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "asset_name": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Human-readable asset name.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "asset_type": {
+          "type": "string",
+          "enum": [
+            "host",
+            "virtual_machine",
+            "container_cluster",
+            "container",
+            "switch",
+            "router",
+            "firewall",
+            "storage_array",
+            "lab_workstation",
+            "controller",
+            "sensor",
+            "actuator",
+            "radio",
+            "test_fixture",
+            "manufacturing_equipment",
+            "embedded_device",
+            "cloud_resource",
+            "repository",
+            "data_store",
+            "other"
+          ],
+          "description": "Type of asset attached to the application or workload.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "hosting_role": {
+          "type": "string",
+          "enum": [
+            "primary_runtime",
+            "secondary_runtime",
+            "build_or_test",
+            "control_plane",
+            "data_plane",
+            "network_dependency",
+            "storage_dependency",
+            "operator_workstation",
+            "lab_fixture",
+            "telemetry_source",
+            "external_dependency",
+            "documentation_or_repo"
+          ],
+          "description": "How this asset supports the parent system. This is where host name, switch, and lab device relationships fit.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "hostname": {
+          "type": "string",
+          "maxLength": 253,
+          "description": "Host name, device name, or DNS label when applicable.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years",
+          "x-jira-field": "Host Name"
+        },
+        "fqdn": {
+          "type": "string",
+          "maxLength": 253,
+          "description": "Fully qualified domain name when applicable.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "serial_number": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Serial number for physical hardware when applicable.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "inventory_id": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Existing asset inventory, property, or service management identifier.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "cloud_resource_id": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Cloud ARN, Azure resource ID, GCP resource name, or similar identifier.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "ip_addresses": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "format": "ip"
+          },
+          "description": "Known IP addresses. Store CIDRs or highly sensitive network details only when necessary.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "mac_addresses": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$"
+          },
+          "description": "Known MAC addresses.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "dev",
+            "test",
+            "staging",
+            "lab",
+            "production",
+            "fielded",
+            "archived"
+          ],
+          "description": "Environment for this asset.",
+          "x-sensitivity": "internal",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "site": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Site, lab, cloud region, or broad placement label.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "network_zone": {
+          "type": "string",
+          "enum": [
+            "public",
+            "internal",
+            "restricted",
+            "isolated",
+            "air_gapped",
+            "unknown"
+          ],
+          "description": "Asset network placement.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "owner_team": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Team responsible for the asset.",
+          "x-sensitivity": "internal",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "managed_by": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Tool, process, or team that manages configuration.",
+          "x-sensitivity": "internal",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "privileged_access": {
+          "type": "boolean",
+          "description": "True when privileged access exists or is required.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "remote_access": {
+          "type": "boolean",
+          "description": "True when remote access to the asset exists or is required.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "data_processed": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "none",
+              "logs",
+              "telemetry",
+              "test_results",
+              "design_artifacts",
+              "configuration",
+              "source_code",
+              "firmware",
+              "business_data",
+              "other"
+            ]
+          },
+          "description": "Data categories present on or flowing through the asset.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "control_authority": {
+          "type": "string",
+          "enum": [
+            "none",
+            "monitor_only",
+            "command_capable",
+            "safety_relevant",
+            "autonomous_control"
+          ],
+          "description": "Whether the asset can command, control, or affect hardware or operational behavior.",
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        },
+        "safety_impact": {
+          "type": "string",
+          "enum": [
+            "none",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "description": "Potential safety or operational impact if the asset fails or is misused.",
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        },
+        "lifecycle_status": {
+          "type": "string",
+          "enum": [
+            "planned",
+            "active",
+            "maintenance",
+            "quarantined",
+            "retired"
+          ],
+          "description": "Asset lifecycle state.",
+          "x-sensitivity": "internal",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        },
+        "retention": {
+          "$ref": "#/$defs/retention_policy",
+          "description": "Asset-specific retention policy if stricter than parent record."
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Asset-specific notes. Do not store secrets.",
+          "x-sensitivity": "restricted",
+          "x-retention": "asset_inventory_lifecycle_plus_7_years"
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repo_url",
+        "repo_visibility"
+      ],
+      "properties": {
+        "repo_url": {
+          "type": "string",
+          "format": "uri",
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "repo_visibility": {
+          "type": "string",
+          "enum": [
+            "public",
+            "internal",
+            "private",
+            "restricted"
+          ],
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "primary_language": {
+          "type": "string",
+          "maxLength": 80,
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "owner_team": {
+          "type": "string",
+          "maxLength": 160,
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        },
+        "criticality": {
+          "type": "string",
+          "enum": [
+            "p1",
+            "p2",
+            "p3",
+            "p4"
+          ],
+          "x-sensitivity": "internal",
+          "x-retention": "artifact_reference_lifecycle"
+        }
+      }
+    },
+    "external_connection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "connection_type",
+        "direction",
+        "approved"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 160,
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        },
+        "connection_type": {
+          "type": "string",
+          "enum": [
+            "api",
+            "vpn",
+            "private_link",
+            "remote_desktop",
+            "ssh",
+            "serial",
+            "fieldbus",
+            "radio",
+            "file_transfer",
+            "vendor_portal",
+            "other"
+          ],
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "inbound",
+            "outbound",
+            "bidirectional"
+          ],
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        },
+        "approved": {
+          "type": "boolean",
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000,
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "risk_id",
+        "description",
+        "severity",
+        "owner",
+        "status"
+      ],
+      "properties": {
+        "risk_id": {
+          "type": "string",
+          "maxLength": 80,
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000,
+          "x-sensitivity": "restricted",
+          "x-retention": "security_review_7_years"
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years"
+        },
+        "owner": {
+          "type": "string",
+          "maxLength": 160,
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "open",
+            "accepted",
+            "mitigating",
+            "closed"
+          ],
+          "x-sensitivity": "internal",
+          "x-retention": "security_review_7_years"
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage",
+        "status"
+      ],
+      "properties": {
+        "stage": {
+          "type": "string",
+          "enum": [
+            "business_owner",
+            "technical_owner",
+            "data_classification",
+            "platform_engineering",
+            "security_controls",
+            "hardware_safety",
+            "cost_review",
+            "final_governance"
+          ],
+          "x-sensitivity": "internal",
+          "x-retention": "approval_record_7_years"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "not_started",
+            "pending",
+            "approved",
+            "rejected",
+            "needs_changes",
+            "skipped"
+          ],
+          "x-sensitivity": "internal",
+          "x-retention": "approval_record_7_years"
+        },
+        "reviewer": {
+          "type": "string",
+          "format": "email",
+          "x-sensitivity": "internal",
+          "x-retention": "approval_record_7_years"
+        },
+        "decided_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-sensitivity": "internal",
+          "x-retention": "approval_record_7_years"
+        },
+        "comments": {
+          "type": "string",
+          "maxLength": 2000,
+          "x-sensitivity": "restricted",
+          "x-retention": "approval_record_7_years"
+        }
+      }
+    },
+    "retention_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy",
+        "classification",
+        "delete_trigger",
+        "legal_hold_supported",
+        "archive_required"
+      ],
+      "properties": {
+        "policy": {
+          "type": "string",
+          "enum": [
+            "draft_180_days",
+            "system_lifecycle_plus_7_years",
+            "approval_record_7_years",
+            "security_review_7_years",
+            "asset_inventory_lifecycle_plus_7_years",
+            "operational_log_2_years",
+            "artifact_reference_lifecycle",
+            "delete_on_registration_superseded"
+          ],
+          "description": "Named retention policy."
+        },
+        "classification": {
+          "type": "string",
+          "enum": [
+            "draft_record",
+            "system_record",
+            "approval_record",
+            "security_review_record",
+            "asset_inventory_record",
+            "operational_log",
+            "artifact_reference"
+          ],
+          "description": "Retention classification for records management."
+        },
+        "delete_trigger": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Human-readable deletion or archive trigger."
+        },
+        "legal_hold_supported": {
+          "type": "boolean",
+          "description": "Whether legal hold can override deletion."
+        },
+        "archive_required": {
+          "type": "boolean",
+          "description": "Whether this record must be archived before deletion."
+        }
+      }
+    },
+    "tag_map": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "description": "Freeform tags. Do not store secrets."
+    }
+  }
+}
